@@ -9,8 +9,168 @@ export interface UserProfile {
   age?: number;
   activityLevel?: string;
   gender?: string;
+  targetWeight?: number;
   skinTone?: string;
   hairColor?: string;
+  emotionalLogs?: EmotionalLog[];
+  currentChallenge?: Challenge;
+  waterGoal?: number; // in ml
+  hydrationLogs?: HydrationLog[];
+  points?: number;
+  pointsHistory?: PointsEntry[];
+  prediction?: GoalPrediction;
+  currentWorkout?: WorkoutSession;
+  cart?: CartItem[];
+  favorites?: string[]; // Array of product IDs
+}
+
+export interface StoreTag {
+  label: string;
+  type: 'frescor' | 'preco' | 'proximidade' | 'promocao';
+  color: string;
+}
+
+export interface FreshnessStore extends MarketPartner {
+  coordinates: { lat: number; lng: number }; 
+  freshnessScore: number; // 0-10
+  priceLevel: 1 | 2 | 3; // 1 = $, 2 = $$, 3 = $$$
+  tags: StoreTag[];
+  aiAnalysis: string;
+  assistantMessage: string;
+  openingHours: string;
+  phone: string;
+  address: string;
+}
+
+export interface MarketPartner {
+  id: string;
+  name: string;
+  rating: number;
+  deliveryTime: string;
+  minOrder: number;
+  image: string;
+  distance: string;
+}
+
+export interface ProductReview {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  category: 'Frutas' | 'Verduras' | 'Legumes' | 'Kits';
+  price: number;
+  unit: string;
+  image: string;
+  isOrganic?: boolean;
+  isSeasonal?: boolean;
+  description: string;
+  rating?: number;
+  reviewCount?: number;
+  reviews?: ProductReview[];
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface TutorialStep {
+  title: string;
+  description: string;
+  animationState: 'idle' | 'executing' | 'tutorial';
+  cameraView: 'front' | 'side' | 'detail';
+}
+
+export interface CommonError {
+  error: string;
+  fix: string;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  description: string;
+  muscleGroups: string[];
+  primaryMuscles: string[]; // For highlighting
+  difficulty: 'Iniciante' | 'Intermediário' | 'Avançado';
+  reps?: number;
+  duration?: number; // seconds
+  instructions: string[];
+  benefits: string;
+  tutorialSteps?: TutorialStep[];
+  commonErrors?: CommonError[];
+}
+
+export interface WorkoutSession {
+  id: string;
+  title: string;
+  exercises: Exercise[];
+  totalCalories: number;
+  estimatedDuration: number; // minutes
+}
+
+export interface GoalPrediction {
+  estimatedDays: number;
+  estimatedDate: string;
+  confidenceScore: number;
+  motivationalMessage: string;
+}
+
+export interface PointsEntry {
+  id: string;
+  date: string;
+  amount: number;
+  reason: string;
+}
+
+export interface HydrationLog {
+  id: string;
+  date: string; // ISO
+  amount: number; // in ml
+}
+
+export interface Challenge {
+  type: 7 | 15 | 30;
+  startDate: string;
+  completedDays: number;
+  dailyGoal: string;
+  history: {
+    day: number;
+    date: string;
+    completed: boolean;
+    feedback?: string;
+  }[];
+}
+
+export interface SmartSwap {
+  original: string;
+  substitute: string;
+  reason: string;
+  benefits: string[];
+  assistantMessage: string;
+}
+
+export interface DiningOutAnalysis {
+  dish: string;
+  estimatedCalories: number;
+  macros: { protein: string; carbs: string; fats: string };
+  verdict: string; // "Escolha Inteligente", "Moderado", "Excesso"
+  tips: string[];
+  betterAlternative?: string;
+  assistantMessage: string;
+}
+
+export interface EmotionalLog {
+  id: string;
+  date: string; // ISO
+  mood: string;
+  trigger?: string;
+  mealType?: string;
 }
 
 export interface Ingredient {

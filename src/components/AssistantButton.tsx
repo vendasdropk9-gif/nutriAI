@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Bot, X, Send, Mic, MicOff, Loader2 } from 'lucide-react';
-import { chatWithAssistant, textToSpeech } from '../lib/gemini';
+import { chatWithAssistant } from '../lib/gemini';
+import { speak } from '../lib/speech';
 import { UserProfile } from '../types';
 
 interface AssistantButtonProps {
@@ -19,8 +20,7 @@ export function AssistantButton({ profile }: AssistantButtonProps) {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,16 +53,11 @@ export function AssistantButton({ profile }: AssistantButtonProps) {
       recognitionRef.current = recognition;
     }
     
-    // Setup Audio Context
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
-      if (currentAudioSourceRef.current) {
-        currentAudioSourceRef.current.stop();
-      }
+      stopAudio();
     };
   }, []);
 
@@ -84,55 +79,25 @@ export function AssistantButton({ profile }: AssistantButtonProps) {
   };
 
   const playTTS = async (text: string) => {
-    try {
-      const base64Audio = await textToSpeech(text);
-      if (!base64Audio) return;
+    setIsPlaying(true);
+    const result = await speak(text, {
+      onEnded: () => setIsPlaying(false),
+      onError: () => setIsPlaying(false)
+    });
 
-      const binary = atob(base64Audio);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const int16Array = new Int16Array(bytes.buffer);
-      
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-      
-      const audioCtx = audioContextRef.current;
-      if (!audioCtx) return;
-      
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
-      const buffer = audioCtx.createBuffer(1, float32Array.length, 24000);
-      buffer.getChannelData(0).set(float32Array);
-      
-      stopAudio();
-      
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      
-      source.onended = () => {
-        setIsPlaying(false);
-        currentAudioSourceRef.current = null;
-      };
-      
-      currentAudioSourceRef.current = source;
-      source.start();
-      setIsPlaying(true);
-    } catch (e) {
-      console.error("Error playing audio", e);
+    if (result.method === 'gemini' && result.audio) {
+      audioRef.current = result.audio;
     }
   };
 
   const stopAudio = () => {
-    if (currentAudioSourceRef.current) {
-      currentAudioSourceRef.current.stop();
-      currentAudioSourceRef.current = null;
-      setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
+    window.speechSynthesis?.cancel();
+    setIsPlaying(false);
   };
 
   const handleSend = async (overrideText?: string) => {

@@ -15,6 +15,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     goals: profile?.goals || '',
     equipment: profile?.equipment?.join(', ') || '',
     weight: profile?.weight?.toString() || '',
+    targetWeight: profile?.targetWeight?.toString() || '',
     height: profile?.height?.toString() || '',
     age: profile?.age?.toString() || '',
     activityLevel: profile?.activityLevel || '',
@@ -40,6 +41,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       goals: formData.goals,
       equipment: formData.equipment.split(',').map((s) => s.trim()).filter(Boolean),
       weight: formData.weight ? Number(formData.weight) : undefined,
+      targetWeight: formData.targetWeight ? Number(formData.targetWeight) : undefined,
       height: formData.height ? Number(formData.height) : undefined,
       age: formData.age ? Number(formData.age) : undefined,
       activityLevel: formData.activityLevel,
@@ -131,6 +133,18 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 value={formData.height}
                 onChange={(e) => handleChange('height', e.target.value)}
                 placeholder="Ex: 175"
+                className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+                Peso Alvo (kg)
+              </label>
+              <input
+                type="number"
+                value={formData.targetWeight}
+                onChange={(e) => handleChange('targetWeight', e.target.value)}
+                placeholder="Ex: 65"
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm transition-all"
               />
             </div>

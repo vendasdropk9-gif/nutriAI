@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
   profile: UserProfile | null;
+  onAwardPoints?: (amount: number, reason: string) => void;
 }
 
-export function Generator({ onSaveRecipe, profile }: GeneratorProps) {
+export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorProps) {
   const [ingredients, setIngredients] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
+  const [budgetMode, setBudgetMode] = useState(false);
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -21,9 +23,10 @@ export function Generator({ onSaveRecipe, profile }: GeneratorProps) {
     setGeneratedRecipe(null);
     
     try {
-      const data = await generateRecipe(ingredients, profile);
+      const data = await generateRecipe(ingredients, profile, budgetMode);
       if (data) {
         setGeneratedRecipe({ ...data, id: crypto.randomUUID() });
+        if (onAwardPoints) onAwardPoints(20, 'Receita personalizada gerada');
       } else {
         alert("Não foi possível gerar a receita. Tente novamente.");
       }
@@ -79,7 +82,27 @@ export function Generator({ onSaveRecipe, profile }: GeneratorProps) {
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <button
+                type="button"
+                onClick={() => setBudgetMode(!budgetMode)}
+                className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all ${
+                  budgetMode 
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold' 
+                  : 'bg-white/40 dark:bg-slate-700/30 border-white/60 dark:border-slate-600/50 text-slate-400'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${budgetMode ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                  <PiggyBank className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm">Modo Economia</p>
+                  <p className="text-[10px] leading-tight opacity-70">
+                    {budgetMode ? 'Focado em baixo custo' : 'Ingredientes padrão'}
+                  </p>
+                </div>
+              </button>
+
               <button
                 type="submit"
                 disabled={isGenerating}

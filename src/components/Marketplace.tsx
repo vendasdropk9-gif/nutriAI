@@ -1,0 +1,648 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  ShoppingBag, 
+  MapPin, 
+  Star, 
+  Clock, 
+  Leaf, 
+  Search, 
+  ChevronRight, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  Zap, 
+  Sparkles,
+  Volume2,
+  Heart,
+  TrendingDown,
+  Store,
+  ShoppingCart,
+  MessageSquare,
+  User,
+  Send,
+  RefreshCw,
+  Map as MapIcon
+} from 'lucide-react';
+import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
+import { speak } from '../lib/speech';
+
+const MARKET_PARTNERS: MarketPartner[] = [
+  {
+    id: 'm1',
+    name: 'Sacolão Vida Verde',
+    rating: 4.8,
+    deliveryTime: '30-45 min',
+    minOrder: 20,
+    image: 'https://images.unsplash.com/photo-1488459711612-da307255be24?auto=format&fit=crop&q=80&w=600',
+    distance: '1.2 km'
+  },
+  {
+    id: 'm2',
+    name: 'Hortifruti Premium',
+    rating: 4.9,
+    deliveryTime: '20-35 min',
+    minOrder: 35,
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
+    distance: '2.5 km'
+  }
+];
+
+const PRODUCTS: Product[] = [
+  { id: 'p1', name: 'Morango Orgânico', category: 'Frutas', price: 12.90, unit: 'bandeja', image: 'https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Morangos frescos direto do produtor.', rating: 4.8, reviewCount: 24, reviews: [{ id: 'r1', userName: 'Ana Paula', rating: 5, comment: 'Maravilhosos e muito doces!', date: '2024-04-20' }] },
+  { id: 'p2', name: 'Kit Salada Prática', category: 'Kits', price: 19.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400', isSeasonal: true, description: 'Mix de folhas limpas e higienizadas.', rating: 4.5, reviewCount: 15, reviews: [{ id: 'r2', userName: 'Carlos M.', rating: 4, comment: 'Muito prático para o dia a dia.', date: '2024-04-18' }] },
+  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1571771894821-ad99026.jpg?auto=format&fit=crop&q=80&w=400', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
+  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1452948491233-ad8a1ed01085?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
+  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1506807803488-8eafc1c3b756?auto=format&fit=crop&q=80&w=400', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
+  { id: 'p6', name: 'Combo Emagrecimento', category: 'Kits', price: 89.00, unit: 'kit', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=400', description: 'Seleção especial da nossa IA.', rating: 5.0, reviewCount: 8 },
+];
+
+const BANNERS = [
+  { id: 'b1', title: 'Cesta Fresh da Semana', subtitle: 'Direto do produtor', price: 'R$ 19,90', image: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&q=80&w=1200', tip: "Essas frutas estão fresquinhas hoje 💚" },
+  { id: 'b2', title: 'Orgânicos Certificados', subtitle: 'Saúde sem agrotóxicos', price: 'Promoção', image: 'https://images.unsplash.com/photo-1566385278483-eec357859843?auto=format&fit=crop&q=80&w=1200', tip: "Quer que eu monte uma cesta saudável pra sua semana?" },
+  { id: 'b3', title: 'Kit Detox Verão', subtitle: 'Fresco do dia', price: 'R$ 45,00', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200', tip: "Esses ingredientes combinam com seu plano alimentar." },
+  { id: 'b4', title: 'Hortifruti da Estação', subtitle: 'Sabor que protege', price: 'Oferta', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200', tip: "As cores da estação trazem mais saúde pra sua mesa. 🍎" },
+  { id: 'b5', title: 'Proteínas Selecionadas', subtitle: 'Qualidade premium', price: 'R$ 89,90', image: 'https://images.unsplash.com/photo-1432139555190-58524dae6a55?auto=format&fit=crop&q=80&w=1200', tip: "Proteínas de alta qualidade pra quem não abre mão do sabor. 🥩" },
+  { id: 'b6', title: 'Doçura Natural', subtitle: 'Mel e Própolis', price: 'R$ 32,00', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=1200', tip: "Doçura natural e energia pura pra adoçar seu dia. 🍯" },
+];
+
+interface MarketplaceProps {
+  profile: UserProfile | null;
+  onUpdateCart: (cart: CartItem[]) => void;
+  onUpdateFavorites?: (favorites: string[]) => void;
+  onOpenPartner?: () => void;
+  onOpenMap?: () => void;
+}
+
+export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap }: MarketplaceProps) {
+  const [activeCategory, setActiveCategory] = useState<string>('Tudo');
+  const [activeMarket, setActiveMarket] = useState(MARKET_PARTNERS[0]);
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(profile?.cart || []);
+  const [favorites, setFavorites] = useState<string[]>(profile?.favorites || []);
+  const [showCart, setShowCart] = useState(false);
+  const [selectedProductReview, setSelectedProductReview] = useState<Product | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner(prev => (prev + 1) % BANNERS.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const addToCart = (product: Product) => {
+    const existing = cart.find(item => item.id === product.id);
+    let newCart;
+    if (existing) {
+      newCart = cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+    } else {
+      newCart = [...cart, { ...product, quantity: 1 }];
+    }
+    setCart(newCart);
+    onUpdateCart(newCart);
+  };
+
+  const toggleFavorite = (productId: string) => {
+    const isFavorite = favorites.includes(productId);
+    const newFavorites = isFavorite 
+      ? favorites.filter(id => id !== productId)
+      : [...favorites, productId];
+    
+    setFavorites(newFavorites);
+    if (onUpdateFavorites) {
+      onUpdateFavorites(newFavorites);
+    }
+  };
+
+  const removeFromCart = (productId: string) => {
+    const newCart = cart.map(item => {
+      if (item.id === productId) {
+        return { ...item, quantity: Math.max(0, item.quantity - 1) };
+      }
+      return item;
+    }).filter(item => item.quantity > 0);
+    setCart(newCart);
+    onUpdateCart(newCart);
+  };
+
+  const submitReview = () => {
+    if (reviewRating === 0 || !selectedProductReview) return;
+    
+    setIsSubmittingReview(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      const newReview: ProductReview = {
+        id: `r-${Date.now()}`,
+        userName: profile?.name || 'Usuário NutriAI',
+        rating: reviewRating,
+        comment: reviewComment,
+        date: new Date().toISOString().split('T')[0]
+      };
+
+      // In a real app, we would update the DB. 
+      // Here we update the local object (mocking persistence)
+      if (selectedProductReview.reviews) {
+        selectedProductReview.reviews = [newReview, ...selectedProductReview.reviews];
+      } else {
+        selectedProductReview.reviews = [newReview];
+      }
+      
+      const oldCount = selectedProductReview.reviewCount || 0;
+      const oldRating = selectedProductReview.rating || 0;
+      selectedProductReview.reviewCount = oldCount + 1;
+      selectedProductReview.rating = Number(((oldRating * oldCount + reviewRating) / (oldCount + 1)).toFixed(1));
+
+      setIsSubmittingReview(false);
+      setReviewRating(0);
+      setReviewComment('');
+    }, 1000);
+  };
+
+  const handleSpeak = async (text: string) => {
+    if (isPlaying) return;
+    setIsPlaying(true);
+    await speak(text, {
+      onEnded: () => setIsPlaying(false),
+      onError: () => setIsPlaying(false)
+    });
+  };
+
+  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const filteredProducts = activeCategory === 'Tudo' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      {/* Header & Market Switcher */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-emerald-600 font-bold uppercase text-xs tracking-widest">
+            <Store className="w-4 h-4" />
+            NutriMarket Local
+          </div>
+          <h2 className="font-serif text-3xl md:text-4xl font-medium text-slate-800 dark:text-slate-100">Sacolão & Hortifruti</h2>
+          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+            <MapPin className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs md:text-sm">Entregando em: <strong>Seu Endereço Atual</strong></span>
+          </div>
+          
+          <button 
+            onClick={onOpenMap}
+            className="flex items-center gap-3 p-3 px-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
+          >
+            <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
+               <MapIcon className="w-4 h-4" />
+            </div>
+            Explorar Mapa de Frescor
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+          {MARKET_PARTNERS.map(market => (
+            <button
+              key={market.id}
+              onClick={() => setActiveMarket(market)}
+              className={`flex shrink-0 items-center gap-3 p-3 rounded-2xl border transition-all ${
+                activeMarket.id === market.id 
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 shadow-lg shadow-emerald-500/10' 
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={market.image} className="w-10 h-10 rounded-full object-cover" />
+              <div className="text-left">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{market.name}</p>
+                <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                  {market.rating} • {market.distance}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Dynamic Banner */}
+      <div className="relative h-[380px] md:h-[450px] rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800 transition-colors">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={BANNERS[currentBanner].id}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0"
+          >
+            <img src={BANNERS[currentBanner].image} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 space-y-3 md:space-y-4">
+               <div className="flex items-center gap-3">
+                  <div className="px-3 py-1 md:px-4 md:py-1.5 bg-emerald-500 text-white rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                     {BANNERS[currentBanner].price}
+                  </div>
+                  <button 
+                    onClick={() => handleSpeak(BANNERS[currentBanner].tip)}
+                    className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40"
+                  >
+                     <Volume2 className="w-5 h-5" />
+                  </button>
+               </div>
+               <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white leading-tight">
+                  {BANNERS[currentBanner].title}
+               </h3>
+               <p className="text-white/80 text-lg md:text-xl font-medium">{BANNERS[currentBanner].subtitle}</p>
+               <button className="px-6 py-4 md:px-8 md:py-4 bg-white text-slate-900 rounded-xl md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  <span className="text-sm md:text-base">Comprar Agora</span>
+               </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        
+        {/* Indicators */}
+        <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 flex gap-2 md:gap-3">
+          {BANNERS.map((_, i) => (
+            <div 
+              key={i}
+              className={`h-1 md:h-1.5 rounded-full transition-all duration-500 ${currentBanner === i ? 'w-8 md:w-10 bg-emerald-500' : 'w-2 md:w-3 bg-white/30'}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* AI Recommendation Section */}
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center gap-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Sparkles className="w-32 h-32" />
+        </div>
+        <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shrink-0">
+          <Zap className="w-10 h-10" />
+        </div>
+        <div className="space-y-2 flex-1">
+          <h4 className="text-2xl font-serif font-bold">Baseado no seu plano alimentar</h4>
+          <p className="text-emerald-50 opacity-90">Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.</p>
+        </div>
+        <button 
+          onClick={() => addToCart(PRODUCTS[5])}
+          className="px-8 py-4 bg-white text-emerald-600 rounded-2xl font-bold hover:bg-emerald-50 transition-all shadow-lg"
+        >
+          Adicionar Sugestão IA
+        </button>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        {['Tudo', 'Frutas', 'Verduras', 'Legumes', 'Kits'].map(cat => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+              activeCategory === cat 
+              ? 'bg-slate-900 text-white shadow-xl' 
+              : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Product Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {filteredProducts.map(product => (
+          <motion.div
+            layout
+            key={product.id}
+            className="bg-white dark:bg-slate-800/60 p-5 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all group"
+          >
+            <div className="relative h-40 rounded-2xl overflow-hidden mb-4">
+              <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              {product.isOrganic && (
+                <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
+                  Orgânico
+                </div>
+              )}
+              {product.isSeasonal && (
+                <div className="absolute top-3 right-3 px-2 py-1 bg-amber-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
+                  Estação
+                </div>
+              )}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(product.id);
+                }}
+                className={`absolute bottom-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all ${
+                  favorites.includes(product.id)
+                  ? 'bg-red-500 text-white shadow-lg'
+                  : 'bg-white/40 text-white hover:bg-white/60'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${favorites.includes(product.id) ? 'fill-current' : ''}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-1 mb-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.category}</p>
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedProductReview(product);
+                  }}
+                  className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all border border-transparent hover:border-emerald-200"
+                >
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                  <span className="font-bold text-slate-700 dark:text-slate-300">{product.rating || 'N/A'}</span>
+                  <span className="text-slate-400">({product.reviewCount || 0})</span>
+                </div>
+              </div>
+              <h5 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100">{product.name}</h5>
+              <p className="text-xs text-slate-500 line-clamp-1">{product.description}</p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
+                <p className="text-[10px] text-slate-400 uppercase">por {product.unit}</p>
+              </div>
+              <button 
+                onClick={() => addToCart(product)}
+                className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-90"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Floating Cart Button */}
+      <AnimatePresence>
+        {cart.length > 0 && (
+          <motion.button
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            onClick={() => setShowCart(true)}
+            className="fixed bottom-32 right-8 md:right-12 z-50 bg-slate-900 text-white px-8 py-5 rounded-full shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
+          >
+            <div className="relative">
+              <ShoppingBag className="w-6 h-6" />
+              <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+                {cart.reduce((a, b) => a + b.quantity, 0)}
+              </div>
+            </div>
+            <div className="text-left pr-4">
+              <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Ver Carrinho</p>
+              <p className="text-lg font-serif">R$ {cartTotal.toFixed(2)}</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-emerald-500" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Cart Modal */}
+      <AnimatePresence>
+        {showCart && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCart(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md h-full bg-white dark:bg-slate-900 shadow-2xl p-8 flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-8 pb-4 border-b dark:border-slate-800">
+                <h3 className="text-2xl font-serif font-bold">Seu Sacolão</h3>
+                <button onClick={() => setShowCart(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+                {cart.map(item => (
+                  <div key={item.id} className="flex gap-4 items-center">
+                    <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" />
+                    <div className="flex-1">
+                      <h5 className="font-bold text-slate-800 dark:text-slate-100">{item.name}</h5>
+                      <p className="text-sm text-slate-500">R$ {item.price.toFixed(2)} / {item.unit}</p>
+                    </div>
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                      <button 
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-8 text-center font-bold">{item.quantity}</span>
+                      <button 
+                        onClick={() => addToCart(item)}
+                        className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-8 space-y-6 border-t dark:border-slate-800 mt-auto">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-slate-500">
+                    <span>Subtotal</span>
+                    <span>R$ {cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Taxa de Entrega</span>
+                    <span className="text-emerald-500 font-bold">Grátis</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold pt-2">
+                    <span>Total</span>
+                    <span>R$ {cartTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+                
+                <button className="w-full py-5 bg-emerald-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all">
+                  Finalizar Compra
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
+      {/* Reviews Modal */}
+      <AnimatePresence>
+        {selectedProductReview && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedProductReview(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-8 border-b dark:border-slate-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                  <img src={selectedProductReview.image} className="w-16 h-16 rounded-2xl object-cover" />
+                  <div>
+                    <h3 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">{selectedProductReview.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <span className="font-bold text-slate-900 dark:text-white">{selectedProductReview.rating || 'N/A'}</span>
+                      <span className="text-slate-400 text-sm">({selectedProductReview.reviewCount || 0} avaliações)</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => toggleFavorite(selectedProductReview.id)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      favorites.includes(selectedProductReview.id)
+                      ? 'bg-red-50 text-red-500 dark:bg-red-900/20'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-500'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${favorites.includes(selectedProductReview.id) ? 'fill-current' : ''}`} />
+                  </button>
+                  <button 
+                    onClick={() => setSelectedProductReview(null)}
+                    className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all"
+                  >
+                    <Trash2 className="w-5 h-5 flex-shrink-0" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                {/* Leave a Review Section */}
+                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-6 rounded-3xl border border-emerald-100 dark:border-emerald-800/30 space-y-4">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-500" />
+                    O que você achou deste produto?
+                  </h4>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setReviewRating(star)}
+                        className="transition-transform active:scale-90"
+                      >
+                        <Star 
+                          className={`w-8 h-8 ${reviewRating >= star ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-700'}`} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Escreva sua opinião..."
+                      className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-none h-24"
+                    />
+                    <button
+                      disabled={isSubmittingReview || reviewRating === 0}
+                      onClick={submitReview}
+                      className="absolute bottom-4 right-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      {isSubmittingReview ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Publicar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Review List */}
+                <div className="space-y-6">
+                  <h4 className="font-bold text-slate-400 uppercase text-xs tracking-widest flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Avaliações dos Clientes
+                  </h4>
+                  
+                  {selectedProductReview.reviews && selectedProductReview.reviews.length > 0 ? (
+                    <div className="space-y-6">
+                      {selectedProductReview.reviews.map((rev) => (
+                        <div key={rev.id} className="space-y-3 pb-6 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                                <User className="w-4 h-4 text-slate-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{rev.userName}</p>
+                                <div className="flex gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star 
+                                      key={s} 
+                                      className={`w-2.5 h-2.5 ${rev.rating >= s ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700'}`} 
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">{rev.date}</span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 space-y-4">
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                        <MessageSquare className="w-8 h-8" />
+                      </div>
+                      <p className="text-slate-400 text-sm">Ainda não há avaliações para este produto.<br/>Seja o primeiro a avaliar!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Partner CTA */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-12 bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+      >
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+            <Store className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Possui um sacolão ou hortifruti?</h3>
+            <p className="text-slate-500 dark:text-slate-400">Venda seus produtos frescos direto para milhares de usuários no NutriAI.</p>
+          </div>
+        </div>
+        <button 
+          onClick={onOpenPartner}
+          className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
+        >
+          Seja um parceiro
+        </button>
+      </motion.div>
+    </div>
+  );
+}

@@ -1,68 +1,40 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw } from 'lucide-react';
-import { analyzePlate, textToSpeech } from '../lib/gemini';
+import { Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain } from 'lucide-react';
+import { analyzePlate } from '../lib/gemini';
+import { speak } from '../lib/speech';
 import { PlateAnalysisResult } from '../types';
 
-export function PlateAnalyzer() {
+interface PlateAnalyzerProps {
+  onAwardPoints?: (amount: number, reason: string) => void;
+}
+
+export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<PlateAnalysisResult | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stopAudio = () => {
-    if (currentAudioSourceRef.current) {
-      currentAudioSourceRef.current.stop();
-      currentAudioSourceRef.current = null;
-      setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
+    window.speechSynthesis?.cancel();
+    setIsPlaying(false);
   };
 
   const playTTS = async (text: string) => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (!base64Audio) return;
-
-      const binary = atob(base64Audio);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const int16Array = new Int16Array(bytes.buffer);
-      
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-      
-      const audioCtx = audioContextRef.current;
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
-      const buffer = audioCtx.createBuffer(1, float32Array.length, 24000);
-      buffer.getChannelData(0).set(float32Array);
-      
-      stopAudio();
-      
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      
-      source.onended = () => {
-        setIsPlaying(false);
-        currentAudioSourceRef.current = null;
-      };
-      
-      currentAudioSourceRef.current = source;
-      source.start();
-      setIsPlaying(true);
-    } catch (e) {
-      console.error("Error playing audio", e);
+    setIsPlaying(true);
+    const result = await speak(text, {
+      onEnded: () => setIsPlaying(false),
+      onError: () => setIsPlaying(false)
+    });
+    
+    if (result.method === 'gemini' && result.audio) {
+      audioRef.current = result.audio;
     }
   };
 
@@ -90,6 +62,7 @@ export function PlateAnalyzer() {
         if (data) {
           setAnalysisResult(data);
           playTTS(data.assistantMessage);
+          if (onAwardPoints) onAwardPoints(50, 'Análise de prato via foto concluída');
         } else {
           alert('Não foi possível analisar a imagem.');
         }
@@ -184,6 +157,10 @@ export function PlateAnalyzer() {
                     <p className="font-sans text-slate-600 dark:text-slate-300 text-lg leading-relaxed italic">
                       "{analysisResult.assistantMessage}"
                     </p>
+                    <div className="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">
+                       <Brain className="w-4 h-4" />
+                       <span>Como você se sente após essa refeição? Registre na aba "Mente".</span>
+                    </div>
                   </div>
                 </div>
               </div>
