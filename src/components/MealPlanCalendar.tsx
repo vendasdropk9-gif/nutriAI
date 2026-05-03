@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MealPlan, Recipe, UserProfile } from '../types';
-import { Plus, X, Wand2, Loader2 } from 'lucide-react';
+import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
+import { Plus, X, Wand2, Loader2, Info } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { generateMealSuggestions } from '../lib/gemini';
 
@@ -8,6 +8,7 @@ interface MealPlanProps {
   mealPlan: MealPlan;
   savedRecipes: Recipe[];
   onUpdatePlan: (day: string, mealName: string, recipeId: string | null, recipeObj?: Recipe) => void;
+  onLogIntake: (log: IntakeLog) => void;
   profile: UserProfile | null;
 }
 
@@ -24,16 +25,33 @@ const DAYS_OF_WEEK = [
 const MEALS = [
   { id: 'breakfast', label: 'Café da Manhã' },
   { id: 'lunch', label: 'Almoço' },
+  { id: 'snack', label: 'Lanche' },
   { id: 'dinner', label: 'Jantar' },
 ];
 
-export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, profile }: MealPlanProps) {
+export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake, profile }: MealPlanProps) {
   const [selectedDay, setSelectedDay] = useState<string>(DAYS_OF_WEEK[0]);
   const [addingTo, setAddingTo] = useState<{day: string, meal: string} | null>(null);
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
 
   const dayPlan = mealPlan[selectedDay]?.meals || {};
+
+  const handleLogMeal = (recipe: Recipe, mealLabel: string) => {
+    const log: IntakeLog = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      mealId: recipe.id,
+      recipeName: recipe.name,
+      planned: recipe.nutrition,
+      actual: recipe.nutrition, // By default we assume they ate what was planned unless they adjust
+      adjusted: false
+    };
+    onLogIntake(log);
+    setLoggingMeal(mealLabel);
+    setTimeout(() => setLoggingMeal(null), 2000);
+  };
 
   const handleGenerateDay = async () => {
     setIsGenerating(true);
@@ -126,12 +144,27 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, profile }: 
                       <p className="font-medium text-slate-800 dark:text-slate-200">{recipe.name}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">{recipe.prepTime} • {recipe.nutrition.calories} kcal</p>
                     </div>
-                    <button 
-                      onClick={() => setViewRecipe(recipe)}
-                      className="text-emerald-600 dark:text-emerald-400 text-sm font-medium hover:underline px-4"
-                    >
-                      Ver Receita
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleLogMeal(recipe, mealType.label)}
+                        disabled={loggingMeal === mealType.label}
+                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                          loggingMeal === mealType.label
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                        }`}
+                      >
+                        {loggingMeal === mealType.label ? (
+                          <span className="flex items-center gap-1">✓ Logado</span>
+                        ) : 'Eu comi!'}
+                      </button>
+                      <button 
+                        onClick={() => setViewRecipe(recipe)}
+                        className="text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 p-2 transition-colors"
+                      >
+                        <Info className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div>

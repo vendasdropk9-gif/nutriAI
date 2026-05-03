@@ -22,6 +22,9 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     gender: profile?.gender || '',
     skinTone: profile?.skinTone || '',
     hairColor: profile?.hairColor || '',
+    bodyType: profile?.bodyType || '',
+    metabolism: profile?.metabolism || '',
+    routine: profile?.routine || '',
   });
   
   const [isSaved, setIsSaved] = useState(false);
@@ -48,6 +51,9 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       gender: formData.gender,
       skinTone: formData.skinTone,
       hairColor: formData.hairColor,
+      bodyType: formData.bodyType as any,
+      metabolism: formData.metabolism as any,
+      routine: formData.routine,
     };
     
     onSaveProfile(processedProfile);
@@ -204,6 +210,53 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   <option value="careca">Careca / Sem cabelo</option>
                 </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 dark:border-slate-700 pt-6">
+            <div className="space-y-2">
+                <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+                    Tipo de Corpo (Biotipo)
+                </label>
+                <select
+                    value={formData.bodyType}
+                    onChange={(e) => handleChange('bodyType', e.target.value)}
+                    className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 shadow-sm transition-all"
+                >
+                    <option value="">Selecione...</option>
+                    <option value="Ectomorfo">Ectomorfo (Magro, dificuldade em ganhar peso)</option>
+                    <option value="Mesomorfo">Mesomorfo (Atlético, facilidade em ganhar/perder)</option>
+                    <option value="Endomorfo">Endomorfo (Largo, facilidade em ganhar peso)</option>
+                </select>
+            </div>
+
+            <div className="space-y-2">
+                <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+                    Metabolismo Estimado
+                </label>
+                <select
+                    value={formData.metabolism}
+                    onChange={(e) => handleChange('metabolism', e.target.value)}
+                    className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 shadow-sm transition-all"
+                >
+                    <option value="">Selecione...</option>
+                    <option value="Lento">Lento</option>
+                    <option value="Moderado">Moderado</option>
+                    <option value="Acelerado">Acelerado</option>
+                </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+              Sua Rotina Diária (Horários, trabalho, disponibilidade)
+            </label>
+            <textarea
+              value={formData.routine}
+              onChange={(e) => handleChange('routine', e.target.value)}
+              placeholder="Ex: Trabalho das 08h às 18h, treino musculação às 06h, durmo às 22h. Tenho pouco tempo para o almoço."
+              rows={3}
+              className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all resize-none"
+            />
           </div>
 
           <div className="space-y-2">

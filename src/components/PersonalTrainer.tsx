@@ -8,9 +8,10 @@ import { Avatar3D } from './Avatar3D';
 interface PersonalTrainerProps {
   profile: UserProfile | null;
   onAwardPoints?: (amount: number, reason: string) => void;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
-export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps) {
+export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: PersonalTrainerProps) {
   const [workout, setWorkout] = useState<WorkoutSession | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(-1);
@@ -85,7 +86,7 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
         setWorkout(result);
         setCurrentExerciseIndex(0);
         setCompletedExercises([]);
-        playMotivationalMessage(`Olá! Vamos começar seu treino "${result.title}". Prepare-se para o primeiro exercício.`);
+        playMotivationalMessage(`Pode deixar comigo, vou cuidar disso com você 💚 Prepare-se para o primeiro.`);
         
         // Auto-play background music if not already playing
         if (!isBgMusicPlaying && bgAudioRef.current) {
@@ -128,7 +129,7 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
     setTutorialStep(0);
     setShowWrongMode(false);
     setTimeLeft(currentExercise.duration || 45);
-    playMotivationalMessage(`Vamos lá! Execute com calma e mantenha a postura.`);
+    playMotivationalMessage(`Tá tudo pronto. Só começa que eu te guio.`);
   };
 
   const startTutorial = () => {
@@ -139,7 +140,7 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
     setShowWrongMode(false);
     const firstStep = currentExercise.tutorialSteps[0];
     setCameraView(firstStep.cameraView);
-    playMotivationalMessage(`Vou te mostrar como fazer corretamente. Passo um: ${firstStep.title}. ${firstStep.description}`);
+    playMotivationalMessage(`Vou te mostrar como faz. ${firstStep.description}`);
   };
 
   const nextTutorialStep = () => {
@@ -149,9 +150,9 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
       setTutorialStep(nextStep);
       const step = currentExercise.tutorialSteps[nextStep];
       setCameraView(step.cameraView);
-      playMotivationalMessage(`Passo ${nextStep + 1}: ${step.title}. ${step.description}`);
+      playMotivationalMessage(`${step.title}. ${step.description}`);
     } else {
-      playMotivationalMessage("Tutorial concluído! Pronto para começar o treino?");
+      playMotivationalMessage("Pronto pra começar?");
     }
   };
 
@@ -165,7 +166,7 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
       setCurrentExerciseIndex(nextIndex);
       setIsTimerActive(false);
       setTimeLeft(0);
-      playMotivationalMessage(`Muito bom! Agora vamos para o próximo: ${workout.exercises[nextIndex].name}.`);
+      playMotivationalMessage(`Muito bom! Vamos pro próximo: ${workout.exercises[nextIndex].name}.`);
     } else {
       finishWorkout();
     }
@@ -175,7 +176,24 @@ export function PersonalTrainer({ profile, onAwardPoints }: PersonalTrainerProps
     setCurrentExerciseIndex(-2); // Special state for finished
     setIsTimerActive(false);
     if (onAwardPoints) onAwardPoints(150, `Treino Completo: ${workout?.title}`);
-    playMotivationalMessage("Parabéns! Você completou o treino de hoje. Sinta essa energia fluir pelo seu corpo!");
+    
+    if (onUpdateProfile && profile) {
+      onUpdateProfile({
+         ...profile,
+         workoutLogs: [
+            ...(profile.workoutLogs || []),
+            {
+               id: crypto.randomUUID(),
+               date: new Date().toISOString(),
+               durationMinutes: workout?.estimatedDuration || 30,
+               completed: true,
+               intensity: 'Moderado',
+            }
+         ]
+      })
+    }
+
+    playMotivationalMessage("Hoje foi bom. Amanhã a gente continua 💚");
     
     // Smoothly lower background music volume
     const interval = setInterval(() => {

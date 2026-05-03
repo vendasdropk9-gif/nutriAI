@@ -1,3 +1,51 @@
+export type BodyType = 'Ectomorfo' | 'Mesomorfo' | 'Endomorfo';
+export type MetabolismSpeed = 'Lento' | 'Moderado' | 'Acelerado';
+
+export interface IntakeLog {
+  id: string;
+  date: string; // ISO
+  mealId: string;
+  recipeName: string;
+  planned: NutritionInfo;
+  actual: NutritionInfo;
+  adjusted: boolean; // If IA adjusted later meals based on this
+}
+
+export interface ProgressLog {
+  id: string;
+  date: string;
+  weight: number;
+  bodyFat?: number;
+  notes?: string;
+}
+
+export interface MasterPlanStrategy {
+  dailyCalories: number;
+  macros: {
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  workoutFocus: string;
+  nutritionFocus: string;
+  adaptiveNotes: string;
+}
+
+export interface WorkoutLog {
+  id: string;
+  date: string; // ISO
+  completed: boolean;
+  durationMinutes: number;
+  intensity: 'Leve' | 'Moderado' | 'Intenso';
+}
+
+export interface BehavioralProfile {
+  preferredMealComplexity?: 'Baixa' | 'Média' | 'Alta';
+  workoutConsistency?: number; // 0-100%
+  dietConsistency?: number; // 0-100%
+  motivationStyle?: 'Firme' | 'Acolhedor' | 'Descontraído';
+}
+
 export interface UserProfile {
   name: string;
   restrictions: string[];
@@ -12,6 +60,9 @@ export interface UserProfile {
   targetWeight?: number;
   skinTone?: string;
   hairColor?: string;
+  bodyType?: BodyType;
+  metabolism?: MetabolismSpeed;
+  routine?: string;
   emotionalLogs?: EmotionalLog[];
   currentChallenge?: Challenge;
   waterGoal?: number; // in ml
@@ -22,6 +73,11 @@ export interface UserProfile {
   currentWorkout?: WorkoutSession;
   cart?: CartItem[];
   favorites?: string[]; // Array of product IDs
+  intakeLogs?: IntakeLog[];
+  progressLogs?: ProgressLog[];
+  masterPlan?: MasterPlanStrategy;
+  workoutLogs?: WorkoutLog[];
+  behavioralProfile?: BehavioralProfile;
 }
 
 export interface StoreTag {

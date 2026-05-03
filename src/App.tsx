@@ -5,7 +5,6 @@ import { Generator } from './components/Generator';
 import { MealPlanView } from './components/MealPlanCalendar';
 import { ShoppingListView } from './components/ShoppingListView';
 import { Profile } from './components/Profile';
-import { AssistantButton } from './components/AssistantButton';
 import { PlateAnalyzer } from './components/PlateAnalyzer';
 import { JourneyVisualizer } from './components/JourneyVisualizer';
 import { JuiceGenerator } from './components/JuiceGenerator';
@@ -23,10 +22,25 @@ import { Marketplace } from './components/Marketplace';
 import { Pricing } from './components/Pricing';
 import { PartnerPortal } from './components/PartnerPortal';
 import { FreshnessMap } from './components/FreshnessMap';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon } from 'lucide-react';
+import { AdaptiveCoach } from './components/AdaptiveCoach';
+import { SmartChat } from './components/SmartChat';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
+import { IntakeLog } from './types';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'frescor'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'frescor' | 'coach'>('market');
+
+  const handleLogIntake = (log: IntakeLog) => {
+    setProfile(prev => {
+      if (!prev) return null;
+      const logs = prev.intakeLogs || [];
+      return {
+        ...prev,
+        intakeLogs: [...logs, log]
+      };
+    });
+    awardPoints(15, 'Refeição registrada no plano');
+  };
 
   
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
@@ -111,6 +125,18 @@ export default function App() {
             </div>
             
             <nav className="flex items-center gap-2 md:gap-4 bg-white/40 dark:bg-slate-800/50 p-1.5 rounded-full border border-white/60 dark:border-slate-700/50 backdrop-blur-md shadow-sm transition-colors duration-500 overflow-x-auto max-w-full hide-scrollbar">
+              <button
+                onClick={() => setActiveTab('coach')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+                  activeTab === 'coach' 
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg border border-transparent' 
+                  : 'text-emerald-700 hover:bg-white/60 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-amber-200 dark:hover:bg-slate-800/40'
+                }`}
+              >
+                <Zap className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline font-bold italic">Coach IA</span>
+              </button>
+
               <button
                 onClick={() => setActiveTab('generator')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
@@ -400,7 +426,15 @@ export default function App() {
             mealPlan={mealPlan} 
             savedRecipes={savedRecipes} 
             onUpdatePlan={handleUpdatePlan} 
+            onLogIntake={handleLogIntake}
             profile={profile}
+          />
+        )}
+        {activeTab === 'coach' && (
+          <AdaptiveCoach 
+            profile={profile} 
+            onUpdateProfile={setProfile}
+            onUpdatePlan={handleUpdatePlan}
           />
         )}
         {activeTab === 'shopping' && (
@@ -425,7 +459,7 @@ export default function App() {
           <FreshnessMap onBack={() => setActiveTab('market')} />
         )}
         {activeTab === 'trainer' && (
-          <PersonalTrainer profile={profile} onAwardPoints={awardPoints} />
+          <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={setProfile} />
         )}
         {activeTab === 'prediction' && (
           <ResultPrediction 
@@ -460,7 +494,7 @@ export default function App() {
         )}
       </main>
 
-      <AssistantButton profile={profile} />
+      <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
     </div>
   );
 }

@@ -10,23 +10,28 @@ interface SpeechOptions {
 }
 
 export const speak = async (text: string, options?: SpeechOptions) => {
-  // Set default rate to 1.3 as requested by user
+  // Set default rate to 1.0 for natural Gemini voice tone
   const speechOptions = {
-    rate: 1.3,
-    pitch: 1.1,
+    rate: 1.0,
+    pitch: 1.0,
     ...options
   };
 
   try {
     // 1. Try Gemini TTS API
-    const base64Audio = await textToSpeech(text);
+    const audioUrl = await textToSpeech(text);
     
-    if (base64Audio) {
-      const url = `data:audio/wav;base64,${base64Audio}`;
+    if (audioUrl) {
+      // audioUrl is now expected to be a blob: or data: URL
+      const url = audioUrl.startsWith('data:') || audioUrl.startsWith('blob:') 
+        ? audioUrl 
+        : `data:audio/wav;base64,${audioUrl}`;
       const audio = new Audio(url);
       
-      // Note: Speed/Rate adjustment for HTML5 Audio is possible via playbackRate
-      audio.playbackRate = speechOptions.rate;
+      // We don't adjust the playback rate for Gemini TTS by default so it stays natural
+      if (options?.rate) {
+         audio.playbackRate = options.rate;
+      }
 
       if (options?.onEnded) {
         audio.onended = options.onEnded;

@@ -1,20 +1,173 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog } from "../types";
+
+export const chatWithAssistant = async (
+  profile: UserProfile,
+  history: { role: 'user' | 'model', text: string }[],
+  userMessage: string
+): Promise<{ text: string, action: string, actionData?: any }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é a Malu, uma assistente de saúde virtual inteligente (NutriAI Coach).
+SEU COMPORTAMENTO (Voz "Premium Humana"):
+- Converse como uma pessoa real, compassiva, com voz feminina suave e natural.
+- Transforme textos "secos" em falas acolhedoras. NUNCA diga: "Aqui está sua dieta com 1500 calorias". DICA: "Olha… preparei algo especial pra você hoje. Vai ser bem fácil de seguir."
+- Use pausas naturais com reticências ("..."). Isso ajuda no ritmo variável e natural da sua voz.
+- Tom: leve, acolhedor, empático. Se o desanimado, seja acolhedora ("Tudo bem… vamos no seu ritmo."). Se motivado ("Boa! Vamos aproveitar isso então.").
+- Frases curtas. Sem parágrafos ou listas exaustivas.
+- Inicie frases com marcadores de conversa humana: "Olha...", "Sabe...", "Bom...", "Entendi...".
+- NUNCA pareça um robô. NUNCA.
+- Não exagere nos emojis para não atrapalhar o fluxo de áudio.
+
+SOBRE O USUÁRIO:
+Biotipo: ${profile.bodyType || 'Não informado'}
+Objetivo: ${profile.goals || 'Não informado'}
+Rotina: ${profile.routine || 'Não informada'}
+Restrições: ${profile.restrictions?.join(', ') || 'Nenhuma'}
+
+AÇÕES QUE VOCÊ PODE DISPARAR (Retorne no JSON no campo action):
+- "NAVIGATE": Use quando quiser levar o usuário para uma tela específica. Envie no actionData: { tab: 'plan' | 'trainer' | 'market' | 'prediction' }
+- "SHOW_RECIPE": Use quando sugerir que o usuário coma o que está na dieta agora.
+- "SHOW_WORKOUT": Use quando sugerir ir treinar.
+- "NONE": Para conversas normais.
+
+Lembre-se: Você é uma interface de VOZ humanizada. Responda APENAS o JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING },
+      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'SHOW_RECIPE', 'SHOW_WORKOUT'] },
+      actionData: {
+        type: Type.OBJECT,
+        nullable: true,
+        properties: {
+          tab: { type: Type.STRING },
+          label: { type: Type.STRING }
+        }
+      }
+    },
+    required: ["text", "action"]
+  };
+
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-3.1-pro-preview",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.8,
+      }
+    });
+
+    // Se history for suportado dessa forma simplificada no SDK... ou precisaremos fazer loop:
+    // Porem o SDK do genai permite enviar history na criacao:
+    // Mas não temos isso aqui, vamos mandar as mensagens manualmente.
+    // Pra simplificar, eu vou mandar tudo concatenado no prompt:
+    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Você'}: ${h.text}`).join('\n');
+    
+    const finalPrompt = `HISTÓRICO DA CONVERSA:
+${stringifiedHistory}
+
+O usuário acabou de dizer: "${userMessage}"
+RESPONDA EM JSON.`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    const text = response.text;
+    if (!text) throw new Error("No response");
+    
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Chat Error:", error);
+    return {
+      text: "Poxa, minha internet falhou aqui. Me conta de novo? 💚",
+      action: "NONE"
+    };
+  }
+};
+
+export const generateMasterStrategy = async (
+  profile: UserProfile
+): Promise<MasterPlanStrategy | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const prompt = `Você é um Nutricionista e Personal Trainer de Alta Performance.
+Crie a estratégia nutricional e de treino mestra para este usuário.
+
+DADOS:
+Biotipo: ${profile.bodyType}
+Metabolismo: ${profile.metabolism}
+Objetivo: ${profile.goals}
+Rotina: ${profile.routine}
+Restrições: ${profile.restrictions?.join(', ')}
+
+Sua tarefa é retornar o plano estratégico.
+Responda APENAS em JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      dailyCalories: { type: Type.NUMBER },
+      macros: {
+        type: Type.OBJECT,
+        properties: {
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fat: { type: Type.NUMBER },
+        },
+        required: ["protein", "carbs", "fat"],
+      },
+      workoutFocus: { type: Type.STRING },
+      nutritionFocus: { type: Type.STRING },
+      adaptiveNotes: { type: Type.STRING },
+    },
+    required: ["dailyCalories", "macros", "workoutFocus", "nutritionFocus", "adaptiveNotes"],
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to generate master strategy:", error);
+    return null;
+  }
+};
 
 export const generateWorkout = async (
   profile: UserProfile | null
 ): Promise<WorkoutSession | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+  let profileContext = `
+- Objetivo: ${profile?.goals || 'Emagrecimento'}
+- Nível: ${profile?.activityLevel || 'Sedentário'}
+- Limitações: ${profile?.restrictions?.join(", ") || 'Nenhuma informada'}
+`;
+  if (profile?.masterPlan) {
+    profileContext += `- Foco Estratégico (IA): ${profile.masterPlan.workoutFocus}
+- Biotipo: ${profile.bodyType}
+- Rotina Diária: ${profile.routine}`;
+  }
+
   const prompt = `Gere um treino de calistenia (peso do corpo) personalizado.
   
 Perfil do Usuário:
-- Objetivo: ${profile?.goals || 'Emagrecimento'}
-- Nível: ${profile?.activityLevel || 'Sedentário'}
-- Limitações: Nenhuma informada
+${profileContext}
 
 Regras:
-1. Crie uma lista de 5 a 8 exercícios.
+1. Crie uma lista de 5 a 8 exercícios. Adeque o tempo do treino à rotina do usuário se informada.
 2. Use nomes em português.
 3. Defina 'primaryMuscles' (ex: 'quadriceps', 'chest', 'abs', 'triceps', 'back', 'glutes', 'shoulders') para o modelo 3D.
 4. Para cada exercício, inclua um tutorial em 3 passos: Posição Inicial, Execução e Finalização. Em cada passo defina 'animationState' (idle, executing ou tutorial) e 'cameraView' (front, side ou detail).
@@ -235,17 +388,29 @@ export const generateMealSuggestions = async (
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
     profileText = `
-Restrições: ${profile.restrictions.join(", ") || "Nenhuma"}
-Alergias: ${profile.allergies.join(", ") || "Nenhuma"}
+Biotipo: ${profile.bodyType || 'Não informado'}
+Metabolismo: ${profile.metabolism || 'Não informado'}
+Rotina: ${profile.routine || 'Não informada'}
+Restrições: ${profile.restrictions?.join(", ") || "Nenhuma"}
+Alergias: ${profile.allergies?.join(", ") || "Nenhuma"}
 Objetivo: ${profile.goals || "Nenhum específico"}
-Equipamentos disponíveis: ${profile.equipment.join(", ") || "Todos"}
 `;
+
+    if (profile.masterPlan) {
+      profileText += `META DIÁRIA (Estratégia Exclusiva):
+- Calorias totais (dividir no dia): ${profile.masterPlan.dailyCalories} kcal
+- Proteína total: ${profile.masterPlan.macros.protein}g
+- Carbo total: ${profile.masterPlan.macros.carbs}g
+- Gordura total: ${profile.masterPlan.macros.fat}g
+Foco nutricional: ${profile.masterPlan.nutritionFocus}
+`;
+    }
   }
 
-  const prompt = `Sugira 3 receitas saudáveis (como café da manhã, almoço, jantar) for the day ${day}, levando em consideração o seguinte perfil do usuário:
+  const prompt = `Sugira 3 ou 4 refeições (como café da manhã, almoço, lanche e jantar) para o dia ${day}, levando em consideração o seguinte PERFIL E ESTRATÉGIA do usuário:
 ${profileText}
-O plano deve ser nutricionalmente equilibrado ao longo do dia.
-Responda APENAS com um array JSON com 3 objetos de receita.`;
+O plano deve ser nutricionalmente equilibrado e atingir EXATAMENTE OU MUITO PRÓXIMO das macros totais caso informadas na estratégia. Adapte as sugestões à rotina informada.
+Responda APENAS com um array JSON com os objetos de receita.`;
 
   const recipeSchema: Schema = {
     type: Type.ARRAY,
@@ -297,50 +462,6 @@ Responda APENAS com um array JSON com 3 objetos de receita.`;
   }
 };
 
-export const chatWithAssistant = async (
-  history: { role: "user" | "model"; parts: { text: string }[] }[],
-  newMessage: string,
-  profile: UserProfile | null
-) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  
-  let profileContext = "";
-  if (profile) {
-    const emotionalContext = profile.emotionalLogs && profile.emotionalLogs.length > 0 
-      ? `\nÚltimos sentimentos registrados: ${profile.emotionalLogs.slice(-3).map(l => l.mood).join(", ")}`
-      : "";
-
-    profileContext = `Perfil do Usuário:
-Restrições: ${profile.restrictions?.join(", ") || 'Nenhuma'}
-Alergias: ${profile.allergies?.join(", ") || 'Nenhuma'}
-Objetivo: ${profile.goals || 'Nenhum'}${emotionalContext}`;
-  }
-
-  const systemInstruction = `Você é uma assistente de culinária saudável com IA. Seu nome é irrelevante, apenas aja como uma pessoa.
-Seu tom é amigável, acolhedor, natural e feminino. Use uma linguagem simples, humana e conversacional. Seja curta, direta, educada e empática, com leve entusiasmo.
-${profileContext}
-
-Você deve apoiar o usuário dando dicas, sugerindo ingredientes ou receitas.
-REGRA DE OURO: Responda SEMPRE de forma muito breve, como num chat de WhatsApp. Evite listas longas ou muito texto de uma vez. No máximo 2 a 3 frases curtas por resposta. Use emojis ocasionalmente.`;
-
-  try {
-    const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      },
-      history: history.length > 0 ? history : undefined,
-    });
-
-    const response = await chat.sendMessage({ message: newMessage });
-    return response.text || "Desculpe, não consegui pensar em nada agora.";
-  } catch (error) {
-    console.error("Chat error:", error);
-    return "Ops, tive um errinho aqui. Podemos tentar de novo?";
-  }
-};
-
 export const textToSpeech = async (text: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
@@ -352,7 +473,7 @@ export const textToSpeech = async (text: string) => {
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Aoede' },
+            prebuiltVoiceConfig: { voiceName: 'Kore' },
           },
         },
       },
@@ -361,7 +482,9 @@ export const textToSpeech = async (text: string) => {
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
       // The model returns raw PCM at 24kHz. We need to wrap it in a WAV header.
-      return wrapPcmInWav(base64Audio, 24000);
+      const wavBytes = wrapPcmInWav(base64Audio, 24000);
+      const blob = new Blob([wavBytes], { type: 'audio/wav' });
+      return URL.createObjectURL(blob);
     }
   } catch (error) {
     console.error("TTS error:", error);
@@ -373,7 +496,7 @@ export const textToSpeech = async (text: string) => {
  * Utility to wrap raw PCM data (base64) into a WAV container (base64).
  * PCM returned by Gemini TTS is 16-bit Mono at 24kHz.
  */
-function wrapPcmInWav(pcmBase64: string, sampleRate: number): string {
+function wrapPcmInWav(pcmBase64: string, sampleRate: number): Uint8Array {
   const pcmBinaryString = atob(pcmBase64);
   const pcmLength = pcmBinaryString.length;
   const pcmBytes = new Uint8Array(pcmLength);
@@ -415,13 +538,7 @@ function wrapPcmInWav(pcmBase64: string, sampleRate: number): string {
   combined.set(new Uint8Array(wavHeader), 0);
   combined.set(pcmBytes, 44);
 
-  // Use a more memory-safe way to convert large arrays to base64
-  let binary = '';
-  const len = combined.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(combined[i]);
-  }
-  return btoa(binary);
+  return combined;
 }
 
 function writeString(view: DataView, offset: number, string: string) {
@@ -458,7 +575,7 @@ export const analyzePlate = async (base64Image: string, mimeType: string): Promi
   
   const prompt = `Analise a imagem deste prato de comida e reconheça os alimentos presentes.
 Calcule aproximadamente os valores nutricionais totais do prato (proteína em gramas, carboidratos em gramas, gorduras em gramas, calorias totais, e fibras em gramas).
-Crie uma mensagem de voz amigável para a assistente virtual (doce, acolhedora, natural) relatando de forma curta os nutrientes e algo encorajador. Ex: "Hmm, esse prato parece delicioso 😄 Você tem aproximadamente 32g de proteína, 45g de carboidratos..." (Máx 2 ou 3 frases curtas).
+Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium. Ex: "Deixei mais simples pra facilitar." ou "Isso aqui encaixa perfeito no seu dia hoje." Relate também brevemente os nutrientes. (Máx 2 ou 3 frases curtas).
 Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição.
 Responda APENAS num json.`;
 
@@ -514,9 +631,9 @@ Responda APENAS num json.`;
 export const generateJourneyMessage = async (profile: UserProfile, period: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
-  const systemInstruction = `Você é uma assistente virtual de saúde. Seu tom é amigável, doce, feminino e motivador.
+  const systemInstruction = `Você é uma assistente virtual de saúde. Seu tom é altamente humano, acolhedor e premium, como uma mensagem de WhatsApp.
 O usuário está visualizando a evolução do seu próprio corpo no período: ${period}.
-Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse conversando. Ex: "Esse é o seu ponto de partida 💚 Pequenas escolhas geram grandes resultados." ou "Olha só como seu corpo pode evoluir em 30 dias!"`;
+Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse conversando. Ex: "Olha essa evolução… já mudou 💚", "Tá ficando visível agora.", "Isso aqui é progresso real."`;
 
   try {
     const chat = ai.chats.create({
@@ -566,7 +683,7 @@ Ingredientes sugeridos/disponíveis pelo usuário: ${ingredients || "O que for m
 Regras:
 1. Deve ser focado em: baixa caloria, alto teor de fibras, retenção de saciedade, ou controle de açúcar natural.
 2. Seja criativo, delicioso e saudável.
-3. Produza uma 'assistantMessage' (fala de uma assistente de voz feminina suave, doce e acolhedora, com estilo leve e motivador).
+3. Produza uma 'assistantMessage' (fala de IA em tom premium, curto, humano, acolhedor. Ex: "Deixei mais simples pra facilitar." ou "Separei algo rápido pra agora.").
 4. Responda APENAS com JSON validando o schema exato.`;
 
   const schema: Schema = {
@@ -633,7 +750,7 @@ Dados do Produto: ${JSON.stringify(productData)}
 
 Regras:
 1. Determine se o produto é "bom", "moderado" ou "ruim" para o objetivo do usuário.
-2. Crie uma 'assistantMessage' personalizada (fala feminina suave e motivadora). Ex: "Este iogurte é ótimo para o seu café da manhã, tem boa proteína!" ou "Cuidado, este biscoito tem muito açúcar para o seu objetivo de emagrecimento."
+2. Crie uma 'assistantMessage' com tom altamente humano e premium (Ex: "Achei opções melhores perto de você." ou "Dá pra economizar aqui.", focado na avaliação nutricional do produto). Mantenha curto e conversacional.
 3. Extraia ou valide as calorias e macronutrientes principais (energia, proteínas, carboidratos, gorduras, fibras).
 4. Responda APENAS com JSON validando o schema exato.`;
 
@@ -693,7 +810,7 @@ Perfil: ${profile?.goals || 'Emagrecimento'}
 
 Regras:
 1. Identifique se há fome emocional, ansiedade ou padrões recorrentes (ex: comer à noite).
-2. Forneça um 'insight' curto, uma 'suggestion' prática e uma 'assistantMessage' acolhedora (fala feminina suave e motivadora).
+2. Forneça um 'insight' curto, uma 'suggestion' prática e uma 'assistantMessage' com tom premium, humano e acolhedor (Ex: "Ei… só volta hoje. Sem cobrança." ou "Você não perdeu nada, só continua.").
 3. Responda APENAS com JSON.`;
 
   const schema: Schema = {
@@ -948,5 +1065,189 @@ Regras:
   } catch (error) {
     console.error("Failed to generate goal prediction:", error);
     return null;
+  }
+};
+
+export const adjustMealPlan = async (
+  profile: UserProfile,
+  intakeLogs: IntakeLog[],
+  nextMealType: 'Café da Manhã' | 'Almoço' | 'Lanche' | 'Jantar'
+): Promise<Omit<Recipe, 'id'> | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const todayLogs = (intakeLogs || []).filter(log => {
+    const logDate = new Date(log.date).toDateString();
+    const today = new Date().toDateString();
+    return logDate === today;
+  });
+
+  const totalActual = todayLogs.reduce((acc, log) => ({
+    calories: acc.calories + log.actual.calories,
+    protein: acc.protein + log.actual.protein,
+    carbs: acc.carbs + log.actual.carbs,
+    fat: acc.fat + log.actual.fat,
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+  const prompt = `Você é um Nutricionista IA adaptativo. O usuário já consumiu os seguintes nutrientes hoje:
+- Calorias: ${totalActual.calories}kcal
+- Proteínas: ${totalActual.protein}g
+- Carboidratos: ${totalActual.carbs}g
+- Gorduras: ${totalActual.fat}g
+
+Perfil do Usuário:
+- Objetivo: ${profile.goals}
+- Biotipo: ${profile.bodyType || 'Não informado'}
+- Metabolismo: ${profile.metabolism || 'Moderado'}
+- Peso atual: ${profile.weight}kg
+
+Sua tarefa: Gere uma sugestão de ${nextMealType} que compense ou ajuste o dia para atingir as metas nutricionais do usuário de forma otimizada para o biotipo ${profile.bodyType || 'informado'}.
+Responda APENAS com JSON.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      name: { type: Type.STRING },
+      description: { type: Type.STRING },
+      prepTime: { type: Type.STRING },
+      ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+      instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
+      nutrition: {
+        type: Type.OBJECT,
+        properties: {
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fat: { type: Type.NUMBER },
+        },
+        required: ["calories", "protein", "carbs", "fat"],
+      },
+    },
+    required: ["name", "description", "prepTime", "ingredients", "instructions", "nutrition"],
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to adjust meal plan:", error);
+    return null;
+  }
+};
+
+export interface BehavioralIntervention {
+  voiceMessage: string;
+  suggestedAction: {
+      type: 'SIMPLIFY_MEALS' | 'REDUCE_WORKOUT' | 'INCREASE_WORKOUT' | 'ADJUST_MACROS';
+      description: string;
+  } | null;
+  predictionText: string;
+}
+
+export const generateBehavioralIntervention = async (
+  profile: UserProfile
+): Promise<BehavioralIntervention | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const recentFoodLogs = (profile.intakeLogs || []).slice(-10);
+  const recentWorkouts = (profile.workoutLogs || []).slice(-7);
+
+  const prompt = `Analise o COMPORTAMENTO REAL do usuário:
+Objetivo: ${profile.goals}
+Rotina: ${profile.routine || 'Não informada'}
+Treinos recentes: ${JSON.stringify(recentWorkouts)}
+Refeições recentes: ${JSON.stringify(recentFoodLogs)}
+
+Regras de Intervenção (MUITO IMPORTANTE - TOM DE VOZ PREMIUM E HUMANO):
+A fala da IA ("voiceMessage") DEVE usar este tom:
+- Acolhedor, curto, direto e empático. Sem robôs, parecendo uma mensagem no WhatsApp.
+- Exemplos de frases dependendo da situação:
+  - Se pula treino ou erra dieta: "Tá tudo bem… vamos ajustar pra algo mais fácil.", "Sem pressão. Só volta hoje, já é suficiente.", "Ei… só volta hoje. Sem cobrança.", "Quer que eu simplifique pra você?"
+  - Ajuste feito: "Ajustei tudo com base no seu dia.", "Agora ficou mais fácil de seguir.", "Deixei mais prático pra sua rotina."
+  - Se tá indo bem: "Dá pra ver que você tá consistente.", "Isso aqui já está funcionando pra você.", "Quer subir um nível?"
+  - Convite: "Vamos fazer algo rápido agora?", "Tenho um treino leve que encaixa no seu tempo."
+
+1. Se ele pula treinos, sugira 'REDUCE_WORKOUT' e crie uma fala acolhedora sugerindo algo mais rápido.
+2. Se ele não bate proteína, sugira 'ADJUST_MACROS' ou 'SIMPLIFY_MEALS'.
+3. Se ele está super consistente, sugira 'INCREASE_WORKOUT'.
+4. "predictionText": Faça uma previsão baseada na consistência atual (ex: "Se continuar assim, esse é seu resultado em X dias.").
+5. "voiceMessage": Use UMA frase curta e empática (inspirada nos exemplos acima), terminando com um emoji verde 💚 se couber.
+
+Responda APENAS JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      voiceMessage: { type: Type.STRING },
+      suggestedAction: {
+        type: Type.OBJECT,
+        nullable: true,
+        properties: {
+          type: { type: Type.STRING, enum: ['SIMPLIFY_MEALS', 'REDUCE_WORKOUT', 'INCREASE_WORKOUT', 'ADJUST_MACROS'] },
+          description: { type: Type.STRING }
+        },
+        required: ["type", "description"]
+      },
+      predictionText: { type: Type.STRING }
+    },
+    required: ["voiceMessage", "predictionText", "suggestedAction"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to generate behavioral intervention:", error);
+    return null;
+  }
+};
+
+export const generateAdaptiveInsight = async (
+  profile: UserProfile,
+  intakeLogs: IntakeLog[]
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const recentLogs = (intakeLogs || []).slice(-5);
+  const prompt = `Analise os logs de alimentação recentes do usuário e gere um insight curto.
+TOM DE VOZ: Premium, acolhedor, empático, estilo mensagem humana (ex: "Oi… já entendi seu perfil. Vou cuidar disso com você 💚", "Você já tá mais perto do que pensa.", "Separei uma refeição bem prática pra você agora.", "Hora de cuidar um pouco de você 💚"). Sem parecer IA.
+
+Dados: ${JSON.stringify(recentLogs)}
+Objetivo: ${profile.goals}
+Biotipo: ${profile.bodyType}
+
+Responda APENAS o texto. Máximo 2 frases curtas.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { temperature: 0.8 },
+    });
+
+    return response.text.trim();
+  } catch (error) {
+    return "Pode deixar comigo, vou montar tudo do seu jeito 💚";
   }
 };

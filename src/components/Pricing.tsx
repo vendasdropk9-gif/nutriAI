@@ -7,16 +7,17 @@ const PLANS = [
   {
     id: 'premium',
     name: 'Plano Premium',
-    description: 'Transformação guiada por IA',
-    price: { monthly: 29.90, annual: 197 },
+    description: 'A base para sua evolução',
+    price: { monthly: 34.90, annual: 297 },
     icon: Zap,
     color: 'emerald',
-    badge: 'Melhor Custo-Benefício',
+    badge: 'Mais Escolhido',
     features: [
       'Plano alimentar com IA',
-      'Avatar 3D com evolução do corpo',
+      'Avatar 3D com evolução corporal',
       'Treinos personalizados',
       'Análise de alimentos por foto',
+      'Sugestão de sucos e receitas',
       'Lista de compras automática',
       'Integração com sacolões',
       'Sem anúncios'
@@ -24,29 +25,29 @@ const PLANS = [
     cta: 'Começar 7 dias grátis',
     popular: true,
     trial: 'Teste grátis por 7 dias • Cancele quando quiser',
-    tip: 'Você pode testar tudo por 7 dias sem pagar nada 💚'
+    tip: 'Você pode testar tudo por 7 dias sem pagar nada. Esse plano é o mais escolhido por quem quer resultado.'
   },
   {
     id: 'pro',
     name: 'Plano PRO',
-    description: 'A experiência máxima NutriAI',
-    price: { monthly: 49.90, annual: 297 },
+    description: 'A experiência elite NutriAI',
+    price: { monthly: 59.90, annual: 497 },
     icon: Crown,
     color: 'amber',
     badge: 'Mais Completo',
     features: [
       'Tudo do Plano Premium',
-      'Ajustes em tempo real',
-      'Avatar 3D Pro (detalhado)',
+      'Ajustes em tempo real com IA',
+      'Projeção detalhada de resultados',
+      'Acompanhamento avançado (3D Pro)',
       'Suporte VIP prioritário',
       'Receitas Gourmet exclusivas',
-      'Análise de Bioimpedância Virtual',
-      'Acesso antecipado a funções'
+      'Análise de Bioimpedância Virtual'
     ],
     cta: 'Começar 7 dias grátis',
     popular: false,
     trial: 'Teste grátis por 7 dias • Cancele quando quiser',
-    tip: 'Esse plano é o mais escolhido por quem quer resultado rápido.'
+    tip: 'O plano PRO é para quem busca o máximo de performance. Se não gostar, pode cancelar a qualquer momento.'
   }
 ];
 
@@ -74,10 +75,13 @@ export function Pricing() {
         <div className="flex flex-col">
           <div className="flex items-baseline gap-1">
             <span className="text-sm font-medium text-slate-500">R$</span>
-            <span className="text-4xl font-black">{monthlyEquivalent}</span>
+            <span className="text-5xl font-black tracking-tighter">{monthlyEquivalent}</span>
             <span className="text-sm font-medium text-slate-500">/mês</span>
           </div>
-          <span className="text-xs text-emerald-500 font-bold mt-1">Faturado R$ {p} anualmente</span>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-white bg-slate-900 px-2 py-1 rounded-md font-bold uppercase tracking-wider">Economia Real</span>
+            <span className="text-xs text-slate-400 font-medium tracking-tight">Faturado R$ {p}/ano</span>
+          </div>
         </div>
       );
     }
@@ -85,7 +89,7 @@ export function Pricing() {
     return (
       <div className="flex items-baseline gap-1">
         <span className="text-sm font-medium text-slate-500">R$</span>
-        <span className="text-4xl font-black">{p.toFixed(2)}</span>
+        <span className="text-5xl font-black tracking-tighter">{p.toFixed(2)}</span>
         <span className="text-sm font-medium text-slate-500">/mês</span>
       </div>
     );
