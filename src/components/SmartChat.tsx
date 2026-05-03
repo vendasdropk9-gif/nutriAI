@@ -220,11 +220,14 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       <AnimatePresence>
         {!isOpen && (
           <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 20 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-24 right-4 z-40 bg-emerald-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl hover:bg-emerald-700 transition"
+            className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 bg-emerald-600 text-white p-4 rounded-full shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:bg-emerald-500 transition-colors"
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -235,10 +238,11 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            className="fixed inset-x-4 bottom-24 md:bottom-6 md:right-6 md:left-auto md:w-96 h-[600px] max-h-[80vh] z-50 flex flex-col bg-slate-50 dark:bg-slate-900 rounded-[32px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+            initial={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(5px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(5px)' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed inset-x-4 bottom-24 md:bottom-24 md:right-6 md:left-auto md:w-[400px] h-[650px] max-h-[85vh] z-50 flex flex-col bg-slate-50 dark:bg-slate-900 rounded-[32px] shadow-2xl shadow-emerald-900/10 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-800"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
@@ -263,12 +267,15 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                   <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Coach IA</p>
                 </div>
               </div>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </motion.button>
             </div>
 
             {/* Messages Area */}
@@ -338,8 +345,8 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                {/* Quick Suggestions */}
                {messages.length < 3 && !isListening && (
                    <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-                       <button onClick={() => setInput('O que eu como agora?')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🥗 O que eu como agora?</button>
-                       <button onClick={() => setInput('Quero treinar!')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🏋️ Quero treinar!</button>
+                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('O que eu como agora?')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🥗 O que eu como agora?</motion.button>
+                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('Quero treinar!')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🏋️ Quero treinar!</motion.button>
                    </div>
                )}
 
@@ -358,7 +365,9 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                </AnimatePresence>
 
               <div className="flex items-end gap-2">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
                   className={`w-12 h-12 flex items-center justify-center rounded-2xl transition shrink-0 ${
                     voiceEnabled 
@@ -368,7 +377,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                   title={voiceEnabled ? "Desativar voz da IA" : "Ativar voz da IA"}
                 >
                   {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-                </button>
+                </motion.button>
                 
                 <textarea
                   value={input}
@@ -387,7 +396,9 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                 />
                 
                 {(!input.trim() && !transcript.trim() && !isListening) || isListening ? (
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={toggleListening}
                     className={`w-12 h-12 flex items-center justify-center rounded-2xl transition shrink-0 relative overflow-hidden ${
                       isListening 
@@ -403,15 +414,17 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                       />
                     )}
                     {isListening ? <MicOff className="w-5 h-5 relative z-10" /> : <Mic className="w-5 h-5" />}
-                  </button>
+                  </motion.button>
                 ) : (
-                  <button 
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleSend}
                     disabled={(!input.trim() && !transcript.trim()) || isTyping}
                     className="w-12 h-12 flex items-center justify-center bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition disabled:opacity-50 disabled:hover:bg-emerald-600 shrink-0"
                   >
                     <Send className="w-5 h-5 ml-1" />
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </div>

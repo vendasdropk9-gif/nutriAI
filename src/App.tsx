@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { Recipe, MealPlan, UserProfile } from './types';
 import { Generator } from './components/Generator';
@@ -125,7 +126,7 @@ export default function App() {
             </div>
             
             <nav className="flex items-center gap-2 md:gap-4 bg-white/40 dark:bg-slate-800/50 p-1.5 rounded-full border border-white/60 dark:border-slate-700/50 backdrop-blur-md shadow-sm transition-colors duration-500 overflow-x-auto max-w-full hide-scrollbar">
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('coach')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'coach' 
@@ -135,9 +136,9 @@ export default function App() {
               >
                 <Zap className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline font-bold italic">Coach IA</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('generator')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'generator' 
@@ -147,9 +148,9 @@ export default function App() {
               >
                 <Utensils className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Receitas</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('juice')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'juice' 
@@ -159,9 +160,9 @@ export default function App() {
               >
                 <GlassWater className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Sucos Detox</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('hydration')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'hydration' 
@@ -171,9 +172,9 @@ export default function App() {
               >
                 <Droplet className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Água</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('barcode')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'barcode' 
@@ -183,9 +184,9 @@ export default function App() {
               >
                 <Barcode className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Scanner</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('emotional')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'emotional' 
@@ -195,9 +196,9 @@ export default function App() {
               >
                 <Brain className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Mente</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('analyzer')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'analyzer' 
@@ -207,9 +208,9 @@ export default function App() {
               >
                 <Camera className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Análise</span>
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('plan')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'plan' 
@@ -219,9 +220,9 @@ export default function App() {
               >
                 <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Plano</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('shopping')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'shopping' 
@@ -231,9 +232,9 @@ export default function App() {
               >
                 <ShoppingBasket className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Compras</span>
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('journey')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'journey' 
@@ -243,9 +244,9 @@ export default function App() {
               >
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Evolução</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('challenge')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'challenge' 
@@ -255,9 +256,9 @@ export default function App() {
               >
                 <Trophy className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Desafio</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('swaps')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'swaps' 
@@ -267,9 +268,9 @@ export default function App() {
               >
                 <RefreshCw className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Trocas</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('dining')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'dining' 
@@ -279,9 +280,9 @@ export default function App() {
               >
                 <ChefHat className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Comi Fora</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('market')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'market' 
@@ -291,9 +292,9 @@ export default function App() {
               >
                 <Store className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Market</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('frescor')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'frescor' 
@@ -303,9 +304,9 @@ export default function App() {
               >
                 <MapIcon className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline font-bold">Mapa de Frescor</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('trainer')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'trainer' 
@@ -315,9 +316,9 @@ export default function App() {
               >
                 <Dumbbell className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Treinar</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('ranking')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'ranking' 
@@ -327,9 +328,9 @@ export default function App() {
               >
                 <Medal className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Ranking</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('prediction')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'prediction' 
@@ -339,9 +340,9 @@ export default function App() {
               >
                 <TrendingUp className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Previsão</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('profile')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'profile' 
@@ -351,9 +352,9 @@ export default function App() {
               >
                 <User className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Perfil</span>
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('pricing')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'pricing' 
@@ -363,9 +364,9 @@ export default function App() {
               >
                 <Crown className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline text-amber-500 font-bold uppercase tracking-tighter text-xs">Premium</span>
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab('partner')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                   activeTab === 'partner' 
@@ -375,17 +376,17 @@ export default function App() {
               >
                 <Store className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline font-bold">Seja Parceiro</span>
-              </button>
+              </motion.button>
 
               <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
               
-              <button
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="p-2.5 rounded-full text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0"
                 title={isDarkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
               >
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
+              </motion.button>
             </nav>
           </div>
         </div>
@@ -396,102 +397,113 @@ export default function App() {
         ? 'max-w-none px-0 py-0 flex flex-col' 
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-20'
       }`}>
-        {(activeTab === 'generator' || activeTab === 'plan') && (
-          <FoodGalleryBanner onNavigateToMarket={() => setActiveTab('market')} />
-        )}
-        {activeTab === 'generator' && (
-          <Generator onSaveRecipe={handleSaveRecipe} profile={profile} onAwardPoints={awardPoints} />
-        )}
-        {activeTab === 'juice' && (
-          <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
-        )}
-        {activeTab === 'hydration' && (
-          <HydrationTracker 
-            profile={profile} 
-            onUpdateProtocol={(goal, logs) => setProfile(prev => prev ? { ...prev, waterGoal: goal, hydrationLogs: logs } : null)} 
-            onAwardPoints={awardPoints}
-          />
-        )}
-        {activeTab === 'barcode' && (
-          <BarcodeScanner profile={profile} />
-        )}
-        {activeTab === 'emotional' && (
-          <EmotionalTracker 
-            profile={profile} 
-            onUpdateLogs={(newLogs) => setProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
-          />
-        )}
-        {activeTab === 'plan' && (
-          <MealPlanView 
-            mealPlan={mealPlan} 
-            savedRecipes={savedRecipes} 
-            onUpdatePlan={handleUpdatePlan} 
-            onLogIntake={handleLogIntake}
-            profile={profile}
-          />
-        )}
-        {activeTab === 'coach' && (
-          <AdaptiveCoach 
-            profile={profile} 
-            onUpdateProfile={setProfile}
-            onUpdatePlan={handleUpdatePlan}
-          />
-        )}
-        {activeTab === 'shopping' && (
-          <ShoppingListView mealPlan={mealPlan} />
-        )}
-        {activeTab === 'profile' && (
-          <Profile profile={profile} onSaveProfile={setProfile} />
-        )}
-        {activeTab === 'ranking' && (
-          <RankingView profile={profile} />
-        )}
-        {activeTab === 'market' && (
-          <Marketplace 
-            profile={profile} 
-            onUpdateCart={(cart) => setProfile(prev => prev ? { ...prev, cart } : null)} 
-            onUpdateFavorites={(favorites) => setProfile(prev => prev ? { ...prev, favorites } : null)}
-            onOpenPartner={() => setActiveTab('partner')}
-            onOpenMap={() => setActiveTab('frescor')}
-          />
-        )}
-        {activeTab === 'frescor' && (
-          <FreshnessMap onBack={() => setActiveTab('market')} />
-        )}
-        {activeTab === 'trainer' && (
-          <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={setProfile} />
-        )}
-        {activeTab === 'prediction' && (
-          <ResultPrediction 
-            profile={profile} 
-            onUpdatePrediction={(prediction) => setProfile(prev => prev ? { ...prev, prediction } : null)} 
-          />
-        )}
-        {activeTab === 'analyzer' && (
-          <PlateAnalyzer onAwardPoints={awardPoints} />
-        )}
-        {activeTab === 'journey' && (
-          <JourneyVisualizer profile={profile} />
-        )}
-        {activeTab === 'challenge' && (
-          <ChallengeView 
-            profile={profile} 
-            onUpdateChallenge={(challenge) => setProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
-            onAwardPoints={awardPoints}
-          />
-        )}
-        {activeTab === 'swaps' && (
-          <SmartSwaps profile={profile} onAwardPoints={awardPoints} />
-        )}
-        {activeTab === 'dining' && (
-          <DiningOut profile={profile} onAwardPoints={awardPoints} />
-        )}
-        {activeTab === 'pricing' && (
-          <Pricing />
-        )}
-        {activeTab === 'partner' && (
-          <PartnerPortal />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10, filter: 'blur(5px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, filter: 'blur(5px)' }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full h-full flex flex-col"
+          >
+            {(activeTab === 'generator' || activeTab === 'plan') && (
+              <FoodGalleryBanner onNavigateToMarket={() => setActiveTab('market')} />
+            )}
+            {activeTab === 'generator' && (
+              <Generator onSaveRecipe={handleSaveRecipe} profile={profile} onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'juice' && (
+              <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'hydration' && (
+              <HydrationTracker 
+                profile={profile} 
+                onUpdateProtocol={(goal, logs) => setProfile(prev => prev ? { ...prev, waterGoal: goal, hydrationLogs: logs } : null)} 
+                onAwardPoints={awardPoints}
+              />
+            )}
+            {activeTab === 'barcode' && (
+              <BarcodeScanner profile={profile} />
+            )}
+            {activeTab === 'emotional' && (
+              <EmotionalTracker 
+                profile={profile} 
+                onUpdateLogs={(newLogs) => setProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
+              />
+            )}
+            {activeTab === 'plan' && (
+              <MealPlanView 
+                mealPlan={mealPlan} 
+                savedRecipes={savedRecipes} 
+                onUpdatePlan={handleUpdatePlan} 
+                onLogIntake={handleLogIntake}
+                profile={profile}
+              />
+            )}
+            {activeTab === 'coach' && (
+              <AdaptiveCoach 
+                profile={profile} 
+                onUpdateProfile={setProfile}
+                onUpdatePlan={handleUpdatePlan}
+              />
+            )}
+            {activeTab === 'shopping' && (
+              <ShoppingListView mealPlan={mealPlan} />
+            )}
+            {activeTab === 'profile' && (
+              <Profile profile={profile} onSaveProfile={setProfile} />
+            )}
+            {activeTab === 'ranking' && (
+              <RankingView profile={profile} />
+            )}
+            {activeTab === 'market' && (
+              <Marketplace 
+                profile={profile} 
+                onUpdateCart={(cart) => setProfile(prev => prev ? { ...prev, cart } : null)} 
+                onUpdateFavorites={(favorites) => setProfile(prev => prev ? { ...prev, favorites } : null)}
+                onOpenPartner={() => setActiveTab('partner')}
+                onOpenMap={() => setActiveTab('frescor')}
+              />
+            )}
+            {activeTab === 'frescor' && (
+              <FreshnessMap onBack={() => setActiveTab('market')} />
+            )}
+            {activeTab === 'trainer' && (
+              <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={setProfile} />
+            )}
+            {activeTab === 'prediction' && (
+              <ResultPrediction 
+                profile={profile} 
+                onUpdatePrediction={(prediction) => setProfile(prev => prev ? { ...prev, prediction } : null)} 
+              />
+            )}
+            {activeTab === 'analyzer' && (
+              <PlateAnalyzer onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'journey' && (
+              <JourneyVisualizer profile={profile} />
+            )}
+            {activeTab === 'challenge' && (
+              <ChallengeView 
+                profile={profile} 
+                onUpdateChallenge={(challenge) => setProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
+                onAwardPoints={awardPoints}
+              />
+            )}
+            {activeTab === 'swaps' && (
+              <SmartSwaps profile={profile} onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'dining' && (
+              <DiningOut profile={profile} onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'pricing' && (
+              <Pricing />
+            )}
+            {activeTab === 'partner' && (
+              <PartnerPortal />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
