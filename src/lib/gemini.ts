@@ -251,19 +251,24 @@ Regras:
 export const generateRecipe = async (
   ingredients: string = "",
   profile?: UserProfile | null,
-  budgetMode: boolean = false
+  budgetMode: boolean = false,
+  preferences: string = ""
 ): Promise<Omit<Recipe, "id"> | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
     profileText = `
-Restrições: ${profile.restrictions.join(", ") || "Nenhuma"}
+Restrições fixas: ${profile.restrictions.join(", ") || "Nenhuma"}
 Alergias: ${profile.allergies.join(", ") || "Nenhuma"}
 Objetivo: ${profile.goals || "Nenhum específico"}
 Equipamentos disponíveis: ${profile.equipment.join(", ") || "Todos"}
 `;
   }
+
+  const preferencesContext = preferences 
+    ? `\nPREFERÊNCIAS/RESTRIÇÕES ADICIONAIS: ${preferences}` 
+    : "";
 
   const budgetContext = budgetMode 
     ? "\nMODO ECONOMIA ATIVADO: Sugira refeições saudáveis com BAIXO CUSTO e ingredientes simples e acessíveis (ex: ovo, aveia, feijão, vegetais de época)." 
@@ -271,7 +276,7 @@ Equipamentos disponíveis: ${profile.equipment.join(", ") || "Todos"}
 
   const prompt = `Gere uma receita saudável com base nos seguintes parâmetros:
 Ingredientes disponíveis: ${ingredients || "Qualquer ingrediente saudável comum"}
-Perfil do Usuário: ${profileText}${budgetContext}
+Perfil do Usuário: ${profileText}${preferencesContext}${budgetContext}
 Certifique-se de priorizar os ingredientes disponíveis. A receita deve ser equilibrada.
 Responda APENAS com um objeto JSON.`;
 

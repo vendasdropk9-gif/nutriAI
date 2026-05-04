@@ -13,6 +13,7 @@ interface GeneratorProps {
 
 export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorProps) {
   const [ingredients, setIngredients] = useState('');
+  const [preferences, setPreferences] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
@@ -23,7 +24,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
     setGeneratedRecipe(null);
     
     try {
-      const data = await generateRecipe(ingredients, profile, budgetMode);
+      const data = await generateRecipe(ingredients, profile, budgetMode, preferences);
       if (data) {
         setGeneratedRecipe({ ...data, id: crypto.randomUUID() });
         if (onAwardPoints) onAwardPoints(20, 'Receita personalizada gerada');
@@ -69,17 +70,33 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
 
         <div className="md:col-span-2 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
           <form onSubmit={handleGenerate} className="space-y-8">
-            <div className="space-y-4">
-              <label htmlFor="ingredients" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
-                Ingredientes Disponíveis
-              </label>
-              <textarea
-                id="ingredients"
-                value={ingredients}
-                onChange={(e) => setIngredients(e.target.value)}
-                placeholder="Ex: frango, brócolis, arroz... ou use a câmera 👈"
-                className="w-full h-32 p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none shadow-sm"
-              />
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-4">
+                <label htmlFor="ingredients" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
+                  Ingredientes Disponíveis
+                </label>
+                <textarea
+                  id="ingredients"
+                  value={ingredients}
+                  onChange={(e) => setIngredients(e.target.value)}
+                  placeholder="Ex: frango, brócolis, arroz... ou use a câmera 👈"
+                  className="w-full h-32 p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label htmlFor="preferences" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
+                  Restrições ou Preferências Extras
+                </label>
+                <input
+                  id="preferences"
+                  type="text"
+                  value={preferences}
+                  onChange={(e) => setPreferences(e.target.value)}
+                  placeholder="Ex: sem glúten, vegano, refeição rápida..."
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all shadow-sm"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">

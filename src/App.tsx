@@ -25,10 +25,12 @@ import { PartnerPortal } from './components/PartnerPortal';
 import { FreshnessMap } from './components/FreshnessMap';
 import { AdaptiveCoach } from './components/AdaptiveCoach';
 import { SmartChat } from './components/SmartChat';
+import { SplashScreen } from './components/SplashScreen';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
 import { IntakeLog } from './types';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'frescor' | 'coach'>('market');
 
   const handleLogIntake = (log: IntakeLog) => {
@@ -110,7 +112,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
-      {/* Mesh Background */}
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      
+      <motion.div 
+        className="flex-1 flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showSplash ? 0 : 1 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+      >
+        {/* Mesh Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-200/40 dark:bg-emerald-900/40 blur-[100px] transition-colors duration-1000"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-orange-200/30 dark:bg-orange-900/20 blur-[120px] transition-colors duration-1000"></div>
@@ -507,6 +517,7 @@ export default function App() {
       </main>
 
       <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
+      </motion.div>
     </div>
   );
 }
