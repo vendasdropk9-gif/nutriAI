@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
 import { RefreshCw, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Volume2, Play, Search, Lightbulb } from 'lucide-react';
 import { UserProfile, SmartSwap } from '../types';
@@ -40,9 +41,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
     
     try {
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
         return;
       }
 
@@ -50,9 +49,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -73,7 +70,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         <form onSubmit={handleGenerate} className="space-y-6">
           <div className="relative">
             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
@@ -101,7 +98,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
 
       {swap && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
-          <div className="grid md:grid-cols-2 gap-8 items-center bg-white/40 dark:bg-slate-800/40 p-8 rounded-[40px] border border-white/60 dark:border-slate-700/50 shadow-xl">
+          <div className="grid md:grid-cols-2 gap-8 items-center clay-card p-6 shadow-xl">
             <div className="flex flex-col items-center justify-center space-y-4 p-8 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100/50 dark:border-rose-800/30">
                <AlertCircle className="w-10 h-10 text-rose-500 opacity-60" />
                <p className="text-sm font-bold text-rose-400 uppercase tracking-widest">Original</p>
@@ -121,7 +118,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
             </div>
           </div>
 
-          <div className="flex items-start gap-6 bg-white/60 dark:bg-slate-800/60 p-8 rounded-[32px] border border-white/80 dark:border-slate-700/50 shadow-sm relative overflow-hidden">
+          <div className="flex items-start gap-6 clay-card p-6 shadow-sm relative overflow-hidden">
              {/* Decorative element */}
              <div className="absolute top-0 right-0 p-4 opacity-5">
                 <Sparkles className="w-24 h-24" />
@@ -142,12 +139,12 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-4">
+            <div className="clay-card p-6 space-y-4">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Por que trocar?</h4>
               <p className="text-lg text-slate-700 dark:text-slate-200 font-sans leading-relaxed">{swap.reason}</p>
             </div>
             
-            <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-4">
+            <div className="clay-card p-6 space-y-4">
               <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Principais Benefícios:</h4>
               <ul className="space-y-3">
                 {swap.benefits.map((benefit, i) => (

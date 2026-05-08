@@ -31,6 +31,16 @@ export interface MasterPlanStrategy {
   adaptiveNotes: string;
 }
 
+export interface AdaptiveInsight {
+  id: string;
+  date: string;
+  type: 'macro_adjustment' | 'workout_adaptation' | 'habit_nudge';
+  recommendation: string;
+  reasoning: string;
+  changes?: Partial<MasterPlanStrategy>;
+  status: 'pending' | 'applied' | 'dismissed';
+}
+
 export interface WorkoutLog {
   id: string;
   date: string; // ISO
@@ -46,8 +56,25 @@ export interface BehavioralProfile {
   motivationStyle?: 'Firme' | 'Acolhedor' | 'Descontraído';
 }
 
+export interface WeeklyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  current: number;
+  type: 'water' | 'protein' | 'workout' | 'steps';
+  rewardPoints: number;
+  completed: boolean;
+  expiresAt: string;
+}
+
 export interface UserProfile {
   name: string;
+  email?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  photoURL?: string;
+  preferences?: string;
   restrictions: string[];
   allergies: string[];
   goals: string;
@@ -65,10 +92,14 @@ export interface UserProfile {
   routine?: string;
   emotionalLogs?: EmotionalLog[];
   currentChallenge?: Challenge;
+  weeklyChallenges?: WeeklyChallenge[];
   waterGoal?: number; // in ml
   hydrationLogs?: HydrationLog[];
   points?: number;
   pointsHistory?: PointsEntry[];
+  streak?: number;
+  lastActiveDate?: string;
+  badges?: string[];
   prediction?: GoalPrediction;
   currentWorkout?: WorkoutSession;
   cart?: CartItem[];

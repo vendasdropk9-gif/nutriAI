@@ -116,7 +116,7 @@ export function Avatar3D({ activeMuscles, animation, view = 'front', playbackSpe
 
   if (webglAvailable === false) {
     return (
-      <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] overflow-hidden bg-slate-900 flex flex-col items-center justify-center p-8 text-center border border-white/10 shadow-2xl">
+      <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] clay-card overflow-hidden bg-slate-900 flex flex-col items-center justify-center p-8 text-center border border-white/10 shadow-2xl">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent" />
         
         <div className="relative z-10 w-full max-w-xs mx-auto mb-8">
@@ -173,7 +173,7 @@ export function Avatar3D({ activeMuscles, animation, view = 'front', playbackSpe
   }
 
   return (
-    <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
+    <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] clay-card overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
       {webglAvailable === true && (
         <Canvas shadows>
           <PerspectiveCamera makeDefault position={cameraPos} fov={40} />

@@ -75,7 +75,6 @@ export function PartnerPortal() {
 
   const nextStep = (target: Step, guidance: string) => {
     setStep(target);
-    handleSpeak(guidance);
   };
 
   const saveProduct = (e: React.FormEvent) => {
@@ -121,7 +120,7 @@ export function PartnerPortal() {
   if (step === 'onboarding') {
     return (
       <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="bg-white dark:bg-slate-900 rounded-[40px] overflow-hidden shadow-2xl border border-white/60 dark:border-slate-800 flex flex-col lg:flex-row">
+        <div className="bg-white dark:bg-slate-900 rounded-[40px] clay-card overflow-hidden shadow-2xl border border-white/60 dark:border-slate-800 flex flex-col lg:flex-row">
           <div className="lg:w-1/2 p-12 lg:p-20 space-y-8 flex flex-col justify-center">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -143,7 +142,7 @@ export function PartnerPortal() {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button 
                 onClick={() => nextStep('business', "Vou te ajudar a cadastrar seu sacolão. É rápido e fácil, leva menos de 2 minutos.")}
-                className="px-10 py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
+                className="px-10 py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
               >
                 Cadastrar meu sacolão
                 <ChevronRight className="w-6 h-6" />
@@ -175,7 +174,7 @@ export function PartnerPortal() {
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[32px] border border-white dark:border-slate-800 shadow-xl flex flex-col items-center text-center space-y-3"
+                  className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[32px] clay-card border border-white dark:border-slate-800 shadow-xl flex flex-col items-center text-center space-y-3"
                 >
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
                     <item.icon className="w-6 h-6" />
@@ -195,7 +194,7 @@ export function PartnerPortal() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-12 grid lg:grid-cols-12 gap-8">
         <aside className="lg:col-span-3 space-y-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="clay-card p-6 space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl uppercase">
                 {form.businessName.charAt(0)}
@@ -243,7 +242,7 @@ export function PartnerPortal() {
               { label: 'Novos Pedidos', val: '04', sub: 'Pendentes', color: 'blue' },
               { label: 'Ticket Médio', val: 'R$ 112,50', sub: 'Estável', color: 'purple' }
             ].map((stat, i) => (
-              <div key={i} className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+              <div key={i} className="clay-card p-6 shadow-sm relative overflow-hidden">
                 <div className={`absolute top-0 right-0 w-24 h-24 bg-${stat.color}-500/5 rounded-full -mr-8 -mt-8`} />
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                 <p className="text-3xl font-serif font-bold text-slate-900 dark:text-white">{stat.val}</p>
@@ -252,7 +251,7 @@ export function PartnerPortal() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <div className="clay-card p-6 overflow-hidden shadow-sm">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h4 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Pedidos Recentes</h4>
               <button className="text-emerald-600 font-bold text-sm">Ver todos</button>
@@ -308,7 +307,7 @@ export function PartnerPortal() {
   if (step === 'pending') {
     return (
       <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-8 animate-in fade-in zoom-in duration-700">
-         <div className="w-32 h-32 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/20">
+         <div className="w-32 h-32 clay-primary px-6 py-3 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/20">
             <CheckCircle2 className="w-16 h-16" />
          </div>
          <div className="space-y-4">
@@ -331,7 +330,7 @@ export function PartnerPortal() {
   // Registration Flow
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="clay-card p-6 overflow-hidden">
         {/* Progress Bar */}
         <div className="h-2 bg-slate-100 dark:bg-slate-800 flex">
            {[ 'business', 'location', 'service', 'products', 'hours', 'payment'].map((s, i) => {
@@ -421,7 +420,7 @@ export function PartnerPortal() {
 
               {step === 'location' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
-                   <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] flex flex-col items-center justify-center text-center space-y-4 bg-slate-50 dark:bg-slate-950">
+                   <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] clay-card flex flex-col items-center justify-center text-center space-y-4 bg-slate-50 dark:bg-slate-950">
                       <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl shadow-sm flex items-center justify-center text-emerald-500">
                          <MapPin className="w-8 h-8" />
                       </div>
@@ -500,7 +499,7 @@ export function PartnerPortal() {
                 <div className="space-y-6 animate-in slide-in-from-right-4">
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {form.products.map((p) => (
-                        <div key={p.id} className="bg-slate-50 dark:bg-slate-950 rounded-[32px] border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden group shadow-sm hover:shadow-md transition-all">
+                        <div key={p.id} className="bg-slate-50 dark:bg-slate-950 rounded-[32px] clay-card border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden group shadow-sm hover:shadow-md transition-all">
                            <div className="relative h-40 overflow-hidden">
                               <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                               <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-[10px] font-bold text-emerald-600 uppercase">
@@ -533,7 +532,7 @@ export function PartnerPortal() {
                       ))}
                       <button 
                         onClick={startAddProduct}
-                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] flex flex-col items-center justify-center space-y-4 min-h-[220px] hover:bg-slate-50 dark:hover:bg-slate-950 transition-all group"
+                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] clay-card flex flex-col items-center justify-center space-y-4 min-h-[220px] hover:bg-slate-50 dark:hover:bg-slate-950 transition-all group"
                       >
                          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                            <Plus className="w-8 h-8" />
@@ -619,10 +618,9 @@ export function PartnerPortal() {
                       nextStep(next, guidance);
                    } else {
                       setStep('pending');
-                      handleSpeak("Parabéns! Seu cadastro foi enviado com sucesso. Em breve você estará vendendo para toda a comunidade NutriAI.");
                    }
                 }}
-                className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
+                className="flex-1 py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
               >
                 {step === 'payment' ? 'Concluir Cadastro' : 'Próximo Passo'}
                 <ChevronRight className="w-6 h-6" />
@@ -646,7 +644,7 @@ export function PartnerPortal() {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl overflow-hidden"
+                className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[40px] clay-card shadow-2xl overflow-hidden"
               >
                 <form onSubmit={saveProduct} className="p-8 md:p-12 space-y-8">
                    <div className="flex items-center justify-between">
@@ -760,7 +758,7 @@ export function PartnerPortal() {
                       </button>
                       <button 
                         type="submit"
-                        className="flex-[2] py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+                        className="flex-[2] py-4 clay-primary px-6 py-3 font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
                       >
                         Salvar Produto
                       </button>

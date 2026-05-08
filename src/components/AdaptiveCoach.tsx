@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Sparkles, TrendingUp, Zap, ChevronRight, Activity, Calendar, CheckCircle2, AlertCircle, Volume2, Plus, Target, PieChart as pieChartIcon, RefreshCw, Dumbbell, Utensils, Star, ActivitySquare } from 'lucide-react';
-import { UserProfile, IntakeLog, Recipe, NutritionInfo, MasterPlanStrategy } from '../types';
+import { Brain, Sparkles, TrendingUp, Zap, ChevronRight, Activity, Calendar, CheckCircle2, AlertCircle, Volume2, Plus, Target, PieChart as pieChartIcon, RefreshCw, Dumbbell, Utensils, Star, ActivitySquare, ArrowUpRight } from 'lucide-react';
+import { UserProfile, IntakeLog, Recipe, NutritionInfo, MasterPlanStrategy, AdaptiveInsight, WorkoutLog } from '../types';
 import { adjustMealPlan, generateAdaptiveInsight, generateMasterStrategy, generateBehavioralIntervention, BehavioralIntervention } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { PersonalizationWizard } from './PersonalizationWizard';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AdaptiveCoachProps {
   profile: UserProfile | null;
@@ -13,11 +15,44 @@ interface AdaptiveCoachProps {
 }
 
 export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateProfile, onUpdatePlan }) => {
+  const { user } = useAuth();
   const [insight, setInsight] = useState<string>('');
+  const [adaptiveInsight, setAdaptiveInsight] = useState<AdaptiveInsight | null>(null);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [suggestedMeal, setSuggestedMeal] = useState<{ type: string; recipe: Omit<Recipe, 'id'> } | null>(null);
   const [behavioralIntervention, setBehavioralIntervention] = useState<BehavioralIntervention | null>(null);
+
+  useEffect(() => {
+    if (!user || !profile || !supabase) return;
+    
+    // Initial fetch
+    supabase.from('adaptive_insights')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data, error }) => {
+        if (data && !error) setAdaptiveInsight(data as AdaptiveInsight);
+      });
+
+    // Realtime subscription
+    const channel = supabase.channel('adaptive_insights_changes')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'adaptive_insights',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        setAdaptiveInsight(payload.new as AdaptiveInsight);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile]);
 
   useEffect(() => {
     if (profile && profile.bodyType && profile.metabolism) {
@@ -55,10 +90,23 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   };
 
   const loadInsight = async () => {
-    if (!profile) return;
+    if (!profile || !user || !supabase) return;
     setLoading(true);
-    const text = await generateAdaptiveInsight(profile, profile.intakeLogs || []);
-    setInsight(text);
+    const data = await generateAdaptiveInsight(profile, profile.intakeLogs || [], profile.workoutLogs || []);
+    if (data) {
+      setInsight(data.recommendation);
+      // Save to Supabase if it's high confidence/significant
+      try {
+        await supabase.from('adaptive_insights').insert({
+          ...data,
+          status: 'pending',
+          date: new Date().toISOString(),
+          user_id: user.id
+        });
+      } catch (error) {
+        console.error("Failed to insert insight", error);
+      }
+    }
     setLoading(false);
   };
 
@@ -150,7 +198,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Insight */}
-      <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-[40px] clay-card bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-white shadow-2xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
         
         <div className="relative z-10 space-y-6">
@@ -190,7 +238,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
           { label: 'Carbos', value: totals.carbs, unit: 'g', color: 'amber', icon: TrendingUp },
           { label: 'Gorduras', value: totals.fat, unit: 'g', color: 'rose', icon: pieChartIcon }
         ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none">
+          <div key={i} className="clay-card p-6 shadow-xl shadow-slate-200/50 dark:shadow-none">
             <div className="flex items-center justify-between mb-2">
                 <div className={`p-2 rounded-xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
                     <stat.icon className="w-4 h-4" />
@@ -206,13 +254,93 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
         ))}
       </div>
 
+      {/* Adaptive Insights Section */}
+      {adaptiveInsight && adaptiveInsight.status === 'pending' && (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-emerald-950 rounded-[40px] clay-card p-8 text-white border border-emerald-500/30 shadow-2xl relative overflow-hidden"
+        >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+            
+            <div className="relative z-10 space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/20">
+                        <Sparkles className="w-3 h-3" />
+                        Otimização Disponível
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-500/60 uppercase">Aprendizado de Máquina Ativo</span>
+                </div>
+
+                <div className="space-y-2">
+                    <h3 className="text-2xl font-black">{adaptiveInsight.type === 'macro_adjustment' ? 'Ajuste de Macros Detectado' : 'Adaptação de Rotina'}</h3>
+                    <p className="text-emerald-100/80 leading-relaxed font-medium">
+                        {adaptiveInsight.recommendation}
+                    </p>
+                </div>
+
+                <div className="bg-white/5 rounded-3xl p-6 border border-white/10 space-y-4">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-emerald-500/20 rounded-xl">
+                            <Brain className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest text-emerald-500 mb-1">Raciocínio da IA</p>
+                            <p className="text-sm text-slate-300 leading-relaxed">{adaptiveInsight.reasoning}</p>
+                        </div>
+                    </div>
+
+                    {adaptiveInsight.changes && (
+                        <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                            <div className="flex gap-4">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-500">Novo Alvo Calórico</p>
+                                    <p className="text-lg font-bold text-white">{adaptiveInsight.changes.dailyCalories} kcal</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (adaptiveInsight.changes && profile) {
+                                      // Update local profile
+                                      const newProfile = { 
+                                        ...profile, 
+                                        masterPlan: { 
+                                          ...profile.masterPlan!, 
+                                          ...adaptiveInsight.changes,
+                                          macros: { ...profile.masterPlan!.macros, ...adaptiveInsight.changes.macros }
+                                        } 
+                                      };
+                                      onUpdateProfile(newProfile);
+                                      
+                                      // Mark as applied in Supabase
+                                      if (user && supabase) {
+                                        try {
+                                            await supabase.from('adaptive_insights')
+                                              .update({ status: 'applied' })
+                                              .eq('id', adaptiveInsight.id);
+                                        } catch (e) { console.error(e); }
+                                      }
+                                      setAdaptiveInsight(null);
+                                    }
+                                }}
+                                className="px-6 py-3 bg-emerald-500 hover:clay-primary px-6 py-3 font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                            >
+                                Aplicar Ajustes
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </motion.div>
+      )}
+
       {/* Behavioral Intervention Display */}
       {behavioralIntervention && (
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-[32px] p-8 shadow-xl relative overflow-hidden"
+            className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-[32px] clay-card p-8 shadow-xl relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
             <div className="flex items-start gap-4 relative z-10">
@@ -249,7 +377,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
 
       {/* Master Plan Presentation */}
       {profile.masterPlan && (
-        <div className="bg-slate-900 rounded-[40px] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
+        <div className="bg-slate-900 rounded-[40px] clay-card p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/20 blur-[100px] rounded-full point-events-none" />
           
           <div className="flex flex-col md:flex-row gap-8 relative z-10">
@@ -282,7 +410,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             </div>
 
             <div className="w-full md:w-80 space-y-4">
-               <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 space-y-4">
+               <div className="bg-white/5 p-6 rounded-[32px] clay-card border border-white/10 space-y-4">
                   <div className="flex items-center gap-3">
                      <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
                         <Utensils className="w-5 h-5" />
@@ -294,7 +422,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                   </p>
                </div>
 
-               <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 space-y-4">
+               <div className="bg-white/5 p-6 rounded-[32px] clay-card border border-white/10 space-y-4">
                   <div className="flex items-center gap-3">
                      <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
                         <Dumbbell className="w-5 h-5" />
@@ -311,7 +439,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
       )}
 
       {/* Adjustment Console */}
-      <div className="bg-white dark:bg-slate-900 rounded-[40px] p-8 border border-slate-100 dark:border-slate-800 shadow-2xl">
+      <div className="bg-white dark:bg-slate-900 rounded-[40px] clay-card p-8 border border-slate-100 dark:border-slate-800 shadow-2xl">
         <div className="flex items-center justify-between mb-8">
             <div className="space-y-1">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Ajuste em Tempo Real</h2>
@@ -348,7 +476,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             exit={{ opacity: 0, y: 50 }}
             className="fixed inset-x-4 bottom-24 md:bottom-32 z-50 max-w-lg mx-auto"
           >
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 shadow-2xl border-2 border-emerald-500 ring-4 ring-emerald-500/10">
+            <div className="bg-white dark:bg-slate-900 rounded-[32px] clay-card p-6 shadow-2xl border-2 border-emerald-500 ring-4 ring-emerald-500/10">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500 rounded-xl text-white">
@@ -398,7 +526,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
 
       {/* Body Stats & Biotype Info */}
       <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-slate-50 dark:bg-slate-900/40 p-8 rounded-[40px] space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-900/40 p-8 rounded-[40px] clay-card space-y-6">
               <div className="flex items-center gap-3">
                   <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
                       <Target className="w-6 h-6" />
@@ -428,7 +556,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
               </div>
           </div>
 
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 p-8 rounded-[40px] space-y-6">
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 p-8 rounded-[40px] clay-card space-y-6">
             <div className="flex items-center gap-3">
                 <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
                     <CheckCircle2 className="w-6 h-6" />

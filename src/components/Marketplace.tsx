@@ -22,10 +22,12 @@ import {
   User,
   Send,
   RefreshCw,
-  Map as MapIcon
+  Map as MapIcon,
+  Bike
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
 import { speak } from '../lib/speech';
+import { DeliveryTracking } from './DeliveryTracking';
 
 const MARKET_PARTNERS: MarketPartner[] = [
   {
@@ -86,6 +88,8 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'retirada'>('moto');
+  const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -173,7 +177,14 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const deliveryFee = deliveryMethod === 'moto' ? 5.90 : 0;
+  const finalTotal = cartTotal + deliveryFee;
+  
   const filteredProducts = activeCategory === 'Tudo' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
+
+  if (isTracking) {
+    return <DeliveryTracking orderTotal={finalTotal} onClose={() => { setIsTracking(false); setCart([]); onUpdateCart([]); setShowCart(false); }} />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
@@ -209,8 +220,8 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               onClick={() => setActiveMarket(market)}
               className={`flex shrink-0 items-center gap-3 p-3 rounded-2xl border transition-all ${
                 activeMarket.id === market.id 
-                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 shadow-lg shadow-emerald-500/10' 
-                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'
+                ? 'clay-panel border-emerald-500 shadow-[inset_2px_2px_4px_rgba(255,255,255,0.8),inset_-2px_-2px_4px_rgba(0,0,0,0.05),2px_2px_8px_rgba(16,185,129,0.2)]' 
+                : 'clay-btn opacity-80 hover:opacity-100 border-none'
               }`}
             >
               <img src={market.image} className="w-10 h-10 rounded-full object-cover" />
@@ -227,7 +238,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Dynamic Banner */}
-      <div className="relative h-[380px] md:h-[450px] rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800 transition-colors">
+      <div className="relative w-full max-w-full h-[380px] sm:h-[400px] md:h-[450px] rounded-[32px] md:rounded-[40px] clay-card overflow-hidden bg-slate-200 dark:bg-slate-800 transition-colors box-border mx-auto border-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={BANNERS[currentBanner].id}
@@ -237,70 +248,70 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             transition={{ duration: 0.8 }}
             className="absolute inset-0"
           >
-            <img src={BANNERS[currentBanner].image} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 space-y-3 md:space-y-4">
-               <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 md:px-4 md:py-1.5 bg-emerald-500 text-white rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
+            <img src={BANNERS[currentBanner].image} className="w-full h-full object-cover object-center" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-12 space-y-3 md:space-y-4 box-border">
+               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="px-3 py-1.5 md:px-4 md:py-1.5 clay-primary px-6 py-3 text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
                      {BANNERS[currentBanner].price}
                   </div>
                   <button 
                     onClick={() => handleSpeak(BANNERS[currentBanner].tip)}
-                    className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40"
+                    className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
                   >
                      <Volume2 className="w-5 h-5" />
                   </button>
                </div>
-               <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white leading-tight">
+               <h3 className="text-2xl sm:text-3xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
                   {BANNERS[currentBanner].title}
                </h3>
-               <p className="text-white/80 text-lg md:text-xl font-medium">{BANNERS[currentBanner].subtitle}</p>
-               <button className="px-6 py-4 md:px-8 md:py-4 bg-white text-slate-900 rounded-xl md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  <span className="text-sm md:text-base">Comprar Agora</span>
+               <p className="text-white/80 text-sm sm:text-base md:text-xl font-medium break-words">{BANNERS[currentBanner].subtitle}</p>
+               <button className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2">
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-sm md:text-base truncate">Comprar Agora</span>
                </button>
             </div>
           </motion.div>
         </AnimatePresence>
         
-        {/* Indicators */}
-        <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 flex gap-2 md:gap-3">
+        {/* Indicators - Vertical on very small screens, horizontal otherwise */}
+        <div className="absolute top-4 right-4 sm:bottom-4 sm:top-auto sm:right-6 md:bottom-8 md:right-12 flex flex-col sm:flex-row gap-1.5 sm:gap-2 md:gap-3">
           {BANNERS.map((_, i) => (
             <div 
               key={i}
-              className={`h-1 md:h-1.5 rounded-full transition-all duration-500 ${currentBanner === i ? 'w-8 md:w-10 bg-emerald-500' : 'w-2 md:w-3 bg-white/30'}`}
+              className={`rounded-full transition-all duration-500 ${currentBanner === i ? 'h-6 sm:w-8 md:w-10 bg-emerald-500 sm:h-1 sm:md:h-1.5 w-1.5' : 'h-2 sm:w-2 md:w-3 bg-white/30 sm:h-1 sm:md:h-1.5 w-1.5'}`}
             />
           ))}
         </div>
       </div>
 
       {/* AI Recommendation Section */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[32px] p-8 text-white flex flex-col md:flex-row items-center gap-8 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Sparkles className="w-32 h-32" />
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[24px] sm:rounded-[32px] clay-card p-6 sm:p-8 text-white flex flex-col md:flex-row items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden w-full max-w-full box-border">
+        <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-10">
+          <Sparkles className="w-24 h-24 sm:w-32 sm:h-32" />
         </div>
-        <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shrink-0">
-          <Zap className="w-10 h-10" />
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shrink-0">
+          <Zap className="w-8 h-8 sm:w-10 sm:h-10" />
         </div>
-        <div className="space-y-2 flex-1">
-          <h4 className="text-2xl font-serif font-bold">Baseado no seu plano alimentar</h4>
-          <p className="text-emerald-50 opacity-90">Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.</p>
+        <div className="space-y-2 flex-1 text-center md:text-left z-10 w-full">
+          <h4 className="text-xl sm:text-2xl font-serif font-bold break-words">Baseado no seu plano alimentar</h4>
+          <p className="text-emerald-50 opacity-90 text-sm sm:text-base break-words">Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.</p>
         </div>
         <button 
           onClick={() => addToCart(PRODUCTS[5])}
-          className="px-8 py-4 bg-white text-emerald-600 rounded-2xl font-bold hover:bg-emerald-50 transition-all shadow-lg"
+          className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 clay-btn px-6 py-3 sm:rounded-2xl font-bold hover:bg-emerald-50 transition-all shadow-lg z-10 mt-2 sm:mt-0"
         >
           Adicionar Sugestão IA
         </button>
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+      <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
         {['Tudo', 'Frutas', 'Verduras', 'Legumes', 'Kits'].map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+            className={`px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-sm transition-all whitespace-nowrap shrink-0 ${
               activeCategory === cat 
               ? 'bg-slate-900 text-white shadow-xl' 
               : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
@@ -312,14 +323,14 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-8 box-border w-full">
         {filteredProducts.map(product => (
           <motion.div
             layout
             key={product.id}
-            className="bg-white dark:bg-slate-800/60 p-5 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all group"
+            className="bg-white dark:bg-slate-800/60 p-3 sm:p-5 rounded-[24px] sm:rounded-[32px] clay-card border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all group flex flex-col h-full"
           >
-            <div className="relative h-40 rounded-2xl overflow-hidden mb-4">
+            <div className="relative h-32 sm:h-40 rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shrink-0">
               <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               {product.isOrganic && (
                 <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
@@ -372,7 +383,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               </div>
               <button 
                 onClick={() => addToCart(product)}
-                className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center justify-center transition-all shadow-lg active:scale-90"
+                className="w-10 h-10 bg-emerald-500 hover:clay-primary px-6 py-3 flex items-center justify-center transition-all shadow-lg active:scale-90"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -393,7 +404,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           >
             <div className="relative">
               <ShoppingBag className="w-6 h-6" />
-              <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+              <div className="absolute -top-2 -right-2 w-5 h-5 clay-primary px-6 py-3 flex items-center justify-center text-[10px] font-bold">
                 {cart.reduce((a, b) => a + b.quantity, 0)}
               </div>
             </div>
@@ -459,6 +470,26 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               </div>
 
               <div className="pt-8 space-y-6 border-t dark:border-slate-800 mt-auto">
+                <div className="space-y-4">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest text-xs">Tipo de Entrega</p>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <button 
+                      onClick={() => setDeliveryMethod('moto')}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors ${deliveryMethod === 'moto' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-200'}`}
+                    >
+                      <Bike className="w-6 h-6" />
+                      <span className="text-xs font-bold">Moto (Em 15min)</span>
+                    </button>
+                    <button 
+                      onClick={() => setDeliveryMethod('retirada')}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors ${deliveryMethod === 'retirada' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-200'}`}
+                    >
+                      <Store className="w-6 h-6" />
+                      <span className="text-xs font-bold">Retirar no local</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-slate-500">
                     <span>Subtotal</span>
@@ -466,16 +497,48 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                   </div>
                   <div className="flex justify-between text-slate-500">
                     <span>Taxa de Entrega</span>
-                    <span className="text-emerald-500 font-bold">Grátis</span>
+                    <span className={deliveryMethod === 'moto' ? 'font-bold' : 'text-emerald-500 font-bold'}>{deliveryMethod === 'moto' ? 'R$ 5.90' : 'Grátis'}</span>
                   </div>
                   <div className="flex justify-between text-xl font-bold pt-2">
                     <span>Total</span>
-                    <span>R$ {cartTotal.toFixed(2)}</span>
+                    <span>R$ {finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
                 
-                <button className="w-full py-5 bg-emerald-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all">
-                  Finalizar Compra
+                <button 
+                  disabled={isSubmittingReview} // reuse state to act as loading
+                  onClick={async () => {
+                    setIsSubmittingReview(true);
+                    try {
+                      const { supabase } = await import('../lib/supabase');
+                      if (supabase) {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session?.user) {
+                          await supabase.from('orders').insert({
+                            user_id: session.user.id,
+                            items: cart,
+                            total: finalTotal,
+                            delivery_method: deliveryMethod,
+                            status: 'pending',
+                            store_id: activeMarket.id
+                          });
+                        }
+                      }
+                      setIsTracking(true);
+                    } catch (e) {
+                      console.error("Failed to checkout", e);
+                    } finally {
+                      setIsSubmittingReview(false);
+                    }
+                  }}
+                  className="w-full py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                >
+                  {isSubmittingReview ? <RefreshCw className="w-5 h-5 animate-spin" /> : (
+                    <>
+                      {deliveryMethod === 'moto' ? 'Finalizar pedido com entrega' : 'Finalizar pedido'}
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -498,7 +561,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-[40px] clay-card shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="p-8 border-b dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
@@ -557,7 +620,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
                       placeholder="Escreva sua opinião..."
-                      className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-none h-24"
+                      className="w-full p-4 clay-card p-6 focus:ring-2 focus:ring-emerald-500 outline-none text-sm resize-none h-24"
                     />
                     <button
                       disabled={isSubmittingReview || reviewRating === 0}
@@ -625,7 +688,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-12 bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+        className="mt-12 clay-card p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
       >
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
@@ -641,6 +704,32 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
         >
           Seja um parceiro
+        </button>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] clay-card border border-emerald-100 dark:border-emerald-800/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+      >
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 bg-emerald-600 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+            <Bike className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Tem uma moto ou bike?</h3>
+            <p className="text-slate-500 dark:text-slate-400">Seja seu próprio chefe e entregue saúde ganhando mais por entrega.</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => {
+            const evt = new CustomEvent('app:navigate', { detail: { tab: 'delivery' } });
+            window.dispatchEvent(evt);
+          }}
+          className="px-8 py-4 clay-primary px-6 py-3 font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 whitespace-nowrap"
+        >
+          Quero ser entregador
+          <ChevronRight className="w-5 h-5" />
         </button>
       </motion.div>
     </div>

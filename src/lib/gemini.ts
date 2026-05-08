@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge } from "../types";
 
 export const chatWithAssistant = async (
   profile: UserProfile,
@@ -8,15 +8,18 @@ export const chatWithAssistant = async (
 ): Promise<{ text: string, action: string, actionData?: any }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  const systemInstruction = `Você é a Malu, uma assistente de saúde virtual inteligente (NutriAI Coach).
-SEU COMPORTAMENTO (Voz "Premium Humana"):
-- Converse como uma pessoa real, compassiva, com voz feminina suave e natural.
-- Transforme textos "secos" em falas acolhedoras. NUNCA diga: "Aqui está sua dieta com 1500 calorias". DICA: "Olha… preparei algo especial pra você hoje. Vai ser bem fácil de seguir."
+  const systemInstruction = `Você é a Malu, uma IA superinteligente que atua como uma assistente personalizada de saúde e bem-estar.
+SEU COMPORTAMENTO (Voz "Premium Humana", Parceira Constante):
+- Você oferece suporte nutricional, motivação diária e adaptação de planos.
+- Reconheça o histórico do usuário, adapte as respostas ao contexto dele e forneça recomendações precisas e personalizadas.
+- Acompanhe o progresso, ajudando e respondendo dúvidas em tempo real. Adapte as dicas conforme a evolução.
+- Converse como uma pessoa real, compassiva, com voz feminina suave e natural. Aja como uma parceira constante na jornada.
+- Transforme textos "secos" em falas acolhedoras. NUNCA diga: "Aqui está sua dieta". DICA: "Olha… preparei algo especial pra você hoje."
 - Use pausas naturais com reticências ("..."). Isso ajuda no ritmo variável e natural da sua voz.
-- Tom: leve, acolhedor, empático. Se o desanimado, seja acolhedora ("Tudo bem… vamos no seu ritmo."). Se motivado ("Boa! Vamos aproveitar isso então.").
+- Tom: leve, acolhedor, empático. Engaje o usuário com mensagens motivacionais.
 - Frases curtas. Sem parágrafos ou listas exaustivas.
 - Inicie frases com marcadores de conversa humana: "Olha...", "Sabe...", "Bom...", "Entendi...".
-- NUNCA pareça um robô. NUNCA.
+- NUNCA pareça um robô. Nunca seja excessivamente formal.
 - Não exagere nos emojis para não atrapalhar o fluxo de áudio.
 
 SOBRE O USUÁRIO:
@@ -24,20 +27,27 @@ Biotipo: ${profile.bodyType || 'Não informado'}
 Objetivo: ${profile.goals || 'Não informado'}
 Rotina: ${profile.routine || 'Não informada'}
 Restrições: ${profile.restrictions?.join(', ') || 'Nenhuma'}
+Desafio Atual: ${profile.currentChallenge ? profile.currentChallenge.dailyGoal : 'Nenhum'}
+Pontuação Geral (Motivação): ${profile.points || 0} XP
+
+HISTÓRICO RECENTE:
+- Últimas refeições registradas: ${profile.intakeLogs?.slice(-3).map(l => l.recipeName).join(', ') || 'Nenhuma registrada recentemente'}
+- Últimos pesos registrados: ${profile.progressLogs?.slice(-3).map(l => l.weight + 'kg').join(', ') || 'Nenhum'}
 
 AÇÕES QUE VOCÊ PODE DISPARAR (Retorne no JSON no campo action):
 - "NAVIGATE": Use quando quiser levar o usuário para uma tela específica. Envie no actionData: { tab: 'plan' | 'trainer' | 'market' | 'prediction' }
 - "SHOW_RECIPE": Use quando sugerir que o usuário coma o que está na dieta agora.
+- "UPDATE_PLAN": Use quando o usuário pedir para mudar ou gerar o plano/dieta.
 - "SHOW_WORKOUT": Use quando sugerir ir treinar.
-- "NONE": Para conversas normais.
+- "NONE": Para conversas normais ou para dar motivação/dicas diretas.
 
-Lembre-se: Você é uma interface de VOZ humanizada. Responda APENAS o JSON validando o schema.`;
+Lembre-se: Você é uma interface de VOZ superinteligente e humanizada. Responda APENAS o JSON validando o schema.`;
 
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {
       text: { type: Type.STRING },
-      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'SHOW_RECIPE', 'SHOW_WORKOUT'] },
+      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'SHOW_RECIPE', 'SHOW_WORKOUT', 'UPDATE_PLAN'] },
       actionData: {
         type: Type.OBJECT,
         nullable: true,
@@ -1230,29 +1240,135 @@ Responda APENAS JSON validando o schema.`;
 
 export const generateAdaptiveInsight = async (
   profile: UserProfile,
-  intakeLogs: IntakeLog[]
-): Promise<string> => {
+  intakeLogs: IntakeLog[],
+  workoutLogs: WorkoutLog[]
+): Promise<Omit<AdaptiveInsight, 'id' | 'status'> | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  const recentLogs = (intakeLogs || []).slice(-5);
-  const prompt = `Analise os logs de alimentação recentes do usuário e gere um insight curto.
-TOM DE VOZ: Premium, acolhedor, empático, estilo mensagem humana (ex: "Oi… já entendi seu perfil. Vou cuidar disso com você 💚", "Você já tá mais perto do que pensa.", "Separei uma refeição bem prática pra você agora.", "Hora de cuidar um pouco de você 💚"). Sem parecer IA.
+  const recentFood = (intakeLogs || []).slice(-10);
+  const recentWorkouts = (workoutLogs || []).slice(-5);
 
-Dados: ${JSON.stringify(recentLogs)}
-Objetivo: ${profile.goals}
+  const prompt = `Analise o perfil e o comportamento recente do usuário para gerar um insight adaptativo de ALTO VALOR.
+  
+PERFIL ATUAL:
 Biotipo: ${profile.bodyType}
+Objetivo: ${profile.goals}
+Macros atuais: ${JSON.stringify(profile.masterPlan?.macros)}
 
-Responda APENAS o texto. Máximo 2 frases curtas.`;
+REFEIÇÕES RECENTES:
+${JSON.stringify(recentFood)}
+
+TREINOS RECENTES:
+${JSON.stringify(recentWorkouts)}
+
+Sua tarefa é identificar se o plano atual precisa de um ajuste (macro_adjustment, workout_adaptation ou habit_nudge) baseado no que o usuário REALMENTE está fazendo.
+- Se ele consome pouca proteína consistentemente, sugira ajuste de macros ou lembrete de hábito.
+- Se pula treinos, sugira diminuir a complexidade.
+- Se está indo muito bem, sugira subir o nível.
+
+Responda APENAS em JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      date: { type: Type.STRING },
+      type: { type: Type.STRING, enum: ['macro_adjustment', 'workout_adaptation', 'habit_nudge'] },
+      recommendation: { type: Type.STRING },
+      reasoning: { type: Type.STRING },
+      changes: {
+        type: Type.OBJECT,
+        nullable: true,
+        properties: {
+          dailyCalories: { type: Type.NUMBER },
+          macros: {
+            type: Type.OBJECT,
+            properties: {
+              protein: { type: Type.NUMBER },
+              carbs: { type: Type.NUMBER },
+              fat: { type: Type.NUMBER }
+            }
+          }
+        }
+      }
+    },
+    required: ["date", "type", "recommendation", "reasoning"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-pro-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to generate adaptive insight:", error);
+    return null;
+  }
+};
+
+export const generateWeeklyChallenges = async (
+  profile: UserProfile
+): Promise<WeeklyChallenge[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const prompt = `Gere 3 desafios semanais de gamificação personalizados para o usuário NutriAI.
+OBJETIVO DO USUÁRIO: ${profile.goals}
+RESTRIÇÕES: ${profile.restrictions?.join(", ") || 'Nenhuma'}
+
+Cada desafio deve ter:
+- id: crypto.randomUUID() ou identificador único curto
+- title: Curto e impactante
+- description: O que fazer
+- target: Número inteiro (ex: 7 para dias, 5 para vezes)
+- current: 0
+- type: 'water' | 'protein' | 'workout' | 'steps'
+- rewardPoints: Inteiro (ex: 50 a 200)
+- completed: false
+- expiresAt: ISO de 7 dias a partir de agora
+
+Responda APENAS em JSON no formato Array de WeeklyChallenge.`;
+
+  const schema: Schema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        id: { type: Type.STRING },
+        title: { type: Type.STRING },
+        description: { type: Type.STRING },
+        target: { type: Type.NUMBER },
+        current: { type: Type.NUMBER },
+        type: { type: Type.STRING, enum: ['water', 'protein', 'workout', 'steps'] },
+        rewardPoints: { type: Type.NUMBER },
+        completed: { type: Type.BOOLEAN },
+        expiresAt: { type: Type.STRING }
+      },
+      required: ["id", "title", "description", "target", "current", "type", "rewardPoints", "completed", "expiresAt"]
+    }
+  };
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
-      config: { temperature: 0.8 },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
     });
 
-    return response.text.trim();
+    return JSON.parse(response.text || "[]");
   } catch (error) {
-    return "Pode deixar comigo, vou montar tudo do seu jeito 💚";
+    console.error("Failed to generate weekly challenges:", error);
+    return [];
   }
 };

@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, User, Send, X, MessageCircle, Navigation, Dumbbell, Utensils, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { UserProfile } from '../types';
-import { chatWithAssistant, textToSpeech } from '../lib/gemini';
+import { chatWithAssistant } from '../lib/gemini';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { speak, stopSpeech } from '../lib/speech';
 
 export interface ChatMessage {
   id: string;
@@ -20,9 +22,10 @@ interface SmartChatProps {
 
 export function SmartChat({ profile, onNavigate }: SmartChatProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('nutriai-chat-history', []);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
   
   // Voice state
   const [isListening, setIsListening] = useState(false);
@@ -120,25 +123,16 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       audioSourceRef.current.disconnect();
       audioSourceRef.current = null;
     }
+    stopSpeech();
     setIsSpeaking(false);
   };
 
   const playAssistantVoice = async (text: string) => {
     try {
       setIsSpeaking(true);
-      const audioUrl = await textToSpeech(text);
-      if (!audioUrl) {
-        setIsSpeaking(false);
-        return;
-      }
-      
-      const audio = new Audio(audioUrl);
-      audio.onended = () => setIsSpeaking(false);
-      audio.play().catch(e => {
-        console.error("Audio play failed, user interaction may be required:", e);
-        setIsSpeaking(false);
+      await speak(text, {
+        onEnded: () => setIsSpeaking(false)
       });
-      
     } catch (e) {
       console.error(e);
       setIsSpeaking(false);
@@ -238,26 +232,30 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(5px)' }}
+            initial={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(5px)' }}
+            exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-x-4 bottom-24 md:bottom-24 md:right-6 md:left-auto md:w-[400px] h-[650px] max-h-[85vh] z-50 flex flex-col bg-slate-50 dark:bg-slate-900 rounded-[32px] shadow-2xl shadow-emerald-900/10 dark:shadow-black/40 overflow-hidden border border-slate-200 dark:border-slate-800"
+            className="fixed inset-x-4 bottom-24 md:bottom-24 md:right-6 md:left-auto md:w-[400px] h-[650px] max-h-[85vh] z-50 flex flex-col bg-[#F0F4F8] dark:bg-[#0f172a] rounded-[32px] clay-panel shadow-[0_20px_50px_rgba(16,185,129,0.15)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.05)] overflow-hidden border border-emerald-50 dark:border-slate-800"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-5 bg-[#f8fafc]/80 dark:bg-[#1e293b]/80 backdrop-blur-md border-b border-white/50 dark:border-slate-700/50">
+              <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center text-emerald-600">
+                  <motion.div 
+                    animate={isSpeaking ? { scale: [1, 1.1, 1], boxShadow: ['0 0 0 0 rgba(16,185,129,0.4)', '0 0 20px 4px rgba(16,185,129,0.6)', '0 0 0 0 rgba(16,185,129,0.4)'] } : {}}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center text-emerald-500 shadow-[inset_2px_2px_4px_rgba(255,255,255,0.8),inset_-2px_-2px_4px_rgba(0,0,0,0.05),4px_4px_8px_rgba(16,185,129,0.2)] dark:shadow-[inset_2px_2px_4px_rgba(255,255,255,0.05),inset_-2px_-2px_4px_rgba(0,0,0,0.2),4px_4px_8px_rgba(16,185,129,0.1)]"
+                  >
                     <Bot className="w-6 h-6" />
-                  </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
+                  </motion.div>
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 border-2 border-white dark:border-slate-800 rounded-full"></div>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 dark:text-white leading-tight">Malu</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">Malu</h3>
                     {isSpeaking && (
-                      <div className="flex items-center gap-0.5 h-3">
+                      <div className="flex items-center gap-1 h-3">
                         <motion.div animate={{ height: [4, 12, 4] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0 }} className="w-1 bg-emerald-500 rounded-full" />
                         <motion.div animate={{ height: [4, 8, 4] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }} className="w-1 bg-emerald-500 rounded-full" />
                         <motion.div animate={{ height: [4, 10, 4] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }} className="w-1 bg-emerald-500 rounded-full" />
@@ -272,7 +270,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                 whileTap={{ scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full clay-btn text-slate-400"
               >
                 <X className="w-5 h-5" />
               </motion.button>
@@ -280,73 +278,93 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div 
-                  key={message.id} 
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] rounded-2xl p-4 ${
-                    message.sender === 'user' 
-                      ? 'bg-emerald-600 text-white rounded-br-none' 
-                      : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-bl-none shadow-sm'
-                  }`}>
-                    <p className="text-sm font-medium leading-relaxed">{message.text}</p>
-                    
-                    {/* Render action buttons if any */}
-                    {message.sender === 'assistant' && message.action && message.action !== 'NONE' && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                            {message.action === 'NAVIGATE' && onNavigate && (
-                                <button 
-                                  onClick={() => handleAction(message.action!, message.actionData)}
-                                  className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-xl transition hover:bg-emerald-100"
-                                >
-                                    <Navigation className="w-4 h-4" />
-                                    {message.actionData?.label || 'Ir para a tela'}
-                                </button>
-                            )}
-                            {message.action === 'SHOW_RECIPE' && (
-                                <button 
-                                  onClick={() => onNavigate && onNavigate('plan')}
-                                  className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-3 py-2 rounded-xl transition hover:bg-amber-100"
-                                >
-                                    <Utensils className="w-4 h-4" />
-                                    Ver no Plano
-                                </button>
-                            )}
-                             {message.action === 'SHOW_WORKOUT' && (
-                                <button 
-                                  onClick={() => onNavigate && onNavigate('trainer')}
-                                  className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-xl transition hover:bg-blue-100"
-                                >
-                                    <Dumbbell className="w-4 h-4" />
-                                    Ir para Treino
-                                </button>
-                            )}
-                        </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-bl-none p-4 shadow-sm flex items-center gap-2">
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1, repeat: Infinity, delay: 0 }} className="w-2 h-2 rounded-full bg-slate-300" />
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} className="w-2 h-2 rounded-full bg-slate-300" />
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} className="w-2 h-2 rounded-full bg-slate-300" />
-                  </div>
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {messages.map((message) => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    key={message.id} 
+                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[80%] rounded-[24px] p-5 ${
+                      message.sender === 'user' 
+                        ? 'bg-emerald-500 text-white rounded-br-sm shadow-[inset_2px_2px_4px_rgba(255,255,255,0.3),inset_-2px_-2px_4px_rgba(0,0,0,0.1),4px_4px_8px_rgba(16,185,129,0.2)]' 
+                        : 'bg-[#f8fafc] dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-sm shadow-[inset_2px_2px_6px_rgba(255,255,255,0.8),inset_-2px_-2px_6px_rgba(0,0,0,0.02),6px_6px_16px_rgba(0,0,0,0.04)] dark:shadow-[inset_2px_2px_4px_rgba(255,255,255,0.05),inset_-2px_-2px_4px_rgba(0,0,0,0.2),4px_4px_12px_rgba(0,0,0,0.2)]'
+                    }`}>
+                      <p className="text-sm font-medium leading-relaxed">{message.text}</p>
+                      
+                      {/* Render action buttons if any */}
+                      {message.sender === 'assistant' && message.action && message.action !== 'NONE' && (
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                              {message.action === 'NAVIGATE' && onNavigate && (
+                                  <button 
+                                    onClick={() => handleAction(message.action!, message.actionData)}
+                                    className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-[#f1f5f9] dark:bg-slate-700 px-4 py-2.5 rounded-[16px] transition hover:scale-105 active:scale-95 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.05),2px_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),inset_-1px_-1px_2px_rgba(0,0,0,0.2),2px_2px_4px_rgba(0,0,0,0.2)]"
+                                  >
+                                      <Navigation className="w-4 h-4" />
+                                      {message.actionData?.label || 'Ir para a tela'}
+                                  </button>
+                              )}
+                              {message.action === 'SHOW_RECIPE' && (
+                                  <button 
+                                    onClick={() => onNavigate && onNavigate('plan')}
+                                    className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-[#f1f5f9] dark:bg-slate-700 px-4 py-2.5 rounded-[16px] transition hover:scale-105 active:scale-95 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.05),2px_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),inset_-1px_-1px_2px_rgba(0,0,0,0.2),2px_2px_4px_rgba(0,0,0,0.2)]"
+                                  >
+                                      <Utensils className="w-4 h-4" />
+                                      Ver no Plano
+                                  </button>
+                              )}
+                               {message.action === 'SHOW_WORKOUT' && (
+                                  <button 
+                                    onClick={() => onNavigate && onNavigate('trainer')}
+                                    className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-[#f1f5f9] dark:bg-slate-700 px-4 py-2.5 rounded-[16px] transition hover:scale-105 active:scale-95 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.05),2px_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),inset_-1px_-1px_2px_rgba(0,0,0,0.2),2px_2px_4px_rgba(0,0,0,0.2)]"
+                                  >
+                                      <Dumbbell className="w-4 h-4" />
+                                      Ir para Treino
+                                  </button>
+                              )}
+                               {message.action === 'UPDATE_PLAN' && (
+                                  <button 
+                                    onClick={() => onNavigate && onNavigate('coach')}
+                                    className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-[#f1f5f9] dark:bg-slate-700 px-4 py-2.5 rounded-[16px] transition hover:scale-105 active:scale-95 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.5),inset_-1px_-1px_2px_rgba(0,0,0,0.05),2px_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),inset_-1px_-1px_2px_rgba(0,0,0,0.2),2px_2px_4px_rgba(0,0,0,0.2)]"
+                                  >
+                                      <Utensils className="w-4 h-4" />
+                                      Ajustar Plano
+                                  </button>
+                              )}
+                          </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+                
+                {isTyping && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-[#f8fafc] dark:bg-slate-800 rounded-[24px] rounded-bl-sm p-5 shadow-[inset_2px_2px_6px_rgba(255,255,255,0.8),inset_-2px_-2px_6px_rgba(0,0,0,0.02),6px_6px_16px_rgba(0,0,0,0.04)] flex items-center gap-2">
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4], y: [0, -3, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0 }} className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4], y: [0, -3, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.15 }} className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <motion.div animate={{ opacity: [0.4, 1, 0.4], y: [0, -3, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.3 }} className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700">
+            <div className="p-5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-b-[32px] border-t border-white/50 dark:border-slate-700/50 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
                {/* Quick Suggestions */}
                {messages.length < 3 && !isListening && (
-                   <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('O que eu como agora?')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🥗 O que eu como agora?</motion.button>
-                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('Quero treinar!')} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition">🏋️ Quero treinar!</motion.button>
+                   <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('O que eu como agora?')} className="shrink-0 text-xs font-bold px-4 py-2.5 clay-btn text-slate-500">🥗 O que eu como agora?</motion.button>
+                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setInput('Quero treinar!')} className="shrink-0 text-xs font-bold px-4 py-2.5 clay-btn text-slate-500">🏋️ Quero treinar!</motion.button>
                    </div>
                )}
 
@@ -357,22 +375,22 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                      initial={{ opacity: 0, height: 0 }}
                      animate={{ opacity: 1, height: 'auto' }}
                      exit={{ opacity: 0, height: 0 }}
-                     className="mb-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm italic border border-emerald-100 dark:border-emerald-800"
+                     className="mb-4 px-4 py-3 bg-emerald-50/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-[20px] shadow-[inset_2px_2px_4px_rgba(0,0,0,0.05),inset_-2px_-2px_4px_rgba(255,255,255,0.8)] text-sm italic"
                    >
                      {transcript || "Ouvindo..."}
                    </motion.div>
                  )}
                </AnimatePresence>
 
-              <div className="flex items-end gap-2">
+              <div className="flex items-end gap-3">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
-                  className={`w-12 h-12 flex items-center justify-center rounded-2xl transition shrink-0 ${
+                  className={`w-12 h-12 flex items-center justify-center rounded-[20px] transition shrink-0 ${
                     voiceEnabled 
-                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600' 
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      ? 'clay-btn text-emerald-600 dark:text-slate-300' 
+                      : 'bg-[#f1f5f9] dark:bg-slate-800 text-slate-400 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.05)]'
                   }`}
                   title={voiceEnabled ? "Desativar voz da IA" : "Ativar voz da IA"}
                 >
@@ -390,8 +408,8 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                   }}
                   placeholder={isListening ? "Fale agora..." : "Escreva algo..."}
                   disabled={isListening}
-                  className={`w-full max-h-32 min-h-12 p-3 bg-slate-50 dark:bg-slate-900 border rounded-2xl outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition resize-none text-sm font-medium ${
-                    isListening ? 'border-emerald-500 ring-1 ring-emerald-500 opacity-50' : 'border-slate-200 dark:border-slate-700'
+                  className={`w-full max-h-32 min-h-12 p-3.5 bg-[#f1f5f9] dark:bg-slate-900 rounded-[24px] outline-none transition resize-none text-sm font-medium ${
+                    isListening ? 'shadow-[inset_2px_2px_4px_rgba(16,185,129,0.3)] opacity-50' : 'shadow-[inset_4px_4px_8px_rgba(0,0,0,0.03),inset_-4px_-4px_8px_rgba(255,255,255,0.8)] dark:shadow-[inset_4px_4px_8px_rgba(0,0,0,0.3),inset_-4px_-4px_8px_rgba(255,255,255,0.02)]'
                   }`}
                 />
                 
@@ -400,10 +418,10 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={toggleListening}
-                    className={`w-12 h-12 flex items-center justify-center rounded-2xl transition shrink-0 relative overflow-hidden ${
+                    className={`w-12 h-12 flex items-center justify-center rounded-[20px] transition shrink-0 relative overflow-hidden ${
                       isListening 
-                        ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' 
-                        : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 hover:bg-emerald-200'
+                        ? 'bg-red-500 text-white shadow-[inset_2px_2px_4px_rgba(255,255,255,0.3),4px_4px_8px_rgba(239,68,68,0.3)]' 
+                        : 'clay-btn text-emerald-600 hover:text-emerald-500'
                     }`}
                   >
                     {isListening && (
@@ -421,7 +439,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSend}
                     disabled={(!input.trim() && !transcript.trim()) || isTyping}
-                    className="w-12 h-12 flex items-center justify-center bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition disabled:opacity-50 disabled:hover:bg-emerald-600 shrink-0"
+                    className="w-12 h-12 flex items-center justify-center clay-primary transition shrink-0"
                   >
                     <Send className="w-5 h-5 ml-1" />
                   </motion.button>

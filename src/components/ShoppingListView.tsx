@@ -62,7 +62,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] p-8 shadow-xl border border-white/60 dark:border-slate-700/50">
+      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-8 shadow-xl border border-white/60 dark:border-slate-700/50">
         <div className="flex items-center justify-between mb-8 pb-8 border-b border-white/40 dark:border-slate-700/50">
           <div>
             <p className="font-sans font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider text-sm mb-2">Progresso</p>

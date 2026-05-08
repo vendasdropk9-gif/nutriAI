@@ -54,7 +54,7 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-[32px] clay-card p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
             >
               <div className="flex items-center gap-3 mb-6">
                  <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl">
@@ -92,7 +92,7 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-[32px] clay-card p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
             >
               <div className="flex items-center gap-3 mb-6">
                  <div className="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
@@ -128,7 +128,7 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-[32px] clay-card p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
             >
               <div className="flex items-center gap-3 mb-6">
                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl">
@@ -164,7 +164,7 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
+              className="bg-white dark:bg-slate-900 rounded-[32px] clay-card p-8 shadow-2xl border border-slate-100 dark:border-slate-800"
             >
                <div className="flex items-center gap-3 mb-6">
                  <div className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl">
@@ -199,7 +199,7 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
               key="step5"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[40px] p-10 shadow-2xl text-white text-center space-y-6"
+              className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[40px] clay-card p-10 shadow-2xl text-white text-center space-y-6"
             >
               <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto backdrop-blur-md">
                 <CheckCircle2 className="w-10 h-10 text-white" />

@@ -130,7 +130,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-6 md:p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         {!isScanning && !productData && !isAnalyzing && (
           <div className="flex flex-col items-center justify-center py-12 space-y-6">
             <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -222,7 +222,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
               </div>
             </div>
 
-            <div className="bg-white/50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-white/80 dark:border-slate-700/50 flex items-start gap-4">
+            <div className="clay-card p-6 flex items-start gap-4">
                <button
                   onClick={() => playTTS(analysis.assistantMessage)}
                   className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md'}`}
@@ -244,7 +244,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                  { label: 'Carbos', value: `${analysis.nutrition.carbs}g`, color: 'text-sky-500' },
                  { label: 'Gorduras', value: `${analysis.nutrition.fat}g`, color: 'text-rose-500' }
                ].map((stat, i) => (
-                 <div key={i} className="bg-white/40 dark:bg-slate-800/40 p-5 rounded-2xl border border-white/60 dark:border-slate-700/50 text-center space-y-1">
+                 <div key={i} className="clay-card p-6 text-center space-y-1">
                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.label}</p>
                    <p className={`text-2xl font-serif font-medium ${stat.color}`}>{stat.value}</p>
                  </div>

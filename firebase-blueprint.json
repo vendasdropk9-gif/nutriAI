@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Core user information and settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "goals": { "type": "string" },
+        "preferences": { "type": "string" },
+        "restrictions": { "type": "array", "items": { "type": "string" } },
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "weight": { "type": "number" },
+        "height": { "type": "number" },
+        "age": { "type": "number" },
+        "activityLevel": { "type": "string" },
+        "gender": { "type": "string" },
+        "targetWeight": { "type": "number" },
+        "points": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastActiveDate": { "type": "string", "format": "date-time" },
+        "favorites": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string" }
+      },
+      "required": ["name", "email", "createdAt", "updatedAt"]
+    },
+    "IntakeLog": {
+      "title": "Intake Log",
+      "description": "Record of a food intake event",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "mealId": { "type": "string" },
+        "recipeName": { "type": "string" },
+        "planned": { "$ref": "#/entities/NutritionInfo" },
+        "actual": { "$ref": "#/entities/NutritionInfo" },
+        "adjusted": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "recipeName", "userId", "createdAt"]
+    },
+    "ProgressLog": {
+      "title": "Progress Log",
+      "description": "Biological progress tracking (weight, etc)",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "weight": { "type": "number" },
+        "bodyFat": { "type": "number" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "weight", "userId", "createdAt"]
+    },
+    "AICert": {
+      "title": "AI Conversation",
+      "description": "Chat log with AI",
+      "type": "object",
+      "properties": {
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "messages": { "type": "array", "items": { "type": "object" } },
+        "preferencesLearned": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["createdAt", "updatedAt", "messages"]
+    },
+    "Order": {
+      "title": "Shopping Order",
+      "description": "Record of a shopping order",
+      "type": "object",
+      "properties": {
+        "storeId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "delivering", "delivered", "cancelled"] },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "deliveryAddress": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "totalAmount", "status", "items", "createdAt", "updatedAt"]
+    },
+    "Recipe": {
+      "title": "Recipe",
+      "description": "Food recipe data",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "prepTime": { "type": "string" },
+        "ingredients": { "type": "array", "items": { "type": "string" } },
+        "instructions": { "type": "array", "items": { "type": "string" } },
+        "nutrition": { "$ref": "#/entities/NutritionInfo" },
+        "authorId": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ingredients", "instructions", "authorId", "createdAt", "updatedAt"]
+    },
+    "NutritionInfo": {
+      "title": "Nutrition Information",
+      "type": "object",
+      "properties": {
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Primary user profiles"
+    },
+    "/users/{userId}/intakeLogs/{logId}": {
+      "schema": "IntakeLog",
+      "description": "Individual intake records for a user"
+    },
+    "/users/{userId}/progressLogs/{logId}": {
+      "schema": "ProgressLog",
+      "description": "Physical progress logs"
+    },
+    "/users/{userId}/aiChats/{chatId}": {
+      "schema": "AICert",
+      "description": "AI conversation history"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Shopping orders for the user"
+    },
+    "/recipes/{recipeId}": {
+      "schema": "Recipe",
+      "description": "Global and saved recipes"
+    }
+  }
+}

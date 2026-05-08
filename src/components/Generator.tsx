@@ -4,6 +4,7 @@ import { Recipe, UserProfile } from '../types';
 import { Loader2, ChefHat, PiggyBank } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
+import { Skeleton } from './Skeleton';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -68,7 +69,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
           <Scanner onIngredientsDetected={handleIngredientsDetected} />
         </div>
 
-        <div className="md:col-span-2 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+        <div className="md:col-span-2 clay-card p-8">
           <form onSubmit={handleGenerate} className="space-y-8">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-4">
@@ -142,7 +143,11 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
         </div>
       </div>
 
-      {generatedRecipe && (
+      {isGenerating ? (
+        <div className="pt-8">
+          <Skeleton type="recipe" />
+        </div>
+      ) : generatedRecipe ? (
         <div className="pt-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-serif text-3xl font-medium text-emerald-700 dark:text-emerald-400">Sua Nova Receita</h3>
@@ -155,7 +160,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
           </div>
           <RecipeCard recipe={generatedRecipe} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

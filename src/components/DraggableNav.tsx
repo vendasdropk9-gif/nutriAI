@@ -1,0 +1,111 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, useMotionValue, useSpring } from 'motion/react';
+import { 
+  Utensils, CalendarDays, ShoppingBasket, User, Camera, 
+  Sparkles, GlassWater, Barcode, Brain, Trophy, Droplet, 
+  RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
+  Map as MapIcon, Zap 
+} from 'lucide-react';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  color?: string;
+  isPremium?: boolean;
+  isSpecial?: boolean;
+}
+
+interface DraggableNavProps {
+  activeTab: string;
+  onTabChange: (id: any) => void;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'coach', label: 'Coach IA', icon: <Zap className="w-5 h-5" />, isSpecial: true },
+  { id: 'generator', label: 'Receitas', icon: <Utensils className="w-5 h-5" /> },
+  { id: 'juice', label: 'Sucos', icon: <GlassWater className="w-5 h-5" /> },
+  { id: 'hydration', label: 'Água', icon: <Droplet className="w-5 h-5" /> },
+  { id: 'barcode', label: 'Scanner', icon: <Barcode className="w-5 h-5" /> },
+  { id: 'emotional', label: 'Mente', icon: <Brain className="w-5 h-5" /> },
+  { id: 'analyzer', label: 'Análise', icon: <Camera className="w-5 h-5" /> },
+  { id: 'plan', label: 'Plano', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'shopping', label: 'Compras', icon: <ShoppingBasket className="w-5 h-5" /> },
+  { id: 'journey', label: 'Evolução', icon: <Sparkles className="w-5 h-5" />, color: 'from-emerald-500 to-indigo-500' },
+  { id: 'challenge', label: 'Desafio', icon: <Trophy className="w-5 h-5" />, color: 'from-orange-500 to-amber-500' },
+  { id: 'swaps', label: 'Trocas', icon: <RefreshCw className="w-5 h-5" /> },
+  { id: 'dining', label: 'Comi Fora', icon: <ChefHat className="w-5 h-5" /> },
+  { id: 'market', label: 'Market', icon: <Store className="w-5 h-5" />, color: 'bg-emerald-600' },
+  { id: 'frescor', label: 'Mapa', icon: <MapIcon className="w-5 h-5" /> },
+  { id: 'trainer', label: 'Treinar', icon: <Dumbbell className="w-5 h-5" />, color: 'bg-slate-900' },
+  { id: 'gamification', label: 'Conquistas', icon: <Trophy className="w-5 h-5" />, color: 'from-emerald-400 to-teal-600' },
+  { id: 'prediction', label: 'Previsão', icon: <TrendingUp className="w-5 h-5" /> },
+  { id: 'profile', label: 'Perfil', icon: <User className="w-5 h-5" /> },
+  { id: 'pricing', label: 'Premium', icon: <Crown className="w-5 h-5" />, isPremium: true },
+  { id: 'partner', label: 'Parceiro', icon: <Store className="w-5 h-5" /> },
+];
+
+export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const [constraints, setConstraints] = useState({ left: 0, right: 0 });
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const parentWidth = containerRef.current.parentElement?.offsetWidth || 0;
+      const contentWidth = containerRef.current.scrollWidth;
+      setConstraints({ left: -(contentWidth - parentWidth + 40), right: 0 });
+    }
+  }, []);
+
+  const springX = useSpring(x, { stiffness: 300, damping: 30 });
+
+  return (
+    <div className="w-[calc(100%-2rem)] md:w-full max-w-[500px] md:max-w-none mx-auto relative overflow-hidden h-16 md:h-20 flex items-center clay-panel mt-2 md:mt-4 mb-2 md:mb-4 rounded-[20px] md:rounded-[24px] shrink-0">
+      <motion.div
+        ref={containerRef}
+        drag="x"
+        dragConstraints={constraints}
+        style={{ x: springX }}
+        className="flex items-center gap-3 px-8 cursor-grab active:cursor-grabbing select-none"
+      >
+        {NAV_ITEMS.map((item) => (
+          <motion.button
+            key={item.id}
+            onClick={() => {
+              if (window.navigator?.vibrate) window.navigator.vibrate(40);
+              onTabChange(item.id);
+            }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className={`
+              flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all duration-500 whitespace-nowrap group relative
+              ${activeTab === item.id 
+                ? item.isSpecial 
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-500/30'
+                  : item.isPremium
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-xl shadow-amber-500/30'
+                    : item.color 
+                      ? `${item.color.includes('from-') ? 'bg-gradient-to-r ' + item.color : item.color} text-white shadow-xl`
+                      : 'clay-btn text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 border-none'
+              }
+            `}
+          >
+            <span className={`transition-transform duration-500 ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
+            
+            {activeTab === item.id && (
+              <motion.div
+                layoutId="nav-active-glow"
+                className="absolute inset-0 rounded-full bg-white/10 blur-md -z-10"
+              />
+            )}
+          </motion.button>
+        ))}
+      </motion.div>
+    </div>
+  );
+}

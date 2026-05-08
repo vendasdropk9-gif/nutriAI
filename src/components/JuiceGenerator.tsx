@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
 import { generateJuiceRecipe, textToSpeech } from '../lib/gemini';
 import { UserProfile } from '../types';
@@ -45,9 +46,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
     
     try {
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
         return;
       }
 
@@ -55,9 +54,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -80,7 +77,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         <form onSubmit={handleGenerate} className="space-y-6">
           <div className="space-y-4">
             <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
@@ -141,7 +138,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
           
           {generatedJuice.assistantMessage && (
-            <div className="flex items-start gap-4 bg-white/50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-white/80 dark:border-slate-700/50 shadow-sm relative overflow-hidden">
+            <div className="flex items-start gap-4 clay-card p-6 shadow-sm relative overflow-hidden">
                <button
                   onClick={() => playTTS(generatedJuice.assistantMessage)}
                   className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md'}`}
@@ -158,7 +155,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
             </div>
           )}
 
-          <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
+          <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
             <div className="bg-gradient-to-br from-emerald-50/80 to-yellow-50/80 dark:from-emerald-900/30 dark:to-yellow-900/20 p-8 md:p-12 border-b border-white/60 dark:border-slate-700/50">
               <div className="flex items-center gap-3 mb-4">
                 <Sparkles className="w-6 h-6 text-emerald-500" />

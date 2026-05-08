@@ -103,7 +103,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <div className="flex justify-between items-center bg-white/40 dark:bg-slate-800/40 backdrop-blur-md p-6 rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-sm">
+          <div className="flex justify-between items-center clay-card p-8 shadow-sm">
             <div>
               <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">{selectedDay}</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Planeje suas 3 principais refeições.</p>
@@ -122,7 +122,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
             const recipe = dayPlan[mealType.id as keyof typeof dayPlan];
             
             return (
-              <div key={mealType.id} className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl">
+              <div key={mealType.id} className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">
                     {mealType.label}

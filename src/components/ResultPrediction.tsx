@@ -1,7 +1,9 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
-import { Calendar, TrendingUp, Sparkles, Volume2, Play, Loader2, ArrowRight, Target, Clock, ShieldCheck } from 'lucide-react';
+import { Calendar, TrendingUp, Sparkles, Volume2, Play, ArrowRight, Target, Clock, ShieldCheck, Loader2 } from 'lucide-react';
 import { UserProfile, GoalPrediction } from '../types';
 import { generateGoalPrediction, textToSpeech } from '../lib/gemini';
+import { Skeleton } from './Skeleton';
 
 interface ResultPredictionProps {
   profile: UserProfile | null;
@@ -39,9 +41,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
     
     try {
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
         return;
       }
 
@@ -49,9 +49,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -74,8 +72,10 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
         </p>
       </div>
 
-      {!prediction ? (
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-12 rounded-[40px] shadow-2xl border border-white/60 dark:border-slate-700/50 text-center space-y-8">
+      {isCalculating && !prediction ? (
+        <Skeleton type="card" />
+      ) : !prediction ? (
+        <div className="clay-card p-8 text-center space-y-8">
             <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto text-emerald-600">
                <TrendingUp className="w-12 h-12" />
             </div>
@@ -90,7 +90,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
                disabled={isCalculating}
                className="px-12 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 mx-auto disabled:opacity-50"
             >
-               {isCalculating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
+               <Sparkles className="w-6 h-6" />
                Gerar Previsão Inteligente
             </button>
         </div>
@@ -98,7 +98,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <div className="grid md:grid-cols-2 gap-8">
              {/* Big Date Card */}
-             <div className="bg-slate-900 text-white p-10 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[350px]">
+             <div className="bg-slate-900 text-white p-10 rounded-[40px] clay-card shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[350px]">
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                    <Calendar className="w-48 h-48" />
                 </div>
@@ -134,7 +134,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
 
              {/* Motivation & Confidence Card */}
              <div className="space-y-8">
-                <div className="bg-white/60 dark:bg-slate-800/60 p-8 rounded-[32px] border border-white/80 dark:border-slate-700/50 shadow-sm relative overflow-hidden">
+                <div className="clay-card p-6 shadow-sm relative overflow-hidden">
                     <button
                         onClick={() => playTTS(prediction.motivationalMessage)}
                         className={`w-14 h-14 rounded-full flex items-center justify-center text-white bg-emerald-500 transition-all mb-6 ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md shadow-emerald-500/20'}`}
@@ -149,7 +149,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
                     </div>
                 </div>
 
-                <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 flex items-center gap-6">
+                <div className="clay-card p-6 flex items-center gap-6">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                        <ShieldCheck className="w-8 h-8 text-emerald-600" />
                     </div>
@@ -170,7 +170,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
           </div>
 
           {/* Goal Visualizer */}
-          <div className="bg-white/40 dark:bg-slate-800/40 p-10 rounded-[40px] border border-white/60 dark:border-slate-700/50 shadow-xl space-y-10">
+          <div className="clay-card p-6 shadow-xl space-y-10">
               <div className="flex items-center gap-3">
                  <Target className="w-6 h-6 text-emerald-500" />
                  <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Trajeto Final</h3>

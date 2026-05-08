@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
 import { Target, Trophy, Flame, ChevronRight, CheckCircle2, Circle, Sparkles, Volume2, Play, Calendar, Timer } from 'lucide-react';
 import { Challenge, UserProfile } from '../types';
@@ -74,9 +75,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -100,7 +99,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
           </p>
         </div>
 
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50 space-y-10">
+        <div className="clay-card p-8 space-y-10">
           <div className="space-y-4">
             <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest text-center">Quanto tempo de foco total?</label>
             <div className="grid grid-cols-3 gap-4">
@@ -134,7 +133,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
 
           <button
             onClick={startChallenge}
-            className="w-full py-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-3xl font-bold text-xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3"
+            className="w-full py-6 bg-emerald-500 hover:clay-primary px-6 py-3 font-bold text-xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3"
           >
             Começar Desafio
             <Flame className="w-6 h-6" />
@@ -148,7 +147,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 clay-card p-8">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">
              <Trophy className="w-10 h-10" />
@@ -175,7 +174,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
 
       <div className="grid md:grid-cols-3 gap-8">
         {/* Evolution Avatar Card */}
-        <div className="md:col-span-1 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 flex flex-col items-center justify-center space-y-6 text-center">
+        <div className="md:col-span-1 clay-card p-8 flex flex-col items-center justify-center space-y-6 text-center">
             <div className="relative">
                <div className="w-32 h-32 rounded-full border-4 border-emerald-500/20 flex items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-700">
                   <div className={`transition-all duration-1000 ${progressPercentage > 50 ? 'scale-110 shadow-2xl' : 'scale-100'}`}>
@@ -209,7 +208,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
         </div>
 
         {/* Action Card */}
-        <div className="md:col-span-2 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 flex flex-col justify-center space-y-8">
+        <div className="md:col-span-2 clay-card p-8 flex flex-col justify-center space-y-8">
            <div className="text-center space-y-2">
               <h4 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Dia {challenge.completedDays + 1}</h4>
               <p className="text-slate-500 dark:text-slate-400 font-sans">Meta de hoje: <span className="font-bold text-slate-700 dark:text-slate-200">{challenge.dailyGoal}</span></p>
@@ -233,7 +232,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
            )}
 
            {latestFeedback && (
-             <div className="bg-white/60 dark:bg-slate-900/60 p-6 rounded-2xl border border-white/80 dark:border-slate-700/50 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+             <div className="clay-card p-6 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                  <button
                     onClick={() => playTTS(latestFeedback)}
                     className={`w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md ${isPlaying ? 'animate-pulse' : ''}`}
@@ -248,7 +247,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
         </div>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
           <div className="flex items-center gap-3 mb-8">
             <Calendar className="w-6 h-6 text-slate-400" />
             <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Calendário da Vitória</h3>

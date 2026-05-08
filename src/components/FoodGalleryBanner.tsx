@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, Utensils, Zap, Volume2, Play, ShoppingCart } from 'lucide-react';
-import { speak } from '../lib/speech';
+import { ChevronRight, Utensils, Zap, ShoppingCart } from 'lucide-react';
 
 interface FoodSlide {
   id: string;
@@ -77,7 +76,6 @@ interface FoodGalleryBannerProps {
 
 export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -88,17 +86,8 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
 
   const slide = FOOD_SLIDES[currentIndex];
 
-  const handleSpeak = async () => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    await speak(slide.assistantTip, {
-      onEnded: () => setIsPlaying(false),
-      onError: () => setIsPlaying(false)
-    });
-  };
-
   return (
-    <div className="relative w-full h-[450px] md:h-[500px] rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-slate-200 dark:bg-slate-800 transition-colors">
+    <div className="relative w-full max-w-full mx-auto h-[450px] sm:h-[500px] md:h-[550px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] clay-card overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-slate-200 dark:bg-slate-800 transition-colors box-border">
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
@@ -111,27 +100,27 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
           <img 
             src={slide.image} 
             alt={slide.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
           />
           {/* Subtle Overlay Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent md:bg-gradient-to-t md:from-black/80 md:via-black/20 md:to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent md:bg-gradient-to-t md:from-black/80 md:via-black/20 md:to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent hidden md:block" />
         </motion.div>
       </AnimatePresence>
 
       {/* Content Overlay */}
-      <div className="absolute inset-x-0 bottom-0 p-6 md:p-12 flex flex-col justify-end space-y-4 md:space-y-6">
-        <div className="space-y-2">
+      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-12 flex flex-col justify-end space-y-4 md:space-y-6 box-border">
+        <div className="space-y-2 max-w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`meta-${slide.id}`}
-            className="flex items-center gap-2 mb-1 md:mb-2"
+            className="flex flex-wrap items-center gap-2 mb-1 md:mb-2"
           >
-            <div className="px-2.5 py-1 bg-emerald-500 rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest">
+            <div className="px-2.5 py-1 bg-emerald-500 rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">
               Destaque Saudável
             </div>
-            <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/20">
+            <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/20 whitespace-nowrap">
               {slide.calories}
             </div>
           </motion.div>
@@ -140,7 +129,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`title-${slide.id}`}
-            className="font-serif text-2xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight"
+            className="font-serif text-2xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight break-words"
           >
             {slide.name}
           </motion.h2>
@@ -149,7 +138,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`benefit-${slide.id}`}
-            className="text-white/80 font-sans text-sm sm:text-base md:text-xl max-w-md line-clamp-2 md:line-clamp-none"
+            className="text-white/80 font-sans text-sm sm:text-base md:text-xl max-w-md line-clamp-2 md:line-clamp-none break-words"
           >
             {slide.benefit}
           </motion.p>
@@ -159,37 +148,29 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             animate={{ opacity: 1, y: 0 }}
             key={`buy-${slide.id}`}
             onClick={onNavigateToMarket}
-            className="mt-2 flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500 backdrop-blur-md border border-emerald-500/30 text-white rounded-xl font-bold text-xs md:text-sm active:scale-95 transition-all shadow-lg w-fit"
+            className="mt-2 flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500 backdrop-blur-md border border-emerald-500/30 text-white rounded-xl font-bold text-xs md:text-sm active:scale-95 transition-all shadow-lg w-fit whitespace-nowrap"
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart className="w-4 h-4 flex-shrink-0" />
             Comprar Agora
           </motion.button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 md:gap-4">
-          <button className="flex-1 md:flex-none px-6 py-4 md:px-8 md:py-4 bg-white text-slate-900 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-lg text-sm md:text-base">
-            <Utensils className="w-4 h-4 md:w-5 md:h-5" />
-            Ver Receita
-            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-          </button>
-          
-          <button 
-            onClick={handleSpeak}
-            disabled={isPlaying}
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 text-white transition-all ${isPlaying ? 'bg-emerald-500 border-transparent animate-pulse' : 'bg-white/10 active:bg-white/30 md:hover:bg-white/20'}`}
-          >
-            {isPlaying ? <Volume2 className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6 ml-0.5" />}
+        <div className="flex flex-wrap items-center gap-3 md:gap-4 w-full">
+          <button className="flex-1 min-w-[140px] px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-lg text-sm md:text-base">
+            <Utensils className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate">Ver Receita</span>
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
           </button>
         </div>
       </div>
 
       {/* Progress Indicators */}
-      <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 flex items-center gap-2 md:gap-3">
+      <div className="absolute bottom-4 right-4 md:bottom-8 md:right-12 flex items-center gap-1.5 md:gap-3">
         {FOOD_SLIDES.map((_, i) => (
           <div 
             key={i}
             onClick={() => setCurrentIndex(i)}
-            className={`cursor-pointer transition-all duration-500 rounded-full h-1 md:h-1.5 ${i === currentIndex ? 'w-8 md:w-10 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-3 md:w-4 bg-white/30'}`}
+            className={`cursor-pointer transition-all duration-500 rounded-full h-1 md:h-1.5 ${i === currentIndex ? 'w-6 sm:w-8 md:w-10 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-2 sm:w-3 md:w-4 bg-white/30'}`}
           />
         ))}
       </div>

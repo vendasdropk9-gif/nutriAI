@@ -175,7 +175,6 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
   const selectStore = (store: FreshnessStore) => {
     setSelectedStore(store);
     setMapCenter([store.coordinates.lat, store.coordinates.lng]);
-    handleSpeak(store.assistantMessage);
   };
 
   const filteredStores = useMemo(() => {
@@ -187,26 +186,14 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
   }, [filter, searchQuery]);
 
   useEffect(() => {
-    setTimeout(() => {
-      handleSpeak("Oi! Encontrei algumas opções realmente boas perto de você. Tem um sacolão aqui do lado com frutas que acabaram de chegar, super fresquinhas. Quer que eu te mostre os melhores preços?");
-    }, 1500);
+    // Initial banner animation timer is handled above
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 relative overflow-hidden h-full">
-      {/* Back Button */}
-      <motion.button
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        onClick={onBack}
-        className="absolute top-6 left-6 z-[1000] w-12 h-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl flex items-center justify-center text-slate-800 dark:text-white border border-white/20 hover:scale-110 active:scale-95 transition-all"
-      >
-        <ChevronLeft className="w-6 h-6" />
-      </motion.button>
-
+    <div className="flex-1 flex flex-col w-full h-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden min-h-[600px] box-border">
       {/* Premium Visual Banner */}
-      <div className="absolute top-0 left-0 right-0 z-[900] h-48 md:h-64 pointer-events-none p-4">
-        <div className="w-full h-full bg-slate-200 dark:bg-slate-800 rounded-[32px] overflow-hidden relative shadow-2xl pointer-events-auto">
+      <div className="absolute top-0 inset-x-0 z-[900] pointer-events-none p-4 md:p-6 flex justify-center w-full box-border">
+        <div className="w-full max-w-[500px] md:max-w-3xl h-48 md:h-64 bg-slate-200 dark:bg-slate-800 rounded-[24px] md:rounded-[32px] clay-card overflow-hidden relative shadow-2xl pointer-events-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -221,48 +208,50 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 className="w-full h-full object-cover"
                 alt="Fresh produce"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
               
-              <div className="absolute inset-y-0 left-6 md:left-12 flex flex-col justify-center max-w-md space-y-2">
+              <div className="absolute inset-y-0 left-4 md:left-10 right-4 flex flex-col justify-center max-w-[80%] md:max-w-md space-y-1.5 md:space-y-2 pointer-events-none">
                 <motion.span 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="inline-block px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[3px] rounded-full w-max"
+                  className="inline-block px-3 py-1 bg-emerald-500 text-white text-[10px] md:text-xs font-black uppercase tracking-[3px] rounded-full w-max shadow-lg pointer-events-auto"
                 >
-                  DESTAQUE IA
+                  Destaque IA
                 </motion.span>
                 <motion.h2 
-                  className="text-2xl md:text-4xl font-serif font-bold text-white leading-tight"
+                  className="text-xl sm:text-2xl md:text-4xl font-serif font-bold text-white leading-tight drop-shadow-md pointer-events-auto"
                 >
                   {BANNER_SLIDES[currentSlide].title}
                 </motion.h2>
                 <motion.p 
-                  className="text-white/80 text-sm md:text-lg font-medium"
+                  className="text-white/90 text-xs sm:text-sm md:text-lg font-medium drop-shadow pointer-events-auto"
                 >
                   {BANNER_SLIDES[currentSlide].subtitle}
                 </motion.p>
                 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    const store = MOCK_STORES.find(s => s.id === BANNER_SLIDES[currentSlide].storeId);
-                    if (store) selectStore(store);
-                  }}
-                  className="mt-4 px-6 py-2.5 bg-white text-slate-900 rounded-full font-bold text-xs uppercase tracking-widest shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
-                >
-                  Comprar agora
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
+                <div className="pointer-events-auto pt-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const store = MOCK_STORES.find(s => s.id === BANNER_SLIDES[currentSlide].storeId);
+                      if (store) selectStore(store);
+                    }}
+                    className="px-5 md:px-6 py-2.5 md:py-3 clay-btn font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
+                  >
+                    Comprar Agora
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+                  </motion.button>
+                </div>
               </div>
 
               {/* Progress Dots */}
-              <div className="absolute bottom-6 right-8 flex gap-2">
+              <div className="absolute bottom-4 md:bottom-6 right-4 md:right-8 flex gap-1.5 md:gap-2">
                 {BANNER_SLIDES.map((_, i) => (
                   <div 
                     key={i} 
-                    className={`h-1 rounded-full transition-all duration-700 ${i === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/40'}`}
+                    className={`h-1 rounded-full transition-all duration-700 shadow-sm ${i === currentSlide ? 'w-6 md:w-8 bg-white' : 'w-2 bg-white/40'}`}
                   />
                 ))}
               </div>
@@ -272,12 +261,13 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Real Map Container */}
-      <div className="flex-1 relative z-0">
+      <div className="flex-1 relative z-0 min-h-[500px]">
         <MapContainer 
           center={mapCenter} 
           zoom={15} 
           zoomControl={false}
           className="w-full h-full"
+          style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -310,18 +300,19 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Filters Overlay */}
-      <div className="absolute top-[210px] md:top-[280px] left-1/2 -translate-x-1/2 z-[800] w-[90%] max-w-md space-y-4">
-        <div className="bg-white dark:bg-slate-900 h-14 rounded-full shadow-2xl flex items-center px-6 gap-3 border border-white">
-          <Search className="w-5 h-5 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Qual legume ou fruta procura?" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-          />
-        </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+      <div className="absolute top-[216px] md:top-[288px] inset-x-0 z-[800] w-full px-4 md:px-6 flex flex-col items-center pointer-events-none box-border">
+        <div className="w-full max-w-[500px] md:max-w-3xl space-y-3 pointer-events-auto box-border">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-12 md:h-14 rounded-full shadow-2xl flex items-center px-4 md:px-6 gap-3 border border-white/50 dark:border-slate-800 w-full box-border">
+            <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
+            <input 
+              type="text" 
+              placeholder="Qual legume ou fruta procura?" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent min-w-0 outline-none text-xs md:text-sm font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 truncate"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar w-full box-border">
             {[
               { id: 'frescor', label: 'Mais Fresco', icon: Leaf, color: 'emerald' },
               { id: 'preco', label: 'Melhor Preço', icon: TrendingDown, color: 'amber' }
@@ -329,16 +320,17 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               <button
                 key={cat.id}
                 onClick={() => setFilter(filter === cat.id ? 'all' : cat.id as any)}
-                className={`px-6 py-3 rounded-2xl flex items-center gap-3 whitespace-nowrap text-xs font-black uppercase tracking-wider transition-all border shadow-lg ${
+                className={`px-4 md:px-6 py-2.5 md:py-3 rounded-[20px] md:rounded-2xl flex items-center gap-2 md:gap-3 whitespace-nowrap text-[10px] md:text-xs font-black uppercase tracking-wider transition-all border shadow-lg shrink-0 ${
                   filter === cat.id 
                   ? `bg-${cat.color}-500 text-white border-transparent`
-                  : 'bg-white dark:bg-slate-900 text-slate-600 border-slate-100'
+                  : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg text-slate-600 border-slate-100 dark:border-slate-800 w-full max-w-max'
                 }`}
               >
-                <cat.icon className="w-4 h-4" />
+                <cat.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 {cat.label}
               </button>
             ))}
+          </div>
         </div>
       </div>
 
@@ -349,87 +341,78 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 z-[1100] bg-white dark:bg-slate-900 rounded-t-[48px] shadow-2xl max-h-[60%] border-t border-slate-100 dark:border-slate-800"
+            className="absolute bottom-0 inset-x-0 z-[1100] bg-white dark:bg-slate-900 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] w-full max-h-[85vh] flex flex-col border-t border-slate-100 dark:border-slate-800 mx-auto max-w-3xl"
           >
-            <div className="w-full flex justify-center p-4">
+            <div className="w-full flex justify-center p-3 shrink-0">
               <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
             </div>
             
-            <div className="p-8 pt-0 space-y-6 overflow-y-auto">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <img src={selectedStore.image} className="w-16 h-16 rounded-2xl object-cover" />
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase font-sans tracking-tight">{selectedStore.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span className="text-sm font-bold">{selectedStore.rating}</span>
+            <div className="px-4 md:px-8 pb-8 space-y-5 md:space-y-6 overflow-y-auto w-full box-border no-scrollbar flex-1">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                  <img src={selectedStore.image} className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover shrink-0 shadow-sm" />
+                  <div className="min-w-0">
+                    <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white uppercase font-sans tracking-tight truncate">{selectedStore.name}</h3>
+                    <div className="flex items-center gap-1.5 md:gap-2 mt-1 flex-wrap">
+                      <Star className="w-3.5 h-3.5 md:w-4 md:h-4 fill-amber-400 text-amber-400 shrink-0" />
+                      <span className="text-xs md:text-sm font-bold">{selectedStore.rating}</span>
                       <span className="text-slate-300">•</span>
-                      <span className="text-xs text-slate-400 font-bold uppercase">{selectedStore.distance}</span>
+                      <span className="text-[10px] md:text-xs text-slate-400 font-bold uppercase truncate">{selectedStore.distance}</span>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedStore(null)}
-                  className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400"
+                  className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 shrink-0 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
                 >
-                  <Navigation className="w-5 h-5" />
+                  <Navigation className="w-5 h-5 ml-0.5 mt-0.5" />
                 </button>
               </div>
 
               {/* AI Insight */}
-              <div className="bg-emerald-50 dark:bg-emerald-900/10 p-6 rounded-[32px] border border-emerald-200/50">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold text-[10px] uppercase tracking-widest mb-2">
-                  <Sparkles className="w-4 h-4" />
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 md:p-6 rounded-[24px] md:rounded-[32px] border border-emerald-200/50 w-full box-border">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-widest mb-2">
+                  <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   Insight NutriAI
                 </div>
-                <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed italic">
+                <p className="text-xs md:text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed italic">
                   "{selectedStore.aiAnalysis}"
                 </p>
-                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-emerald-200/30">
+                <div className="flex items-center gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t border-emerald-200/30 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <Leaf className="w-4 h-4 text-emerald-500" />
-                    <span className="text-[10px] font-black uppercase text-emerald-600">FRESCO: {selectedStore.freshnessScore}/10</span>
+                    <Leaf className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
+                    <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Fresco: {selectedStore.freshnessScore}/10</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-amber-500" />
-                    <span className="text-[10px] font-black uppercase text-amber-600">{selectedStore.priceLevel === 1 ? 'ECONÔMICO' : 'PREÇO JUSTO'}</span>
+                    <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500" />
+                    <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400">{selectedStore.priceLevel === 1 ? 'Eco' : 'Justo'}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Aberto até</span>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedStore.openingHours.split(' - ')[1]}</p>
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-slate-800 w-full box-border">
+                  <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Aberto até</span>
+                  <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{selectedStore.openingHours.split(' - ')[1]}</p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Pedido Mín.</span>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">R$ {selectedStore.minOrder.toFixed(2)}</p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-slate-100 dark:border-slate-800 w-full box-border">
+                  <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Pedido Mín.</span>
+                  <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">R$ {selectedStore.minOrder.toFixed(2)}</p>
                 </div>
               </div>
 
-              <div className="flex gap-4 pb-6">
-                <button className="flex-1 h-14 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-[2px] shadow-xl">
+              <div className="flex gap-3 w-full box-border">
+                <button className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate">
                   Ver Produtos
                 </button>
-                <button className="flex-1 h-14 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-[2px] shadow-xl shadow-emerald-500/20">
-                  Comprar Agora
+                <button className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate">
+                  Comprar
                 </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Floating Buttons */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-[1000] flex flex-col gap-4">
-        <button 
-          className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex items-center justify-center text-emerald-600 border border-white dark:border-slate-800"
-        >
-          <Target className="w-6 h-6" />
-        </button>
-      </div>
     </div>
   );
 }

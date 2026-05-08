@@ -33,7 +33,7 @@ export function RankingView({ profile }: RankingViewProps) {
 
       <div className="grid md:grid-cols-3 gap-8">
         {/* Current Status Card */}
-        <div className="md:col-span-1 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-2xl flex flex-col items-center justify-center space-y-6 text-center">
+        <div className="md:col-span-1 clay-card p-8 shadow-2xl flex flex-col items-center justify-center space-y-6 text-center">
             <div className="relative">
                <div className={`w-32 h-32 rounded-full border-4 ${levelInfo.bg.replace('bg-', 'border-')}/20 flex items-center justify-center overflow-hidden bg-white/60 dark:bg-slate-700`}>
                   <Trophy className={`w-16 h-16 ${levelInfo.color}`} />
@@ -59,7 +59,7 @@ export function RankingView({ profile }: RankingViewProps) {
         </div>
 
         {/* Stats Summary Card */}
-        <div className="md:col-span-2 bg-slate-900 text-white p-8 rounded-[32px] shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden">
+        <div className="md:col-span-2 bg-slate-900 text-white p-8 rounded-[32px] clay-card shadow-2xl flex flex-col justify-between space-y-8 relative overflow-hidden">
            {/* Decorative background shape */}
            <div className="absolute top-0 right-0 p-8 opacity-10">
               <TrendingUp className="w-32 h-32" />
@@ -104,7 +104,7 @@ export function RankingView({ profile }: RankingViewProps) {
       </div>
 
       {/* Points History */}
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-sm space-y-8">
+      <div className="clay-card p-8 shadow-sm space-y-8">
           <div className="flex items-center gap-3">
             <History className="w-6 h-6 text-slate-400" />
             <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Jornada de Conquistas</h3>
@@ -138,7 +138,7 @@ export function RankingView({ profile }: RankingViewProps) {
       </div>
 
       {/* Points Tip Card */}
-      <div className="grid md:grid-cols-2 gap-8 ring-1 ring-emerald-500/10 p-8 rounded-[32px] bg-emerald-50/20 dark:bg-emerald-900/5">
+      <div className="grid md:grid-cols-2 gap-8 ring-1 ring-emerald-500/10 p-8 rounded-[32px] clay-card bg-emerald-50/20 dark:bg-emerald-900/5">
           <div className="space-y-4">
              <h4 className="font-serif text-2xl font-medium text-emerald-800 dark:text-emerald-400">Como ganhar mais pontos?</h4>
              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">

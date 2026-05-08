@@ -53,7 +53,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
   };
 
   return (
-    <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-md rounded-[24px] border border-white/60 dark:border-slate-700/50 p-6 flex flex-col items-center justify-center gap-4 relative overflow-hidden group">
+    <div className="clay-card p-6 flex flex-col items-center justify-center gap-4 relative overflow-hidden group">
       {previewLine && (
         <div className="absolute inset-0 z-10 w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${previewLine})` }}>
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">

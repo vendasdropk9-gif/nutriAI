@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -109,9 +110,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -217,7 +216,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       </div>
 
       {!workout ? (
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 md:p-12 rounded-[32px] md:rounded-[40px] shadow-2xl border border-white/60 dark:border-slate-700/50 text-center space-y-6 md:space-y-8 max-w-2xl mx-auto">
+        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 md:p-12 rounded-[32px] clay-card md:rounded-[40px] clay-card shadow-2xl border border-white/60 dark:border-slate-700/50 text-center space-y-6 md:space-y-8 max-w-2xl mx-auto">
             <div className="w-20 h-20 md:w-24 md:h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto text-emerald-600">
                <Activity className="w-10 h-10 md:w-12 md:h-12" />
             </div>
@@ -240,7 +239,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-emerald-500 text-white p-8 md:p-16 rounded-[32px] md:rounded-[48px] text-center space-y-8 md:space-y-10 shadow-2xl shadow-emerald-500/20 max-w-2xl mx-auto"
+          className="bg-emerald-500 text-white p-8 md:p-16 rounded-[32px] clay-card md:rounded-[48px] text-center space-y-8 md:space-y-10 shadow-2xl shadow-emerald-500/20 max-w-2xl mx-auto"
         >
             <Trophy className="w-20 h-20 md:w-32 md:h-32 mx-auto animate-bounce" />
             <div className="space-y-3 md:space-y-4">
@@ -259,7 +258,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
             </div>
             <button
                onClick={() => setWorkout(null)}
-               className="w-full py-4 md:py-5 bg-white text-emerald-600 rounded-2xl font-bold text-base md:text-lg shadow-xl active:scale-95"
+               className="w-full py-4 md:py-5 clay-btn px-6 py-3 font-bold text-base md:text-lg shadow-xl active:scale-95"
             >
                Voltar ao Menu
             </button>
@@ -373,7 +372,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 key={currentExercise?.id + activeMode}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white/40 dark:bg-slate-800/40 p-6 md:p-8 rounded-[24px] md:rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6 md:space-y-8"
+                className="bg-white/40 dark:bg-slate-800/40 p-6 md:p-8 rounded-[24px] md:rounded-[32px] clay-card border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6 md:space-y-8"
               >
                  <div className="flex items-center justify-between">
                     <div className="space-y-1 md:space-y-2">
@@ -455,7 +454,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                          {tutorialStep < (currentExercise?.tutorialSteps?.length || 0) - 1 ? (
                            <button
                              onClick={nextTutorialStep}
-                             className="flex-1 py-4 md:py-5 bg-emerald-500 text-white rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 text-sm md:text-base"
+                             className="flex-1 py-4 md:py-5 clay-primary px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 text-sm md:text-base"
                            >
                               Próximo
                               <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
@@ -504,7 +503,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                            {!isTimerActive ? (
                              <button
                                onClick={startExercise}
-                               className="flex-1 py-4 md:py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
+                               className="flex-1 py-4 md:py-5 bg-emerald-500 hover:clay-primary px-6 py-3 md:rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
                              >
                                <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
                                Começar

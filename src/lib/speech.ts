@@ -9,7 +9,12 @@ interface SpeechOptions {
   onError?: (error: any) => void;
 }
 
+let currentAudio: HTMLAudioElement | null = null;
+
 export const speak = async (text: string, options?: SpeechOptions) => {
+  // Stop any currently playing speech globally
+  stopSpeech();
+
   // Set default rate to 1.0 for natural Gemini voice tone
   const speechOptions = {
     rate: 1.0,
@@ -27,6 +32,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         ? audioUrl 
         : `data:audio/wav;base64,${audioUrl}`;
       const audio = new Audio(url);
+      currentAudio = audio;
       
       // We don't adjust the playback rate for Gemini TTS by default so it stays natural
       if (options?.rate) {
@@ -34,7 +40,18 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       }
 
       if (options?.onEnded) {
-        audio.onended = options.onEnded;
+        audio.onended = () => {
+          if (currentAudio === audio) {
+            currentAudio = null;
+          }
+          options.onEnded?.();
+        };
+      } else {
+        audio.onended = () => {
+          if (currentAudio === audio) {
+            currentAudio = null;
+          }
+        };
       }
       
       await audio.play();
@@ -86,8 +103,45 @@ export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
   return { method: 'browser' as const, utterance };
 };
 
+export const playAudioUrl = async (url: string, options?: SpeechOptions) => {
+  stopSpeech();
+  
+  try {
+    const audio = new Audio(url);
+    currentAudio = audio;
+    
+    if (options?.rate) {
+        audio.playbackRate = options.rate;
+    }
+
+    if (options?.onEnded) {
+      audio.onended = () => {
+        if (currentAudio === audio) {
+          currentAudio = null;
+        }
+        options.onEnded?.();
+      };
+    } else {
+      audio.onended = () => {
+        if (currentAudio === audio) {
+          currentAudio = null;
+        }
+      };
+    }
+    
+    await audio.play();
+    return audio;
+  } catch(e) {
+    console.error("Failed to play audio url", e);
+    return null;
+  }
+};
+
 export const stopSpeech = () => {
   window.speechSynthesis.cancel();
-  // We can't easily stop the Audio object from here without a reference, 
-  // so developers should handle that with the returned object from speak()
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
 };

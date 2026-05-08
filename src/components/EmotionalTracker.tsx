@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState, useEffect } from 'react';
 import { Brain, Smile, Frown, Meh, Zap, Moon, AlertCircle, Sparkles, Volume2, Play, ChevronRight, History } from 'lucide-react';
 import { EmotionalLog, UserProfile } from '../types';
@@ -58,9 +59,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
     
     try {
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
         return;
       }
 
@@ -68,9 +67,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -100,7 +97,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         <div className="space-y-8">
           <div className="text-center">
             <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">Como você está se sentindo agora?</h3>
@@ -133,7 +130,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
               </div>
               <button
                 onClick={() => handleLogMood(mood)}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-emerald-500 hover:clay-primary px-6 py-3 font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
               >
                 Registrar Sentimento
                 <ChevronRight className="w-5 h-5" />
@@ -145,7 +142,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Pattern Analysis */}
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[32px] clay-card text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Brain className="w-6 h-6" />
@@ -166,7 +163,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
         </div>
 
         {/* History */}
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50">
+        <div className="clay-card p-8">
           <div className="flex items-center gap-3 mb-6">
             <History className="w-6 h-6 text-slate-400" />
             <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">Últimos Registros</h3>
@@ -176,7 +173,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
               <p className="text-slate-400 italic text-center py-10">Nenhum registro ainda.</p>
             ) : (
               logs.slice().reverse().map((log) => (
-                <div key={log.id} className="flex items-center gap-4 p-4 bg-white/60 dark:bg-slate-800/60 rounded-2xl border border-white/40 dark:border-slate-700/50 shadow-sm">
+                <div key={log.id} className="flex items-center gap-4 p-4 clay-card p-6 shadow-sm">
                   <div className={`p-2 rounded-lg ${moodIcons[log.mood]?.color || 'bg-slate-100 text-slate-500'}`}>
                     {moodIcons[log.mood]?.icon || <Meh className="w-4 h-4" />}
                   </div>
@@ -197,7 +194,7 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
 
       {analysis && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
-           <div className="flex items-start gap-4 bg-white/50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-white/80 dark:border-slate-700/50 shadow-sm">
+           <div className="flex items-start gap-4 clay-card p-6 shadow-sm">
                <button
                   onClick={() => playTTS(analysis.assistantMessage)}
                   className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md'}`}
@@ -213,11 +210,11 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-4">
+              <div className="clay-card p-6 space-y-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">O que identifiquei:</h4>
                 <p className="text-xl text-slate-700 dark:text-slate-200 font-serif leading-relaxed">{analysis.insight}</p>
               </div>
-              <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-8 rounded-[32px] border border-emerald-100/50 dark:border-emerald-800/30 space-y-4">
+              <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-8 rounded-[32px] clay-card border border-emerald-100/50 dark:border-emerald-800/30 space-y-4">
                 <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-emerald-500">Sugestão Prática:</h4>
                 <p className="text-xl text-emerald-800 dark:text-emerald-300 font-serif leading-relaxed">{analysis.suggestion}</p>
               </div>

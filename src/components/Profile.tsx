@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Check } from 'lucide-react';
+import { Check, LogOut, Cloud } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -8,6 +9,13 @@ interface ProfileProps {
 }
 
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
+  const handleLogout = async () => {
+    try {
+      await supabase?.auth.signOut();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     restrictions: profile?.restrictions?.join(', ') || '',
@@ -63,16 +71,20 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
   return (
     <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center space-y-4 mb-12">
+      <div className="text-center space-y-4 mb-6">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Seu Perfil
         </h2>
+        <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full w-fit mx-auto border border-emerald-100 dark:border-emerald-800">
+          <Cloud className="w-4 h-4" />
+          <span className="text-xs font-bold uppercase tracking-wider">Sincronizado com a Nuvem</span>
+        </div>
         <p className="font-sans text-slate-500 dark:text-slate-400 text-lg leading-relaxed">
           Configure suas restrições e objetivos para receitas mais precisas.
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 md:p-10 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -311,10 +323,19 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             />
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 rounded-full border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold text-sm tracking-wide hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair da Conta
+            </button>
+
             <button
               type="submit"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 flex items-center gap-2"
+              className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
               {isSaved ? (
                 <>

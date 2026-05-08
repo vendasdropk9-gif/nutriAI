@@ -11,7 +11,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const { nutrition } = recipe;
 
   return (
-    <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
+    <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
       <div className="bg-white/30 dark:bg-slate-800/30 p-8 md:p-12 border-b border-white/60 dark:border-slate-700/50">
         <h3 className="font-serif text-3xl md:text-4xl leading-tight mb-4 text-slate-800 dark:text-slate-100">
           {recipe.name}

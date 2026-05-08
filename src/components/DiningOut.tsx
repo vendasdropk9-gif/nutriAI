@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
 import { Utensils, Search, Loader2, Sparkles, Volume2, Play, AlertCircle, CheckCircle2, ArrowRight, Info } from 'lucide-react';
 import { UserProfile, DiningOutAnalysis } from '../types';
@@ -40,9 +41,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
     
     try {
       if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
         return;
       }
 
@@ -50,9 +49,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -82,7 +79,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         <form onSubmit={handleAnalyze} className="space-y-6">
           <div className="relative">
             <div className="absolute left-6 top-8 text-slate-400">
@@ -111,7 +108,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       {analysis && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-1 bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="md:col-span-1 clay-card p-6 flex flex-col items-center justify-center text-center space-y-4">
                <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${getVerdictStyles(analysis.verdict)}`}>
                   {analysis.verdict}
                </div>
@@ -135,7 +132,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
                </div>
             </div>
 
-            <div className="md:col-span-2 bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 flex flex-col justify-center space-y-6">
+            <div className="md:col-span-2 clay-card p-6 flex flex-col justify-center space-y-6">
                 <div className="flex items-start gap-4">
                     <button
                         onClick={() => playTTS(analysis.assistantMessage)}
@@ -153,7 +150,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
                 {analysis.betterAlternative && (
                   <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-4">
-                     <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shrink-0">
+                     <div className="w-10 h-10 clay-primary px-6 py-3 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-6 h-6" />
                      </div>
                      <div>
@@ -166,7 +163,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-6">
+            <div className="clay-card p-6 space-y-6">
                 <div className="flex items-center gap-3 text-slate-400">
                     <Info className="w-5 h-5" />
                     <h4 className="text-xs font-bold uppercase tracking-widest">3 Dicas para este prato:</h4>
@@ -183,7 +180,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
                 </div>
             </div>
 
-            <div className="bg-slate-900 text-white p-8 rounded-[32px] shadow-xl flex flex-col justify-center space-y-4">
+            <div className="bg-slate-900 text-white p-8 rounded-[32px] clay-card shadow-xl flex flex-col justify-center space-y-4">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                     <AlertCircle className="w-6 h-6 text-amber-400" />
                 </div>

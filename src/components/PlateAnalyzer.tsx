@@ -61,7 +61,6 @@ export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
         const data = await analyzePlate(base64Data, mimeType);
         if (data) {
           setAnalysisResult(data);
-          playTTS(data.assistantMessage);
           if (onAwardPoints) onAwardPoints(50, 'Análise de prato via foto concluída');
         } else {
           alert('Não foi possível analisar a imagem.');
@@ -96,7 +95,7 @@ export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
         </p>
       </div>
 
-      <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-6 md:p-8 rounded-[32px] shadow-2xl border border-white/60 dark:border-slate-700/50">
+      <div className="clay-card p-8">
         
         {/* State 1: Upload / Wait */}
         {!previewImage && (
@@ -143,7 +142,7 @@ export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
         {previewImage && analysisResult && !isScanning && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             {/* Top section: small image + assistant message */}
-            <div className="flex flex-col md:flex-row gap-6 items-center bg-white/50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-white/80 dark:border-slate-700/50">
+            <div className="flex flex-col md:flex-row gap-6 items-center clay-card p-6">
               <div className="w-32 h-32 md:w-48 md:h-48 shrink-0 rounded-[16px] overflow-hidden shadow-md">
                 <img src={previewImage} alt="Seu prato" className="w-full h-full object-cover" />
               </div>

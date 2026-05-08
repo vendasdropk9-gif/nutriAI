@@ -1,3 +1,4 @@
+import { playAudioUrl } from '../lib/speech';
 import React, { useState, useEffect } from 'react';
 import { Droplet, Plus, GlassWater as Glass, Volume2, Play, Sparkles, RefreshCw, Info, Calendar } from 'lucide-react';
 import { UserProfile, HydrationLog } from '../types';
@@ -65,9 +66,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
       if (base64Audio) {
         const url = `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audio.onended = () => setIsPlaying(false);
-        audio.play();
+        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }
@@ -92,7 +91,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Progress Card */}
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-2xl flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
+        <div className="clay-card p-8 shadow-2xl flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
             {/* Water Wave Background */}
             <div 
               className="absolute bottom-0 left-0 w-full bg-emerald-400/10 dark:bg-emerald-400/5 transition-all duration-1000 ease-in-out"
@@ -139,7 +138,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
         </div>
 
         {/* Actions Card */}
-        <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 shadow-2xl flex flex-col justify-between space-y-6">
+        <div className="clay-card p-8 shadow-2xl flex flex-col justify-between space-y-6">
            <div className="space-y-4">
               <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">Registrar Ingestão</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">Clique no tamanho do copo ou garrafa que você usou.</p>
@@ -185,7 +184,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
 
       {/* Intelligent Feedback Section */}
       {(advice || isProcessing) && (
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 bg-white/50 dark:bg-slate-800/50 p-8 rounded-[32px] border border-white/80 dark:border-slate-700/50 shadow-sm">
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 clay-card p-6 shadow-sm">
            <div className="flex items-start gap-4">
                <button
                   onClick={() => advice && playTTS(advice)}
@@ -212,7 +211,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
 
       {/* History and recommendation info */}
       <div className="grid md:grid-cols-2 gap-8">
-         <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-6">
+         <div className="clay-card p-6 space-y-6">
             <div className="flex items-center gap-3">
                <Info className="w-5 h-5 text-slate-400" />
                <h3 className="font-serif text-xl font-medium text-slate-700 dark:text-slate-200">Por que beber {goal}ml?</h3>
@@ -228,7 +227,7 @@ export function HydrationTracker({ profile, onUpdateProtocol, onAwardPoints }: H
             </div>
          </div>
 
-         <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-[32px] border border-white/60 dark:border-slate-700/50 space-y-6">
+         <div className="clay-card p-6 space-y-6">
             <div className="flex items-center gap-3">
                <Calendar className="w-5 h-5 text-slate-400" />
                <h3 className="font-serif text-xl font-medium text-slate-700 dark:text-slate-200">Histórico de Hoje</h3>
