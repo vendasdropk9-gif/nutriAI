@@ -478,7 +478,7 @@ Responda APENAS com um array JSON com os objetos de receita.`;
 };
 
 export const textToSpeech = async (text: string) => {
-  const cacheKey = `tts_${text.substring(0, 50)}`;
+  const cacheKey = `tts_v2_${text.substring(0, 50)}`;
   
   try {
     const cached = localStorage.getItem(cacheKey);
@@ -491,13 +491,13 @@ export const textToSpeech = async (text: string) => {
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
+      model: "gemini-2.0-flash",
       contents: [{ parts: [{ text }] }],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' },
+            prebuiltVoiceConfig: { voiceName: 'Aoede' },
           },
         },
       },

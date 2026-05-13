@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Sparkles } from 'lucide-react';
 import { playSfx } from '../lib/sensory';
-import { speak } from '../lib/speech';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -10,20 +9,12 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const hasSpokenRef = React.useRef(false);
 
   useEffect(() => {
     // Sincronizado com o momento em que o reflexo cruza o centro
     const soundTimer = setTimeout(() => {
       playSfx('crystal');
     }, 1000);
-
-    // Saudação de voz acolhedora. Iniciada imediatamente devido ao delay de rede (TTS)
-    // Usamos "Nutri Éi Ái." para a pronúncia soar melhor em português.
-    if (!hasSpokenRef.current) {
-      speak("Nutri, Éi ái.");
-      hasSpokenRef.current = true;
-    }
 
     const timer = setTimeout(() => {
       setIsVisible(false);
