@@ -177,9 +177,9 @@ export default function App() {
     });
   };
 
-  if (!user && !authLoading) {
-    return <Login />;
-  }
+  // if (!user && !authLoading) {
+  //   return <Login />;
+  // }
 
   if (user && isLocked) {
     return <LockScreen onUnlock={() => setIsLocked(false)} userEmail={user.email} />;
