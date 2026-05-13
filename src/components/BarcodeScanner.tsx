@@ -35,21 +35,31 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
 
     // Initialize scanner after a short delay to ensure div is present
     setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        "barcode-reader",
-        { fps: 10, qrbox: { width: 250, height: 150 } },
-        /* verbose= */ false
-      );
-      
-      scanner.render((decodedText) => {
-        scanner.clear();
+      try {
+        const scanner = new Html5QrcodeScanner(
+          "barcode-reader",
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          /* verbose= */ false
+        );
+        
+        scanner.render((decodedText) => {
+          scanner.clear();
+          setIsScanning(false);
+          handleBarcodeDetected(decodedText);
+        }, (err) => {
+          // Ignored as it scans continuously
+          if (typeof err === 'string' && (err.includes('Requested device not found') || err.includes('not found') || err.includes('Camera'))) {
+            setError("Nenhuma câmera encontrada neste dispositivo. Conecte uma câmera para usar o scanner.");
+            setIsScanning(false);
+            if (scannerRef.current) scannerRef.current.clear();
+          }
+        });
+        
+        scannerRef.current = scanner;
+      } catch (err: any) {
+        setError("Erro ao iniciar a câmera: " + (err.message || err));
         setIsScanning(false);
-        handleBarcodeDetected(decodedText);
-      }, (err) => {
-        // Ignored as it scans continuously
-      });
-      
-      scannerRef.current = scanner;
+      }
     }, 100);
   };
 

@@ -109,6 +109,8 @@ export interface UserProfile {
   masterPlan?: MasterPlanStrategy;
   workoutLogs?: WorkoutLog[];
   behavioralProfile?: BehavioralProfile;
+  mealPlan?: MealPlan;
+  savedRecipes?: Recipe[];
 }
 
 export interface StoreTag {

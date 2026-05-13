@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { Activity, ShieldAlert } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface Avatar3DProps {
   activeMuscles: string[];
@@ -114,96 +115,95 @@ export function Avatar3D({ activeMuscles, animation, view = 'front', playbackSpe
     return [0, 1, 5] as [number, number, number];
   }, [view]);
 
-  if (webglAvailable === false) {
-    return (
-      <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] clay-card overflow-hidden bg-slate-900 flex flex-col items-center justify-center p-8 text-center border border-white/10 shadow-2xl">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent" />
-        
-        <div className="relative z-10 w-full max-w-xs mx-auto mb-8">
-          <svg viewBox="0 0 200 400" className="w-full h-auto drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            {/* Minimalist SVG Humanoid Fallback with active states */}
-            {/* Head */}
-            <circle cx="100" cy="40" r="25" fill="#e2e8f0" />
-            {/* Torso */}
-            <rect 
-              x="70" y="75" width="60" height="100" rx="10" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('chest') || m.toLowerCase().includes('back')) ? '#10b981' : '#e2e8f0'} 
-              className={animation === 'executing' ? 'animate-pulse' : ''}
-            />
-            {/* Abs */}
-            <rect 
-              x="75" y="180" width="50" height="40" rx="5" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('abs')) ? '#10b981' : '#e2e8f0'} 
-            />
-            {/* Arms */}
-            <rect 
-              x="35" y="80" width="25" height="110" rx="10" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('arms') || m.toLowerCase().includes('shoulders')) ? '#10b981' : '#e2e8f0'} 
-              transform={animation === 'executing' ? `rotate(${Math.sin(Date.now()/200)*10} 60 80)` : ''}
-            />
-            <rect 
-              x="140" y="80" width="25" height="110" rx="10" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('arms') || m.toLowerCase().includes('shoulders')) ? '#10b981' : '#e2e8f0'} 
-              transform={animation === 'executing' ? `rotate(${-Math.sin(Date.now()/200)*10} 140 80)` : ''}
-            />
-            {/* Legs */}
-            <rect 
-              x="72" y="230" width="25" height="130" rx="10" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('legs') || m.toLowerCase().includes('glutes')) ? '#10b981' : '#e2e8f0'} 
-            />
-            <rect 
-              x="103" y="230" width="25" height="130" rx="10" 
-              fill={activeMuscles.some(m => m.toLowerCase().includes('legs') || m.toLowerCase().includes('glutes')) ? '#10b981' : '#e2e8f0'} 
-            />
-          </svg>
-        </div>
+  const Fallback2D = (
+    <div className="w-full h-full relative flex flex-col items-center justify-center p-8 text-center">
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent" />
+      
+      <div className="relative z-10 w-full max-w-xs mx-auto mb-8">
+        <svg viewBox="0 0 200 400" className="w-full h-auto drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          {/* Head */}
+          <circle cx="100" cy="40" r="25" fill="#e2e8f0" />
+          {/* Torso */}
+          <rect 
+            x="70" y="75" width="60" height="100" rx="10" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('chest') || m.toLowerCase().includes('back')) ? '#10b981' : '#e2e8f0'} 
+            className={animation === 'executing' ? 'animate-pulse' : ''}
+          />
+          {/* Abs */}
+          <rect 
+            x="75" y="180" width="50" height="40" rx="5" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('abs')) ? '#10b981' : '#e2e8f0'} 
+          />
+          {/* Arms */}
+          <rect 
+            x="35" y="80" width="25" height="110" rx="10" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('arms') || m.toLowerCase().includes('shoulders')) ? '#10b981' : '#e2e8f0'} 
+            transform={animation === 'executing' ? `rotate(${Math.sin(Date.now()/200)*10} 60 80)` : ''}
+          />
+          <rect 
+            x="140" y="80" width="25" height="110" rx="10" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('arms') || m.toLowerCase().includes('shoulders')) ? '#10b981' : '#e2e8f0'} 
+            transform={animation === 'executing' ? `rotate(${-Math.sin(Date.now()/200)*10} 140 80)` : ''}
+          />
+          {/* Legs */}
+          <rect 
+            x="72" y="230" width="25" height="130" rx="10" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('legs') || m.toLowerCase().includes('glutes')) ? '#10b981' : '#e2e8f0'} 
+          />
+          <rect 
+            x="103" y="230" width="25" height="130" rx="10" 
+            fill={activeMuscles.some(m => m.toLowerCase().includes('legs') || m.toLowerCase().includes('glutes')) ? '#10b981' : '#e2e8f0'} 
+          />
+        </svg>
+      </div>
 
-        <div className="relative z-10 space-y-3">
-          <h3 className="text-xl font-serif font-bold text-white">Visualização NutriAI Ativa</h3>
-          <p className="text-slate-400 text-sm max-w-sm mx-auto">
-            Detectando esforço e ativando grupos musculares em tempo real.
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-             <ShieldAlert className="w-3 h-3 text-amber-500" />
-             Modo de Compatibilidade Ativo
-          </div>
+      <div className="relative z-10 space-y-3">
+        <h3 className="text-xl font-serif font-bold dark:text-white text-slate-800">Visualização NutriAI Ativa</h3>
+        <p className="text-slate-500 text-sm max-w-sm mx-auto">
+          Detectando esforço e ativando grupos musculares em tempo real.
+        </p>
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200 dark:border-white/10 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+           <ShieldAlert className="w-3 h-3 text-amber-500" />
+           Modo de Compatibilidade Ativo
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] clay-card overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
-      {webglAvailable === true && (
-        <Canvas shadows>
-          <PerspectiveCamera makeDefault position={cameraPos} fov={40} />
-          <OrbitControls enablePan={false} minDistance={2} maxDistance={7} minPolarAngle={Math.PI / 6} maxPolarAngle={Math.PI / 1.5} />
-          
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} intensity={1.5} castShadow />
-          <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
-          
-          <Environment preset="city" />
-          
-          <Float speed={animation === 'idle' ? 2 : 0} rotationIntensity={0.5} floatIntensity={0.5}>
-            <HumanoidModel activeMuscles={activeMuscles} animation={animation} playbackSpeed={playbackSpeed} />
-          </Float>
-          
-          <ContactShadows 
-            position={[0, -1.5, 0]} 
-            opacity={0.4} 
-            scale={10} 
-            blur={1.5} 
-            far={4} 
-          />
-        </Canvas>
-      )}
+      <ErrorBoundary fallback={Fallback2D}>
+        {webglAvailable !== false ? (
+          <Canvas shadows gl={{ failIfMajorPerformanceCaveat: false }}>
+            <PerspectiveCamera makeDefault position={cameraPos} fov={40} />
+            <OrbitControls enablePan={false} minDistance={2} maxDistance={7} minPolarAngle={Math.PI / 6} maxPolarAngle={Math.PI / 1.5} />
+            
+            <ambientLight intensity={0.5} />
+            <pointLight position={[10, 10, 10]} intensity={1.5} castShadow />
+            <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
+            
+            <Environment preset="city" />
+            
+            <Float speed={animation === 'idle' ? 2 : 0} rotationIntensity={0.5} floatIntensity={0.5}>
+              <HumanoidModel activeMuscles={activeMuscles} animation={animation} playbackSpeed={playbackSpeed} />
+            </Float>
+            
+            <ContactShadows 
+              position={[0, -1.5, 0]} 
+              opacity={0.4} 
+              scale={10} 
+              blur={1.5} 
+              far={4} 
+            />
+          </Canvas>
+        ) : (
+          Fallback2D
+        )}
+      </ErrorBoundary>
       
-      {!webglAvailable && <div className="absolute inset-0 bg-slate-900/10 animate-pulse" />}
-
       <div className="absolute bottom-6 left-6 right-6 flex justify-center gap-4 pointer-events-none">
         <div className="px-4 py-2 bg-emerald-500/20 backdrop-blur-md rounded-full border border-emerald-500/30 text-[10px] font-bold text-emerald-500 uppercase tracking-widest animate-pulse">
-           Live 3D Body Rendering
+           Live Body Rendering
         </div>
       </div>
     </div>

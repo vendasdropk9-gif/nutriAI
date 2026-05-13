@@ -4,6 +4,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { Recipe, MealPlan, UserProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
+import { LockScreen } from './components/LockScreen';
 import { useProfileSync } from './lib/profileSync';
 import { Generator } from './components/Generator';
 import { MealPlanView } from './components/MealPlanCalendar';
@@ -28,6 +29,7 @@ import { PartnerPortal } from './components/PartnerPortal';
 import { FreshnessMap } from './components/FreshnessMap';
 import { AdaptiveCoach } from './components/AdaptiveCoach';
 import { SmartChat } from './components/SmartChat';
+import { BodyAnalyzer } from './components/BodyAnalyzer';
 import { SplashScreen } from './components/SplashScreen';
 import { PartnerBanner } from './components/PartnerBanner';
 import { DeliveryPartnerPortal } from './components/DeliveryPartnerPortal';
@@ -35,28 +37,32 @@ import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, Fingerprint } from 'lucide-react';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
 import { IntakeLog } from './types';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
-  const [savedRecipes, setSavedRecipes] = useLocalStorage<Recipe[]>('nutri-recipes', []);
-  const [mealPlan, setMealPlan] = useLocalStorage<MealPlan>('nutri-mealplan', {});
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
-
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
+  const [isLocked, setIsLocked] = useState(() => {
+    return localStorage.getItem('nutri-biometric-enabled') === 'true';
+  });
+
   // Wrapper for setProfile to also sync
-  const updateProfile = (newProfile: UserProfile | null) => {
-    setProfile(newProfile);
-    if (newProfile && user) {
-      syncToFirestore(newProfile);
-    }
+  const updateProfile = (value: React.SetStateAction<UserProfile | null>) => {
+    setProfile(prev => {
+      const newValue = typeof value === 'function' ? (value as any)(prev) : value;
+      if (newValue && user) {
+        setTimeout(() => syncToFirestore(newValue), 0);
+      }
+      return newValue;
+    });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
@@ -97,17 +103,22 @@ export default function App() {
     return () => window.removeEventListener('app:navigate', handleNavigate as EventListener);
   }, []);
 
+  const mealPlan = profile?.mealPlan || {};
+  const savedRecipes = profile?.savedRecipes || [];
+
   const handleSaveRecipe = (recipe: Recipe) => {
-    setSavedRecipes(prev => {
-      if (prev.find(r => r.id === recipe.id)) return prev;
+    updateProfile(prev => {
+      if (!prev) return prev;
+      const prevRecipes = prev.savedRecipes || [];
+      if (prevRecipes.find(r => r.id === recipe.id)) return prev;
       awardPoints(20, 'Nova receita gerada');
-      return [recipe, ...prev];
+      return { ...prev, savedRecipes: [recipe, ...prevRecipes] };
     });
   };
 
   const awardPoints = (amount: number, reason: string) => {
-    setProfile(prev => {
-      if (!prev) return null;
+    updateProfile(prev => {
+      if (!prev) return prev;
       const newPoints = (prev.points || 0) + amount;
       const newEntry = {
         id: crypto.randomUUID(),
@@ -127,95 +138,50 @@ export default function App() {
         type: 'point'
       });
 
-      if (user) syncToFirestore(updatedProfile);
       return updatedProfile;
     });
   };
 
   const handleUpdatePlan = (day: string, mealName: string, recipeId: string | null, recipeObj?: Recipe) => {
-    setMealPlan(prev => {
-      const newPlan = { ...prev };
+    updateProfile(prev => {
+      if (!prev) return prev;
+      const prevPlan = prev.mealPlan || {};
+      const newPlan = { ...prevPlan };
       if (!newPlan[day]) {
         newPlan[day] = { date: day, meals: {} };
       }
       
+      let newRecipes = prev.savedRecipes || [];
+
       if (recipeObj) {
         newPlan[day].meals[mealName as 'breakfast' | 'lunch' | 'snack' | 'dinner'] = recipeObj;
-        // Optionally save to generic saved recipes, too
-        setSavedRecipes(prev => {
-          if (prev.find(r => r.id === recipeObj.id)) return prev;
-          return [recipeObj, ...prev];
-        });
+        if (!newRecipes.find(r => r.id === recipeObj.id)) {
+          newRecipes = [recipeObj, ...newRecipes];
+        }
       } else if (recipeId) {
-        const recipe = savedRecipes.find(r => r.id === recipeId);
-        newPlan[day].meals[mealName as 'breakfast' | 'lunch' | 'snack' | 'dinner'] = recipe;
+        const recipe = newRecipes.find(r => r.id === recipeId);
+        if (recipe) {
+          newPlan[day].meals[mealName as 'breakfast' | 'lunch' | 'snack' | 'dinner'] = recipe;
+        }
       } else {
         delete newPlan[day].meals[mealName as 'breakfast' | 'lunch' | 'snack' | 'dinner'];
       }
       
-      return newPlan;
+      return { ...prev, mealPlan: newPlan, savedRecipes: newRecipes };
     });
   };
 
-  const [biometricUnlocked, setBiometricUnlocked] = useState(false);
-  
-  useEffect(() => {
-    // If the device has biometric enabled, we require unlock when user is present
-    if (user && localStorage.getItem('nutri-biometric-enabled') === 'true' && !biometricUnlocked) {
-      import('./lib/biometric').then(({ verifyBiometric }) => {
-        verifyBiometric().then(success => {
-          if (success) setBiometricUnlocked(true);
-        });
-      });
-    } else {
-      setBiometricUnlocked(true);
-    }
-  }, [user, biometricUnlocked]);
-
-  const handleManualBiometricRetry = async () => {
-    const { verifyBiometric } = await import('./lib/biometric');
-    const success = await verifyBiometric();
-    if (success) {
-      setBiometricUnlocked(true);
-    } else {
-      // If biometric fails completely, allow fallback to sign out
-      import('./lib/supabase').then(({ supabase }) => supabase?.auth.signOut());
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col items-center justify-center">
-        <Utensils className="w-16 h-16 text-emerald-500 animate-pulse mb-6" />
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!user && !authLoading) {
     return <Login />;
   }
 
-  if (!biometricUnlocked) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
-        <Fingerprint className="w-20 h-20 text-emerald-500 mb-6 animate-pulse" />
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">App Bloqueado</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-8">Por favor, autentique com biometria ou Face ID.</p>
-        <button 
-          onClick={handleManualBiometricRetry}
-          className="bg-emerald-500 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 active:scale-95 transition-all"
-        >
-          Desbloquear
-        </button>
-      </div>
-    );
+  if (user && isLocked) {
+    return <LockScreen onUnlock={() => setIsLocked(false)} userEmail={user.email} />;
   }
 
   return (
     <div className="min-h-screen bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-
       
       <motion.div 
         className="flex-1 flex flex-col"
@@ -234,7 +200,12 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
             <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
-              <Utensils className="w-8 h-8" />
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+              >
+                <Utensils className="w-8 h-8" />
+              </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
             
@@ -283,7 +254,7 @@ export default function App() {
             {activeTab === 'hydration' && (
               <HydrationTracker 
                 profile={profile} 
-                onUpdateProtocol={(goal, logs) => setProfile(prev => prev ? { ...prev, waterGoal: goal, hydrationLogs: logs } : null)} 
+                onUpdateProtocol={(goal, logs) => updateProfile(prev => prev ? { ...prev, waterGoal: goal, hydrationLogs: logs } : null)} 
                 onAwardPoints={awardPoints}
               />
             )}
@@ -293,7 +264,7 @@ export default function App() {
             {activeTab === 'emotional' && (
               <EmotionalTracker 
                 profile={profile} 
-                onUpdateLogs={(newLogs) => setProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
+                onUpdateLogs={(newLogs) => updateProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
               />
             )}
             {activeTab === 'plan' && (
@@ -308,7 +279,7 @@ export default function App() {
             {activeTab === 'coach' && (
               <AdaptiveCoach 
                 profile={profile} 
-                onUpdateProfile={setProfile}
+                onUpdateProfile={updateProfile}
                 onUpdatePlan={handleUpdatePlan}
               />
             )}
@@ -316,7 +287,7 @@ export default function App() {
               <ShoppingListView mealPlan={mealPlan} />
             )}
             {activeTab === 'profile' && (
-              <Profile profile={profile} onSaveProfile={setProfile} />
+              <Profile profile={profile} onSaveProfile={updateProfile} />
             )}
             {activeTab === 'gamification' && (
               <GamificationCenter profile={profile} onUpdateProfile={updateProfile} />
@@ -327,8 +298,8 @@ export default function App() {
             {activeTab === 'market' && (
               <Marketplace 
                 profile={profile} 
-                onUpdateCart={(cart) => setProfile(prev => prev ? { ...prev, cart } : null)} 
-                onUpdateFavorites={(favorites) => setProfile(prev => prev ? { ...prev, favorites } : null)}
+                onUpdateCart={(cart) => updateProfile(prev => prev ? { ...prev, cart } : null)} 
+                onUpdateFavorites={(favorites) => updateProfile(prev => prev ? { ...prev, favorites } : null)}
                 onOpenPartner={() => setActiveTab('partner')}
                 onOpenMap={() => setActiveTab('frescor')}
               />
@@ -337,16 +308,19 @@ export default function App() {
               <FreshnessMap onBack={() => setActiveTab('market')} />
             )}
             {activeTab === 'trainer' && (
-              <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={setProfile} />
+              <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={updateProfile} />
             )}
             {activeTab === 'prediction' && (
               <ResultPrediction 
                 profile={profile} 
-                onUpdatePrediction={(prediction) => setProfile(prev => prev ? { ...prev, prediction } : null)} 
+                onUpdatePrediction={(prediction) => updateProfile(prev => prev ? { ...prev, prediction } : null)} 
               />
             )}
             {activeTab === 'analyzer' && (
               <PlateAnalyzer onAwardPoints={awardPoints} />
+            )}
+            {activeTab === 'body' && (
+              <BodyAnalyzer profile={profile} onAwardPoints={awardPoints} />
             )}
             {activeTab === 'journey' && (
               <JourneyVisualizer profile={profile} />
@@ -354,7 +328,7 @@ export default function App() {
             {activeTab === 'challenge' && (
               <ChallengeView 
                 profile={profile} 
-                onUpdateChallenge={(challenge) => setProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
+                onUpdateChallenge={(challenge) => updateProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
                 onAwardPoints={awardPoints}
               />
             )}

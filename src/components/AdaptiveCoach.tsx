@@ -5,7 +5,9 @@ import { UserProfile, IntakeLog, Recipe, NutritionInfo, MasterPlanStrategy, Adap
 import { adjustMealPlan, generateAdaptiveInsight, generateMasterStrategy, generateBehavioralIntervention, BehavioralIntervention } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { PersonalizationWizard } from './PersonalizationWizard';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AdaptiveCoachProps {
@@ -24,34 +26,22 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   const [behavioralIntervention, setBehavioralIntervention] = useState<BehavioralIntervention | null>(null);
 
   useEffect(() => {
-    if (!user || !profile || !supabase) return;
+    if (!user || !profile) return;
     
-    // Initial fetch
-    supabase.from('adaptive_insights')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data, error }) => {
-        if (data && !error) setAdaptiveInsight(data as AdaptiveInsight);
-      });
+    // Load existing insights from Firestore
+    const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
+    const q = query(insightsRef, orderBy('date', 'desc'), limit(1));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        setAdaptiveInsight({ id: doc.id, ...doc.data() } as AdaptiveInsight);
+      }
+    }, (error) => {
+      try { handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+    });
 
-    // Realtime subscription
-    const channel = supabase.channel('adaptive_insights_changes')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'adaptive_insights',
-        filter: `user_id=eq.${user.id}`
-      }, payload => {
-        setAdaptiveInsight(payload.new as AdaptiveInsight);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => unsubscribe();
   }, [user, profile]);
 
   useEffect(() => {
@@ -90,21 +80,23 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   };
 
   const loadInsight = async () => {
-    if (!profile || !user || !supabase) return;
+    if (!profile || !user) return;
     setLoading(true);
     const data = await generateAdaptiveInsight(profile, profile.intakeLogs || [], profile.workoutLogs || []);
     if (data) {
       setInsight(data.recommendation);
-      // Save to Supabase if it's high confidence/significant
+      // Save to Firestore if it's high confidence/significant
       try {
-        await supabase.from('adaptive_insights').insert({
+        const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
+        await addDoc(insightsRef, {
           ...data,
           status: 'pending',
           date: new Date().toISOString(),
-          user_id: user.id
+          userId: user.uid,
+          createdAt: serverTimestamp()
         });
       } catch (error) {
-        console.error("Failed to insert insight", error);
+        try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
       }
     }
     setLoading(false);
@@ -312,12 +304,11 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                                       };
                                       onUpdateProfile(newProfile);
                                       
-                                      // Mark as applied in Supabase
-                                      if (user && supabase) {
+                                      // Mark as applied in Firestore
+                                      if (user) {
                                         try {
-                                            await supabase.from('adaptive_insights')
-                                              .update({ status: 'applied' })
-                                              .eq('id', adaptiveInsight.id);
+                                            const { doc, updateDoc } = await import('firebase/firestore');
+                                            await updateDoc(doc(db, `users/${user.uid}/adaptiveInsights`, adaptiveInsight.id), { status: 'applied' });
                                         } catch (e) { console.error(e); }
                                       }
                                       setAdaptiveInsight(null);

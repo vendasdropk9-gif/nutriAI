@@ -498,8 +498,16 @@ export const textToSpeech = async (text: string) => {
     if (base64Audio) {
       // The model returns raw PCM at 24kHz. We need to wrap it in a WAV header.
       const wavBytes = wrapPcmInWav(base64Audio, 24000);
-      const blob = new Blob([wavBytes], { type: 'audio/wav' });
-      return URL.createObjectURL(blob);
+      
+      let binary = '';
+      const len = wavBytes.byteLength;
+      // Convert in chunks to avoid max arguments error if it's very large
+      const chunkSize = 8192;
+      for (let i = 0; i < len; i += chunkSize) {
+        const chunk = wavBytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      return btoa(binary);
     }
   } catch (error) {
     console.error("TTS error:", error);
@@ -581,6 +589,112 @@ export const generateAvatarImage = async (prompt: string): Promise<string | null
     return null;
   } catch (error) {
     console.error("Failed to generate avatar image:", error);
+    return null;
+  }
+};
+
+export const analyzeBodyImage = async (base64Image: string, mimeType: string, profile: any): Promise<any | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  
+  const prompt = `Analise a imagem corporal do usuário de forma segura e ética. 
+Contexto do perfil do usuário: Peso atual ${profile?.weight || 'Não informado'}kg, Objetivo: ${profile?.goals || 'Melhorar a saúde e forma física'}.
+Seu objetivo é fornecer recomendações personalizadas de saúde, nutrição e exercícios com base de forma holística, inclusiva e motivadora.
+Você deve:
+1. Verificar, com total privacidade, por sinais de manipulação, edição artificial (Photoshop) ou filtros extremos na imagem. 
+2. Se detectar suspeita de edição, você deve alertar o usuário de forma NEUTRA, CARINHOSA e sem julgamentos, sugerindo APENAS que, se desejar, busque avaliação profissional (psicólogo, nutricionista) para alinhar a percepção corporal, mas de forma muito cuidadosa e leve.
+3. SEMPRE oferecer recomendações saudáveis e inclusivas de alimentação (food), hidratação (hydration) e exercícios (exercise) com abordagem motivacional. 
+Lembre-se: O foco é inspirar autocuidado, amor próprio e melhorias consistentes.
+
+Retorne APENAS um JSON no formato definido.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      manipulationDetected: { type: Type.BOOLEAN, description: "True se detectar fortes sinais de edição, filtros ou photoshop." },
+      assistantMessage: { type: Type.STRING, description: "Mensagem principal acolhedora e motivacional, relatando levemente sobre o corpo (ex: percebo ótima postura), introduzindo as recomendações. Se manipulationDetected for true, adicione de forma natural, indireta e gentil a sugestão profissional." },
+      recommendations: {
+        type: Type.OBJECT,
+        properties: {
+          food: { type: Type.ARRAY, items: { type: Type.STRING } },
+          hydration: { type: Type.ARRAY, items: { type: Type.STRING } },
+          exercise: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      }
+    },
+    required: ["manipulationDetected", "assistantMessage", "recommendations"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2
+      }
+    });
+
+    const data = JSON.parse(response.text || '{}');
+    return data;
+  } catch (error) {
+    console.error("Error analyzing body image:", error);
+    return null;
+  }
+};
+
+export const getGeneralBodyTips = async (profile: any): Promise<any | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  
+  const prompt = `Gere dicas gerais sobre evolução corporal, saúde e bem-estar para o usuário.
+Contexto: Peso atual ${profile?.weight || 'Não informado'}kg, Objetivo: ${profile?.goals || 'Melhorar a saúde e forma física'}.
+Seu objetivo é fornecer recomendações EXTREMAMENTE acolhedoras, éticas e inclusivas de alimentação, hidratação e exercícios. Seja motivacional e cuidadoso, inspirando o autocuidado e rotinas sustentáveis. A mensagem deve parecer um treinador compreensivo ou nutricionista empático.
+Retorne APENAS um JSON estruturado.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      assistantMessage: { type: Type.STRING, description: "Mensagem inicial muito humana, encorajadora e inclusiva sobre o corpo da pessoa sendo um templo a ser bem cuidado." },
+      recommendations: {
+        type: Type.OBJECT,
+        properties: {
+          food: { type: Type.ARRAY, items: { type: Type.STRING } },
+          hydration: { type: Type.ARRAY, items: { type: Type.STRING } },
+          exercise: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      }
+    },
+    required: ["assistantMessage", "recommendations"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7
+      }
+    });
+
+    const data = JSON.parse(response.text || '{}');
+    return data;
+  } catch (error) {
+    console.error("Error generating general tips:", error);
     return null;
   }
 };

@@ -6,6 +6,9 @@ import { chatWithAssistant } from '../lib/gemini';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { speak, stopSpeech } from '../lib/speech';
 
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -37,6 +40,41 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  useEffect(() => {
+     const loadChat = async () => {
+        if (!auth.currentUser) return;
+        try {
+           const chatRef = doc(db, 'users', auth.currentUser.uid, 'aiChats', 'default');
+           const snap = await getDoc(chatRef);
+           if (snap.exists()) {
+              const d = snap.data();
+              if (d.messages && d.messages.length > 0) {
+                 setMessages(d.messages);
+              }
+           }
+        } catch(e) { console.error('Error loading chat', e); }
+     };
+     loadChat();
+  }, []);
+
+  useEffect(() => {
+     if (!auth.currentUser || messages.length === 0) return;
+     const saveChat = async () => {
+        try {
+           const chatRef = doc(db, 'users', auth.currentUser!.uid, 'aiChats', 'default');
+           const snap = await getDoc(chatRef);
+           if (snap.exists()) {
+              await setDoc(chatRef, { messages, updatedAt: serverTimestamp() }, { merge: true });
+           } else {
+              await setDoc(chatRef, { messages, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+           }
+        } catch(e) { console.error('Error saving chat', e); }
+     };
+     // Debounce slightly if needed, but for chat messages, saving immediately is fine
+     const timer = setTimeout(saveChat, 1000);
+     return () => clearTimeout(timer);
+  }, [messages]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {

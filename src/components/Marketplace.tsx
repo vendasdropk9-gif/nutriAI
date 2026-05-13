@@ -23,7 +23,9 @@ import {
   Send,
   RefreshCw,
   Map as MapIcon,
-  Bike
+  Bike,
+  Package,
+  X
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
 import { speak } from '../lib/speech';
@@ -90,6 +92,29 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'retirada'>('moto');
   const [isTracking, setIsTracking] = useState(false);
+  const [addingAI, setAddingAI] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showOrders) {
+       const loadOrders = async () => {
+          try {
+             const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
+             const { db, auth } = await import('../lib/firebase');
+             if (auth.currentUser) {
+                const q = query(
+                   collection(db, 'users', auth.currentUser.uid, 'orders'),
+                   orderBy('createdAt', 'desc')
+                );
+                const snap = await getDocs(q);
+                setOrders(snap.docs.map(d => d.data()));
+             }
+          } catch(e) { console.error('Erro ao buscar pedidos', e); }
+       };
+       loadOrders();
+    }
+  }, [showOrders]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -201,16 +226,27 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             <span className="text-xs md:text-sm">Entregando em: <strong>Seu Endereço Atual</strong></span>
           </div>
           
-          <button 
-            onClick={onOpenMap}
-            className="flex items-center gap-3 p-3 px-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
-          >
-            <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg">
-               <MapIcon className="w-4 h-4" />
-            </div>
-            Explorar Mapa de Frescor
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={onOpenMap}
+              className="flex items-center gap-3 p-3 px-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
+            >
+              <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
+                 <MapIcon className="w-4 h-4" />
+              </div>
+              Explorar Mapa de Frescor
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+              onClick={() => setShowOrders(true)}
+              className="flex items-center gap-3 p-3 px-6 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
+            >
+              <div className="w-8 h-8 bg-slate-900 dark:bg-slate-700 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
+                 <Package className="w-4 h-4" />
+              </div>
+              Meus Pedidos
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
@@ -266,7 +302,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                   {BANNERS[currentBanner].title}
                </h3>
                <p className="text-white/80 text-sm sm:text-base md:text-xl font-medium break-words">{BANNERS[currentBanner].subtitle}</p>
-               <button className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2">
+               <button 
+                  onClick={() => addToCart(PRODUCTS[0])}
+                  className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2"
+               >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                   <span className="text-sm md:text-base truncate">Comprar Agora</span>
                </button>
@@ -287,7 +326,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
 
       {/* AI Recommendation Section */}
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[24px] sm:rounded-[32px] clay-card p-6 sm:p-8 text-white flex flex-col md:flex-row items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden w-full max-w-full box-border">
-        <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-10">
+        <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-10 pointer-events-none">
           <Sparkles className="w-24 h-24 sm:w-32 sm:h-32" />
         </div>
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shrink-0">
@@ -298,10 +337,18 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           <p className="text-emerald-50 opacity-90 text-sm sm:text-base break-words">Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.</p>
         </div>
         <button 
-          onClick={() => addToCart(PRODUCTS[5])}
-          className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 clay-btn px-6 py-3 sm:rounded-2xl font-bold hover:bg-emerald-50 transition-all shadow-lg z-10 mt-2 sm:mt-0"
+          onClick={() => {
+            addToCart(PRODUCTS[5]);
+            setAddingAI(true);
+            setTimeout(() => {
+              setAddingAI(false);
+            }, 1500);
+          }}
+          disabled={addingAI}
+          id="ai-sug-btn"
+          className={`w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-white text-emerald-600 rounded-[16px] sm:rounded-2xl font-bold transition-all shadow-lg z-20 relative border-none ${addingAI ? 'bg-emerald-100 scale-95' : 'hover:bg-emerald-50 active:scale-95'}`}
         >
-          Adicionar Sugestão IA
+          {addingAI ? 'Adicionado! 🛒' : 'Adicionar Sugestão IA'}
         </button>
       </div>
 
@@ -376,16 +423,16 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               <p className="text-xs text-slate-500 line-clamp-1">{product.description}</p>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-auto">
               <div>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-400 uppercase">por {product.unit}</p>
+                <p className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
+                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">por {product.unit}</p>
               </div>
               <button 
                 onClick={() => addToCart(product)}
-                className="w-10 h-10 bg-emerald-500 hover:clay-primary px-6 py-3 flex items-center justify-center transition-all shadow-lg active:scale-90"
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full sm:rounded-2xl hover:scale-105 hover:bg-slate-800 dark:hover:bg-slate-100 flex items-center justify-center transition-all shadow-lg active:scale-95"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
           </motion.div>
@@ -404,7 +451,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           >
             <div className="relative">
               <ShoppingBag className="w-6 h-6" />
-              <div className="absolute -top-2 -right-2 w-5 h-5 clay-primary px-6 py-3 flex items-center justify-center text-[10px] font-bold">
+              <div className="absolute -top-2 -right-2 min-w-[20px] h-5 bg-emerald-500 text-white rounded-full px-1.5 flex items-center justify-center text-[10px] font-bold shadow-sm">
                 {cart.reduce((a, b) => a + b.quantity, 0)}
               </div>
             </div>
@@ -506,39 +553,31 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 </div>
                 
                 <button 
-                  disabled={isSubmittingReview} // reuse state to act as loading
                   onClick={async () => {
-                    setIsSubmittingReview(true);
                     try {
-                      const { supabase } = await import('../lib/supabase');
-                      if (supabase) {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (session?.user) {
-                          await supabase.from('orders').insert({
-                            user_id: session.user.id,
+                      const { collection, setDoc, doc, serverTimestamp } = await import('firebase/firestore');
+                      const { db, auth } = await import('../lib/firebase');
+                      if (auth.currentUser) {
+                         const newId = crypto.randomUUID();
+                         await setDoc(doc(collection(db, 'users', auth.currentUser.uid, 'orders'), newId), {
+                            id: newId,
+                            status: 'pending',
+                            storeId: 'default-store',
                             items: cart,
                             total: finalTotal,
-                            delivery_method: deliveryMethod,
-                            status: 'pending',
-                            store_id: activeMarket.id
-                          });
-                        }
+                            deliveryMethod,
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp()
+                         });
                       }
-                      setIsTracking(true);
-                    } catch (e) {
-                      console.error("Failed to checkout", e);
-                    } finally {
-                      setIsSubmittingReview(false);
-                    }
+                    } catch(e) { console.error("Error saving order:", e); }
+                    onUpdateCart([]);
+                    setIsTracking(true);
                   }}
                   className="w-full py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                 >
-                  {isSubmittingReview ? <RefreshCw className="w-5 h-5 animate-spin" /> : (
-                    <>
-                      {deliveryMethod === 'moto' ? 'Finalizar pedido com entrega' : 'Finalizar pedido'}
-                      <ChevronRight className="w-5 h-5" />
-                    </>
-                  )}
+                  {deliveryMethod === 'moto' ? 'Finalizar pedido com entrega' : 'Finalizar pedido'}
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             </motion.div>
@@ -732,6 +771,74 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           <ChevronRight className="w-5 h-5" />
         </button>
       </motion.div>
+
+      <AnimatePresence>
+        {showOrders && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowOrders(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden flex flex-col max-h-[85vh] shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-6 border-b dark:border-slate-800">
+                <h3 className="text-2xl font-serif font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                  <Package className="w-6 h-6 text-emerald-500" />
+                  Histórico de Compras
+                </h3>
+                <button 
+                  onClick={() => setShowOrders(false)}
+                  className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X className="w-5 h-5 flex-shrink-0" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {orders.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500">
+                    Nenhum pedido encontrado.
+                  </div>
+                ) : (
+                  orders.map(order => (
+                    <div key={order.id} className="p-4 border dark:border-slate-800 rounded-2xl flex flex-col gap-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">Pedido #{order.id.slice(0, 8)}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(order.createdAt?.seconds ? order.createdAt.seconds * 1000 : Date.now()).toLocaleDateString('pt-BR', { dateStyle: 'long' })}
+                          </p>
+                        </div>
+                        <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold uppercase tracking-widest">
+                          {order.status === 'pending' ? 'Pendente' : order.status}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {order.items.map((item: any) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span className="text-slate-600 dark:text-slate-400">{item.quantity}x {item.name}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-4 border-t dark:border-slate-800 flex justify-between items-center">
+                        <span className="text-sm text-slate-500">{order.deliveryMethod === 'moto' ? 'Entrega em Casa' : 'Retirada'}</span>
+                        <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">Total: R$ {order.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

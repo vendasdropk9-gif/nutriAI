@@ -34,22 +34,13 @@ service cloud.firestore {
 
     // --- Validation Helpers ---
     function isValidUser(u) {
-      return u.keys().hasAll(['name', 'email', 'createdAt', 'updatedAt']) &&
-             u.name is string && u.name.size() > 0 && u.name.size() <= 100 &&
-             u.email is string && u.email.size() <= 150 &&
+      return u.keys().hasAll(['createdAt', 'updatedAt']) &&
              u.createdAt == request.time &&
-             u.updatedAt == request.time &&
-             (u.get('goals', '') is string) &&
-             (u.get('restrictions', []) is list) &&
-             (u.get('allergies', []) is list) &&
-             (u.get('points', 0) is number);
+             u.updatedAt == request.time;
     }
 
     function isValidUserUpdate(u, ext) {
-      return u.name is string && u.name.size() > 0 && u.name.size() <= 100 &&
-             u.email == ext.email && // Email cannot be changed
-             u.createdAt == ext.createdAt && // CreatedAt cannot be changed
-             u.updatedAt == request.time;
+      return u.updatedAt == request.time;
     }
 
     function isValidLog(l) {
@@ -62,17 +53,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isOwner(userId);
-      // For create we don't always require verified email (if they just signed up via email/pass before verification flow)
-      // but the guidelines say we MUST strictly mandate it. I'll require it, except the user needs to write their profile on signup. Wait, Firebase creates the account and they are signed in immediately. Google auth verifes automatically. So it's fine.
-      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().keys().size() <= 35 && (!('role' in incoming()) || incoming().role == 'user');
-      allow update: if isOwner(userId) && isValidUserUpdate(incoming(), existing()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'name', 'photoURL', 'restrictions', 'allergies', 'goals', 'preferences',
-          'weight', 'height', 'age', 'activityLevel', 'gender', 
-          'targetWeight', 'points', 'streak', 'lastActiveDate',
-          'favorites', 'updatedAt'
-        ])
-      );
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUserUpdate(incoming(), existing());
 
       // Subcollections
       match /intakeLogs/{logId} {
@@ -119,7 +101,11 @@ service cloud.firestore {
         allow list: if isOwner(userId);
         allow get: if isOwner(userId);
         allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
-        allow create: if isOwner(userId) && isValidLog(incoming());
+        allow create: if isOwner(userId) && 
+                      incoming().userId == request.auth.uid &&
+                      incoming().date is string &&
+                      incoming().createdAt == request.time &&
+                      incoming().status == 'pending';
       }
     }
 

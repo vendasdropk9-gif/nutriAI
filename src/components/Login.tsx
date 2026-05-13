@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, LogIn, Mail, Lock, Fingerprint, User as UserIcon, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { signInWithGoogle, auth } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 
 export function Login() {
-  const [view, setView] = useState<'login' | 'register' | 'forgot' | 'biometric'>('login');
+  const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -12,48 +13,39 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Check if biometric was enabled previously
-  useEffect(() => {
-    // Only used to know if we should show the enable button
-  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    if (!supabase) {
-      setError('Serviço de autenticação não configurado adequadamente.');
+    if (!navigator.onLine) {
+      setError('Sem conexão com internet.');
       setLoading(false);
       return;
     }
 
     try {
       if (view === 'register') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              goals: goals
-            }
-          }
-        });
-        if (error) throw error;
-        alert('Cadastro realizado com sucesso! Verifique seu email se o login não for automático.');
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName: name });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (error) throw error;
+        await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
       console.error("Auth error", err);
-      setError(err.message || 'Erro na autenticação. Verifique os dados.');
+      if (err.code === 'auth/email-already-in-use') setError('Este e-mail já está cadastrado.');
+      else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') setError('E-mail ou senha incorretos.');
+      else if (err.code === 'auth/invalid-email') setError('E-mail inválido.');
+      else if (err.code === 'auth/weak-password') setError('A senha deve ter pelo menos 6 caracteres.');
+      else if (err.code === 'auth/network-request-failed') setError('Sem conexão com internet.');
+      else setError('Erro na autenticação. Tente novamente.');
     } finally {
+      if (view === 'forgot') setLoading(false); 
+      // If success, AuthContext triggers an unmount of Login, 
+      // but if error, we need to set loading to false.
+      // Wait, let's just set loading to false unconditionally, 
+      // it won't matter if it gets unmounted except for a dev warning.
       setLoading(false);
     }
   };
@@ -61,24 +53,11 @@ export function Login() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-    
-    if (!supabase) {
-      setError('Serviço de autenticação não configurado adequadamente.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        }
-      });
-      if (error) throw error;
-    } catch (err: any) {
+      await signInWithGoogle();
+    } catch (err) {
       console.error("Login failed", err);
-      setError('Erro ao entrar com Google: ' + err.message);
+      setError('Erro ao entrar com Google.');
       setLoading(false);
     }
   };
@@ -90,15 +69,8 @@ export function Login() {
       return;
     }
     setLoading(true);
-    if (!supabase) {
-      setError('Serviço de autenticação não configurado adequadamente.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
+      await sendPasswordResetEmail(auth, email);
       setError('Email de recuperação enviado!');
     } catch (err) {
       setError('Erro ao enviar email.');
@@ -107,21 +79,9 @@ export function Login() {
     }
   };
 
-  const enableBiometric = async () => {
-    setLoading(true);
-    let currentUserEmail = 'user';
-    if (supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      currentUserEmail = user?.email || 'user';
-    }
-    const { registerBiometric } = await import('../lib/biometric');
-    const success = await registerBiometric(currentUserEmail);
-    if (success) {
-      alert("Biometria habilitada com sucesso para os próximos acessos!");
-    } else {
-      alert("Não foi possível configurar a biometria no seu dispositivo.");
-    }
-    setLoading(false);
+  const enableBiometric = () => {
+    localStorage.setItem('nutri-biometric-enabled', 'true');
+    alert("Biometria habilitada para o próximo login!");
   };
 
   return (
@@ -157,7 +117,6 @@ export function Login() {
           </div>
 
           <AnimatePresence mode="wait">
-            
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 
                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">

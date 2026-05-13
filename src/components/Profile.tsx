@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Check, LogOut, Cloud } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { auth } from '../lib/firebase';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -11,7 +11,7 @@ interface ProfileProps {
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const handleLogout = async () => {
     try {
-      await supabase?.auth.signOut();
+      await auth.signOut();
     } catch (error) {
       console.error("Logout failed", error);
     }
