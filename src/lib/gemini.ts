@@ -478,6 +478,15 @@ Responda APENAS com um array JSON com os objetos de receita.`;
 };
 
 export const textToSpeech = async (text: string) => {
+  const cacheKey = `tts_${text.substring(0, 50)}`;
+  
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+  } catch (e) {
+    // ignore local storage errors
+  }
+
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   try {
@@ -496,21 +505,29 @@ export const textToSpeech = async (text: string) => {
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
-      // The model returns raw PCM at 24kHz. We need to wrap it in a WAV header.
       const wavBytes = wrapPcmInWav(base64Audio, 24000);
       
       let binary = '';
       const len = wavBytes.byteLength;
-      // Convert in chunks to avoid max arguments error if it's very large
       const chunkSize = 8192;
       for (let i = 0; i < len; i += chunkSize) {
         const chunk = wavBytes.subarray(i, i + chunkSize);
         binary += String.fromCharCode.apply(null, Array.from(chunk));
       }
-      return btoa(binary);
+      const b64 = btoa(binary);
+      try {
+        localStorage.setItem(cacheKey, b64);
+      } catch (e) {
+        // storage might be full
+      }
+      return b64;
     }
-  } catch (error) {
-    console.error("TTS error:", error);
+  } catch (error: any) {
+    if (error?.status === 'RESOURCE_EXHAUSTED' || error?.message?.includes('429')) {
+      console.warn("Gemini TTS quota exceeded. Using browser fallback.");
+    } else {
+      console.warn("Gemini TTS warning:", error?.message || error);
+    }
   }
   return null;
 };
@@ -699,13 +716,22 @@ Retorne APENAS um JSON estruturado.`;
   }
 };
 
-export const analyzePlate = async (base64Image: string, mimeType: string): Promise<any | null> => {
+export const analyzePlate = async (base64Image: string, mimeType: string, profile?: UserProfile | null): Promise<any | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
   const prompt = `Analise a imagem deste prato de comida e reconheça os alimentos presentes.
 Calcule aproximadamente os valores nutricionais totais do prato (proteína em gramas, carboidratos em gramas, gorduras em gramas, calorias totais, e fibras em gramas).
-Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium. Ex: "Deixei mais simples pra facilitar." ou "Isso aqui encaixa perfeito no seu dia hoje." Relate também brevemente os nutrientes. (Máx 2 ou 3 frases curtas).
-Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição.
+
+Perfil e Plano Opcional:
+Objetivo: ${profile?.goals || 'Não informado'}
+Dieta atual / Plano: ${profile?.mealPlan ? JSON.stringify(profile.mealPlan) : 'Não informado'}
+
+Verifique se a refeição corresponde de forma geral ao plano sugerido (quantidade, tipos de alimentos) ou ao objetivo do usuário.
+Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium.
+- Se o prato estiver de acordo com o plano, confirme o progresso positivamente (ex: "Isso aí! Esse prato está perfeito e super alinhado com o seu plano de hoje. Muito orgilho!").
+- Se não estiver, sugira ajustes ou encoraje sem culpa (ex: "Parece muito gostoso! Mas pra chegar no seu objetivo, faltou uma saladinha ou um pouco mais de proteína. Na próxima a gente acerta, sem estresse.").
+Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição na array 'suggestions'.
+Garanta privacidade e reforço positivo ao hábito.
 Responda APENAS num json.`;
 
   const schema: Schema = {

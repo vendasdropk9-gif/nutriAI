@@ -2,13 +2,14 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain } from 'lucide-react';
 import { analyzePlate } from '../lib/gemini';
 import { speak } from '../lib/speech';
-import { PlateAnalysisResult } from '../types';
+import { PlateAnalysisResult, UserProfile } from '../types';
 
 interface PlateAnalyzerProps {
+  profile?: UserProfile | null;
   onAwardPoints?: (amount: number, reason: string) => void;
 }
 
-export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
+export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<PlateAnalysisResult | null>(null);
@@ -58,9 +59,13 @@ export function PlateAnalyzer({ onAwardPoints }: PlateAnalyzerProps) {
         const base64Data = result.split(',')[1];
         const mimeType = file.type;
 
-        const data = await analyzePlate(base64Data, mimeType);
+        const data = await analyzePlate(base64Data, mimeType, profile);
         if (data) {
           setAnalysisResult(data);
+          // Automatic voice read
+          if (data.assistantMessage) {
+              playTTS(data.assistantMessage);
+          }
           if (onAwardPoints) onAwardPoints(50, 'Análise de prato via foto concluída');
         } else {
           alert('Não foi possível analisar a imagem.');

@@ -39,6 +39,9 @@ import { NotificationSystem, AppNotification } from './components/NotificationSy
 import { LiveAssistant } from './components/LiveAssistant';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
 import { IntakeLog } from './types';
+import { playSfx, vibrate } from './lib/sensory';
+
+import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -68,10 +71,13 @@ export default function App() {
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
     const id = Math.random().toString(36).substring(7);
     setNotifications(prev => [...prev, { ...notif, id }]);
+    playSfx('notification');
+    vibrate([50, 50, 50]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
   };
+
 
   const handleLogIntake = (log: IntakeLog) => {
     const newProfile = profile ? {
@@ -236,10 +242,10 @@ export default function App() {
         <AnimatePresence mode="popLayout">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            initial={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 1.02, filter: 'blur(4px)' }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="w-full flex-1 flex flex-col min-h-[400px]"
           >
             {(activeTab === 'generator' || activeTab === 'plan') && (
@@ -317,7 +323,7 @@ export default function App() {
               />
             )}
             {activeTab === 'analyzer' && (
-              <PlateAnalyzer onAwardPoints={awardPoints} />
+              <PlateAnalyzer profile={profile} onAwardPoints={awardPoints} />
             )}
             {activeTab === 'body' && (
               <BodyAnalyzer profile={profile} onAwardPoints={awardPoints} />
@@ -353,6 +359,7 @@ export default function App() {
 
       <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
       <LiveAssistant profile={profile} />
+      <MagicRecipeFAB profile={profile} />
       
       <NotificationSystem 
         notifications={notifications} 

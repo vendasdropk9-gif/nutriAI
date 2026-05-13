@@ -7,7 +7,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 
 interface Avatar3DProps {
   activeMuscles: string[];
-  animation?: 'idle' | 'executing' | 'tutorial' | 'wrong';
+  animation?: 'idle' | 'executing' | 'tutorial' | 'wrong' | 'perfect';
   view?: 'front' | 'side' | 'detail';
   playbackSpeed?: number;
 }
@@ -38,14 +38,16 @@ function HumanoidModel({ activeMuscles, animation = 'idle', playbackSpeed = 1 }:
     
     const time = state.clock.getElapsedTime() * playbackSpeed;
     
-    if (animation === 'executing' || animation === 'tutorial') {
+    if (animation === 'executing' || animation === 'tutorial' || animation === 'perfect') {
       const move = Math.sin(time * 3) * 0.3;
       group.current.position.y = move - 0.5;
       
       group.current.children.forEach(child => {
         if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
           if (child.material.emissive.getHex() !== 0x000000) {
-            child.material.emissiveIntensity = 2 + Math.sin(time * 10);
+            child.material.emissiveIntensity = animation === 'perfect' 
+              ? 3 + Math.sin(time * 15) * 2 // stronger pulse
+              : 2 + Math.sin(time * 10);
           }
         }
       });

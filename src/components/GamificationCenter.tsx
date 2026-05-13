@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, TrendingUp, Sparkles, Gift } from 'lucide-react';
+import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, TrendingUp, Sparkles, Gift, Utensils } from 'lucide-react';
 import { UserProfile, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenges } from '../lib/gemini';
+import { ScratchCard } from './ScratchCard';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
+const WEEKLY_TREATS = ['Brownie Fit com Sorvete', 'Bolo de Cenoura', 'Cheesecake de Frutas Vermelhas', 'Petit Gâteau Light', 'Pudim de Leite (Porção Pequena)'];
+
 export function GamificationCenter({ profile, onUpdateProfile }: GamificationCenterProps) {
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showScratchCard, setShowScratchCard] = useState(false);
+  const [revealedTreat, setRevealedTreat] = useState<string>('');
 
   // Streak logic
   useEffect(() => {
@@ -174,6 +179,50 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Weekly Reward / Scratch Card */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Gift className="w-5 h-5 text-amber-500" />
+          Recompensa da Semana
+        </h3>
+
+        {!showScratchCard ? (
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            onClick={() => {
+              const randomTreat = WEEKLY_TREATS[Math.floor(Math.random() * WEEKLY_TREATS.length)];
+              setRevealedTreat(randomTreat);
+              setShowScratchCard(true);
+            }}
+            className="p-6 rounded-[32px] bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-xl cursor-pointer flex flex-col items-center justify-center text-center relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-white/10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.2) 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+            <Sparkles className="w-10 h-10 mb-2 relative z-10" />
+            <h4 className="text-lg font-black uppercase tracking-widest relative z-10">Raspadinha Desbloqueada!</h4>
+            <p className="text-sm font-medium opacity-90 relative z-10">Você atingiu a meta da semana. Toque para raspar.</p>
+          </motion.div>
+        ) : (
+          <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-200 dark:border-slate-700">
+            <p className="text-center text-slate-500 mb-6 font-medium">Use o dedo para raspar e revelar sua sobremesa da semana!</p>
+            <ScratchCard 
+              width={250} 
+              height={150} 
+              brushSize={25} 
+              finishPercent={50}
+              onComplete={() => setShowConfetti(true)}
+            >
+              <div className="flex flex-col items-center text-center p-4">
+                <Utensils className="w-8 h-8 text-emerald-500 mb-2" />
+                <h4 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                  {revealedTreat}
+                </h4>
+                <p className="text-xs font-bold text-emerald-500 uppercase mt-2">Liberado esta semana!</p>
+              </div>
+            </ScratchCard>
+          </div>
+        )}
       </div>
 
       {/* Badges and Trophies */}

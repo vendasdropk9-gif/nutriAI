@@ -1,6 +1,7 @@
+import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise } from '../types';
 import { generateWorkout, textToSpeech } from '../lib/gemini';
@@ -24,6 +25,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [cameraView, setCameraView] = useState<'front' | 'side' | 'detail'>('front');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showWrongMode, setShowWrongMode] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   
@@ -65,14 +67,28 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
   const currentExercise = currentExerciseIndex >= 0 ? workout?.exercises[currentExerciseIndex] : null;
 
+  const handleExerciseSuccess = () => {
+    setIsTimerActive(false);
+    setShowSuccessAnimation(true);
+    playSfx('success');
+    vibrate([30, 50, 30]);
+    playMotivationalMessage("Perfeito! Movimento impecável. Concluído com sucesso.");
+    
+    // Auto-advance after showing success
+    setTimeout(() => {
+      setShowSuccessAnimation(false);
+      nextExercise();
+    }, 4500);
+  };
+
   useEffect(() => {
     if (isTimerActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && isTimerActive) {
-      setIsTimerActive(false);
       if (timerRef.current) clearInterval(timerRef.current);
+      handleExerciseSuccess();
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -528,6 +544,14 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                            </button>
 
                            <button
+                             onClick={handleExerciseSuccess}
+                             className="px-4 md:px-6 bg-emerald-500 text-white rounded-xl md:rounded-2xl font-bold hover:bg-emerald-600 active:bg-emerald-700 transition-all flex items-center justify-center"
+                             title="Concluir O Movimento"
+                           >
+                              <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
+                           </button>
+
+                           <button
                              onClick={nextExercise}
                              className="px-4 md:px-6 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-white rounded-xl md:rounded-2xl font-bold active:bg-slate-300 transition-all"
                              title="Pular"
@@ -552,6 +576,41 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {showSuccessAnimation && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center p-4 lg:p-0"
+           >
+             <motion.div 
+               initial={{ scale: 0.8, y: 50 }}
+               animate={{ scale: 1, y: 0 }}
+               exit={{ scale: 0.8, y: 50 }}
+               className="bg-white dark:bg-slate-900 p-8 md:p-12 rounded-[32px] md:rounded-[48px] shadow-2xl space-y-6 md:space-y-8 w-full max-w-md mx-auto text-center relative overflow-hidden"
+             >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent pointer-events-none" />
+                <Sparkles className="w-12 h-12 md:w-16 md:h-16 text-emerald-500 mx-auto animate-pulse" />
+                <div className="relative z-10">
+                   <h3 className="text-3xl md:text-4xl font-serif font-bold text-slate-800 dark:text-white mb-2">Excepcional!</h3>
+                   <p className="text-slate-500 dark:text-slate-400 font-medium">Olha só como a execução foi perfeita.</p>
+                </div>
+                
+                <div className="relative w-full aspect-square rounded-[24px] overflow-hidden border border-emerald-100 dark:border-emerald-800/50 shadow-inner bg-slate-50 dark:bg-slate-800">
+                   <div className="absolute inset-x-0 bottom-0 top-auto z-10 pointers-events-none" style={{height: '40%', background: 'linear-gradient(to top, rgba(16,185,129,0.15), transparent)'}}></div>
+                   <Avatar3D 
+                     activeMuscles={currentExercise?.primaryMuscles || []} 
+                     animation="perfect"
+                     view="front"
+                     playbackSpeed={1.5}
+                   />
+                </div>
+             </motion.div>
+           </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
