@@ -26,8 +26,9 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   const [behavioralIntervention, setBehavioralIntervention] = useState<BehavioralIntervention | null>(null);
 
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!profile) return;
     
+    if (!user) return; // test mode bypasses firestore listen
     // Load existing insights from Firestore
     const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
     const q = query(insightsRef, orderBy('date', 'desc'), limit(1));
@@ -80,23 +81,25 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   };
 
   const loadInsight = async () => {
-    if (!profile || !user) return;
+    if (!profile) return;
     setLoading(true);
     const data = await generateAdaptiveInsight(profile, profile.intakeLogs || [], profile.workoutLogs || []);
     if (data) {
       setInsight(data.recommendation);
       // Save to Firestore if it's high confidence/significant
-      try {
-        const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
-        await addDoc(insightsRef, {
-          ...data,
-          status: 'pending',
-          date: new Date().toISOString(),
-          userId: user.uid,
-          createdAt: serverTimestamp()
-        });
-      } catch (error) {
-        try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+      if (user) {
+        try {
+          const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
+          await addDoc(insightsRef, {
+            ...data,
+            status: 'pending',
+            date: new Date().toISOString(),
+            userId: user.uid,
+            createdAt: serverTimestamp()
+          });
+        } catch (error) {
+          try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+        }
       }
     }
     setLoading(false);
