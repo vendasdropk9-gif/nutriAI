@@ -149,8 +149,8 @@ Responda APENAS em JSON validando o schema.`;
     const text = response.text;
     if (!text) return null;
     return JSON.parse(text);
-  } catch (error) {
-    console.error("Failed to generate master strategy:", error);
+  } catch (error: any) {
+    console.warn("Failed to generate master strategy:", error?.message || error);
     return null;
   }
 };
@@ -1030,6 +1030,45 @@ Regras:
   }
 };
 
+export const generateHabitsInsight = async (
+  profile: UserProfile | null,
+  waterCurrent: number,
+  waterGoal: number,
+  sleepLogs: any[],
+  fastingLogs: any[]
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const tzDate = new Date().toISOString().split('T')[0];
+  const todaySleep = sleepLogs.find(l => l.date.split('T')[0] === tzDate);
+  const todayFasting = fastingLogs.find(l => l.date.split('T')[0] === tzDate);
+
+  const prompt = `Você é a NutriAI, uma assistente pessoal de saúde amigável, precisa e empática.
+Gere UM insight estratégico sobre a rotina atual do usuário combinando os seguintes dados diários:
+
+Água: ${waterCurrent}ml de ${waterGoal}ml (${((waterCurrent/waterGoal)*100).toFixed(0)}%)
+Sono Hoje: ${todaySleep ? `${todaySleep.durationHours}h, Qualidade: ${todaySleep.quality}` : 'Não registrado hoje'}
+Jejum Hoje: ${todayFasting ? `${todayFasting.durationHours}h` : 'Não registrado hoje'}
+Objetivo Principal: ${profile?.goals || 'Melhorar a saúde'}
+
+Diretrizes:
+1. Padrões Conectados: Faça uma conexão inteligente. Ex: Se dormiu mal, recomende hidratação extra e cuidado com a quebra do jejum, pois o cortisol estará alto. Se o jejum foi longo, elogie e lembre da água.
+2. Tom: Acolhedor, direto, sem papo furado. Máximo de 2 frases diretas (cerca de 20-30 palavras).
+3. Não use jargões difíceis. Use emojis se couber.
+4. Responda APENAS com o texto final. Nenhum formato Markdown ou aspas extras.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: { temperature: 0.7 }
+    });
+    return response.text || "Continue focado nos seus hábitos hoje, beba bastante água e priorize seu descanso. Estou com você!";
+  } catch (error) {
+    console.error("Error generating habits insight:", error);
+    return "Seus rastreios sugerem que focar num ciclo de sono melhor vai potencializar os ganhos da sua hidratação e metabolismo.";
+  }
+};
+
 export const generateHydrationAdvice = async (
   current: number,
   goal: number,
@@ -1372,8 +1411,8 @@ Responda APENAS JSON validando o schema.`;
     const text = response.text;
     if (!text) return null;
     return JSON.parse(text);
-  } catch (error) {
-    console.error("Failed to generate behavioral intervention:", error);
+  } catch (error: any) {
+    console.warn("Intervenção comportamental offline, usando fallback:", error?.message || error);
     return null;
   }
 };
@@ -1448,9 +1487,14 @@ Responda APENAS em JSON validando o schema.`;
     const text = response.text;
     if (!text) return null;
     return JSON.parse(text);
-  } catch (error) {
-    console.error("Failed to generate adaptive insight:", error);
-    return null;
+  } catch (error: any) {
+    console.warn("Gerador adaptativo offline ou indisponível, usando fallback:", error?.message || error);
+    return {
+      date: new Date().toISOString(),
+      type: 'habit_nudge',
+      recommendation: "Mantenha o foco! Seus registros estão sendo analisados e logo teremos mais dicas.",
+      reasoning: "Sistema em otimização ou offline temporariamente."
+    };
   }
 };
 
@@ -1507,8 +1551,8 @@ Responda APENAS em JSON no formato Array de WeeklyChallenge.`;
     });
 
     return JSON.parse(response.text || "[]");
-  } catch (error) {
-    console.error("Failed to generate weekly challenges:", error);
+  } catch (error: any) {
+    console.warn("Failed to generate weekly challenges, using fallback:", error?.message || error);
     return [];
   }
 };

@@ -16,7 +16,7 @@ import { JuiceGenerator } from './components/JuiceGenerator';
 import { BarcodeScanner } from './components/BarcodeScanner';
 import { EmotionalTracker } from './components/EmotionalTracker';
 import { ChallengeView } from './components/ChallengeView';
-import { HydrationTracker } from './components/HydrationTracker';
+import { HabitTracker } from './components/HabitTracker';
 import { SmartSwaps } from './components/SmartSwaps';
 import { DiningOut } from './components/DiningOut';
 import { RankingView } from './components/RankingView';
@@ -65,7 +65,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'hydration' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
@@ -78,6 +78,23 @@ export default function App() {
     }, 5000);
   };
 
+  useEffect(() => {
+    if (!profile) return;
+    const today = new Date().toISOString().split('T')[0];
+    const hasSleepToday = profile.sleepLogs?.some(log => log.date.startsWith(today));
+    
+    // Using sessionStorage so we only nudge once per day/session
+    if (!hasSleepToday && !sessionStorage.getItem('habits_nudge')) {
+      sessionStorage.setItem('habits_nudge', 'true');
+      setTimeout(() => {
+        addNotification({
+          title: 'Dica Inteligente',
+          message: 'Como você dormiu e se hidratou hoje? Registre seus hábitos para análises mais precisas da IA.',
+          type: 'info'
+        });
+      }, 6000);
+    }
+  }, [profile?.sleepLogs]);
 
   const handleLogIntake = (log: IntakeLog) => {
     const newProfile = profile ? {
@@ -257,10 +274,10 @@ export default function App() {
             {activeTab === 'juice' && (
               <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
             )}
-            {activeTab === 'hydration' && (
-              <HydrationTracker 
+            {activeTab === 'habits' && (
+              <HabitTracker 
                 profile={profile} 
-                onUpdateProtocol={(goal, logs) => updateProfile(prev => prev ? { ...prev, waterGoal: goal, hydrationLogs: logs } : null)} 
+                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
                 onAwardPoints={awardPoints}
               />
             )}

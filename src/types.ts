@@ -111,6 +111,8 @@ export interface UserProfile {
   behavioralProfile?: BehavioralProfile;
   mealPlan?: MealPlan;
   savedRecipes?: Recipe[];
+  sleepLogs?: SleepLog[];
+  fastingLogs?: FastingLog[];
 }
 
 export interface StoreTag {
@@ -221,6 +223,19 @@ export interface HydrationLog {
   id: string;
   date: string; // ISO
   amount: number; // in ml
+}
+
+export interface SleepLog {
+  id: string;
+  date: string; // ISO
+  durationHours: number;
+  quality: 'Péssimo' | 'Ruim' | 'Regular' | 'Bom' | 'Excelente';
+}
+
+export interface FastingLog {
+  id: string;
+  date: string; // ISO
+  durationHours: number;
 }
 
 export interface Challenge {
