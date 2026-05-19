@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, X, Loader2, Volume2, Waves } from 'lucide-react';
-import { GoogleGenAI, Modality } from "@google/genai";
 import { UserProfile } from '../types';
 
 interface LiveAssistantProps {
@@ -14,7 +13,6 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const aiRef = useRef<GoogleGenAI | null>(null);
   const sessionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -26,7 +24,6 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
-    aiRef.current = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
     return () => {
       stopLive();
     };
@@ -79,6 +76,29 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
     }
   };
 
+  const stopLive = () => {
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (sessionRef.current) {
+      try { sessionRef.current.close(); } catch(e){}
+      sessionRef.current = null;
+    }
+    if (sourceNodeRef.current) {
+      try { sourceNodeRef.current.stop(); } catch(e){}
+      sourceNodeRef.current = null;
+    }
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    setIsConnected(false);
+    setIsConnecting(false);
+  };
+
   const startLive = async () => {
     setIsConnecting(true);
     setError(null);
@@ -97,61 +117,51 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
       
-      let contextStr = "Você é a Malu, uma Coach de saúde. Fale em português. Seja concisa. Responda verbalmente.";
-      if (profile) contextStr += ` O usuário busca: ${profile.goals}.`;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}/live`);
+      sessionRef.current = ws;
 
-      if (!aiRef.current) aiRef.current = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      ws.onopen = () => {
+        setIsConnected(true);
+        setIsConnecting(false);
+      };
 
-      const sessionPromise = aiRef.current.live.connect({
-        model: "gemini-3.1-flash-live-preview",
-        callbacks: {
-          onopen: () => {
-            setIsConnected(true);
-            setIsConnecting(false);
-          },
-          onmessage: async (message: any) => {
-             // Extract audio from modelTurn
-             if (message.serverContent?.modelTurn?.parts) {
-               for (const part of message.serverContent.modelTurn.parts) {
-                 if (part.inlineData?.data) {
-                   handleAudioData(part.inlineData.data);
-                 }
-               }
-             }
-             if (message.serverContent?.interrupted) {
-               if (sourceNodeRef.current) {
-                 sourceNodeRef.current.stop();
-                 sourceNodeRef.current = null;
-               }
-               audioQueueRef.current = [];
-               isPlayingRef.current = false;
-             }
-             if (message.goAway) {
-               stopLive();
-             }
-          },
-          onerror: (err: any) => {
-            console.error(err);
-            setError("Erro na conexão");
-            stopLive();
-          },
-          onclose: () => {
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          
+          if (msg.error) {
+            setError(msg.error);
             stopLive();
           }
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }, // Voice name "Kore" is female sounding
-          },
-          systemInstruction: contextStr,
-        },
-      });
+          if (msg.audio) {
+            handleAudioData(msg.audio);
+          }
+          if (msg.interrupted) {
+            if (sourceNodeRef.current) {
+              try { sourceNodeRef.current.stop(); } catch(e){}
+              sourceNodeRef.current = null;
+            }
+            audioQueueRef.current = [];
+            isPlayingRef.current = false;
+          }
+        } catch(e) {
+          console.error("Error parsing WS message:", e);
+        }
+      };
 
-      sessionRef.current = await sessionPromise;
+      ws.onerror = (err) => {
+        console.error(err);
+        setError("Erro na conexão com o servidor Live");
+        stopLive();
+      };
+
+      ws.onclose = () => {
+        stopLive();
+      };
 
       processor.onaudioprocess = (e) => {
-        if (!sessionRef.current) return;
+        if (!sessionRef.current || sessionRef.current.readyState !== WebSocket.OPEN) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const pcm16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -171,9 +181,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
         }
         const base64Data = btoa(binaryStr);
         
-        sessionRef.current.sendRealtimeInput({
-            audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-        });
+        sessionRef.current.send(JSON.stringify({ audio: base64Data }));
       };
       
       source.connect(processor);
@@ -184,29 +192,6 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       setError("Permissão de microfone negada ou erro ao conectar.");
       setIsConnecting(false);
     }
-  };
-
-  const stopLive = () => {
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    if (sessionRef.current) {
-      try { sessionRef.current.close(); } catch(e){}
-      sessionRef.current = null;
-    }
-    if (sourceNodeRef.current) {
-      sourceNodeRef.current.stop();
-      sourceNodeRef.current = null;
-    }
-    audioQueueRef.current = [];
-    isPlayingRef.current = false;
-    setIsConnected(false);
-    setIsConnecting(false);
   };
 
   return (

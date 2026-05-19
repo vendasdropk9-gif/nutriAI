@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Check, LogOut, Cloud } from 'lucide-react';
 import { auth } from '../lib/firebase';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -333,19 +334,28 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               Sair da Conta
             </button>
 
-            <button
-              type="submit"
-              className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-            >
-              {isSaved ? (
-                <>
-                  <Check className="w-5 h-5" />
-                  Salvo!
-                </>
-              ) : (
-                'Salvar Perfil'
-              )}
-            </button>
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <AnimatePresence>
+                {isSaved && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    className="text-emerald-500 animate-pulse font-bold flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 rounded-full"
+                  >
+                    <Check className="w-5 h-5" />
+                    Salvo com sucesso!
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              >
+                Salvar Perfil
+              </button>
+            </div>
           </div>
         </form>
       </div>

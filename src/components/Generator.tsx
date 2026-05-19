@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat, PiggyBank } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank, Star } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
@@ -18,11 +18,16 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
+  
+  const [rating, setRating] = useState<number>(0);
+  const [isRated, setIsRated] = useState(false);
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsGenerating(true);
     setGeneratedRecipe(null);
+    setRating(0);
+    setIsRated(false);
     
     try {
       const data = await generateRecipe(ingredients, profile, budgetMode, preferences);
@@ -159,6 +164,38 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
             </button>
           </div>
           <RecipeCard recipe={generatedRecipe} />
+          
+          <div className="mt-8 clay-card p-6 flex flex-col items-center justify-center space-y-4">
+            <h4 className="font-serif text-xl text-slate-800 dark:text-slate-100">O que achou dessa sugestão?</h4>
+            {!isRated ? (
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onMouseEnter={() => setRating(star)}
+                    onMouseLeave={() => setRating(0)}
+                    onClick={() => {
+                      setRating(star);
+                      setIsRated(true);
+                      if (onAwardPoints && star >= 4) {
+                        onAwardPoints(5, 'Feedback Positivo da Receita');
+                      }
+                    }}
+                    className={`transition-colors p-2 ${
+                      rating >= star ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'
+                    }`}
+                  >
+                    <Star className="w-8 h-8 fill-current" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/30 px-6 py-3 rounded-full animate-in fade-in zoom-in duration-500">
+                Obrigado pelo seu feedback! Isso ajuda a IA a melhorar.
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
     </div>
