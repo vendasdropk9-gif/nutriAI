@@ -4,7 +4,7 @@ import {
   Utensils, CalendarDays, ShoppingBasket, User, Camera, 
   Sparkles, GlassWater, Barcode, Brain, Trophy, Droplet, 
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
-  Map as MapIcon, Zap, Activity 
+  Map as MapIcon, Zap, Activity, Building2
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -40,6 +40,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'market', label: 'Market', icon: <Store className="w-5 h-5" />, color: 'bg-emerald-600' },
   { id: 'frescor', label: 'Mapa', icon: <MapIcon className="w-5 h-5" /> },
   { id: 'trainer', label: 'Treinar', icon: <Dumbbell className="w-5 h-5" />, color: 'bg-slate-900' },
+  { id: 'academies', label: 'Academias', icon: <Building2 className="w-5 h-5" />, color: 'bg-emerald-600' },
   { id: 'gamification', label: 'Conquistas', icon: <Trophy className="w-5 h-5" />, color: 'from-emerald-400 to-teal-600' },
   { id: 'prediction', label: 'Previsão', icon: <TrendingUp className="w-5 h-5" /> },
   { id: 'profile', label: 'Perfil', icon: <User className="w-5 h-5" /> },
@@ -107,6 +108,24 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
 
   const springX = useSpring(x, { stiffness: 300, damping: 30 });
 
+  useEffect(() => {
+    if (containerRef.current) {
+      const activeElement = containerRef.current.querySelector(`[data-id="${activeTab}"]`);
+      if (activeElement instanceof HTMLElement) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          const left = activeElement.offsetLeft;
+          const width = activeElement.offsetWidth;
+          const targetX = -(left - (parentWidth / 2) + (width / 2));
+          // Clamp to constraints
+          const clampedX = Math.max(constraints.left, Math.min(constraints.right, targetX));
+          x.set(clampedX);
+        }
+      }
+    }
+  }, [activeTab, constraints]);
+
   return (
     <div className="w-[calc(100%-2rem)] md:w-full max-w-[500px] md:max-w-none mx-auto relative overflow-hidden h-16 md:h-20 flex items-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800/60 shadow-lg mt-2 md:mt-4 mb-2 md:mb-4 rounded-[32px] md:rounded-[40px] shrink-0">
       <motion.div
@@ -119,12 +138,17 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
         {NAV_ITEMS.map((item) => (
           <motion.button
             key={item.id}
+            data-id={item.id}
             onClick={() => {
-              if (activeTab !== item.id) {
+              if (activeTab === item.id) {
+                const currentIndex = NAV_ITEMS.findIndex(i => i.id === item.id);
+                const nextIndex = (currentIndex + 1) % NAV_ITEMS.length;
+                onTabChange(NAV_ITEMS[nextIndex].id);
+              } else {
+                onTabChange(item.id);
                 playSfx('tap');
                 vibrate(10);
               }
-              onTabChange(item.id);
             }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}

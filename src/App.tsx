@@ -35,6 +35,7 @@ import { PartnerBanner } from './components/PartnerBanner';
 import { DeliveryPartnerPortal } from './components/DeliveryPartnerPortal';
 import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
+import { AcademyPortal } from './components/AcademyPortal';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
@@ -42,6 +43,8 @@ import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
+
+import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -65,7 +68,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
@@ -77,6 +80,19 @@ export default function App() {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
   };
+
+  useEffect(() => {
+    const handleNavigate = (e: any) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('app:navigate', handleNavigate);
+    return () => window.removeEventListener('app:navigate', handleNavigate);
+  }, []);
+
+  useMealPushNotifications(profile, addNotification);
 
   useEffect(() => {
     if (!profile) return;
@@ -115,16 +131,6 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
-
-  useEffect(() => {
-    const handleNavigate = (e: CustomEvent) => {
-      if (e.detail?.tab) {
-        setActiveTab(e.detail.tab);
-      }
-    };
-    window.addEventListener('app:navigate', handleNavigate as EventListener);
-    return () => window.removeEventListener('app:navigate', handleNavigate as EventListener);
-  }, []);
 
   const mealPlan = profile?.mealPlan || {};
   const savedRecipes = profile?.savedRecipes || [];
@@ -194,9 +200,9 @@ export default function App() {
     });
   };
 
-  // if (!user && !authLoading) {
-  //   return <Login />;
-  // }
+  if (!user && !authLoading) {
+    return <Login />;
+  }
 
   if (user && isLocked) {
     return <LockScreen onUnlock={() => setIsLocked(false)} userEmail={user.email} />;
@@ -325,6 +331,7 @@ export default function App() {
                 onUpdateFavorites={(favorites) => updateProfile(prev => prev ? { ...prev, favorites } : null)}
                 onOpenPartner={() => setActiveTab('partner')}
                 onOpenMap={() => setActiveTab('frescor')}
+                addNotification={addNotification}
               />
             )}
             {activeTab === 'frescor' && (
@@ -368,7 +375,10 @@ export default function App() {
               <PartnerPortal />
             )}
             {activeTab === 'delivery' && (
-              <DeliveryPartnerPortal onBack={() => setActiveTab('market')} />
+              <DeliveryPartnerPortal onBack={() => setActiveTab('market')} addNotification={addNotification} />
+            )}
+            {activeTab === 'academies' && (
+              <AcademyPortal />
             )}
           </motion.div>
         </AnimatePresence>

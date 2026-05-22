@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Sparkles } from 'lucide-react';
 import { playSfx } from '../lib/sensory';
+import nutriaiVoiceUrl from '../assets/audio/nutriai_gemini.wav';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -16,6 +17,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       playSfx('crystal');
     }, 1000);
 
+    // Reproduzir áudio da voz afirmando "NutriAI" limpa e suavemente após a logo aparecer
+    const voiceTimer = setTimeout(() => {
+      const voiceAudio = new Audio(nutriaiVoiceUrl);
+      voiceAudio.play().catch(e => console.log('Audio autoplay prevented:', e));
+    }, 1300);
+
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 800);
@@ -24,6 +31,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     return () => {
       clearTimeout(timer);
       clearTimeout(soundTimer);
+      clearTimeout(voiceTimer);
     };
   }, [onComplete]);
 

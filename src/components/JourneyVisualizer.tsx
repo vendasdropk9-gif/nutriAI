@@ -269,7 +269,7 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
              </div>
              <div className="text-center">
                <p className="text-emerald-800 dark:text-emerald-400 font-serif font-medium text-2xl mb-3">{generationStep}</p>
-               <p className="text-emerald-700/70 font-sans max-w-sm mx-auto">Calculando métricas corporais, ajustando proporções musculares, fotogrametria e renderizando tecidos estáticos em 8K...</p>
+               <p className="text-emerald-700/70 dark:text-emerald-400/70 font-sans max-w-sm mx-auto">Calculando métricas corporais, ajustando proporções musculares, fotogrametria e renderizando tecidos estáticos em 8K...</p>
              </div>
           </div>
         )}

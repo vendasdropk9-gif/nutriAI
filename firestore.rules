@@ -125,5 +125,10 @@ service cloud.firestore {
                     ]);
       allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
     }
+
+    match /academies/{academyId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
   }
 }

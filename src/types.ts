@@ -74,6 +74,8 @@ export interface UserProfile {
   createdAt?: string;
   updatedAt?: string;
   photoURL?: string;
+  id?: string;
+  address?: string;
   preferences?: string;
   restrictions: string[];
   allergies: string[];

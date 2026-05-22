@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Check, LogOut, Cloud } from 'lucide-react';
+import { Check, LogOut, Cloud, Bell, BellOff } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,6 +10,21 @@ interface ProfileProps {
 }
 
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -322,6 +337,46 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               placeholder="Ex: Forno, Micro-ondas, Air Fryer"
               className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm transition-all"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+              Notificações de Refeições
+            </label>
+            <div className="flex items-center gap-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 p-4 rounded-2xl shadow-sm">
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
+                {notificationPermission === 'granted' ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200">Lembretes do Plano Alimentar</h4>
+                <p className="text-sm text-slate-500">
+                  {notificationPermission === 'granted' 
+                    ? 'Você receberá notificações na hora das refeições.' 
+                    : 'Ative para receber alertas quando for a hora de comer.'}
+                </p>
+              </div>
+              {notificationPermission !== 'granted' ? (
+                <button
+                  type="button"
+                  onClick={requestNotificationPermission}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-medium text-sm transition-colors"
+                >
+                  Ativar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    new Notification('Teste de Notificação 🍲', {
+                      body: 'Tudo certo! Você será avisado na hora das suas refeições.',
+                    });
+                  }}
+                  className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-full font-medium text-sm transition-colors"
+                >
+                  Testar
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-4">

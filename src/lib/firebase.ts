@@ -1,10 +1,21 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, setDoc, updateDoc, onSnapshot, collection, serverTimestamp, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache, setLogLevel, doc, getDocFromServer, setDoc, updateDoc, onSnapshot, collection, serverTimestamp, query, where, getDocs, addDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
+// Suppress debug/info logs from Firestore to avoid cluttering the console with benign gRPC stream cancellations
+setLogLevel('error');
+
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); 
+
+// Use initializeFirestore with optimized settings for sandbox/proxy environments
+// memoryLocalCache prevents IndexedDB issues in multi-tab development
+// experimentalForceLongPolling avoids persistent gRPC stream drops by proxies
+export const db = initializeFirestore(app, {
+  localCache: memoryLocalCache(),
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId); 
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

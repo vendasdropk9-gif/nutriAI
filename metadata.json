@@ -2,5 +2,5 @@
   "name": "NutriAI",
   "description": "Um aplicativo de receitas que utiliza inteligência artificial para gerar refeições saudáveis com base em restrições alimentares e ingredientes disponíveis.",
   "requestFramePermissions": ["microphone", "camera"],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

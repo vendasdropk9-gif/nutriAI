@@ -28,7 +28,12 @@ import {
   X
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
+import bannerImage1 from '../assets/images/regenerated_image_1779401900515.png';
+import productImage1 from '../assets/images/regenerated_image_1779398315958.jpg';
+import storeImage1 from '../assets/images/store_vida_verde_1779398853750.png';
+import storeImage2 from '../assets/images/store_premium_hortifruti_1779398868799.png';
 import { speak } from '../lib/speech';
+import { vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 
 const MARKET_PARTNERS: MarketPartner[] = [
@@ -38,7 +43,7 @@ const MARKET_PARTNERS: MarketPartner[] = [
     rating: 4.8,
     deliveryTime: '30-45 min',
     minOrder: 20,
-    image: 'https://images.unsplash.com/photo-1488459711612-da307255be24?auto=format&fit=crop&q=80&w=600',
+    image: storeImage1,
     distance: '1.2 km'
   },
   {
@@ -47,27 +52,27 @@ const MARKET_PARTNERS: MarketPartner[] = [
     rating: 4.9,
     deliveryTime: '20-35 min',
     minOrder: 35,
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
+    image: storeImage2,
     distance: '2.5 km'
   }
 ];
 
 const PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Morango Orgânico', category: 'Frutas', price: 12.90, unit: 'bandeja', image: 'https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Morangos frescos direto do produtor.', rating: 4.8, reviewCount: 24, reviews: [{ id: 'r1', userName: 'Ana Paula', rating: 5, comment: 'Maravilhosos e muito doces!', date: '2024-04-20' }] },
+  { id: 'p1', name: 'Morango Orgânico', category: 'Frutas', price: 12.90, unit: 'bandeja', image: productImage1, isOrganic: true, description: 'Morangos frescos direto do produtor.', rating: 4.8, reviewCount: 24, reviews: [{ id: 'r1', userName: 'Ana Paula', rating: 5, comment: 'Maravilhosos e muito doces!', date: '2024-04-20' }] },
   { id: 'p2', name: 'Kit Salada Prática', category: 'Kits', price: 19.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400', isSeasonal: true, description: 'Mix de folhas limpas e higienizadas.', rating: 4.5, reviewCount: 15, reviews: [{ id: 'r2', userName: 'Carlos M.', rating: 4, comment: 'Muito prático para o dia a dia.', date: '2024-04-18' }] },
-  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1571771894821-ad99026.jpg?auto=format&fit=crop&q=80&w=400', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
-  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1452948491233-ad8a1ed01085?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
-  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1506807803488-8eafc1c3b756?auto=format&fit=crop&q=80&w=400', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
+  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&q=80&w=400', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
+  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
+  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1570586437263-ab629fccc818?auto=format&fit=crop&q=80&w=400', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
   { id: 'p6', name: 'Combo Emagrecimento', category: 'Kits', price: 89.00, unit: 'kit', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=400', description: 'Seleção especial da nossa IA.', rating: 5.0, reviewCount: 8 },
 ];
 
 const BANNERS = [
-  { id: 'b1', title: 'Cesta Fresh da Semana', subtitle: 'Direto do produtor', price: 'R$ 19,90', image: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&q=80&w=1200', tip: "Essas frutas estão fresquinhas hoje 💚" },
-  { id: 'b2', title: 'Orgânicos Certificados', subtitle: 'Saúde sem agrotóxicos', price: 'Promoção', image: 'https://images.unsplash.com/photo-1566385278483-eec357859843?auto=format&fit=crop&q=80&w=1200', tip: "Quer que eu monte uma cesta saudável pra sua semana?" },
-  { id: 'b3', title: 'Kit Detox Verão', subtitle: 'Fresco do dia', price: 'R$ 45,00', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200', tip: "Esses ingredientes combinam com seu plano alimentar." },
-  { id: 'b4', title: 'Hortifruti da Estação', subtitle: 'Sabor que protege', price: 'Oferta', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200', tip: "As cores da estação trazem mais saúde pra sua mesa. 🍎" },
-  { id: 'b5', title: 'Proteínas Selecionadas', subtitle: 'Qualidade premium', price: 'R$ 89,90', image: 'https://images.unsplash.com/photo-1432139555190-58524dae6a55?auto=format&fit=crop&q=80&w=1200', tip: "Proteínas de alta qualidade pra quem não abre mão do sabor. 🥩" },
-  { id: 'b6', title: 'Doçura Natural', subtitle: 'Mel e Própolis', price: 'R$ 32,00', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&q=80&w=1200', tip: "Doçura natural e energia pura pra adoçar seu dia. 🍯" },
+  { id: 'b1', title: 'Cesta Fresh da Semana', subtitle: 'Direto do produtor', price: 'R$ 19,90', image: bannerImage1, tip: "Essas frutas estão fresquinhas hoje 💚" },
+  { id: 'b2', title: 'Orgânicos Certificados', subtitle: 'Saúde sem agrotóxicos', price: 'Promoção', image: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=1200', tip: "Quer que eu monte uma cesta saudável pra sua semana?" },
+  { id: 'b3', title: 'Frutas Tropicais Selecionadas', subtitle: 'Doces e suculentas', price: 'Oferta', image: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&q=80&w=1200', tip: "Ricas em vitaminas e minerais essenciais." },
+  { id: 'b4', title: 'Saladas Prontas para o Consumo', subtitle: 'Higienizadas e frescas', price: 'A partir de R$ 15', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=1200', tip: "Praticidade e saúde no seu dia a dia." },
+  { id: 'b5', title: 'Proteínas Selecionadas', subtitle: 'Qualidade premium', price: 'R$ 89,90', image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc822?auto=format&fit=crop&q=80&w=1200', tip: "Proteínas de alta qualidade pra quem não abre mão do sabor. 🥩" },
+  { id: 'b6', title: 'Sucos Naturais e Detox', subtitle: 'Energia garantida', price: 'R$ 12,50', image: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=1200', tip: "Refresque-se com o melhor da fruta." },
 ];
 
 interface MarketplaceProps {
@@ -76,9 +81,10 @@ interface MarketplaceProps {
   onUpdateFavorites?: (favorites: string[]) => void;
   onOpenPartner?: () => void;
   onOpenMap?: () => void;
+  addNotification?: (notif: any) => void;
 }
 
-export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap }: MarketplaceProps) {
+export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap, addNotification }: MarketplaceProps) {
   const [activeCategory, setActiveCategory] = useState<string>('Tudo');
   const [activeMarket, setActiveMarket] = useState(MARKET_PARTNERS[0]);
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -90,7 +96,8 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'retirada'>('moto');
+  const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'bicicleta' | 'retirada'>('bicicleta');
+  const [activeDeliveryId, setActiveDeliveryId] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [addingAI, setAddingAI] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
@@ -100,17 +107,22 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     if (showOrders) {
        const loadOrders = async () => {
           try {
-             const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
+             const { collection, getDocs } = await import('firebase/firestore');
              const { db, auth } = await import('../lib/firebase');
              if (auth.currentUser) {
-                const q = query(
-                   collection(db, 'users', auth.currentUser.uid, 'orders'),
-                   orderBy('createdAt', 'desc')
-                );
-                const snap = await getDocs(q);
-                setOrders(snap.docs.map(d => d.data()));
+                const snap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'orders'));
+                const list = snap.docs.map(d => d.data());
+                // Sort in memory to avoid index requirements in sandbox
+                list.sort((a, b) => {
+                   const dateA = a.createdAt?.seconds || 0;
+                   const dateB = b.createdAt?.seconds || 0;
+                   return dateB - dateA;
+                });
+                setOrders(list);
              }
-          } catch(e) { console.error('Erro ao buscar pedidos', e); }
+          } catch(e) { 
+             console.error('Erro ao buscar pedidos', e);
+          }
        };
        loadOrders();
     }
@@ -124,6 +136,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   }, []);
 
   const addToCart = (product: Product) => {
+    vibrate(10);
     const existing = cart.find(item => item.id === product.id);
     let newCart;
     if (existing) {
@@ -202,13 +215,25 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const deliveryFee = deliveryMethod === 'moto' ? 5.90 : 0;
+  const deliveryFee = deliveryMethod === 'moto' ? 5.90 : deliveryMethod === 'bicicleta' ? 3.90 : 0;
   const finalTotal = cartTotal + deliveryFee;
   
   const filteredProducts = activeCategory === 'Tudo' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
 
   if (isTracking) {
-    return <DeliveryTracking orderTotal={finalTotal} onClose={() => { setIsTracking(false); setCart([]); onUpdateCart([]); setShowCart(false); }} />;
+    return (
+      <DeliveryTracking 
+        orderTotal={finalTotal} 
+        activeDeliveryId={activeDeliveryId} 
+        onClose={() => { 
+          setIsTracking(false); 
+          setActiveDeliveryId(null);
+          setCart([]); 
+          onUpdateCart([]); 
+          setShowCart(false); 
+        }} 
+      />
+    );
   }
 
   return (
@@ -226,22 +251,27 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             <span className="text-xs md:text-sm">Entregando em: <strong>Seu Endereço Atual</strong></span>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button 
               onClick={onOpenMap}
-              className="flex items-center gap-3 p-3 px-6 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
+              className="flex items-center gap-2 p-2.5 px-4 bg-emerald-600 text-white rounded-xl border border-emerald-500 font-bold text-xs hover:scale-105 transition-all shadow-sm group"
             >
-              <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
                  <MapIcon className="w-4 h-4" />
               </div>
-              Explorar Mapa de Frescor
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span className="hidden sm:inline">Explorar Mapa de Frescor</span>
+              <span className="sm:hidden">Mapa</span>
+              <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
-              onClick={() => setShowOrders(true)}
-              className="flex items-center gap-3 p-3 px-6 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold text-sm hover:scale-105 transition-all shadow-sm group"
+              type="button"
+              onClick={() => {
+                vibrate(10);
+                setShowOrders(true);
+              }}
+              className="flex items-center gap-2 p-2.5 px-4 bg-slate-900 dark:bg-slate-700 text-white rounded-xl border border-slate-800 dark:border-slate-600 font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-sm group cursor-pointer outline-none"
             >
-              <div className="w-8 h-8 bg-slate-900 dark:bg-slate-700 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 group-hover:bg-emerald-600 transition-colors">
                  <Package className="w-4 h-4" />
               </div>
               Meus Pedidos
@@ -304,10 +334,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                <p className="text-white/80 text-sm sm:text-base md:text-xl font-medium break-words">{BANNERS[currentBanner].subtitle}</p>
                <button 
                   onClick={() => addToCart(PRODUCTS[0])}
-                  className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold active:scale-95 md:hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2"
+                  className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2 text-white"
                >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-sm md:text-base truncate">Comprar Agora</span>
+                  <span className="text-sm md:text-base truncate text-white">Comprar Agora</span>
                </button>
             </div>
           </motion.div>
@@ -518,50 +548,72 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
 
               <div className="pt-8 space-y-6 border-t dark:border-slate-800 mt-auto">
                 <div className="space-y-4">
-                  <p className="font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest text-xs">Tipo de Entrega</p>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-slate-850 dark:text-slate-150 uppercase tracking-widest text-xs">Forma de Envio / Retirada</p>
+                    {deliveryMethod === 'bicicleta' && (
+                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Leaf className="w-3 h-3" /> Pegada Neutra
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <button 
+                      onClick={() => setDeliveryMethod('bicicleta')}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'bicicleta' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
+                    >
+                      <Bike className="w-5 h-5" />
+                      <span className="text-[11px] font-bold block leading-none">Bicicleta</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 3,90 · 20min</span>
+                    </button>
+                    
                     <button 
                       onClick={() => setDeliveryMethod('moto')}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors ${deliveryMethod === 'moto' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-200'}`}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'moto' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
                     >
-                      <Bike className="w-6 h-6" />
-                      <span className="text-xs font-bold">Moto (Em 15min)</span>
+                      <Zap className="w-5 h-5 text-amber-500" />
+                      <span className="text-[11px] font-bold block leading-none">Moto</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 5,90 · 12min</span>
                     </button>
+
                     <button 
                       onClick={() => setDeliveryMethod('retirada')}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-colors ${deliveryMethod === 'retirada' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-200'}`}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'retirada' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
                     >
-                      <Store className="w-6 h-6" />
-                      <span className="text-xs font-bold">Retirar no local</span>
+                      <Store className="w-5 h-5" />
+                      <span className="text-[11px] font-bold block leading-none">Retirar</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">Grátis · 10min</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-slate-500">
                     <span>Subtotal</span>
                     <span>R$ {cartTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-slate-500">
                     <span>Taxa de Entrega</span>
-                    <span className={deliveryMethod === 'moto' ? 'font-bold' : 'text-emerald-500 font-bold'}>{deliveryMethod === 'moto' ? 'R$ 5.90' : 'Grátis'}</span>
+                    <span className={deliveryMethod === 'retirada' ? 'text-emerald-500 font-bold' : 'font-bold'}>
+                      {deliveryMethod === 'retirada' ? 'Grátis' : `R$ ${deliveryFee.toFixed(2)}`}
+                    </span>
                   </div>
-                  <div className="flex justify-between text-xl font-bold pt-2">
-                    <span>Total</span>
+                  <div className="flex justify-between text-lg font-bold border-t dark:border-slate-800 pt-2 text-slate-800 dark:text-slate-150">
+                    <span>Total a Pagar</span>
                     <span>R$ {finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
                 
                 <button 
                   onClick={async () => {
+                    const newId = crypto.randomUUID();
                     try {
+                      // Guardar pedido básico no Firestore se logado
                       const { collection, setDoc, doc, serverTimestamp } = await import('firebase/firestore');
                       const { db, auth } = await import('../lib/firebase');
                       if (auth.currentUser) {
-                         const newId = crypto.randomUUID();
                          await setDoc(doc(collection(db, 'users', auth.currentUser.uid, 'orders'), newId), {
                             id: newId,
-                            status: 'pending',
+                            status: deliveryMethod === 'retirada' ? 'completed' : 'pending',
                             storeId: 'default-store',
                             items: cart,
                             total: finalTotal,
@@ -570,13 +622,59 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                             updatedAt: serverTimestamp()
                          });
                       }
-                    } catch(e) { console.error("Error saving order:", e); }
+                    } catch(e) { 
+                      console.error("Error saving order:", e); 
+                    }
+
+                    // Se for entrega, envia para a API do Servidor criar a rota, escolher entregador mais próximo e monitorar progresso
+                    if (deliveryMethod !== 'retirada') {
+                      try {
+                        const payload = {
+                          orderId: newId,
+                          userId: profile?.id || "guest",
+                          items: cart.map(i => `${i.quantity}x ${i.name}`).join(', '),
+                          total: finalTotal,
+                          vehicleType: deliveryMethod, // 'moto' | 'bicicleta'
+                          deliveryAddress: profile?.address || "Avenida Paulista, 1500 - Bela Vista"
+                        };
+
+                        const res = await fetch('/api/delivery/create', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                          const deliveryData = await res.json();
+                          setActiveDeliveryId(deliveryData.id);
+                          if (addNotification) {
+                            addNotification({
+                              title: "Entrega Iniciada",
+                              message: `O pedido foi atribuído ao entregador ${deliveryData.courierName}!`,
+                              type: "info"
+                            });
+                          }
+                        }
+                      } catch (e) {
+                        console.error("Erro na API de entregas:", e);
+                      }
+                    } else {
+                      if (addNotification) {
+                        addNotification({
+                          title: "Pedido de Retirada",
+                          message: "Seu pedido foi registrado! Estará pronto para retirada em breve.",
+                          type: "success"
+                        });
+                      }
+                    }
+
+                    // Limpa o carrinho e inicia página de rastreamento
                     onUpdateCart([]);
                     setIsTracking(true);
                   }}
-                  className="w-full py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-5 clay-primary px-6 font-bold text-md shadow-xl shadow-emerald-500/10 hover:bg-emerald-650 hover:scale-[1.01] active:scale-[0.99] rounded-xl transition-all flex items-center justify-center gap-2 text-white bg-emerald-600"
                 >
-                  {deliveryMethod === 'moto' ? 'Finalizar pedido com entrega' : 'Finalizar pedido'}
+                  {deliveryMethod === 'retirada' ? 'Finalizar e Retirar' : `Acompanhar Entrega via ${deliveryMethod === 'moto' ? 'Moto' : 'Bike'}`}
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>

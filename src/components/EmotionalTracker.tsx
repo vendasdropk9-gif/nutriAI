@@ -1,8 +1,11 @@
 import { playAudioUrl } from '../lib/speech';
-import React, { useState, useEffect } from 'react';
-import { Brain, Smile, Frown, Meh, Zap, Moon, AlertCircle, Sparkles, Volume2, Play, ChevronRight, History } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Brain, Smile, Frown, Meh, Zap, Moon, AlertCircle, Sparkles, Volume2, Play, ChevronRight, History,
+  Camera, ShieldCheck, X, Target, Check, Coffee, Utensils, Wind, Lock, UserCheck, Loader2
+} from 'lucide-react';
 import { EmotionalLog, UserProfile } from '../types';
-import { analyzeEmotionalPatterns, textToSpeech } from '../lib/gemini';
+import { analyzeEmotionalPatterns, textToSpeech, analyzeEmotionalImage } from '../lib/gemini';
 
 interface EmotionalTrackerProps {
   profile: UserProfile | null;
@@ -16,6 +19,156 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // States for emotional face capture
+  const [isFaceCameraActive, setIsFaceCameraActive] = useState(false);
+  const [faceCameraStream, setFaceCameraStream] = useState<MediaStream | null>(null);
+  const [faceCameraError, setFaceCameraError] = useState<string | null>(null);
+  const [facePreviewImage, setFacePreviewImage] = useState<string | null>(null);
+  const [isFaceAnalyzing, setIsFaceAnalyzing] = useState(false);
+  const [faceAnalysisResult, setFaceAnalysisResult] = useState<any | null>(null);
+  const [isFacePlaying, setIsFacePlaying] = useState(false);
+  const [faceAudioUrl, setFaceAudioUrl] = useState<string | null>(null);
+
+  // Active consent checkboxes before starting camera
+  const [consentCheck1, setConsentCheck1] = useState(false);
+  const [consentCheck2, setConsentCheck2] = useState(false);
+
+  const faceVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (faceCameraStream) {
+        faceCameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [faceCameraStream]);
+
+  const startFaceCamera = async () => {
+    setFaceCameraError(null);
+    setIsFaceCameraActive(true);
+    setFacePreviewImage(null);
+    setFaceAnalysisResult(null);
+    setFaceAudioUrl(null);
+    setIsFacePlaying(false);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      setFaceCameraStream(stream);
+      setTimeout(() => {
+        if (faceVideoRef.current) {
+          faceVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err: any) {
+      console.error("Accessing face camera failed:", err);
+      setFaceCameraError("Não foi possível acessar a câmera frontal de seu dispositivo. Verifique se o NutriAI tem permissão para usar a câmera.");
+    }
+  };
+
+  const stopFaceCamera = () => {
+    if (faceCameraStream) {
+      faceCameraStream.getTracks().forEach(track => track.stop());
+      setFaceCameraStream(null);
+    }
+    setIsFaceCameraActive(false);
+    setFaceCameraError(null);
+  };
+
+  const captureFacePhoto = () => {
+    if (!faceVideoRef.current) return;
+    const video = faceVideoRef.current;
+    
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        const base64Data = dataUrl.split(',')[1];
+        
+        setFacePreviewImage(dataUrl);
+        stopFaceCamera();
+        analyzeFaceBase64(base64Data, 'image/jpeg');
+      }
+    } catch (err) {
+      console.error("Failed to capture facial photo:", err);
+      alert("Erro ao capturar foto.");
+    }
+  };
+
+  const analyzeFaceBase64 = async (base64Data: string, mimeType: string) => {
+    try {
+      setIsFaceAnalyzing(true);
+      setFaceAnalysisResult(null);
+
+      const data = await analyzeEmotionalImage(base64Data, mimeType, profile);
+      if (data) {
+        setFaceAnalysisResult(data);
+        
+        // Optionally add a log point dynamically if we want to save. But we're instructed that we don't store photos.
+        // Let's add an emotional log based on detected mood to integrate with the pattern history
+        if (data.detectedMood) {
+          const matchedMood = data.detectedMood.toLowerCase();
+          const validMoods = ['ansioso', 'triste', 'feliz', 'estressado', 'cansado', 'neutro'];
+          const solvedMood = validMoods.includes(matchedMood) ? matchedMood : 'neutro';
+          
+          const newLog: EmotionalLog = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            mood: solvedMood,
+            trigger: `Leitura Facial - ${data.insight.substring(0, 40)}...`,
+          };
+          onUpdateLogs([...logs, newLog]);
+        }
+      } else {
+        alert('Não foi possível realizar a análise facial. Tente tirar a foto com melhor iluminação e de forma frontal.');
+      }
+      setIsFaceAnalyzing(false);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao processar imagem facial.');
+      setIsFaceAnalyzing(false);
+    }
+  };
+
+  const playFaceTTS = async (text: string) => {
+    if (isFacePlaying) return;
+    setIsFacePlaying(true);
+    
+    try {
+      if (faceAudioUrl) {
+         await playAudioUrl(faceAudioUrl, { onEnded: () => setIsFacePlaying(false) });
+         return;
+      }
+
+      const base64Audio = await textToSpeech(text);
+      if (base64Audio) {
+        const url = `data:audio/wav;base64,${base64Audio}`;
+        setFaceAudioUrl(url);
+        await playAudioUrl(url, { onEnded: () => setIsFacePlaying(false) });
+      } else {
+        setIsFacePlaying(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setIsFacePlaying(false);
+    }
+  };
+
+  const resetFaceAnalyzer = () => {
+    stopFaceCamera();
+    setFacePreviewImage(null);
+    setFaceAnalysisResult(null);
+    setFaceAudioUrl(null);
+    setIsFacePlaying(false);
+  };
+
 
   const logs = profile?.emotionalLogs || [];
 
@@ -138,6 +291,251 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
             </div>
           )}
         </div>
+      </div>
+
+      {/* ----------------- ESPELHO DO HUMOR: LEITURA FACIAL VOLUNTÁRIA E PRIVADA ----------------- */}
+      <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[32px] space-y-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Camera className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">
+              Reflexo do Bem-Estar: Espelho do Humor IA
+            </h3>
+            <p className="font-sans text-slate-500 dark:text-slate-400 text-sm leading-relaxed mt-1">
+              Uma funcionalidade 100% opcional e amigável. Ative voluntariamente a sua câmera para analisar expressões sutis de humor ou ansiedade, ajudando a compor sugestões nutritivas e chás para o final do seu dia.
+            </p>
+          </div>
+        </div>
+
+        {/* State 1: Consent Step */}
+        {!isFaceCameraActive && !facePreviewImage && !isFaceAnalyzing && !faceAnalysisResult && (
+          <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-105 dark:border-slate-800/80 p-5 rounded-2xl">
+            <div className="flex gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/40 dark:border-emerald-900/30 p-4 rounded-xl items-start">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-400 leading-relaxed">
+                <strong>Privacidade em Primeiro Lugar:</strong> O NutriAI analisa padrões visuais de forma estritamente local e segura, **sem nunca salvar, persistir ou monitorar continuamente** suas imagens. O processamento é descartado na hora, respeitando totalmente você.
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={consentCheck1}
+                  onChange={(e) => setConsentCheck1(e.target.checked)}
+                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer"
+                />
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white">
+                  Compreendo que a câmera frontal será usada apenas temporariamente para identificar nuances sutis de cansaço ou ansiedade focando no meu equilíbrio de bem-estar.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={consentCheck2}
+                  onChange={(e) => setConsentCheck2(e.target.checked)}
+                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer"
+                />
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white">
+                  Consinto ativamente em ativar a câmera para obter minhas sugestões personalizadas de alimentação e práticas de descanso de hoje.
+                </span>
+              </label>
+            </div>
+
+            <button
+              onClick={startFaceCamera}
+              disabled={!consentCheck1 || !consentCheck2}
+              className={`w-full py-3.5 px-6 rounded-full font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
+                consentCheck1 && consentCheck2
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white hover:-translate-y-0.5 active:scale-95 shadow-emerald-500/10'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Camera className="w-4 h-4" />
+              Ativar Câmera Frontal Voluntária
+            </button>
+          </div>
+        )}
+
+        {/* State 2: Camera view with Live Stream Feed */}
+        {isFaceCameraActive && !facePreviewImage && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="relative w-full aspect-[4/3] max-w-lg mx-auto rounded-[24px] overflow-hidden bg-slate-950 border border-slate-850 flex items-center justify-center shadow-lg">
+              
+              {!faceCameraError && (
+                <video
+                  ref={faceVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover scale-x-[-1]" /* Comfortable mirror effect */
+                />
+              )}
+
+              {!faceCameraStream && !faceCameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-3 bg-slate-900">
+                  <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                  <p className="text-xs">Estabilizando câmera frontal...</p>
+                </div>
+              )}
+
+              {faceCameraStream && !faceCameraError && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-40 h-40 sm:w-56 sm:h-56 border border-dashed border-white/50 rounded-full flex items-center justify-center">
+                    <Target className="w-8 h-8 text-white/30 animate-pulse" />
+                  </div>
+                </div>
+              )}
+
+              {faceCameraError && (
+                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+                  <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+                  <p className="text-red-400 font-semibold mb-6 px-4 text-sm max-w-sm leading-relaxed">
+                    {faceCameraError}
+                  </p>
+                  <button
+                    onClick={stopFaceCamera}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-medium px-6 py-2.5 rounded-full text-xs transition-colors"
+                  >
+                    Voltar para o Consentimento
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {faceCameraStream && !faceCameraError && (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto w-full">
+                <button
+                  type="button"
+                  onClick={stopFaceCamera}
+                  className="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs sm:text-sm transition-colors active:scale-95"
+                >
+                  Desativar Câmera
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={captureFacePhoto}
+                  className="w-full sm:flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-emerald-500/10"
+                >
+                  <Check className="w-4 h-4" />
+                  Registrar Expressão
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* State 3: Analyzing View */}
+        {isFaceAnalyzing && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4 max-w-lg mx-auto bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800/60 rounded-3xl animate-pulse">
+            <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
+            <p className="text-slate-600 dark:text-slate-300 font-medium text-sm sm:text-base">
+              Interpretando expressões e sinais de humor...
+            </p>
+          </div>
+        )}
+
+        {/* State 4: Analysis Results & Suggestions */}
+        {faceAnalysisResult && !isFaceAnalyzing && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="flex flex-col md:flex-row gap-6 items-start bg-emerald-500/5 dark:bg-emerald-900/15 border border-emerald-100 dark:border-emerald-800/40 p-6 rounded-[24px]">
+              {facePreviewImage && (
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-md border-4 border-white dark:border-slate-805 shrink-0 relative mx-auto md:mx-0">
+                  <img src={facePreviewImage} alt="Expressão Analisada" className="w-full h-full object-cover select-none pointer-events-none" />
+                </div>
+              )}
+              
+              <div className="flex-1 space-y-3 w-full">
+                <div className="flex flex-wrap gap-2 items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-100/50 dark:bg-emerald-900/35 px-3 py-1 rounded-full">
+                    Sinal Identificado: {faceAnalysisResult.detectedMood || 'Estágio Neutro'}
+                  </span>
+                  
+                  <button
+                    onClick={() => playFaceTTS(faceAnalysisResult.assistantMessage)}
+                    className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 hover:scale-105 transition-all shadow-md ${
+                      isFacePlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : ''
+                    }`}
+                    title="Ouvir análise"
+                  >
+                    {isFacePlaying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-serif text-lg text-slate-850 dark:text-slate-100 font-bold">Feedback da NutriAI:</h4>
+                  <p className="font-sans text-slate-600 dark:text-slate-300 text-sm leading-relaxed italic pr-2">
+                    "{faceAnalysisResult.assistantMessage}"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendations Panels */}
+            <div className="grid sm:grid-cols-3 gap-5">
+              {/* Teas & Infusions */}
+              <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/30 p-5 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-sm">
+                  <Coffee className="w-4 h-4 shrink-0" />
+                  🍵 Chás de Conforto
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                  {faceAnalysisResult.recommendations?.teas?.map((tea: string, idx: number) => (
+                    <li key={idx} className="flex gap-1.5 items-start">
+                      <span className="text-amber-450">•</span>
+                      <span>{tea}</span>
+                    </li>
+                  )) || <li className="italic text-slate-400">Recomendações indisponíveis</li>}
+                </ul>
+              </div>
+
+              {/* Meals */}
+              <div className="bg-sky-50/50 dark:bg-sky-950/10 border border-sky-100 dark:border-sky-900/30 p-5 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-sky-800 dark:text-sky-400 font-bold text-sm">
+                  <Utensils className="w-4 h-4 shrink-0" />
+                  🍽️ Jantar & Snacks
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                  {faceAnalysisResult.recommendations?.meals?.map((meal: string, idx: number) => (
+                    <li key={idx} className="flex gap-1.5 items-start">
+                      <span className="text-sky-450">•</span>
+                      <span>{meal}</span>
+                    </li>
+                  )) || <li className="italic text-slate-400">Recomendações indisponíveis</li>}
+                </ul>
+              </div>
+
+              {/* Relaxing Practices */}
+              <div className="bg-purple-50/50 dark:bg-purple-950/10 border border-purple-100 dark:border-purple-900/30 p-5 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-purple-800 dark:text-purple-400 font-bold text-sm">
+                  <Wind className="w-4 h-4 shrink-0" />
+                  🌬️ Prática Relaxante
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                  {faceAnalysisResult.recommendations?.relaxingPractices?.map((practice: string, idx: number) => (
+                    <li key={idx} className="flex gap-1.5 items-start">
+                      <span className="text-purple-450">•</span>
+                      <span>{practice}</span>
+                    </li>
+                  )) || <li className="italic text-slate-400">Recomendações indisponíveis</li>}
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={resetFaceAnalyzer}
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all active:scale-95"
+              >
+                Limpar Resultados
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">

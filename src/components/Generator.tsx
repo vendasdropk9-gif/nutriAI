@@ -61,10 +61,10 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-4">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700">
+        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Descubra Novas Refeições
         </h2>
-        <p className="font-sans text-slate-500 max-w-xl mx-auto text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
           Informe o que você tem na geladeira ou tire uma foto. A Inteligência Artificial criará uma receita exclusiva respeitando seu perfil.
         </p>
       </div>

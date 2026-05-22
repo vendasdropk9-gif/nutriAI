@@ -103,6 +103,31 @@
       },
       "required": ["name", "ingredients", "instructions", "authorId", "createdAt", "updatedAt"]
     },
+    "Academy": {
+      "title": "Academy",
+      "description": "Registered fitness centers, gyms and studios",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "about": { "type": "string" },
+        "modalities": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "string" },
+        "image": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "contactCount": { "type": "number" },
+        "viewsCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDENTE", "ATIVO", "REJEITADO"] },
+        "reviews": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["name", "address", "city", "neighborhood", "phone", "email", "modalities", "image", "status"]
+    },
     "NutritionInfo": {
       "title": "Nutrition Information",
       "type": "object",
@@ -138,6 +163,10 @@
     "/recipes/{recipeId}": {
       "schema": "Recipe",
       "description": "Global and saved recipes"
+    },
+    "/academies/{academyId}": {
+      "schema": "Academy",
+      "description": "Registered academies/gyms partners database"
     }
   }
 }

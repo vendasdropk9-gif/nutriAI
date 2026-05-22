@@ -4,7 +4,7 @@ import { ChefHat, X, Send, Mic, Sparkles, Loader2, Play } from 'lucide-react';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl } from '../lib/speech';
-import { textToSpeech } from '../lib/gemini';
+import { textToSpeech, generateMagicRecipe } from '../lib/gemini';
 
 interface MagicRecipeFABProps {
   profile: UserProfile | null;
@@ -35,46 +35,8 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
     vibrate(15);
     
     try {
-      const prompt = `Você é um Chef e Nutricionista de alta gastronomia saudável.
-O usuário quer uma receita personalizada (ex: sobremesa). Pedido: "${input}"
-Perfil do usuário: Objetivo - ${profile?.goals || 'Geral'}. Restrições - ${profile?.restrictions?.join(', ') || 'Nenhuma'}.
-
-Crie uma receita incrivelmente saborosa que se encaixe no pedido (seja algo fit/low calorie ou calórico para ganho de massa, de acordo com o pedido).
-Seja criativo e priorize ingredientes naturais.
-Responda APENAS em JSON no seguinte formato:
-{
-  "title": "Nome da Receita",
-  "description": "Breve descrição super apetitosa e explicando por que se encaixa no objetivo e pedido.",
-  "ingredients": ["Ingrediente 1", "Ingrediente 2"],
-  "instructions": ["Passo 1", "Passo 2"],
-  "calories": 250
-}`;
-
-      const { GoogleGenAI, Type } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const chat = ai.chats.create({
-        model: "gemini-3.1-pro-preview",
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              description: { type: Type.STRING },
-              ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
-              instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
-              calories: { type: Type.INTEGER }
-            },
-            required: ["title", "description", "ingredients", "instructions", "calories"]
-          },
-          temperature: 0.8
-        }
-      });
-      
-      const response = await chat.sendMessage({ message: prompt });
-      const text = response.text;
-      if (text) {
-        const data = JSON.parse(text);
+      const data = await generateMagicRecipe(input, profile);
+      if (data) {
         setRecipe(data);
         playSfx('success');
         vibrate([30, 50, 30]);

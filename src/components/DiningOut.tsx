@@ -1,6 +1,6 @@
 import { playAudioUrl } from '../lib/speech';
-import React, { useState } from 'react';
-import { Utensils, Search, Loader2, Sparkles, Volume2, Play, AlertCircle, CheckCircle2, ArrowRight, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Utensils, Search, Loader2, Sparkles, Volume2, Play, AlertCircle, CheckCircle2, ArrowRight, Info, Mic, MicOff, RefreshCw, Trash2 } from 'lucide-react';
 import { UserProfile, DiningOutAnalysis } from '../types';
 import { analyzeDiningOut, textToSpeech } from '../lib/gemini';
 
@@ -15,6 +15,102 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
   const [analysis, setAnalysis] = useState<DiningOutAnalysis | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Voice Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      setIsSupported(false);
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognitionAPI();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'pt-BR';
+
+      rec.onstart = () => {
+        setIsRecording(true);
+        setRecordingError(null);
+      };
+
+      rec.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        const currentText = finalTranscript || interimTranscript;
+        if (currentText.trim()) {
+          setDescription(currentText);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.error('Speech recognition error', event);
+        if (event.error === 'not-allowed') {
+          setRecordingError('Permissão do microfone negada. Dê acesso no navegador.');
+        } else if (event.error === 'no-speech') {
+          // Ignore silence errors to keep the UX clean
+        } else {
+          setRecordingError('Não foi possível reconhecer o áudio. Tente novamente.');
+        }
+        setIsRecording(false);
+      };
+
+      rec.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = rec;
+    } catch (err) {
+      console.error('Failed to initialize speech recognition:', err);
+      setIsSupported(false);
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const handleStartRecording = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (!recognitionRef.current) return;
+    
+    // Smooth transition
+    setDescription('');
+    setRecordingError(null);
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      console.error('Failed to start recognition:', err);
+    }
+  };
+
+  const handleStopRecording = (e?: React.MouseEvent | React.TouchEvent | React.FocusEvent) => {
+    if (e) e.preventDefault();
+    if (!recognitionRef.current) return;
+    
+    try {
+      recognitionRef.current.stop();
+    } catch (err) {
+      console.error('Failed to stop recognition:', err);
+    }
+  };
 
   const handleAnalyze = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -69,37 +165,107 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-2 sm:px-4">
       <div className="text-center space-y-4">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+        <h2 className="font-serif text-3xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Modo Comi Fora
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
-          Sem culpa! Descreva o prato ou as opções do cardápio e eu te ajudo a fazer a escolha mais inteligente.
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-base md:text-lg leading-relaxed">
+          Sem culpa! Toque e pergunte sobre o prato ou cardápio usando áudio, e eu te ajudo a fazer a escolha mais inteligente.
         </p>
       </div>
 
-      <div className="clay-card p-8">
-        <form onSubmit={handleAnalyze} className="space-y-6">
-          <div className="relative">
-            <div className="absolute left-6 top-8 text-slate-400">
-               <Utensils className="w-6 h-6" />
+      <div className="clay-card p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+        <form onSubmit={handleAnalyze} className="space-y-6 flex flex-col items-center">
+          
+          {/* Welcome guide */}
+          <div className="text-center mb-2">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+              {isRecording ? "Transcrevendo em tempo real... Continue falando!" : "Segure o botão abaixo para falar o que tem no seu cardápio de hoje."}
+            </p>
+          </div>
+
+          {/* Large Audio Recording Node */}
+          <div className="flex flex-col items-center justify-center py-4 w-full relative">
+            
+            {/* Ambient Background Glow Loops */}
+            {isRecording && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 sm:w-56 sm:h-56 bg-emerald-500/10 dark:bg-emerald-400/5 rounded-full animate-ping absolute duration-1000"></div>
+                <div className="w-36 h-36 sm:w-44 sm:h-44 bg-emerald-500/15 dark:bg-emerald-400/10 rounded-full animate-pulse absolute"></div>
+              </div>
+            )}
+
+            {/* Microfone Trigger Button */}
+            <button
+              type="button"
+              onMouseDown={handleStartRecording}
+              onMouseUp={() => handleStopRecording()}
+              onMouseLeave={() => handleStopRecording()}
+              onTouchStart={handleStartRecording}
+              onTouchEnd={() => handleStopRecording()}
+              className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center relative cursor-pointer select-none transition-all duration-300 ${
+                isRecording 
+                  ? 'bg-red-500 text-white scale-110 shadow-xl shadow-red-500/30' 
+                  : 'bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:scale-105 shadow-md shadow-emerald-500/10'
+              }`}
+              title="Mantenha pressionado para falar"
+            >
+              <Mic className={`w-10 h-10 sm:w-12 sm:h-12 ${isRecording ? 'animate-bounce' : ''}`} />
+              
+              {/* Tap Indicator label inside or below the node */}
+              <span className="text-[10px] sm:text-xs font-medium uppercase mt-2 select-none">
+                {isRecording ? 'Ouvindo...' : 'Falar'}
+              </span>
+            </button>
+
+            {/* Error notifications */}
+            {recordingError && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100/35 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2 max-w-sm text-center">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{recordingError}</span>
+              </div>
+            )}
+
+            {/* Falling back message */}
+            {!isSupported && (
+              <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100/30 dark:border-amber-900/20 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2 max-w-sm text-center">
+                <Info className="w-4 h-4 shrink-0" />
+                <span>Reconhecimento de voz não suportado pelo navegador. Digite abaixo.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Live transcript textarea, behaving as typing */}
+          <div className="relative w-full max-w-2xl mt-4">
+            <div className="absolute left-6 top-5 text-slate-400">
+               <Utensils className="w-5 h-5" />
             </div>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="O que tem no restaurante hoje? Ex: 'Filé de peixe com purê e legumes' ou 'Hambúrguer com bacon e batata frita'..."
-              rows={4}
-              className="w-full pl-16 pr-6 py-6 bg-white/60 dark:bg-slate-800/60 border border-white/40 dark:border-slate-600/50 rounded-3xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-lg text-slate-700 dark:text-slate-200 resize-none"
+              placeholder="Sua fala transcrita aparecerá aqui..."
+              rows={3}
+              className="w-full pl-14 pr-12 py-5 bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 rounded-3xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-base sm:text-lg text-slate-700 dark:text-slate-200 resize-none shadow-inner"
             />
+            {description.trim() && (
+              <button
+                type="button"
+                onClick={() => setDescription('')}
+                className="absolute right-4 bottom-4 p-2 text-slate-400 hover:text-red-500 transition-colors"
+                title="Limpar transcrição"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           <button
             type="submit"
             disabled={isAnalyzing || !description.trim()}
-            className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full max-w-lg py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-full font-bold text-base sm:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
-            {isAnalyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
+            {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
             Analisar Opção do Restaurante
           </button>
         </form>
@@ -199,3 +365,4 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
     </div>
   );
 }
+

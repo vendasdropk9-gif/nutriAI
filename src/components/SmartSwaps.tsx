@@ -98,7 +98,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
 
       {swap && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
-          <div className="grid md:grid-cols-2 gap-8 items-center clay-card p-6 shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center clay-card p-6 shadow-xl">
             <div className="flex flex-col items-center justify-center space-y-4 p-8 bg-rose-50/50 dark:bg-rose-900/10 rounded-3xl border border-rose-100/50 dark:border-rose-800/30">
                <AlertCircle className="w-10 h-10 text-rose-500 opacity-60" />
                <p className="text-sm font-bold text-rose-400 uppercase tracking-widest">Original</p>
