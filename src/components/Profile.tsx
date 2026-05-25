@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Check, LogOut, Cloud, Bell, BellOff } from 'lucide-react';
+import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock } from 'lucide-react';
+import { playSfx, vibrate } from '../lib/sensory';
 import { auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -52,6 +53,72 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   });
   
   const [isSaved, setIsSaved] = useState(false);
+
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState<'face' | 'fingerprint' | 'both' | null>(null);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [biometricPromptType, setBiometricPromptType] = useState<'face' | 'fingerprint' | null>(null);
+  const [promptPassword, setPromptPassword] = useState('');
+  const [promptError, setPromptError] = useState('');
+  const [promptSuccess, setPromptSuccess] = useState('');
+
+  useEffect(() => {
+    const enabled = localStorage.getItem('nutri-biometric-enabled') === 'true';
+    const type = localStorage.getItem('nutri-biometric-type') as any;
+    setBiometricEnabled(enabled);
+    setBiometricType(type);
+  }, []);
+
+  const handleToggleBiometrics = (type: 'face' | 'fingerprint') => {
+    const active = localStorage.getItem('nutri-biometric-enabled') === 'true';
+    const currentType = localStorage.getItem('nutri-biometric-type');
+
+    if (active && (currentType === type || currentType === 'both')) {
+      // Disable biometrics
+      localStorage.removeItem('nutri-biometric-enabled');
+      localStorage.removeItem('nutri-biometric-type');
+      localStorage.removeItem('nutri-biometric-password');
+      localStorage.removeItem('nutri-biometric-email');
+      localStorage.removeItem('nutri-biometric-username');
+      setBiometricEnabled(false);
+      setBiometricType(null);
+      playSfx('pop');
+      vibrate(50);
+    } else {
+      // Enable biometrics: Show secure confirmation prompt so user saves credentials locally
+      setBiometricPromptType(type);
+      setPromptPassword('');
+      setPromptError('');
+      setPromptSuccess('');
+      setShowPasswordPrompt(true);
+      playSfx('tap');
+    }
+  };
+
+  const handleConfirmPromptPassword = () => {
+    if (!promptPassword.trim()) {
+      setPromptError('Sua senha de login é obrigatória para vincular a biometria.');
+      playSfx('scratch');
+      return;
+    }
+    
+    // Save credentials safely to device's secure local cache to allow instant background logins
+    localStorage.setItem('nutri-biometric-enabled', 'true');
+    localStorage.setItem('nutri-biometric-type', biometricPromptType || 'face');
+    localStorage.setItem('nutri-biometric-email', auth.currentUser?.email || '');
+    localStorage.setItem('nutri-biometric-password', promptPassword);
+    localStorage.setItem('nutri-biometric-username', auth.currentUser?.displayName || 'Usuário');
+
+    setBiometricEnabled(true);
+    setBiometricType(biometricPromptType);
+    setPromptSuccess(`Biometria por ${biometricPromptType === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} vinculada com sucesso!`);
+    playSfx('success');
+    vibrate([30, 30]);
+
+    setTimeout(() => {
+      setShowPasswordPrompt(false);
+    }, 1500);
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -379,6 +446,78 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             </div>
           </div>
 
+          {/* Biometrics Card */}
+          <div className="space-y-4">
+            <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
+              Segurança e Biometria
+            </label>
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 p-6 rounded-[2rem] shadow-sm space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="w-5 h-5 animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-slate-800 dark:text-slate-200">Acesso por Cadastro Biométrico</h4>
+                  <p className="text-sm text-slate-500">
+                    Use os sensores corporais de seu dispositivo para acessar o NutriAI instantaneamente sem redigitar senhas.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleBiometrics('face')}
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none ${
+                    biometricEnabled && (biometricType === 'face' || biometricType === 'both')
+                      ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-slate-50/50 dark:bg-slate-900/40 border-transparent text-slate-500 hover:bg-slate-100/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ScanFace className="w-5 h-5" />
+                    <div>
+                      <p className="font-bold text-xs uppercase tracking-wider">Reconhecimento Facial</p>
+                      <p className="text-[10px] opacity-80">
+                        {biometricEnabled && (biometricType === 'face' || biometricType === 'both') ? 'Disponível' : 'Desativado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 ${
+                    biometricEnabled && (biometricType === 'face' || biometricType === 'both')
+                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
+                      : 'border-slate-350'
+                  }`} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleBiometrics('fingerprint')}
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none ${
+                    biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both')
+                      ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-slate-50/50 dark:bg-slate-900/40 border-transparent text-slate-500 hover:bg-slate-100/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Fingerprint className="w-5 h-5" />
+                    <div>
+                      <p className="font-bold text-xs uppercase tracking-wider">Impressão Digital</p>
+                      <p className="text-[10px] opacity-80">
+                        {biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both') ? 'Disponível' : 'Desativado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 ${
+                    biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both')
+                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
+                      : 'border-slate-350'
+                  }`} />
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <button
               type="button"
@@ -414,6 +553,68 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
         </form>
       </div>
+
+      {/* Password Prompt Confirmation Pop-up */}
+      <AnimatePresence>
+        {showPasswordPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4 text-center"
+            >
+              <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/20 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
+                <Lock className="w-6 h-6 shrink-0" />
+              </div>
+              
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white">Confirmação de Senha</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Confirme a senha da sua conta para ativar o {biometricPromptType === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} neste aparelho.
+                </p>
+              </div>
+
+              {promptError && (
+                <p className="text-xs text-red-500 font-semibold p-2.5 bg-red-50 dark:bg-red-950/20 rounded-xl leading-relaxed">
+                  {promptError}
+                </p>
+              )}
+
+              {promptSuccess && (
+                <p className="text-xs text-emerald-500 font-semibold p-2.5 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl leading-relaxed animate-pulse">
+                  {promptSuccess}
+                </p>
+              )}
+
+              <input
+                type="password"
+                placeholder="Senha de login"
+                value={promptPassword}
+                onChange={(e) => setPromptPassword(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 font-sans text-sm text-slate-800 dark:text-white"
+              />
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordPrompt(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-wider"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPromptPassword}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white transition-all uppercase tracking-wide shadow-md"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

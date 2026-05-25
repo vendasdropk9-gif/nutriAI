@@ -5,6 +5,7 @@ import { Recipe, MealPlan, UserProfile } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { LockScreen } from './components/LockScreen';
+import { VerifyEmailScreen } from './components/VerifyEmailScreen';
 import { useProfileSync } from './lib/profileSync';
 import { Generator } from './components/Generator';
 import { MealPlanView } from './components/MealPlanCalendar';
@@ -49,6 +50,7 @@ import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
@@ -202,6 +204,12 @@ export default function App() {
 
   if (!user && !authLoading) {
     return <Login />;
+  }
+
+  // Enforce email verification (if not Google and not bypassed)
+  const isGoogleProvider = user?.providerData.some(p => p.providerId === 'google.com');
+  if (user && !user.emailVerified && !isGoogleProvider && !emailVerificationBypassed) {
+    return <VerifyEmailScreen user={user} onVerified={() => setEmailVerificationBypassed(true)} />;
   }
 
   if (user && isLocked) {
