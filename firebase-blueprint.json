@@ -2,7 +2,7 @@
   "entities": {
     "User": {
       "title": "User Profile",
-      "description": "Core user information and settings",
+      "description": "Core user information, biometric configuration, and settings",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -21,7 +21,8 @@
         "points": { "type": "number" },
         "streak": { "type": "number" },
         "lastActiveDate": { "type": "string", "format": "date-time" },
-        "favorites": { "type": "array", "items": { "type": "string" } },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "mealPlan": { "type": "object" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "role": { "type": "string" }
@@ -30,12 +31,13 @@
     },
     "IntakeLog": {
       "title": "Intake Log",
-      "description": "Record of a food intake event",
+      "description": "Record of food intake with potential meal photos",
       "type": "object",
       "properties": {
         "date": { "type": "string", "format": "date-time" },
         "mealId": { "type": "string" },
         "recipeName": { "type": "string" },
+        "photoURL": { "type": "string", "description": "URL or Base64 of meal image" },
         "planned": { "$ref": "#/entities/NutritionInfo" },
         "actual": { "$ref": "#/entities/NutritionInfo" },
         "adjusted": { "type": "boolean" },
@@ -46,21 +48,87 @@
     },
     "ProgressLog": {
       "title": "Progress Log",
-      "description": "Biological progress tracking (weight, etc)",
+      "description": "Biological tracking including weight and fat logs",
       "type": "object",
       "properties": {
         "date": { "type": "string", "format": "date-time" },
         "weight": { "type": "number" },
         "bodyFat": { "type": "number" },
         "notes": { "type": "string" },
+        "photoURL": { "type": "string", "description": "Progress photo of user" },
         "userId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["date", "weight", "userId", "createdAt"]
     },
+    "HydrationLog": {
+      "title": "Hydration Log",
+      "description": "Daily liquid consumption tracker",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "amount", "userId", "createdAt"]
+    },
+    "SleepLog": {
+      "title": "Sleep Log",
+      "description": "Daily sleep duration and quality log",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "durationHours": { "type": "number" },
+        "quality": { "type": "string", "enum": ["Péssimo", "Ruim", "Regular", "Bom", "Excelente"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "durationHours", "quality", "userId", "createdAt"]
+    },
+    "EmotionalLog": {
+      "title": "Emotional Log",
+      "description": "Humor and emotional status log matched with meals",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "mood": { "type": "string" },
+        "trigger": { "type": "string" },
+        "mealType": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "mood", "userId", "createdAt"]
+    },
+    "FastingLog": {
+      "title": "Fasting Log",
+      "description": "Intermittent fasting tracking events",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "durationHours": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "durationHours", "userId", "createdAt"]
+    },
+    "WorkoutLog": {
+      "title": "Workout Log",
+      "description": "Training exercises completed and active session details",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "completed": { "type": "boolean" },
+        "durationMinutes": { "type": "number" },
+        "intensity": { "type": "string", "enum": ["Leve", "Moderado", "Intenso"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "completed", "userId", "createdAt"]
+    },
     "AICert": {
       "title": "AI Conversation",
-      "description": "Chat log with AI",
+      "description": "Conversations log directly linked with Gemini model insights",
       "type": "object",
       "properties": {
         "createdAt": { "type": "string", "format": "date-time" },
@@ -72,7 +140,7 @@
     },
     "Order": {
       "title": "Shopping Order",
-      "description": "Record of a shopping order",
+      "description": "Record of shop items purchased",
       "type": "object",
       "properties": {
         "storeId": { "type": "string" },
@@ -85,9 +153,64 @@
       },
       "required": ["storeId", "totalAmount", "status", "items", "createdAt", "updatedAt"]
     },
+    "DeliveryDriver": {
+      "title": "Courier / Entregador",
+      "description": "Delivery courier profile and telemetry logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "vehicleModel": { "type": "string" },
+        "routes": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "string" },
+        "rating": { "type": "number" },
+        "status": { "type": "string", "enum": ["available", "delivering", "offline"] },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" }
+      },
+      "required": ["id", "name", "vehicleType", "status"]
+    },
+    "DeliveryTracking": {
+      "title": "Rastreamento de Entrega",
+      "description": "Detailed real-time courier route, progress status, and ETAs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "total": { "type": "number" },
+        "vehicleType": { "type": "string" },
+        "courierId": { "type": "string" },
+        "courierName": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" },
+        "etaMinutes": { "type": "number" },
+        "deliveryAddress": { "type": "string" },
+        "notifications": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["id", "orderId", "courierId", "status"]
+    },
+    "Notification": {
+      "title": "System Notification",
+      "description": "General system log messages and alerts history",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["title", "message", "type", "date"]
+    },
     "Recipe": {
       "title": "Recipe",
-      "description": "Food recipe data",
+      "description": "Meal specifications and ingredients checklist",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -105,7 +228,7 @@
     },
     "Academy": {
       "title": "Academy",
-      "description": "Registered fitness centers, gyms and studios",
+      "description": "Registered gym wellness facilities partner center",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -121,10 +244,7 @@
         "image": { "type": "string" },
         "rating": { "type": "number" },
         "reviewsCount": { "type": "number" },
-        "contactCount": { "type": "number" },
-        "viewsCount": { "type": "number" },
-        "status": { "type": "string", "enum": ["PENDENTE", "ATIVO", "REJEITADO"] },
-        "reviews": { "type": "array", "items": { "type": "object" } }
+        "status": { "type": "string", "enum": ["PENDENTE", "ATIVO", "REJEITADO"] }
       },
       "required": ["name", "address", "city", "neighborhood", "phone", "email", "modalities", "image", "status"]
     },
@@ -142,31 +262,63 @@
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
-      "description": "Primary user profiles"
+      "description": "Primary user profiles containing mealPlans and configurations"
     },
     "/users/{userId}/intakeLogs/{logId}": {
       "schema": "IntakeLog",
-      "description": "Individual intake records for a user"
+      "description": "Food ingestion logs with photos"
     },
     "/users/{userId}/progressLogs/{logId}": {
       "schema": "ProgressLog",
-      "description": "Physical progress logs"
+      "description": "Weight biological logs"
+    },
+    "/users/{userId}/hydrationLogs/{logId}": {
+      "schema": "HydrationLog",
+      "description": "Liquid tracking timeline logs"
+    },
+    "/users/{userId}/sleepLogs/{logId}": {
+      "schema": "SleepLog",
+      "description": "Daily sleeping timelines logs"
+    },
+    "/users/{userId}/emotionalLogs/{logId}": {
+      "schema": "EmotionalLog",
+      "description": "Mood tracking events"
+    },
+    "/users/{userId}/fastingLogs/{logId}": {
+      "schema": "FastingLog",
+      "description": "Fasting logs histories"
+    },
+    "/users/{userId}/workoutLogs/{logId}": {
+      "schema": "WorkoutLog",
+      "description": "Physical activity workout sets logs"
     },
     "/users/{userId}/aiChats/{chatId}": {
       "schema": "AICert",
-      "description": "AI conversation history"
+      "description": "AI conversation logs history"
     },
     "/users/{userId}/orders/{orderId}": {
       "schema": "Order",
-      "description": "Shopping orders for the user"
+      "description": "Grocery orders records"
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "System alerts and recommendations log history"
     },
     "/recipes/{recipeId}": {
       "schema": "Recipe",
-      "description": "Global and saved recipes"
+      "description": "Global user recipes"
     },
     "/academies/{academyId}": {
       "schema": "Academy",
-      "description": "Registered academies/gyms partners database"
+      "description": "Gym partner centers moderation databases"
+    },
+    "/couriers/{courierId}": {
+      "schema": "DeliveryDriver",
+      "description": "Delivery drivers registration and dispatch available telemetries"
+    },
+    "/deliveries/{deliveryId}": {
+      "schema": "DeliveryTracking",
+      "description": "Deliveries statuses, logs, routes and real-time trackers"
     }
   }
 }

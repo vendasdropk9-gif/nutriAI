@@ -87,7 +87,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
   const slide = FOOD_SLIDES[currentIndex];
 
   return (
-    <div className="relative w-full max-w-full mx-auto h-[450px] sm:h-[500px] md:h-[550px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] clay-card overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-slate-200 dark:bg-slate-800 transition-colors box-border">
+    <div className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-slate-200 dark:bg-slate-800 transition-colors box-border">
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
@@ -109,18 +109,18 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
       </AnimatePresence>
 
       {/* Content Overlay */}
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-12 flex flex-col justify-end space-y-4 md:space-y-6 box-border">
-        <div className="space-y-2 max-w-full">
+      <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border">
+        <div className="space-y-1 max-w-full flex flex-col items-start">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`meta-${slide.id}`}
-            className="flex flex-wrap items-center gap-2 mb-1 md:mb-2"
+            className="flex flex-wrap items-center justify-start gap-1 pb-1 sm:gap-2 mb-0.5 sm:mb-2"
           >
-            <div className="px-2.5 py-1 bg-emerald-500 rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">
+            <div className="px-2 py-0.5 bg-emerald-500 rounded-full text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">
               Destaque Saudável
             </div>
-            <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] md:text-[10px] font-bold text-white uppercase tracking-widest border border-white/20 whitespace-nowrap">
+            <div className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-widest border border-white/20 whitespace-nowrap">
               {slide.calories}
             </div>
           </motion.div>
@@ -129,7 +129,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`title-${slide.id}`}
-            className="font-serif text-2xl sm:text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight break-words"
+            className="font-serif text-sm sm:text-2xl md:text-5xl font-bold text-white tracking-tight leading-tight break-words"
           >
             {slide.name}
           </motion.h2>
@@ -138,7 +138,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`benefit-${slide.id}`}
-            className="text-white/80 font-sans text-sm sm:text-base md:text-xl max-w-md line-clamp-2 md:line-clamp-none break-words"
+            className="hidden sm:block text-white/80 font-sans text-xs sm:text-base md:text-xl max-w-md line-clamp-1 sm:line-clamp-2 md:line-clamp-none break-words"
           >
             {slide.benefit}
           </motion.p>
@@ -148,29 +148,29 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
             animate={{ opacity: 1, y: 0 }}
             key={`buy-${slide.id}`}
             onClick={onNavigateToMarket}
-            className="mt-2 flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500 backdrop-blur-md border border-emerald-500/30 text-white rounded-xl font-bold text-xs md:text-sm active:scale-95 transition-all shadow-lg w-fit whitespace-nowrap"
+            className="mt-1 flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500 backdrop-blur-md border border-emerald-500/30 text-white rounded-lg sm:rounded-xl font-bold text-[9px] sm:text-xs md:text-sm active:scale-95 transition-all shadow-lg w-fit whitespace-nowrap"
           >
-            <ShoppingCart className="w-4 h-4 flex-shrink-0" />
+            <ShoppingCart className="w-3 md:w-4 h-3 md:h-4 flex-shrink-0" />
             Comprar Agora
           </motion.button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 md:gap-4 w-full">
-          <button className="flex-1 min-w-[140px] px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-lg text-sm md:text-base">
-            <Utensils className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+        <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-4 w-full">
+          <button className="flex-1 min-w-[100px] sm:min-w-[120px] max-w-[180px] px-2.5 py-1.5 sm:px-6 sm:py-4 md:px-8 md:py-4 clay-btn rounded-lg md:rounded-2xl font-bold flex items-center justify-center gap-1 active:scale-95 duration-200 shadow-lg text-[9px] sm:text-sm md:text-base">
+            <Utensils className="w-3 sm:w-5 h-3 sm:h-5 flex-shrink-0" />
             <span className="truncate">Ver Receita</span>
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <ChevronRight className="w-3 sm:w-5 h-3 sm:h-5 flex-shrink-0" />
           </button>
         </div>
       </div>
 
       {/* Progress Indicators */}
-      <div className="absolute bottom-4 right-4 md:bottom-8 md:right-12 flex items-center gap-1.5 md:gap-3">
+      <div className="absolute bottom-3 right-3 md:bottom-8 md:right-12 flex items-center gap-1 md:gap-3">
         {FOOD_SLIDES.map((_, i) => (
           <div 
             key={i}
             onClick={() => setCurrentIndex(i)}
-            className={`cursor-pointer transition-all duration-500 rounded-full h-1 md:h-1.5 ${i === currentIndex ? 'w-6 sm:w-8 md:w-10 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-2 sm:w-3 md:w-4 bg-white/30'}`}
+            className={`cursor-pointer transition-all duration-500 rounded-full h-1 md:h-1.5 ${i === currentIndex ? 'w-4 sm:w-8 md:w-10 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'w-1.5 sm:w-3 md:w-4 bg-white/30'}`}
           />
         ))}
       </div>

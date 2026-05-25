@@ -70,9 +70,9 @@ export function PartnerBanner() {
                 duration: 1.2, 
                 ease: [0.22, 1, 0.36, 1] 
               }}
-              className="absolute text-center"
+              className="absolute inset-x-0 mx-auto text-center flex justify-center items-center px-4 max-w-full"
             >
-              <span className="font-serif text-lg md:text-2xl font-light text-white tracking-wide">
+              <span className="font-serif text-sm sm:text-lg md:text-2xl font-light text-white tracking-wide block max-w-full">
                 {PARTNERS[index]}
               </span>
             </motion.div>

@@ -304,7 +304,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Dynamic Banner */}
-      <div className="relative w-full max-w-full h-[380px] sm:h-[400px] md:h-[450px] rounded-[32px] md:rounded-[40px] clay-card overflow-hidden bg-slate-200 dark:bg-slate-800 transition-colors box-border mx-auto border-none">
+      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-slate-200 dark:bg-slate-800 transition-colors box-border mx-auto border-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={BANNERS[currentBanner].id}
@@ -316,39 +316,39 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           >
             <img src={BANNERS[currentBanner].image} className="w-full h-full object-cover object-center" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 md:p-12 space-y-3 md:space-y-4 box-border">
-               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <div className="px-3 py-1.5 md:px-4 md:py-1.5 clay-primary px-6 py-3 text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border">
+               <div className="flex items-center gap-1.5 sm:gap-3">
+                  <div className="px-2 py-0.5 sm:px-3 sm:py-1 clay-primary text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
                      {BANNERS[currentBanner].price}
                   </div>
                   <button 
                     onClick={() => handleSpeak(BANNERS[currentBanner].tip)}
-                    className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
+                    className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
                   >
-                     <Volume2 className="w-5 h-5" />
+                     <Volume2 className="w-3 h-3 sm:w-5 sm:h-5" />
                   </button>
                </div>
-               <h3 className="text-2xl sm:text-3xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
+               <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
                   {BANNERS[currentBanner].title}
                </h3>
-               <p className="text-white/80 text-sm sm:text-base md:text-xl font-medium break-words">{BANNERS[currentBanner].subtitle}</p>
+               <p className="hidden sm:block text-white/80 text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{BANNERS[currentBanner].subtitle}</p>
                <button 
                   onClick={() => addToCart(PRODUCTS[0])}
-                  className="px-6 py-3 sm:py-4 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-2 w-full sm:w-auto mt-2 text-white"
+                  className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white"
                >
-                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-sm md:text-base truncate text-white">Comprar Agora</span>
+                  <ShoppingCart className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
                </button>
             </div>
           </motion.div>
         </AnimatePresence>
         
         {/* Indicators - Vertical on very small screens, horizontal otherwise */}
-        <div className="absolute top-4 right-4 sm:bottom-4 sm:top-auto sm:right-6 md:bottom-8 md:right-12 flex flex-col sm:flex-row gap-1.5 sm:gap-2 md:gap-3">
+        <div className="absolute top-3 right-3 sm:bottom-4 sm:top-auto sm:right-6 md:bottom-8 md:right-12 flex flex-col sm:flex-row gap-1 sm:gap-2 md:gap-3">
           {BANNERS.map((_, i) => (
             <div 
               key={i}
-              className={`rounded-full transition-all duration-500 ${currentBanner === i ? 'h-6 sm:w-8 md:w-10 bg-emerald-500 sm:h-1 sm:md:h-1.5 w-1.5' : 'h-2 sm:w-2 md:w-3 bg-white/30 sm:h-1 sm:md:h-1.5 w-1.5'}`}
+              className={`rounded-full transition-all duration-500 ${currentBanner === i ? 'h-3 sm:h-1 sm:md:h-1.5 w-1 sm:w-8 md:w-10 bg-emerald-500' : 'h-1 sm:h-1 sm:md:h-1.5 w-1 sm:w-2 md:w-3 bg-white/30'}`}
             />
           ))}
         </div>
@@ -400,7 +400,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-8 box-border w-full">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-8 box-border w-full justify-items-stretch">
         {filteredProducts.map(product => (
           <motion.div
             layout
@@ -825,10 +825,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-12 clay-card p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+        className="mt-12 clay-card p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm w-full"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+        <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
+          <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
             <Store className="w-8 h-8" />
           </div>
           <div className="space-y-1">
@@ -838,7 +838,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         </div>
         <button 
           onClick={onOpenPartner}
-          className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
+          className="w-full md:w-auto px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
         >
           Seja um parceiro
         </button>
@@ -847,10 +847,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] clay-card border border-emerald-100 dark:border-emerald-800/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm"
+        className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] clay-card border border-emerald-100 dark:border-emerald-800/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm w-full"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-emerald-600 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+        <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
+          <div className="w-16 h-16 bg-emerald-600 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
             <Bike className="w-8 h-8" />
           </div>
           <div className="space-y-1">
@@ -863,7 +863,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             const evt = new CustomEvent('app:navigate', { detail: { tab: 'delivery' } });
             window.dispatchEvent(evt);
           }}
-          className="px-8 py-4 clay-primary px-6 py-3 font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2 whitespace-nowrap"
+          className="w-full md:w-auto px-8 py-4 clay-primary font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 whitespace-nowrap"
         >
           Quero ser entregador
           <ChevronRight className="w-5 h-5" />

@@ -217,7 +217,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       
       <motion.div 

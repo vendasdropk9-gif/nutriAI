@@ -210,7 +210,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
               
-              <div className="absolute inset-y-0 left-4 md:left-10 right-4 flex flex-col justify-center max-w-[80%] md:max-w-md space-y-1.5 md:space-y-2 pointer-events-none">
+              <div className="absolute inset-y-0 left-6 right-6 md:left-10 md:right-10 flex flex-col justify-center items-center text-center md:items-start md:text-left space-y-1.5 md:space-y-2 pointer-events-none">
                 <motion.span 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -230,7 +230,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                   {BANNER_SLIDES[currentSlide].subtitle}
                 </motion.p>
                 
-                <div className="pointer-events-auto pt-2">
+                <div className="pointer-events-auto pt-2 flex justify-center md:justify-start">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

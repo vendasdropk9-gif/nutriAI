@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from './firebaseUtils';
-import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog } from '../types';
+import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog } from '../types';
 
 export function useProfileSync(user: User | null, localProfile: UserProfile | null, setLocalProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>) {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -11,6 +11,12 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
   // Load from Firestore on mount/user change
   useEffect(() => {
     if (!user) return;
+
+    // Check if it is a local simulated user
+    const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+    if (isLocalUser) {
+      return;
+    }
 
     const userRef = doc(db, 'users', user.uid);
     let subUnsubs: (() => void)[] = [];
@@ -39,6 +45,9 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
           subUnsubs.push(listenSub('progressLogs', 'progressLogs'));
           subUnsubs.push(listenSub('hydrationLogs', 'hydrationLogs'));
           subUnsubs.push(listenSub('workoutLogs', 'workoutLogs'));
+          subUnsubs.push(listenSub('sleepLogs', 'sleepLogs'));
+          subUnsubs.push(listenSub('emotionalLogs', 'emotionalLogs'));
+          subUnsubs.push(listenSub('fastingLogs', 'fastingLogs'));
         }
 
         // We fetch initially instead of waiting for the subsnapshot to fire so there's no flicker
@@ -51,6 +60,9 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
           currentProfile.progressLogs = await fetchSub('progressLogs') as ProgressLog[];
           currentProfile.hydrationLogs = await fetchSub('hydrationLogs') as HydrationLog[];
           currentProfile.workoutLogs = await fetchSub('workoutLogs') as WorkoutLog[];
+          currentProfile.sleepLogs = await fetchSub('sleepLogs') as SleepLog[];
+          currentProfile.emotionalLogs = await fetchSub('emotionalLogs') as EmotionalLog[];
+          currentProfile.fastingLogs = await fetchSub('fastingLogs') as FastingLog[];
         } catch (e) {
           console.error("Error fetching subcollections", e);
         }
@@ -94,12 +106,27 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
   // Sync to Firestore whenever profile changes
   const syncToFirestore = async (newProfile: UserProfile) => {
     if (!user) return;
+    const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+    if (isLocalUser) return;
+
     setIsSyncing(true);
     try {
       const userRef = doc(db, 'users', user.uid);
       const snap = await getDoc(userRef);
       
-      const { intakeLogs, progressLogs, hydrationLogs, workoutLogs, email, createdAt, role, ...updatable } = newProfile as any;
+      const { 
+        intakeLogs, 
+        progressLogs, 
+        hydrationLogs, 
+        workoutLogs, 
+        sleepLogs, 
+        emotionalLogs, 
+        fastingLogs, 
+        email, 
+        createdAt, 
+        role, 
+        ...updatable 
+      } = newProfile as any;
       
       if (snap.exists()) {
         await updateDoc(userRef, {
@@ -133,6 +160,9 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
       await syncSub(progressLogs, 'progressLogs');
       await syncSub(hydrationLogs, 'hydrationLogs');
       await syncSub(workoutLogs, 'workoutLogs');
+      await syncSub(sleepLogs, 'sleepLogs');
+      await syncSub(emotionalLogs, 'emotionalLogs');
+      await syncSub(fastingLogs, 'fastingLogs');
 
     } catch (error) {
       try { handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`); } catch(e) {}
