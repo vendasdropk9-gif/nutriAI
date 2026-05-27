@@ -66,9 +66,15 @@ export function BodyAnalyzer({ profile, onAwardPoints }: BodyAnalyzerProps) {
     stopAudio();
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch (firstErr) {
+        console.warn("Retrying with simple video constraints due to:", firstErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       setCameraStream(stream);
       setTimeout(() => {
         if (videoRef.current) {

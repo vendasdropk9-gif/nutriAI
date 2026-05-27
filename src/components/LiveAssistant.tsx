@@ -196,7 +196,18 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
 
   return (
     <>
-      <div className="fixed bottom-24 left-4 md:bottom-6 md:left-6 z-40">
+      <div 
+        className="fixed bottom-24 left-4 md:bottom-6 md:left-6 z-40"
+        style={{
+          marginRight: '68px',
+          marginLeft: '0px',
+          paddingBottom: '0px',
+          paddingRight: '0px',
+          paddingTop: '0px',
+          marginTop: '0px',
+          marginBottom: '-91px'
+        }}
+      >
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Recipe } from '../types';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity } from 'lucide-react';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square } from 'lucide-react';
+import { speak, stopSpeech } from '../lib/speech';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -8,7 +9,76 @@ interface RecipeCardProps {
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const [isNutritionExpanded, setIsNutritionExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  const isPlayingRef = useRef(false);
+  const currentStepIndexRef = useRef(0);
   const { nutrition } = recipe;
+
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
+
+  const playStep = async (index: number) => {
+    if (!isPlayingRef.current) return;
+    
+    if (index >= recipe.instructions.length) {
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      setActiveStep(null);
+      return;
+    }
+    
+    setActiveStep(index);
+    currentStepIndexRef.current = index;
+    
+    const stepText = `Passo ${index + 1}: ${recipe.instructions[index]}`;
+    await speak(stepText, {
+      onEnded: () => {
+        if (isPlayingRef.current && currentStepIndexRef.current === index) {
+          setTimeout(() => {
+            playStep(index + 1);
+          }, 800);
+        }
+      },
+      onError: () => {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        setActiveStep(null);
+      }
+    });
+  };
+
+  const handleToggleSpeak = () => {
+    if (isPlaying) {
+      stopSpeech();
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      setActiveStep(null);
+    } else {
+      stopSpeech();
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+      playStep(0);
+    }
+  };
+
+  const handlePlaySingleStep = (index: number) => {
+    if (isPlaying && activeStep === index) {
+      stopSpeech();
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      setActiveStep(null);
+    } else {
+      stopSpeech();
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+      playStep(index);
+    }
+  };
 
   return (
     <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
@@ -52,20 +122,63 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
         
         <div className="md:col-span-2 space-y-6">
-          <h4 className="font-sans text-xs font-bold tracking-widest uppercase text-slate-400 dark:text-slate-500 border-b border-white/40 dark:border-slate-700/50 pb-4">
-            Modo de Preparo
-          </h4>
-          <div className="space-y-6">
-            {recipe.instructions.map((step, idx) => (
-              <div key={idx} className="flex gap-4 group">
-                <div className="w-8 h-8 rounded-full bg-white/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-white/60 dark:border-slate-600/50 flex items-center justify-center font-serif text-lg flex-shrink-0 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">
-                  {idx + 1}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/40 dark:border-slate-700/50 pb-4">
+            <h4 className="font-sans text-xs font-bold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+              Modo de Preparo
+            </h4>
+            <button
+              onClick={handleToggleSpeak}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 border ${
+                isPlaying
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  Parar Áudio
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3.5 h-3.5" />
+                  Ouvir Passo a Passo
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {recipe.instructions.map((step, idx) => {
+              const isActive = activeStep === idx;
+              return (
+                <div 
+                  key={idx} 
+                  className={`flex gap-4 group p-3 rounded-2xl transition-all duration-300 border border-transparent ${
+                    isActive 
+                      ? 'bg-emerald-500/10 dark:bg-emerald-500/20 shadow-md border-emerald-500/20 scale-[1.01]' 
+                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20'
+                  }`}
+                >
+                  <button
+                    onClick={() => handlePlaySingleStep(idx)}
+                    title="Ouvir este passo"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm flex-shrink-0 transition-all ${
+                      isActive
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20'
+                        : 'bg-white/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-white/60 dark:border-slate-600/50 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500'
+                    }`}
+                  >
+                    {isActive ? <Volume2 className="w-4 h-4 text-white animate-pulse" /> : idx + 1}
+                  </button>
+                  <p className={`text-slate-600 dark:text-slate-300 leading-relaxed pt-1 flex-1 transition-all ${
+                    isActive ? 'text-slate-800 dark:text-slate-100 font-medium' : ''
+                  }`}>
+                    {step}
+                  </p>
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed pt-1">
-                  {step}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-8 border-t border-white/40 dark:border-slate-700/50 pt-6">

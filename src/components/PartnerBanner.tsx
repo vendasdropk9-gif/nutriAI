@@ -90,7 +90,7 @@ export function PartnerBanner() {
           }`}
           title={isMuted ? "Ativar música ambiente" : "Desativar música"}
         >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {isMuted ? <VolumeX className="w-4 h-4 text-[#63ff00]" /> : <Volume2 className="w-4 h-4 text-[#63ff00]" />}
         </motion.button>
       </div>
 

@@ -28,7 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
-import bannerImage1 from '../assets/images/regenerated_image_1779725858294.jpg';
+import bannerImage1 from '../assets/images/regenerated_image_1779818530546.png';
 import productImage1 from '../assets/images/regenerated_image_1779398315958.jpg';
 import storeImage1 from '../assets/images/store_vida_verde_1779398853750.png';
 import storeImage2 from '../assets/images/store_premium_hortifruti_1779398868799.png';
@@ -251,13 +251,13 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             <span className="text-xs md:text-sm">Entregando em: <strong>Seu Endereço Atual</strong></span>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
             <button 
               onClick={onOpenMap}
-              className="flex items-center gap-2 p-2.5 px-4 bg-emerald-600 text-white rounded-xl border border-emerald-500 font-bold text-xs hover:scale-105 transition-all shadow-sm group"
+              className="flex items-center gap-1.5 p-1.5 px-3 bg-emerald-600 text-white rounded-xl border border-emerald-500 font-bold text-[11px] sm:text-xs hover:scale-105 transition-all shadow-sm group cursor-pointer"
             >
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white shadow-lg shrink-0">
-                 <MapIcon className="w-4 h-4" />
+              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white shadow-md shrink-0">
+                 <MapIcon className="w-3.5 h-3.5" />
               </div>
               <span className="hidden sm:inline">Explorar Mapa de Frescor</span>
               <span className="sm:hidden">Mapa</span>
@@ -269,33 +269,34 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 vibrate(10);
                 setShowOrders(true);
               }}
-              className="flex items-center gap-2 p-2.5 px-4 bg-slate-900 dark:bg-slate-700 text-white rounded-xl border border-slate-800 dark:border-slate-600 font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-sm group cursor-pointer outline-none"
+              className="flex items-center gap-1.5 p-1.5 px-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl border border-slate-800 dark:border-slate-600 font-bold text-[11px] sm:text-xs hover:scale-105 active:scale-95 transition-all shadow-sm group cursor-pointer outline-none whitespace-nowrap"
             >
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 group-hover:bg-emerald-600 transition-colors">
-                 <Package className="w-4 h-4" />
+              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white shadow-md shrink-0 group-hover:bg-emerald-600 transition-colors">
+                 <Package className="w-3.5 h-3.5" />
               </div>
-              Meus Pedidos
+              <span className="hidden sm:inline">Meus Pedidos</span>
+              <span className="sm:hidden">Pedidos</span>
             </button>
           </div>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex flex-row flex-wrap items-center justify-center gap-4 pb-4 w-full">
           {MARKET_PARTNERS.map(market => (
             <button
               key={market.id}
               onClick={() => setActiveMarket(market)}
-              className={`flex shrink-0 items-center gap-3 p-3 rounded-2xl border transition-all ${
+              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all w-full max-w-[280px] sm:w-[280px] h-[72px] justify-start ${
                 activeMarket.id === market.id 
                 ? 'clay-panel border-emerald-500 shadow-[inset_2px_2px_4px_rgba(255,255,255,0.8),inset_-2px_-2px_4px_rgba(0,0,0,0.05),2px_2px_8px_rgba(16,185,129,0.2)]' 
                 : 'clay-btn opacity-80 hover:opacity-100 border-none'
               }`}
             >
-              <img src={market.image} className="w-10 h-10 rounded-full object-cover" />
-              <div className="text-left">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{market.name}</p>
+              <img src={market.image} className="w-10 h-10 rounded-full object-cover shrink-0" />
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{market.name}</p>
                 <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                  {market.rating} • {market.distance}
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
+                  <span>{market.rating} • {market.distance}</span>
                 </div>
               </div>
             </button>
@@ -304,7 +305,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Dynamic Banner */}
-      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-slate-200 dark:bg-slate-800 transition-colors box-border mx-auto border-none">
+      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-slate-950 transition-colors box-border mx-auto border-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={BANNERS[currentBanner].id}
@@ -314,9 +315,15 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             transition={{ duration: 0.8 }}
             className="absolute inset-0"
           >
-            <img src={BANNERS[currentBanner].image} className="w-full h-full object-cover object-center" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border">
+            <img 
+              src={BANNERS[currentBanner].image} 
+              className="w-full h-full object-cover object-center block" 
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border z-20">
                <div className="flex items-center gap-1.5 sm:gap-3">
                   <div className="px-2 py-0.5 sm:px-3 sm:py-1 clay-primary text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
                      {BANNERS[currentBanner].price}
@@ -355,16 +362,17 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* AI Recommendation Section */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-[24px] sm:rounded-[32px] clay-card p-6 sm:p-8 text-white flex flex-col md:flex-row items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden w-full max-w-full box-border">
-        <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-10 pointer-events-none">
-          <Sparkles className="w-24 h-24 sm:w-32 sm:h-32" />
+      <div className="bg-white dark:bg-slate-900/60 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center justify-center text-center space-y-4 w-full max-w-[600px] mx-auto box-border">
+        <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto shadow-sm">
+          <Leaf className="w-8 h-8" />
         </div>
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shrink-0">
-          <Zap className="w-8 h-8 sm:w-10 sm:h-10" />
-        </div>
-        <div className="space-y-2 flex-1 text-center md:text-left z-10 w-full">
-          <h4 className="text-xl sm:text-2xl font-serif font-bold break-words">Baseado no seu plano alimentar</h4>
-          <p className="text-emerald-50 opacity-90 text-sm sm:text-base break-words">Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.</p>
+        <div className="space-y-2 text-center w-full">
+          <h4 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 dark:text-white break-words">
+            Baseado no seu plano alimentar
+          </h4>
+          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base break-words">
+            Montei um kit especial com ingredientes fundamentais para seus objetivos de {profile?.goals || 'saúde'}.
+          </p>
         </div>
         <button 
           onClick={() => {
@@ -376,14 +384,14 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           }}
           disabled={addingAI}
           id="ai-sug-btn"
-          className={`w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-white text-emerald-600 rounded-[16px] sm:rounded-2xl font-bold transition-all shadow-lg z-20 relative border-none ${addingAI ? 'bg-emerald-100 scale-95' : 'hover:bg-emerald-50 active:scale-95'}`}
+          className={`w-full py-4 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-full font-bold transition-all shadow-sm border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center gap-2 ${addingAI ? 'bg-emerald-200 dark:bg-emerald-900 scale-95' : 'active:scale-95'}`}
         >
           {addingAI ? 'Adicionado! 🛒' : 'Adicionar Sugestão IA'}
         </button>
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex justify-center flex-wrap items-center gap-2 sm:gap-4 pb-4 w-full">
         {['Tudo', 'Frutas', 'Verduras', 'Legumes', 'Kits'].map(cat => (
           <button
             key={cat}
@@ -400,14 +408,14 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-8 box-border w-full justify-items-stretch">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 box-border w-full justify-items-stretch">
         {filteredProducts.map(product => (
           <motion.div
             layout
             key={product.id}
-            className="bg-white dark:bg-slate-800/60 p-3 sm:p-5 rounded-[24px] sm:rounded-[32px] clay-card border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all group flex flex-col h-full"
+            className="bg-white dark:bg-slate-900/40 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-xl transition-all group flex flex-col items-center text-center justify-between h-full w-full max-w-[600px] mx-auto gap-4 box-border"
           >
-            <div className="relative h-32 sm:h-40 rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shrink-0">
+            <div className="relative w-full h-40 rounded-2xl overflow-hidden shrink-0">
               <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               {product.isOrganic && (
                 <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
@@ -434,35 +442,36 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               </button>
             </div>
             
-            <div className="space-y-1 mb-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-2 flex flex-col items-center text-center w-full">
+              <div className="flex items-center justify-center gap-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.category}</p>
                 <div 
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedProductReview(product);
                   }}
-                  className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all border border-transparent hover:border-emerald-200"
+                  className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded-full cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all border border-transparent hover:border-emerald-200"
                 >
                   <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                   <span className="font-bold text-slate-700 dark:text-slate-300">{product.rating || 'N/A'}</span>
                   <span className="text-slate-400">({product.reviewCount || 0})</span>
                 </div>
               </div>
-              <h5 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100">{product.name}</h5>
-              <p className="text-xs text-slate-500 line-clamp-1">{product.description}</p>
+              <h5 className="font-serif text-lg font-bold text-slate-900 dark:text-white leading-snug">{product.name}</h5>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] line-clamp-2">{product.description}</p>
             </div>
 
-            <div className="flex items-center justify-between mt-auto">
-              <div>
-                <p className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">por {product.unit}</p>
+            <div className="flex flex-col items-center gap-2 w-full mt-auto pt-2">
+              <div className="text-center">
+                <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
+                <p className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">por {product.unit}</p>
               </div>
               <button 
                 onClick={() => addToCart(product)}
-                className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full sm:rounded-2xl hover:scale-105 hover:bg-slate-800 dark:hover:bg-slate-100 flex items-center justify-center transition-all shadow-lg active:scale-95"
+                className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-full font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-sm mt-1 border-none cursor-pointer"
               >
-                <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+                <Plus className="w-4 h-4" />
+                Adicionar
               </button>
             </div>
           </motion.div>
@@ -472,25 +481,35 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       {/* Floating Cart Button */}
       <AnimatePresence>
         {cart.length > 0 && (
-          <motion.button
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            onClick={() => setShowCart(true)}
-            className="fixed bottom-32 right-8 md:right-12 z-50 bg-slate-900 text-white px-8 py-5 rounded-full shadow-2xl flex items-center gap-4 hover:scale-105 transition-transform"
-          >
-            <div className="relative">
-              <ShoppingBag className="w-6 h-6" />
-              <div className="absolute -top-2 -right-2 min-w-[20px] h-5 bg-emerald-500 text-white rounded-full px-1.5 flex items-center justify-center text-[10px] font-bold shadow-sm">
-                {cart.reduce((a, b) => a + b.quantity, 0)}
+          <div className="fixed bottom-32 left-0 right-0 z-50 flex justify-center items-center pointer-events-none w-full px-4">
+            <motion.button
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={() => setShowCart(true)}
+              className="pointer-events-auto bg-slate-900 dark:bg-slate-950 text-white rounded-[20px] shadow-2xl flex items-center h-10 min-h-[40px] gap-2 hover:scale-105 active:scale-95 transition-transform border border-white/10"
+              style={{
+                paddingRight: '1px',
+                paddingBottom: '0px',
+                marginRight: '0px',
+                marginBottom: '-280px',
+                paddingTop: '8px',
+                paddingLeft: '12px'
+              }}
+            >
+              <div className="relative flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                <div className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 bg-emerald-500 text-white rounded-full px-1 flex items-center justify-center text-[8px] font-bold shadow-sm">
+                  {cart.reduce((a, b) => a + b.quantity, 0)}
+                </div>
               </div>
-            </div>
-            <div className="text-left pr-4">
-              <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Ver Carrinho</p>
-              <p className="text-lg font-serif">R$ {cartTotal.toFixed(2)}</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-emerald-500" />
-          </motion.button>
+              <div className="text-left flex flex-col justify-center leading-none pr-1">
+                <p className="text-[8px] font-extrabold text-white/50 uppercase tracking-widest leading-none">Ver Carrinho</p>
+                <p className="text-xs font-bold leading-tight mt-0.5">R$ {cartTotal.toFixed(2)}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-emerald-500 ml-0.5" />
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
 
@@ -821,54 +840,53 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         )}
       </AnimatePresence>
 
-      {/* Partner CTA */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-12 clay-card p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm w-full"
-      >
-        <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
-          <div className="w-16 h-16 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+      {/* Partner & Delivery Section - Grid of 2 Standardised Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mt-12 w-full max-w-5xl mx-auto box-border">
+        {/* Market Partner Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-slate-900/60 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 flex flex-col items-center justify-center text-center space-y-4 shadow-sm w-full max-w-[600px] mx-auto box-border"
+        >
+          <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto shadow-sm">
             <Store className="w-8 h-8" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2 text-center w-full">
             <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Possui um sacolão ou hortifruti?</h3>
-            <p className="text-slate-500 dark:text-slate-400">Venda seus produtos frescos direto para milhares de usuários no NutriAI.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Venda seus produtos frescos direto para milhares de usuários no NutriAI.</p>
           </div>
-        </div>
-        <button 
-          onClick={onOpenPartner}
-          className="w-full md:w-auto px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
-        >
-          Seja um parceiro
-        </button>
-      </motion.div>
+          <button 
+            onClick={onOpenPartner}
+            className="w-full py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-md text-sm mt-2 border-none cursor-pointer"
+          >
+            Seja um parceiro
+          </button>
+        </motion.div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] clay-card border border-emerald-100 dark:border-emerald-800/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm w-full"
-      >
-        <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
-          <div className="w-16 h-16 bg-emerald-600 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+        {/* Delivery Partner Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-slate-900/60 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 flex flex-col items-center justify-center text-center space-y-4 shadow-sm w-full max-w-[600px] mx-auto box-border"
+        >
+          <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mx-auto shadow-sm">
             <Bike className="w-8 h-8" />
           </div>
-          <div className="space-y-1">
-            <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Tem uma moto ou bike?</h3>
-            <p className="text-slate-500 dark:text-slate-400">Seja seu próprio chefe e entregue saúde ganhando mais por entrega.</p>
+          <div className="space-y-2 text-center w-full">
+            <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white">Trabalhe com entregas?</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Cadastre-se e faça entregas com bicicleta ou moto.</p>
           </div>
-        </div>
-        <button 
-          onClick={() => {
-            const evt = new CustomEvent('app:navigate', { detail: { tab: 'delivery' } });
-            window.dispatchEvent(evt);
-          }}
-          className="w-full md:w-auto px-8 py-4 clay-primary font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 whitespace-nowrap"
-        >
-          Quero ser entregador
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </motion.div>
+          <button 
+            onClick={() => {
+              const evt = new CustomEvent('app:navigate', { detail: { tab: 'delivery' } });
+              window.dispatchEvent(evt);
+            }}
+            className="w-full py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-md text-sm mt-2 border-none cursor-pointer"
+          >
+            Quero entregar
+          </button>
+        </motion.div>
+      </div>
 
       <AnimatePresence>
         {showOrders && (

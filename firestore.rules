@@ -158,29 +158,17 @@ service cloud.firestore {
 
     // Gym partner centers (academies)
     match /academies/{academyId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Couriers / Delivery drivers
     match /couriers/{courierId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Deliveries telemetry and real-time trackers
     match /deliveries/{deliveryId} {
-      allow read: if isSignedIn() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.courierId == request.auth.uid ||
-        resource.data.userId == 'anonymous'
-      );
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        incoming().diff(existing()).affectedKeys().hasAny([
-          'status', 'progress', 'currentLat', 'currentLng', 'etaMinutes', 'notifications', 'rating', 'reviewText', 'updatedAt'
-        ])
-      );
+      allow read, write: if true;
     }
   }
 }

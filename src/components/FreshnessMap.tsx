@@ -191,6 +191,35 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="flex-1 flex flex-col w-full h-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden min-h-[600px] box-border">
+      {/* Back Button - Left Floating */}
+      <button 
+        onClick={onBack}
+        className="absolute top-6 left-6 z-[1001] bg-slate-900/95 dark:bg-slate-900/95 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-slate-700/50 group cursor-pointer focus:outline-none"
+        title="Voltar para o Hortifruti"
+      >
+        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+      </button>
+
+      {/* Floating Centered Back Button */}
+      <AnimatePresence>
+        {!selectedStore && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="absolute bottom-8 inset-x-0 mx-auto z-[999] flex justify-center pointer-events-none"
+          >
+            <button 
+              onClick={onBack}
+              className="pointer-events-auto flex items-center gap-2 px-8 py-3.5 bg-slate-950 dark:bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-slate-900 dark:hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 border border-white/10 group cursor-pointer text-sm"
+            >
+              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              Voltar ao Sacolão & Hortifruti
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Premium Visual Banner */}
       <div className="absolute top-0 inset-x-0 z-[900] pointer-events-none p-4 md:p-6 flex justify-center w-full box-border">
         <div className="w-full max-w-[500px] md:max-w-3xl h-48 md:h-64 bg-slate-200 dark:bg-slate-800 rounded-[24px] md:rounded-[32px] clay-card overflow-hidden relative shadow-2xl pointer-events-auto">

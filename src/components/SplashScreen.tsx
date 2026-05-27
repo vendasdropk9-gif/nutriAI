@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Sparkles } from 'lucide-react';
 import { playSfx } from '../lib/sensory';
@@ -10,6 +10,29 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasPlayedRef = useRef(false);
+
+  // Inicializa a referência de áudio com segurança para persistir em re-renders
+  if (!audioRef.current && typeof Audio !== 'undefined') {
+    audioRef.current = new Audio(nutriaiVoiceUrl);
+    audioRef.current.preload = 'auto';
+    audioRef.current.volume = 0.95; // Volume limpo, balanceado e direto
+  }
+
+  const playVoice = () => {
+    if (hasPlayedRef.current || !audioRef.current) return;
+    
+    audioRef.current.play()
+      .then(() => {
+        hasPlayedRef.current = true;
+        document.removeEventListener('click', playVoice);
+        document.removeEventListener('touchstart', playVoice);
+      })
+      .catch(e => {
+        console.log('Autoplay do áudio aguardando interação natural do usuário (tocar/clicar)...', e);
+      });
+  };
 
   useEffect(() => {
     // Sincronizado com o momento em que o reflexo cruza o centro
@@ -17,21 +40,28 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       playSfx('crystal');
     }, 1000);
 
-    // Reproduzir áudio da voz afirmando "NutriAI" limpa e suavemente após a logo aparecer
-    const voiceTimer = setTimeout(() => {
-      const voiceAudio = new Audio(nutriaiVoiceUrl);
-      voiceAudio.play().catch(e => console.log('Audio autoplay prevented:', e));
-    }, 1300);
+    // Fallbacks para garantir reprodução em políticas estritas de navegadores/mobile/tablets
+    document.addEventListener('click', playVoice, { passive: true });
+    document.addEventListener('touchstart', playVoice, { passive: true });
 
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 800);
-    }, 3000); // Aumentado para 3000ms para permitir a finalização elegante do áudio
+    }, 3200); // Garante que a fala seja concluída tranquilamente antes de sair
 
     return () => {
       clearTimeout(timer);
       clearTimeout(soundTimer);
-      clearTimeout(voiceTimer);
+      document.removeEventListener('click', playVoice);
+      document.removeEventListener('touchstart', playVoice);
+      try {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+      } catch (err) {
+        console.warn('Silent pause catch:', err);
+      }
     };
   }, [onComplete]);
 
@@ -57,6 +87,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 duration: 1.2, 
                 ease: [0.16, 1, 0.3, 1],
                 delay: 0.1
+              }}
+              onAnimationStart={() => {
+                // Sincronização e engatilhamento absoluto: a voz toca exato no frame em que a logo visualmente inicia sua entrada
+                playVoice();
               }}
               className="relative mb-8"
             >

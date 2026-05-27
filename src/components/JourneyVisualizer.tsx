@@ -12,8 +12,11 @@ import {
   Image as ImageIcon,
   Volume2,
   SlidersHorizontal,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Download
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 interface JourneyVisualizerProps {
   profile: UserProfile | null;
@@ -179,6 +182,291 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
     if (!profile) return;
     const msg = await generateJourneyMessage(profile, PERIOD_LABELS[period]);
     setMessage(msg);
+  };
+
+  const handleGeneratePDF = () => {
+    if (!profile) return;
+
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString('pt-BR');
+    
+    // Core parameters for layout calculations
+    const startWeight = profile.weight || 70;
+    const isWeightLoss = profile.goals?.toLowerCase().includes('perda') || profile.goals?.toLowerCase().includes('emagrecer');
+    const endWeight = isWeightLoss ? startWeight * 0.9 : startWeight * 1.05;
+    
+    const baseFat = profile.gender === 'feminino' ? 28 : 20;
+    const endFat = isWeightLoss ? baseFat - 7 : baseFat - 4;
+    
+    const startLean = startWeight * (1 - baseFat/100);
+    const endLean = endWeight * (1 - endFat/100);
+
+    // Decorative Header bar
+    doc.setFillColor(5, 150, 105); // primary emerald
+    doc.rect(15, 12, 180, 2, 'F');
+
+    // Title Block
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Relatorio de Evolucao Corporal - NutriAI', 15, 24);
+    
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Simulacao de 90 dias com projecao de metas e composicao corporal', 15, 30);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Gerado em: ${today}`, 160, 24);
+
+    // Divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, 35, 195, 35);
+
+    // Section 1: Perfil
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(5, 150, 105);
+    doc.text('1. Informacoes do Perfil do Usuario', 15, 43);
+
+    // Grid details
+    const nameStr = profile.name || 'Usuario NutriAI';
+    const ageStr = profile.age ? `${profile.age} anos` : 'Nao informado';
+    const genderStr = profile.gender ? (profile.gender === 'masculino' ? 'Masculino' : profile.gender === 'feminino' ? 'Feminino' : profile.gender) : 'Nao informado';
+    const weightStr = `${startWeight.toFixed(1)} kg`;
+    const heightStr = profile.height ? `${profile.height} cm` : 'Nao informado';
+    const targetWeightStr = profile.targetWeight ? `${profile.targetWeight.toFixed(1)} kg` : 'Nao definido';
+    const bodyTypeStr = profile.bodyType || 'Nao informado';
+    const metabolismStr = profile.metabolism || 'Nao informado';
+    const goalsStr = profile.goals || 'Nao informado';
+
+    // Grid rendering (Row 1)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Nome:', 15, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(nameStr, 28, 51);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Idade:', 85, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(ageStr, 97, 51);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Genero:', 145, 51);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(genderStr, 160, 51);
+
+    // Row 2
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Peso Inicial:', 15, 58);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(weightStr, 38, 58);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Altura:', 85, 58);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(heightStr, 97, 58);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Peso Meta:', 145, 58);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(targetWeightStr, 165, 58);
+
+    // Row 3
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Biotipo:', 15, 65);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(bodyTypeStr, 30, 65);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Metabolismo:', 85, 65);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(metabolismStr, 110, 65);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Nivel Atividade:', 145, 65);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(profile.activityLevel || 'Nao informado', 170, 65);
+
+    // Row 4
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Foco/Objetivos:', 15, 72);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(goalsStr.length > 80 ? goalsStr.slice(0, 80) + '...' : goalsStr, 42, 72);
+
+    // Divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, 78, 195, 78);
+
+    // Section 2: Projeção 90 Dias
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(5, 150, 105);
+    doc.text('2. Projecao de Composicao Corporal (NutriAI MetaHuman 90 dias)', 15, 86);
+
+    // Table Header
+    doc.setFillColor(241, 245, 249);
+    doc.rect(15, 92, 180, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+    doc.text('Periodo de Evolucao', 20, 97);
+    doc.text('Peso Projetado', 65, 97);
+    doc.text('Gordura Corporal %', 110, 97);
+    doc.text('Massa Magra Est.', 155, 97);
+
+    // Table Lines setup
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, 92, 195, 92);
+    doc.line(15, 100, 195, 100);
+
+    const milestones = [
+      { label: 'Dia 1 (Ponto Inicial)', p: 0, desc: 'Estado fisico atual registrado' },
+      { label: 'Dia 7 (Adaptacao Inicial)', p: 0.077, desc: 'Ajustes metabolicos e reducao em retencao' },
+      { label: 'Dia 30 (Resultado Visivel)', p: 0.333, desc: 'Queima adiposa perceptivel e evolucao' },
+      { label: 'Dia 90 (Metamorfose)', p: 1.0, desc: 'Transformacao corporal consolidada' }
+    ];
+
+    let currentY = 100;
+    milestones.forEach((m, idx) => {
+      const pW = (startWeight + (endWeight - startWeight) * m.p).toFixed(1);
+      const pF = (baseFat + (endFat - baseFat) * m.p).toFixed(1);
+      const pL = (startLean + (endLean - startLean) * m.p).toFixed(1);
+
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(15, currentY, 180, 8, 'F');
+      }
+
+      doc.setFont('helvetica', idx === 3 ? 'bold' : 'normal');
+      doc.setTextColor(idx === 3 ? 5 : 51, idx === 3 ? 150 : 65, idx === 3 ? 105 : 85); // green highlight for day 90
+      
+      doc.text(m.label, 20, currentY + 5.5);
+      doc.text(`${pW} kg`, 65, currentY + 5.5);
+      doc.text(`${pF} %`, 110, currentY + 5.5);
+      doc.text(`${pL} kg`, 155, currentY + 5.5);
+
+      doc.line(15, currentY + 8, 195, currentY + 8);
+      currentY += 8;
+    });
+
+    // Divider line
+    currentY += 6;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, currentY, 195, currentY);
+
+    // Section 3: Histórico de Pesos Reais
+    currentY += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(5, 150, 105);
+    doc.text('3. Historico de Pesos Registrados por Voce', 15, currentY);
+
+    currentY += 6;
+    const progressLogs = profile.progressLogs ? profile.progressLogs.slice(-10) : [];
+
+    if (progressLogs.length > 0) {
+      // Draw actual history logs table
+      doc.setFillColor(241, 245, 249);
+      doc.rect(15, currentY, 180, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      doc.text('Data Registro', 20, currentY + 5.5);
+      doc.text('Peso Registrado', 65, currentY + 5.5);
+      doc.text('Gordura Corporal %', 110, currentY + 5.5);
+      doc.text('Anotacoes do Usuario', 145, currentY + 5.5);
+
+      doc.line(15, currentY, 195, currentY);
+      doc.line(15, currentY + 8, 195, currentY + 8);
+      currentY += 8;
+
+      progressLogs.forEach((log, lIdx) => {
+        if (lIdx % 2 === 1) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(15, currentY, 180, 8, 'F');
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 65, 85);
+        
+        const dateStr = log.date ? new Date(log.date).toLocaleDateString('pt-BR') : 'N/A';
+        const weightVal = log.weight ? `${log.weight.toFixed(1)} kg` : 'N/A';
+        const fatVal = log.bodyFat ? `${log.bodyFat.toFixed(1)} %` : 'N/A';
+        const notesVal = log.notes ? (log.notes.length > 25 ? log.notes.slice(0, 25) + '...' : log.notes) : 'Sem anotacoes';
+
+        doc.text(dateStr, 20, currentY + 5.5);
+        doc.text(weightVal, 65, currentY + 5.5);
+        doc.text(fatVal, 110, currentY + 5.5);
+        doc.text(notesVal, 145, currentY + 5.5);
+
+        doc.line(15, currentY + 8, 195, currentY + 8);
+        currentY += 8;
+      });
+    } else {
+      // Help user on how to populate
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(115, 115, 115);
+      doc.text('Voce ainda nao registrou pesos adicionais. Seu historico real aparecera', 15, currentY + 6);
+      doc.text('aqui conforme voce lanca novas pesagens na aba de evolucao ou perfil.', 15, currentY + 11);
+      
+      currentY += 18;
+    }
+
+    // Advice Block from NutriAI
+    currentY += 8;
+    doc.setFillColor(240, 253, 250); // extremely light emerald green
+    doc.rect(15, currentY, 180, 24, 'F');
+    doc.setDrawColor(209, 250, 229);
+    doc.rect(15, currentY, 180, 24);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(15, 118, 110);
+    doc.text('Dica NutriAI para Acelerar seus Resultados:', 20, currentY + 6);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(5, 150, 105);
+    doc.text(`* Beba cerca de ${(startWeight * 35 / 1000).toFixed(1)} litros de agua todos os dias (35ml por kg de peso corporal).`, 20, currentY + 11);
+    doc.text('* Mantenha a consistencia em seu plano calorico - cada dia conta na sua linha de tempo!', 20, currentY + 16);
+    doc.text('* Realize pesagens sempre pela manha, em jejum, para obter maior precisao historica.', 20, currentY + 21);
+
+    // Elegant Disclaimer Footer at fixed position y = 280
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('NutriAI - Copiloto Alimentar e Assistencia de Bem-Estar Baseada em Intuicao Digital', 15, 281);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('A projecao 3D do MetaHuman do NutriAI e estimada por rede neural geradora com filtros corporais biologicos. Nao substitui consulta medica.', 15, 286);
+
+    // Save File
+    doc.save(`NutriAI-Evolucao-${nameStr.replace(/\s+/g, '-')}.pdf`);
   };
 
   const hasRequiredData = profile?.gender && profile?.weight && profile?.height && profile?.age;
@@ -358,6 +646,21 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
                   </div>
                   <h4 className="font-serif text-2xl mb-2 relative z-10">Ajustar meu plano</h4>
                   <p className="text-emerald-100 text-sm font-sans leading-relaxed relative z-10">Reajuste calorias e macros para atingir essa composição corporal mais rápido.</p>
+                </button>
+
+                <button 
+                  onClick={handleGeneratePDF} 
+                  className="bg-white/95 dark:bg-slate-800/95 text-slate-800 dark:text-slate-100 p-8 rounded-[32px] clay-card shadow-xl shadow-black/5 transition-all hover:-translate-y-2 text-left w-full border border-slate-200/60 dark:border-slate-700/50 group relative overflow-hidden cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20 dark:border-emerald-500/30">
+                       <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <Download className="w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:translate-y-0.5 transition-transform" />
+                  </div>
+                  <h4 className="font-serif text-2xl mb-2 relative z-10">Relatório PDF</h4>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-sans leading-relaxed relative z-10">Baixe um resumo completo em PDF da sua evolução de peso, índices e metas atingidas.</p>
                 </button>
              </div>
 

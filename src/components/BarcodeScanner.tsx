@@ -16,6 +16,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualBarcode, setManualBarcode] = useState("");
   
   // Custom camera elements for raw image analysis fallback
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -57,9 +58,15 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch (firstErr) {
+        console.warn("Retrying with simple video constraints due to:", firstErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       setCameraStream(stream);
       setTimeout(() => {
         if (videoRef.current) {
@@ -165,12 +172,28 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
   };
 
   // Starts standard barcode scanner
-  const startScanner = () => {
+  const startScanner = async () => {
     setProductData(null);
     setAnalysis(null);
     setError(null);
     setPreviewImage(null);
     setIsCameraActive(false);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        throw new Error("Dispositivo não possui suporte a câmeras.");
+      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasVideo = devices.some(device => device.kind === 'videoinput');
+      if (!hasVideo) {
+        throw new Error("Nenhuma câmera física de vídeo foi encontrada");
+      }
+    } catch (checkErr: any) {
+      setError("Nenhuma câmera encontrada neste dispositivo. Digite o código de barras abaixo ou use a simulação de produtos.");
+      setIsScanning(false);
+      return;
+    }
+
     setIsScanning(true);
 
     // Initialize scanner after a short delay to ensure div is present
@@ -339,6 +362,57 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
               <Barcode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               Escanear Código de Barras
             </button>
+
+            {/* Manual entry fallback */}
+            <div className="w-full max-w-sm mt-6 border-t border-slate-200/50 dark:border-slate-800/60 pt-6 space-y-4">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Inserir manualmente:</p>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (manualBarcode.trim()) {
+                  handleBarcodeDetected(manualBarcode.trim());
+                }
+              }} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ex: 7891000077008"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-805 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-medium transition-colors"
+                >
+                  Analisar
+                </button>
+              </form>
+
+              {/* Simulation Quick Buttons */}
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-450 dark:text-slate-550">Simulador de Códigos de Barra:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    { name: "Pepsi Cola Zero", barcode: "7891149105319" },
+                    { name: "Aveia em Flocos", barcode: "7891000185901" },
+                    { name: "Chocolate KitKat", barcode: "7613034626844" },
+                    { name: "Leite Ninho", barcode: "7891000077008" }
+                  ].map((sim, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setManualBarcode(sim.barcode);
+                        handleBarcodeDetected(sim.barcode);
+                      }}
+                      className="text-xs bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-650 dark:text-slate-350 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+                    >
+                      {sim.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
