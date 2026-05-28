@@ -270,15 +270,39 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
 
   // Helper colors mapping
   const getStatusColorClass = (status?: 'normal' | 'attention' | 'high_signals') => {
-    if (status === 'high_signals') return 'text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30';
-    if (status === 'attention') return 'text-amber-500 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30';
-    return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30';
+    if (status === 'high_signals') return 'text-rose-500 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 animate-[pulse_3s_cubic-bezier(0.4,0,0.6,1)_infinite] shadow-[0_0_8px_rgba(244,63,94,0.15)]';
+    if (status === 'attention') return 'text-amber-500 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 animate-[pulse_3s_cubic-bezier(0.4,0,0.6,1)_infinite] shadow-[0_0_8px_rgba(245,158,11,0.15)]';
+    return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 animate-[pulse_3s_cubic-bezier(0.4,0,0.6,1)_infinite] shadow-[0_0_8px_rgba(16,185,129,0.15)]';
   };
 
   const statusIcons = {
-    normal: <CheckCircle className="w-6 h-6 text-emerald-500" />,
-    attention: <AlertCircle className="w-6 h-6 text-amber-500" />,
-    high_signals: <ShieldAlert className="w-6 h-6 text-rose-500 animate-bounce" />
+    normal: (
+      <span className="relative flex items-center">
+        <CheckCircle className="w-5 h-5 text-emerald-500 animate-[pulse_2s_infinite] shrink-0" />
+        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+      </span>
+    ),
+    attention: (
+      <span className="relative flex items-center">
+        <AlertCircle className="w-5 h-5 text-amber-500 animate-[pulse_2s_infinite] shrink-0" />
+        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+        </span>
+      </span>
+    ),
+    high_signals: (
+      <span className="relative flex items-center">
+        <ShieldAlert className="w-5 h-5 text-rose-500 animate-bounce shrink-0" />
+        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+        </span>
+      </span>
+    )
   };
 
   const statusLabels = {

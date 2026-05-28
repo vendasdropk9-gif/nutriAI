@@ -69,17 +69,17 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
 
   return (
     <>
-      <div className="fixed bottom-[130px] right-4 md:bottom-28 md:right-6 z-40">
+      <div className="fixed bottom-24 right-[72px] md:bottom-6 md:right-[80px] z-40">
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="p-4 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-amber-200/50 dark:border-amber-500/20 text-amber-500 hover:text-amber-600 transition-all font-serif"
+          className="p-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-amber-200/50 dark:border-amber-500/20 text-amber-500 hover:text-amber-600 transition-all font-serif"
         >
           <div className="absolute inset-0 bg-amber-500/10 rounded-full" />
-          <ChefHat className="w-6 h-6" />
+          <ChefHat className="w-5 h-5" />
         </motion.button>
       </div>
 

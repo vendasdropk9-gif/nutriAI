@@ -27,8 +27,22 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
 
   useEffect(() => {
     if (!profile) return;
-    
     if (!user) return; // test mode bypasses firestore listen
+
+    const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+    if (isLocalUser) {
+      // Load local insight if any exists from localStorage
+      const localInsightStr = localStorage.getItem(`nutri-local-adaptive-insight-${user.uid}`);
+      if (localInsightStr) {
+        try {
+          setAdaptiveInsight(JSON.parse(localInsightStr));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return;
+    }
+
     // Load existing insights from Firestore
     const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
     const q = query(insightsRef, orderBy('date', 'desc'), limit(1));
@@ -88,17 +102,29 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
       setInsight(data.recommendation);
       // Save to Firestore if it's high confidence/significant
       if (user) {
-        try {
-          const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
-          await addDoc(insightsRef, {
+        const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+        if (isLocalUser) {
+          const localInsightObj = {
+            id: crypto.randomUUID(),
             ...data,
             status: 'pending',
-            date: new Date().toISOString(),
-            userId: user.uid,
-            createdAt: serverTimestamp()
-          });
-        } catch (error) {
-          try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+            date: new Date().toISOString()
+          } as any;
+          localStorage.setItem(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
+          setAdaptiveInsight(localInsightObj);
+        } else {
+          try {
+            const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
+            await addDoc(insightsRef, {
+              ...data,
+              status: 'pending',
+              date: new Date().toISOString(),
+              userId: user.uid,
+              createdAt: serverTimestamp()
+            });
+          } catch (error) {
+            try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+          }
         }
       }
     }
@@ -309,10 +335,16 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                                       
                                       // Mark as applied in Firestore
                                       if (user) {
-                                        try {
-                                            const { doc, updateDoc } = await import('firebase/firestore');
-                                            await updateDoc(doc(db, `users/${user.uid}/adaptiveInsights`, adaptiveInsight.id), { status: 'applied' });
-                                        } catch (e) { console.error(e); }
+                                        const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+                                        if (isLocalUser) {
+                                          const localInsightObj = { ...adaptiveInsight, status: 'applied' };
+                                          localStorage.setItem(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
+                                        } else {
+                                          try {
+                                              const { doc, updateDoc } = await import('firebase/firestore');
+                                              await updateDoc(doc(db, `users/${user.uid}/adaptiveInsights`, adaptiveInsight.id), { status: 'applied' });
+                                          } catch (e) { console.error(e); }
+                                        }
                                       }
                                       setAdaptiveInsight(null);
                                     }

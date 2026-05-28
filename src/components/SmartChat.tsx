@@ -259,9 +259,9 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
             whileTap={{ scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 bg-emerald-600 text-white p-4 rounded-full shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:bg-emerald-500 transition-colors"
+            className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 bg-emerald-600 text-white p-3 rounded-full shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:bg-emerald-500 transition-colors"
           >
-            <MessageCircle className="w-6 h-6" />
+            <MessageCircle className="w-5 h-5" />
           </motion.button>
         )}
       </AnimatePresence>
