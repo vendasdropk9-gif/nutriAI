@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -1754,5 +1754,183 @@ Regras:
     return null;
   }
 };
+
+
+export const analyzeBloodPressure = async (
+  logs: BloodPressureLog[],
+  profile: UserProfile | null
+): Promise<{
+  status: 'normal' | 'attention' | 'high_pressure';
+  insight: string;
+  preventiveAlert: string | null;
+  suggestions: {
+    hydration: string;
+    nutrition: string;
+    sodiumReduction: string;
+    relaxation: string;
+  };
+  dailySummary: string;
+} | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const logsText = logs.map(l => `Data: ${new Date(l.date).toLocaleString('pt-BR')}, Sistólica: ${l.systolic}, Diastólica: ${l.diastolic}, BPM: ${l.bpm}${l.notes ? `, Notas: ${l.notes}` : ''}`).join('\n');
+
+  const prompt = `Você é um Cardiologista especialista em saúde preventiva e IA médica integrada ao NutriAI.
+Analise os registros de pressão arterial do usuário e forneça insights inteligentes para ajudá-lo a melhorar sua saúde do coração.
+
+DADOS DE PERFIL DO USUÁRIO:
+Nome: ${profile?.name || 'Usuário'}
+Objetivos de saúde: ${profile?.goals || 'Melhorar bem-estar'}
+Peso: ${profile?.weight || 'Não informado'} kg
+Idade: ${profile?.age || 'Não informada'} anos
+
+HISTÓRICO RECENTE DE PRESSÃO ARTERIAL (Mais recentes no topo):
+${logsText || 'Nenhum registro encontrado ainda.'}
+
+DIRETRIZES DE ESTADO DA PRESSÃO ARTERIAL:
+- Normal (Verde): Sistólica < 120 e Diastólica < 80.
+- Atenção (Amarelo): Sistólica entre 120-139 OU Diastólica entre 80-89.
+- Pressão Alta (Vermelho): Sistólica >= 140 OU Diastólica >= 90.
+
+Sua tarefa é produzir uma análise médica acolhedora, precisa e motivadora em formato JSON.
+Certifique-se de preencher todos os campos obrigatórios conforme o schema solicitado.
+
+DIRETRIZES DE TEXTO:
+- Seja humano, compreensivo e adote o tom premium acolhedor do NutriAI.
+- Forneça conselhos acionáveis de alimentação (redução de sódio, alimentos cardioprotetores como alho, aveia, vegetais verde-escuros) e estilo de vida.
+- Sugira chás relaxantes específicos (como cidreira, camomila, maracujá) ou técnicas de meditação para diminuir estresse.
+- Alerte preventivamente caso haja tendências frequentes de alteração.
+
+Responda APENAS em JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      status: { type: Type.STRING, enum: ['normal', 'attention', 'high_pressure'] },
+      insight: { type: Type.STRING },
+      preventiveAlert: { type: Type.STRING, nullable: true },
+      suggestions: {
+        type: Type.OBJECT,
+        properties: {
+          hydration: { type: Type.STRING },
+          nutrition: { type: Type.STRING },
+          sodiumReduction: { type: Type.STRING },
+          relaxation: { type: Type.STRING }
+        },
+        required: ["hydration", "nutrition", "sodiumReduction", "relaxation"]
+      },
+      dailySummary: { type: Type.STRING }
+    },
+    required: ["status", "insight", "suggestions", "dailySummary"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to analyze blood pressure:", error);
+    return null;
+  }
+};
+
+
+export const analyzeBodyBiometrics = async (
+  logs: BodyMonitorLog[],
+  profile: UserProfile | null
+): Promise<{
+  status: 'normal' | 'attention' | 'high_signals';
+  report: string;
+  preventiveAlert: string | null;
+  suggestions: {
+    hydration: string;
+    rest: string;
+    nutrition: string;
+    calmingTea: string;
+    relaxation: string;
+  };
+  dailySummary: string;
+} | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const logsText = logs.map(l => {
+    return `Data: ${new Date(l.date).toLocaleString('pt-BR')}, BPM Freq: ${l.heartRate}, Estresse: ${l.stressLevel}%, Fadiga: ${l.fatigueLevel}%, Ansiedade: ${l.anxietyLevel}%${l.notes ? `, Notas: ${l.notes}` : ''}`;
+  }).join('\n');
+
+  const prompt = `Você é o Cardiologista Clinico & Especialista em Medicina de Estatísticas Preventivas Integrado do NutriAI.
+Sua missão é dar uma devolutiva acolhedora, premium, sem jargões alarmistas inapropriados, mas altamente profissional e focada em bem-estar e melhoria corporal saudável.
+
+DADOS DE PERFIL DO USUÁRIO:
+Nome: ${profile?.name || 'Usuário'}
+Idade: ${profile?.age || 'Não especificada'} anos
+Objetivos: ${profile?.goals || 'Monitramento de sinais de bem-estar'}
+Restrições: ${profile?.restrictions?.join(', ') || 'Nenhuma'}
+
+HISTÓRICO RECENTE DE BIO-MONITORAMENTO CARDIO/FISIOLÓGICO:
+${logsText || 'Ainda não foram colhidos sinais de monitoramento hoje.'}
+
+Sua tarefa é analisar esses sinais e produzir um JSON diagnóstico e preventivo. Sabendo que:
+- Sinais normais (BPM ~60-90, Estresse < 40%, Fadiga < 40%, Ansiedade < 40%) -> status: "normal"
+- Sinais em moderada alteração -> status: "attention"
+- Sinais elevados (BPM > 100 ou < 50 em repouso, ou qualquer nível de estresse, fadiga, ansiedade > 70%) -> status: "high_signals"
+
+Você deve ser humano, amigável, dar instruções exatas de bem-estar, com chás calmantes (Ex: cidreira, camomila, mulungu, passiflora), técnicas de respiração díficil ou meditação, dicas de hidratação adequada ao peso/perfil e nutrição anti-estresse rica em magnésio, potássio, triptofano.
+
+Observação crucial: NÃO somos um substituto médico de emergência ou diagnóstico oficial. Lembre-os sutilmente de buscar cardiologistas ou clínicos se os sinais persistirem.
+
+Responda APENAS em JSON em conformidade com o schema fornecido.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      status: { type: Type.STRING, enum: ['normal', 'attention', 'high_signals'] },
+      report: { type: Type.STRING },
+      preventiveAlert: { type: Type.STRING, nullable: true },
+      suggestions: {
+        type: Type.OBJECT,
+        properties: {
+          hydration: { type: Type.STRING },
+          rest: { type: Type.STRING },
+          nutrition: { type: Type.STRING },
+          calmingTea: { type: Type.STRING },
+          relaxation: { type: Type.STRING }
+        },
+        required: ["hydration", "rest", "nutrition", "calmingTea", "relaxation"]
+      },
+      dailySummary: { type: Type.STRING }
+    },
+    required: ["status", "report", "suggestions", "dailySummary"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to analyze body biometrics:", error);
+    return null;
+  }
+};
+
 
 

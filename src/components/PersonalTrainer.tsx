@@ -1,5 +1,5 @@
 import { playSfx, vibrate } from '../lib/sensory';
-import { playAudioUrl } from '../lib/speech';
+import { playAudioUrl, stopSpeech } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,6 +28,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  const [isSpeakingTips, setIsSpeakingTips] = useState(false);
   
   // Background Music State
   const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
@@ -133,6 +134,81 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     } catch (error) {
       console.error(error);
       setIsPlaying(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsSpeakingTips(false);
+  }, [currentExerciseIndex]);
+
+  const getAudioTipsText = () => {
+    if (!currentExercise) return '';
+    const name = currentExercise.name;
+    
+    let text = `Instruções de execução para o exercício ${name}. `;
+    
+    if (currentExercise.instructions && currentExercise.instructions.length > 0) {
+      text += `Como fazer: ${currentExercise.instructions.join('. ')}. `;
+    }
+    
+    if (currentExercise.commonErrors && currentExercise.commonErrors.length > 0) {
+      const errorsText = currentExercise.commonErrors
+        .map(e => `Atenção: evite o erro comum de ${e.error.toLowerCase()}. O correto é ${e.fix.toLowerCase()}.`)
+        .join('. ');
+      text += `Fique atento a postura. ${errorsText} `;
+    }
+    
+    if (currentExercise.benefits) {
+      text += `Como benefício, ${currentExercise.benefits.toLowerCase()}`;
+    }
+    
+    return text;
+  };
+
+  const handlePlayAudioTips = async () => {
+    if (!currentExercise) return;
+
+    if (isSpeakingTips) {
+      stopSpeech();
+      setIsSpeakingTips(false);
+      if (bgAudioRef.current && isBgMusicPlaying) {
+        bgAudioRef.current.volume = bgMusicVolume;
+      }
+      return;
+    }
+
+    setIsSpeakingTips(true);
+    const textToSpeak = getAudioTipsText();
+    
+    if (bgAudioRef.current && isBgMusicPlaying) {
+      bgAudioRef.current.volume = 0.05;
+    }
+    
+    try {
+      const base64Audio = await textToSpeech(textToSpeak);
+      if (base64Audio) {
+        const url = `data:audio/wav;base64,${base64Audio}`;
+        setAudioUrl(url);
+        await playAudioUrl(url, {
+          onEnded: () => {
+            setIsSpeakingTips(false);
+            if (bgAudioRef.current && isBgMusicPlaying) {
+              bgAudioRef.current.volume = bgMusicVolume;
+            }
+          }
+        });
+      } else {
+        setIsSpeakingTips(false);
+        if (bgAudioRef.current && isBgMusicPlaying) {
+          bgAudioRef.current.volume = bgMusicVolume;
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao gerar áudio de dicas:", error);
+      setIsSpeakingTips(false);
+      if (bgAudioRef.current && isBgMusicPlaying) {
+        bgAudioRef.current.volume = bgMusicVolume;
+      }
     }
   };
 
@@ -563,6 +639,35 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                    </div>
                  )}
               </motion.div>
+
+              <button
+                type="button"
+                onClick={handlePlayAudioTips}
+                disabled={isGenerating}
+                className={`w-full bg-gradient-to-r ${isSpeakingTips ? 'from-amber-500/15 via-amber-500/5' : 'from-emerald-500/15 via-emerald-500/5'} to-transparent dark:from-emerald-500/25 dark:via-emerald-500/10 border ${isSpeakingTips ? 'border-amber-500/30' : 'border-emerald-500/20'} p-5 rounded-[24px] hover:rounded-[28px] flex items-center justify-between hover:border-emerald-500/40 hover:scale-[1.01] transition-all group active:scale-95 text-left`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl ${isSpeakingTips ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'} flex items-center justify-center shadow-lg ${isSpeakingTips ? 'shadow-amber-500/30' : 'shadow-emerald-500/30'} group-hover:scale-110 transition-transform`}>
+                    {isSpeakingTips ? (
+                      <Pause className="w-5 h-5 fill-current animate-pulse" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      {isSpeakingTips ? 'Pausar Dicas por Voz' : 'Dicas de Execução por Voz (IA)'}
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium ${isSpeakingTips ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                        {isSpeakingTips ? 'Tocando' : 'Premium'}
+                      </span>
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {isSpeakingTips ? 'Clique para pausar a reprodução de voz' : 'Ouça como executar, respirar e evitar erros comuns'}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              </button>
 
               <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 md:p-6 rounded-[24px] md:rounded-[28px] border border-emerald-100 dark:border-emerald-800/30 space-y-2 md:space-y-3">
                  <div className="flex items-center gap-2 font-serif text-base md:text-lg text-emerald-800 dark:text-emerald-400">

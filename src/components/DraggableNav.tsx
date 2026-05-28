@@ -4,7 +4,7 @@ import {
   Utensils, CalendarDays, ShoppingBasket, User, Camera, 
   Sparkles, GlassWater, Barcode, Brain, Trophy, Droplet, 
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
-  Map as MapIcon, Zap, Activity, Building2
+  Map as MapIcon, Zap, Activity, Building2, Heart
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -27,6 +27,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'generator', label: 'Receitas', icon: <Utensils className="w-5 h-5" /> },
   { id: 'juice', label: 'Sucos', icon: <GlassWater className="w-5 h-5" /> },
   { id: 'habits', label: 'Hábitos', icon: <Activity className="w-5 h-5" /> },
+  { id: 'bloodpressure', label: 'Pressão', icon: <Heart className="w-5 h-5 text-rose-500 animate-pulse" />, color: 'from-rose-500 to-red-600' },
   { id: 'barcode', label: 'Scanner', icon: <Barcode className="w-5 h-5" /> },
   { id: 'emotional', label: 'Mente', icon: <Brain className="w-5 h-5" /> },
   { id: 'analyzer', label: 'Prato', icon: <Camera className="w-5 h-5" /> },

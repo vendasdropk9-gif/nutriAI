@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog } from "../types";
 
 const callGeminiEndpoint = async (functionName: string, args: any[]) => {
   try {
@@ -236,4 +236,42 @@ export const analyzeEmotionalImage = async (
 ): Promise<any | null> => {
   return callGeminiEndpoint('analyzeEmotionalImage', [base64Image, mimeType, profile]);
 };
+
+export const analyzeBloodPressure = async (
+  logs: BloodPressureLog[],
+  profile: UserProfile | null
+): Promise<{
+  status: 'normal' | 'attention' | 'high_pressure';
+  insight: string;
+  preventiveAlert: string | null;
+  suggestions: {
+    hydration: string;
+    nutrition: string;
+    sodiumReduction: string;
+    relaxation: string;
+  };
+  dailySummary: string;
+} | null> => {
+  return callGeminiEndpoint('analyzeBloodPressure', [logs, profile]);
+};
+
+export const analyzeBodyBiometrics = async (
+  logs: BodyMonitorLog[],
+  profile: UserProfile | null
+): Promise<{
+  status: 'normal' | 'attention' | 'high_signals';
+  report: string;
+  preventiveAlert: string | null;
+  suggestions: {
+    hydration: string;
+    rest: string;
+    nutrition: string;
+    calmingTea: string;
+    relaxation: string;
+  };
+  dailySummary: string;
+} | null> => {
+  return callGeminiEndpoint('analyzeBodyBiometrics', [logs, profile]);
+};
+
 

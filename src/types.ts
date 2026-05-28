@@ -115,6 +115,34 @@ export interface UserProfile {
   savedRecipes?: Recipe[];
   sleepLogs?: SleepLog[];
   fastingLogs?: FastingLog[];
+  bloodPressureLogs?: BloodPressureLog[];
+  bodyMonitorLogs?: BodyMonitorLog[];
+}
+
+export interface BodyMonitorLog {
+  id: string;
+  date: string; // ISO
+  heartRate: number;
+  stressLevel: number; // 0-100
+  fatigueLevel: number; // 0-100
+  anxietyLevel: number; // 0-100
+  notes?: string;
+  facialScanConsent: boolean;
+  fingerScanConsent: boolean;
+  status: 'normal' | 'attention' | 'high_signals';
+  userId: string;
+  createdAt?: string;
+}
+
+export interface BloodPressureLog {
+  id: string;
+  date: string; // ISO
+  systolic: number;
+  diastolic: number;
+  bpm: number;
+  userId: string;
+  createdAt?: string;
+  notes?: string;
 }
 
 export interface StoreTag {

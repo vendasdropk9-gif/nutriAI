@@ -97,6 +97,20 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
+      // Subcollections for blood pressure records (systolic, diastolic, bpm)
+      match /bloodPressureLogs/{logId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().systolic is number && incoming().diastolic is number && incoming().bpm is number;
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollections for body monitor logs
+      match /bodyMonitorLogs/{logId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidLog(incoming());
+        allow delete: if isOwner(userId);
+      }
+
       // Subcollections for physical training workouts
       match /workoutLogs/{logId} {
         allow list, get: if isOwner(userId);

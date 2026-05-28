@@ -126,6 +126,40 @@
       },
       "required": ["date", "completed", "userId", "createdAt"]
     },
+    "BloodPressureLog": {
+      "title": "Blood Pressure Log",
+      "description": "Daily blood pressure measurements containing systolic, diastolic and heart rate readings",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "systolic": { "type": "number" },
+        "diastolic": { "type": "number" },
+        "bpm": { "type": "number" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "systolic", "diastolic", "bpm", "userId", "createdAt"]
+    },
+    "BodyMonitorLog": {
+      "title": "Body Monitor Log",
+      "description": "Intelligent camera-based biometric logs tracking physical stress, fatigue, heart rate and wellness",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "heartRate": { "type": "number" },
+        "stressLevel": { "type": "number" },
+        "fatigueLevel": { "type": "number" },
+        "anxietyLevel": { "type": "number" },
+        "notes": { "type": "string" },
+        "facialScanConsent": { "type": "boolean" },
+        "fingerScanConsent": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["normal", "attention", "high_signals"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "heartRate", "stressLevel", "fatigueLevel", "anxietyLevel", "facialScanConsent", "fingerScanConsent", "status", "userId", "createdAt"]
+    },
     "AICert": {
       "title": "AI Conversation",
       "description": "Conversations log directly linked with Gemini model insights",
@@ -291,6 +325,14 @@
     "/users/{userId}/workoutLogs/{logId}": {
       "schema": "WorkoutLog",
       "description": "Physical activity workout sets logs"
+    },
+    "/users/{userId}/bloodPressureLogs/{logId}": {
+      "schema": "BloodPressureLog",
+      "description": "Patient blood pressure, systolic, diastolic and bmp tracking logs"
+    },
+    "/users/{userId}/bodyMonitorLogs/{logId}": {
+      "schema": "BodyMonitorLog",
+      "description": "Biometric body scanning logs including stress, anxiety and heart rates"
     },
     "/users/{userId}/aiChats/{chatId}": {
       "schema": "AICert",

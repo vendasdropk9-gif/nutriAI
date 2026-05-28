@@ -190,26 +190,90 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               Detalhes Nutricionais
               {isNutritionExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
-            
-            {isNutritionExpanded && (
-              <div className="mt-6 bg-white/40 dark:bg-slate-800/40 border border-white/60 dark:border-slate-700/50 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {nutrition.fiber !== undefined && (
-                    <div className="flex flex-col">
-                      <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-1">Fibras</span>
-                      <span className="text-slate-700 dark:text-slate-200 font-medium text-lg">{nutrition.fiber}g</span>
+                  {isNutritionExpanded && (
+              <div className="mt-6 bg-white/40 dark:bg-slate-800/40 border border-white/60 dark:border-slate-700/50 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
+                <div>
+                  <h5 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-3">Macronutrientes (Distribuição Energética)</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Protein */}
+                    <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 rounded-xl p-3 flex flex-col justify-between">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Proteínas</span>
+                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          {Math.round((nutrition.protein * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold font-serif text-emerald-900 dark:text-emerald-100 mb-2">
+                        {nutrition.protein}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.protein * 4} kcal)</span>
+                      </div>
+                      <div className="w-full bg-emerald-500/20 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-emerald-500 h-full rounded-full" 
+                          style={{ width: `${Math.min(100, Math.round(((nutrition.protein * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
+                        />
+                      </div>
                     </div>
-                  )}
-                  {nutrition.sugar !== undefined && (
-                    <div className="flex flex-col">
-                      <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-1">Açúcares</span>
-                      <span className="text-slate-700 dark:text-slate-200 font-medium text-lg">{nutrition.sugar}g</span>
+
+                    {/* Carbs */}
+                    <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 rounded-xl p-3 flex flex-col justify-between">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-semibold text-amber-800 dark:text-amber-400">Carboidratos</span>
+                        <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                          {Math.round((nutrition.carbs * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold font-serif text-amber-900 dark:text-amber-100 mb-2">
+                        {nutrition.carbs}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.carbs * 4} kcal)</span>
+                      </div>
+                      <div className="w-full bg-amber-500/20 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-amber-500 h-full rounded-full" 
+                          style={{ width: `${Math.min(100, Math.round(((nutrition.carbs * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
+                        />
+                      </div>
                     </div>
-                  )}
+
+                    {/* Fats */}
+                    <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/10 rounded-xl p-3 flex flex-col justify-between">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-semibold text-rose-800 dark:text-rose-400">Gorduras</span>
+                        <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                          {Math.round((nutrition.fat * 9) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold font-serif text-rose-900 dark:text-rose-100 mb-2">
+                        {nutrition.fat}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.fat * 9} kcal)</span>
+                      </div>
+                      <div className="w-full bg-rose-500/20 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-rose-500 h-full rounded-full" 
+                          style={{ width: `${Math.min(100, Math.round(((nutrition.fat * 9) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-white/40 dark:border-slate-700/50 pt-4">
+                  <h5 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-3">Fibras e Açúcares</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {nutrition.fiber !== undefined && (
+                      <div className="flex flex-col">
+                        <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-1">Fibras</span>
+                        <span className="text-slate-700 dark:text-slate-200 font-medium text-lg">{nutrition.fiber}g</span>
+                      </div>
+                    )}
+                    {nutrition.sugar !== undefined && (
+                      <div className="flex flex-col">
+                        <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-1">Açúcares</span>
+                        <span className="text-slate-700 dark:text-slate-200 font-medium text-lg">{nutrition.sugar}g</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {(nutrition.vitamins || nutrition.minerals) && (
-                  <div className="mt-6 flex flex-col md:flex-row gap-8 border-t border-white/40 dark:border-slate-700/50 pt-6">
+                  <div className="mt-6 flex flex-col md:flex-row gap-8 border-t border-white/40 dark:border-slate-700/50 pt-4">
                     {nutrition.vitamins && nutrition.vitamins.length > 0 && (
                       <div className="flex-1">
                          <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold mb-3">

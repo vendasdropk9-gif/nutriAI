@@ -37,6 +37,7 @@ import { DeliveryPartnerPortal } from './components/DeliveryPartnerPortal';
 import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
 import { AcademyPortal } from './components/AcademyPortal';
+import { BloodPressureTracker } from './components/BloodPressureTracker';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
@@ -70,7 +71,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
@@ -295,6 +296,13 @@ export default function App() {
                 onAwardPoints={awardPoints}
               />
             )}
+            {activeTab === 'bloodpressure' && (
+              <BloodPressureTracker 
+                profile={profile} 
+                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
+                onAwardPoints={awardPoints}
+              />
+            )}
             {activeTab === 'barcode' && (
               <BarcodeScanner profile={profile} />
             )}
@@ -358,7 +366,11 @@ export default function App() {
               <PlateAnalyzer profile={profile} onAwardPoints={awardPoints} />
             )}
             {activeTab === 'body' && (
-              <BodyAnalyzer profile={profile} onAwardPoints={awardPoints} />
+              <BodyAnalyzer 
+                profile={profile} 
+                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+                onAwardPoints={awardPoints} 
+              />
             )}
             {activeTab === 'journey' && (
               <JourneyVisualizer profile={profile} />

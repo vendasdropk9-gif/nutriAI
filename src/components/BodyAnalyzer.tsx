@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, Volume2, Play, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X } from 'lucide-react';
+import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, Volume2, Play, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse } from 'lucide-react';
 import { analyzeBodyImage, getGeneralBodyTips, textToSpeech } from '../lib/gemini';
 import { playAudioUrl } from '../lib/speech';
 import { UserProfile } from '../types';
+import { BodySensorsMonitor } from './BodySensorsMonitor';
 
 interface BodyAnalyzerProps {
   profile: UserProfile | null;
+  onUpdateProfile?: (updated: Partial<UserProfile>) => void;
   onAwardPoints?: (amount: number, reason: string) => void;
 }
 
-export function BodyAnalyzer({ profile, onAwardPoints }: BodyAnalyzerProps) {
+export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAnalyzerProps) {
+  const [bodySubTab, setBodySubTab] = useState<'biometrics' | 'shape'>('biometrics');
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
@@ -202,19 +205,58 @@ export function BodyAnalyzer({ profile, onAwardPoints }: BodyAnalyzerProps) {
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 px-2 sm:px-4">
-      <div className="text-center space-y-4 mb-12">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
-          Clínica Corporal e Evolução
-        </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
-          Nossa IA avalia sua forma de maneira neutra e confidencial para sugerir ajustes na sua jornada. 100% privado e opcional.
-        </p>
+      
+      {/* Premium sub-tab top navigation controls */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8 pb-6 border-b border-slate-150 dark:border-slate-800">
+        <div className="text-center sm:text-left">
+          <span className="font-mono text-[10px] text-emerald-500 font-bold uppercase tracking-widest block">Portal Clínico Corporal</span>
+          <h3 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm">Selecione a abordagem corporal por sensoriamento eletrônico</h3>
+        </div>
+        <div className="flex p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/30 w-full sm:w-auto">
+          <button
+            onClick={() => setBodySubTab('biometrics')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+              bodySubTab === 'biometrics'
+                ? 'bg-white dark:bg-slate-800 shadow-sm text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            🩺 Biometria e Sensores
+          </button>
+          <button
+            onClick={() => setBodySubTab('shape')}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+              bodySubTab === 'shape'
+                ? 'bg-white dark:bg-slate-800 shadow-sm text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            📐 Evolução do Shape (Fotos)
+          </button>
+        </div>
       </div>
 
-      <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-[32px]">
-        
-        {/* State 1: Selection - Live Camera, Photo Upload or Recommendations only */}
-        {!previewImage && !isScanning && !analysisResult && !isCameraActive && (
+      {bodySubTab === 'biometrics' ? (
+        <BodySensorsMonitor 
+          profile={profile} 
+          onUpdateProfile={onUpdateProfile || (() => {})} 
+          onAwardPoints={onAwardPoints} 
+        />
+      ) : (
+        <>
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+              Clínica Corporal e Evolução
+            </h2>
+            <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
+              Nossa IA avalia sua forma de maneira neutra e confidencial para sugerir ajustes na sua jornada. 100% privado e opcional.
+            </p>
+          </div>
+
+          <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-[32px]">
+            
+            {/* State 1: Selection - Live Camera, Photo Upload or Recommendations only */}
+            {!previewImage && !isScanning && !analysisResult && !isCameraActive && (
           <div className="space-y-8 animate-in fade-in duration-300">
             <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-[24px] p-6 border border-emerald-100 dark:border-emerald-800/30 flex items-start gap-4">
               <ShieldCheck className="w-8 h-8 text-emerald-600 mt-1 shrink-0" />
@@ -473,7 +515,9 @@ export function BodyAnalyzer({ profile, onAwardPoints }: BodyAnalyzerProps) {
             
           </div>
         )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
