@@ -4,6 +4,7 @@ import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, Trendin
 import { UserProfile, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenges } from '../lib/gemini';
 import { ScratchCard } from './ScratchCard';
+import { FitnessRoulette } from './FitnessRoulette';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
@@ -180,6 +181,8 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
           ))}
         </div>
       </div>
+      
+      <FitnessRoulette profile={profile} />
 
       {/* Weekly Reward / Scratch Card */}
       <div className="space-y-4">
@@ -252,16 +255,16 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
       </div>
 
       {/* Motivation Footer */}
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-[40px] clay-card text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Trophy className="w-32 h-32" />
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-white shadow-lg overflow-hidden relative transition-colors duration-300">
+        <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 pointer-events-none">
+          <Trophy className="w-32 h-32 text-slate-800 dark:text-white" />
         </div>
         <div className="relative z-10">
-          <h4 className="text-2xl font-black mb-2">Quase lá! 🚀</h4>
-          <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
+          <h4 className="text-2xl font-black mb-2 text-slate-900 dark:text-white">Quase lá! 🚀</h4>
+          <p className="text-slate-600 dark:text-slate-300 text-sm mb-6 leading-relaxed">
             Você está no top 5% dos usuários esta semana. Continue assim para desbloquear o status <span className="font-bold underline decoration-amber-400 decoration-2">Lendário</span>.
           </p>
-          <button className="flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-50 transition-all">
+          <button className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md dark:hover:bg-slate-50 transition-all cursor-pointer">
             Ver Ranking Global
             <ChevronRight className="w-4 h-4" />
           </button>

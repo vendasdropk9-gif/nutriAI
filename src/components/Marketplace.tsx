@@ -305,7 +305,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Dynamic Banner */}
-      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-slate-950 transition-colors box-border mx-auto border-none">
+      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-white dark:bg-white transition-colors box-border mx-auto border-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={BANNERS[currentBanner].id}
@@ -340,11 +340,11 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                </h3>
                <p className="hidden sm:block text-white/80 text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{BANNERS[currentBanner].subtitle}</p>
                <button 
-                  onClick={() => addToCart(PRODUCTS[0])}
+                  style={{ color: '#ffffff' }} onClick={() => addToCart(PRODUCTS[0])}
                   className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white"
                >
-                  <ShoppingCart className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
+                  <ShoppingCart style={{ color: '#ffffff' }} className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span style={{ color: '#ffffff' }} className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
                </button>
             </div>
           </motion.div>

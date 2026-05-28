@@ -546,20 +546,20 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Pattern Analysis */}
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[32px] clay-card text-white shadow-xl shadow-indigo-500/20 flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-[32px] border border-slate-105 dark:border-slate-800/80 text-slate-800 dark:text-white shadow-xl flex flex-col justify-between transition-colors duration-300">
           <div className="space-y-4">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <Brain className="w-6 h-6" />
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
+              <Brain className="w-6 h-6 text-slate-850 dark:text-slate-200" />
             </div>
-            <h3 className="font-serif text-3xl font-medium">Análise de Padrões</h3>
-            <p className="text-indigo-100 leading-relaxed font-sans">
+            <h3 className="font-serif text-3xl font-medium text-slate-900 dark:text-white">Análise de Padrões</h3>
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
               Minha IA identifica se você está comendo por ansiedade ou tédio ao cruzar seus horários e sentimentos.
             </p>
           </div>
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="mt-8 bg-white text-indigo-600 py-4 px-8 rounded-2xl font-bold shadow-lg shadow-black/10 hover:bg-indigo-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="mt-8 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white py-4 px-8 rounded-2xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
           >
             {isAnalyzing ? "Analisando..." : "Gerar Relatório Emocional"}
             <Sparkles className="w-5 h-5" />

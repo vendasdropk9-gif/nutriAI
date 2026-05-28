@@ -222,7 +222,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
 
       {/* Premium Visual Banner */}
       <div className="absolute top-0 inset-x-0 z-[900] pointer-events-none p-4 md:p-6 flex justify-center w-full box-border">
-        <div className="w-full max-w-[500px] md:max-w-3xl h-48 md:h-64 bg-slate-200 dark:bg-slate-800 rounded-[24px] md:rounded-[32px] clay-card overflow-hidden relative shadow-2xl pointer-events-auto">
+        <div className="w-full max-w-[500px] md:max-w-3xl h-48 md:h-64 bg-white dark:bg-white rounded-[24px] md:rounded-[32px] clay-card overflow-hidden relative shadow-2xl pointer-events-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}

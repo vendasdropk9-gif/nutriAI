@@ -39,10 +39,10 @@ export function PartnerBanner() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-y border-white/5 shadow-2xl h-16 md:h-20 flex items-center justify-center pt-0 mx-0 mt-0 -mb-[5px]">
+    <div className="relative w-full overflow-hidden bg-white dark:bg-white border-y border-slate-200 dark:border-slate-200 shadow-sm h-16 md:h-20 flex items-center justify-center pt-0 mx-0 mt-0 -mb-[5px]">
       {/* Decorative pulse background */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.15)_0%,transparent_70%)] animate-pulse" />
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.1)_0%,transparent_70%)] animate-pulse" />
       </div>
 
       {/* Audio Element */}
@@ -54,7 +54,7 @@ export function PartnerBanner() {
       />
 
       <div className="max-w-7xl mx-auto px-4 w-full flex items-center justify-between relative z-10">
-        <div className="hidden md:flex items-center gap-2 text-emerald-500/60 font-mono text-[10px] tracking-widest uppercase">
+        <div className="hidden md:flex items-center gap-2 text-emerald-600 dark:text-emerald-600 font-mono text-[10px] tracking-widest uppercase font-bold">
           <Store className="w-3 h-3" />
           <span>Parceiros NutriAI</span>
         </div>
@@ -72,7 +72,7 @@ export function PartnerBanner() {
               }}
               className="absolute inset-x-0 mx-auto text-center flex justify-center items-center px-4 max-w-full"
             >
-              <span className="font-serif text-sm sm:text-lg md:text-2xl font-light text-white tracking-wide block max-w-full">
+              <span className="font-serif text-sm sm:text-lg md:text-2xl font-light text-slate-800 dark:text-slate-800 tracking-wide block max-w-full">
                 {PARTNERS[index]}
               </span>
             </motion.div>
@@ -85,12 +85,12 @@ export function PartnerBanner() {
           onClick={toggleMusic}
           className={`p-2 rounded-full border transition-all duration-500 ${
             !isMuted 
-            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-            : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
+            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+            : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-100 dark:border-slate-200 dark:text-slate-500 dark:hover:text-slate-850'
           }`}
           title={isMuted ? "Ativar música ambiente" : "Desativar música"}
         >
-          {isMuted ? <VolumeX className="w-4 h-4 text-[#63ff00]" /> : <Volume2 className="w-4 h-4 text-[#63ff00]" />}
+          {isMuted ? <VolumeX className="w-4 h-4 text-emerald-600 dark:text-emerald-600" /> : <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-600" />}
         </motion.button>
       </div>
 

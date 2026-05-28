@@ -87,7 +87,7 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
   const slide = FOOD_SLIDES[currentIndex];
 
   return (
-    <div className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-slate-200 dark:bg-slate-800 transition-colors box-border">
+    <div className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-white dark:bg-white transition-colors box-border">
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
