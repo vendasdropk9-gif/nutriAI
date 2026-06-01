@@ -212,64 +212,43 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            setIsOpen(true);
-            if (!isConnected && !isConnecting) {
+            if (isConnected || isConnecting) {
+              stopLive();
+            } else {
               startLive();
             }
           }}
-          className="clay-btn p-4 rounded-full shadow-lg flex items-center justify-center gap-2 relative group overflow-hidden"
-          style={{ color: '#4ac6ca' }}
+          className={`clay-btn p-4 rounded-full shadow-lg flex items-center justify-center gap-2 relative group overflow-hidden transition-all duration-300 ${
+            isConnected ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-500 dark:text-emerald-400' : ''
+          }`}
+          style={{ color: isConnected ? undefined : '#4ac6ca' }}
+          title={isConnected ? "Desativar assistente de voz" : "Ativar assistente de voz (Malu)"}
         >
-          {isConnected && (
-            <motion.div animate={{ scale: [1, 1.3], opacity: [0.5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute inset-0 bg-[#4ac6ca]/20 rounded-full" />
+          {(isConnected || isConnecting) && (
+            <motion.div
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [0.4, 0, 0.4]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className={`absolute inset-0 rounded-full ${
+                isConnecting ? 'bg-[#4ac6ca]/20' : 'bg-emerald-500/30'
+              }`}
+            />
           )}
-          <Mic className="w-6 h-6" />
+          {isConnecting ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : isConnected ? (
+            <Waves className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
+          ) : (
+            <Mic className="w-6 h-6" />
+          )}
         </motion.button>
       </div>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-40 left-4 md:bottom-24 md:left-6 z-50 w-80 bg-white dark:bg-slate-900 rounded-[32px] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center gap-6"
-          >
-            <button onClick={() => { setIsOpen(false); stopLive(); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-            <div className="text-center space-y-2">
-              <h3 className="font-bold text-lg">Malu Ao Vivo</h3>
-              <p className="text-xs text-slate-500">Conversa natural por voz</p>
-            </div>
-            
-            <div className="relative">
-              <motion.div 
-                animate={isConnected ? { scale: [1, 1.2, 1] } : {}} 
-                transition={{ duration: 2, repeat: Infinity }}
-                className={`w-24 h-24 rounded-full flex items-center justify-center ${isConnected ? 'bg-emerald-500 shadow-lg shadow-emerald-500/40 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-              >
-                {isConnecting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Mic className="w-8 h-8" />}
-              </motion.div>
-            </div>
-
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-
-            <div className="text-sm font-medium">
-              {isConnecting ? "Conectando..." : isConnected ? "Ouvindo... Pode falar!" : "Desconectado"}
-            </div>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={isConnected ? stopLive : startLive}
-              className={`w-full py-3 rounded-xl font-bold transition-colors ${isConnected ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100'}`}
-            >
-              {isConnected ? "Encerrar" : "Ligar"}
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }
