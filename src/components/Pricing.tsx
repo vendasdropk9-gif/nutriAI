@@ -72,31 +72,31 @@ export function Pricing() {
     if (billingCycle === 'annual') {
       const monthlyEquivalent = (p / 12).toFixed(2);
       return (
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-1">
+        <div className="flex flex-col items-center justify-center text-center w-full">
+          <div className="flex items-baseline gap-1 justify-center">
             <span className="text-sm font-medium text-slate-500">R$</span>
-            <span className="text-5xl font-black tracking-tighter">{monthlyEquivalent}</span>
+            <span className="text-4xl sm:text-5xl font-black tracking-tighter text-slate-900 dark:text-white">{monthlyEquivalent}</span>
             <span className="text-sm font-medium text-slate-500">/mês</span>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-white bg-slate-900 px-2 py-1 rounded-md font-bold uppercase tracking-wider">Economia Real</span>
-            <span className="text-xs text-slate-400 font-medium tracking-tight">Faturado R$ {p}/ano</span>
+          <div className="mt-2 flex flex-col items-center justify-center gap-1.5 select-none text-center">
+            <span className="text-[10px] sm:text-xs text-white bg-slate-950 px-2.5 py-1 rounded-md font-bold uppercase tracking-wider block w-max mx-auto">Economia Real</span>
+            <span className="text-[11px] text-slate-400 font-medium tracking-tight block">Faturado R$ {p}/ano</span>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-1 justify-center text-center w-full">
         <span className="text-sm font-medium text-slate-500">R$</span>
-        <span className="text-5xl font-black tracking-tighter">{p.toFixed(2)}</span>
+        <span className="text-4xl sm:text-5xl font-black tracking-tighter text-slate-900 dark:text-white">{p.toFixed(2)}</span>
         <span className="text-sm font-medium text-slate-500">/mês</span>
       </div>
     );
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-7xl mx-auto px-4 pt-12 pb-32 sm:pb-40 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       {/* Header */}
       <div className="text-center space-y-8 max-w-4xl mx-auto">
         <motion.div
@@ -146,89 +146,90 @@ export function Pricing() {
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-12 max-w-5xl mx-auto items-stretch px-4 select-none">
         {PLANS.map((plan, i) => (
           <motion.div
             key={plan.id}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.2 }}
-            className={`relative group flex flex-col rounded-[48px] p-10 border-2 transition-all duration-700 ${
+            className={`box-border overflow-hidden flex flex-col items-center justify-center relative group rounded-[48px] p-6 sm:p-10 border-2 transition-all duration-700 w-full max-w-[340px] xs:max-w-[380px] sm:max-w-[420px] md:max-w-none mx-auto ${
               plan.id === 'pro'
-              ? 'bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-950 border-amber-400/50 shadow-2xl shadow-amber-500/10 scale-105'
+              ? 'bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-950 border-amber-400/50 shadow-2xl shadow-amber-500/10 md:scale-105'
               : 'bg-white dark:bg-slate-950 border-emerald-500 shadow-2xl shadow-emerald-500/10'
             }`}
           >
             {/* Badges */}
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex gap-2">
-              <div className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${
+            <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-2 w-full max-w-xs px-2 z-10">
+              <div className={`px-4 sm:px-6 py-2 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap ${
                 plan.id === 'pro' ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'
               }`}>
                 {plan.badge}
               </div>
               {billingCycle === 'annual' && (
-                <div className="bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                <div className="bg-slate-900 text-white px-4 sm:px-6 py-2 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap">
                   Mais Vantajoso
                 </div>
               )}
             </div>
 
-            <div className="flex items-start justify-between mb-10">
+            <button 
+              onClick={() => handleSpeak(plan.tip)}
+              disabled={isPlaying}
+              className={`absolute top-6 right-6 group/btn w-12 h-12 rounded-2xl flex items-center justify-center transition-all z-10 ${
+                isPlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-emerald-500 hover:text-white'
+              }`}
+            >
+              <Volume2 className="w-6 h-6 transition-transform group-hover/btn:scale-110" />
+            </button>
+
+            <div className="flex flex-col items-center justify-center mb-8 w-full mt-4">
               <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center ${
                 plan.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
               }`}>
                 <plan.icon className="w-8 h-8" />
               </div>
-              <button 
-                onClick={() => handleSpeak(plan.tip)}
-                disabled={isPlaying}
-                className={`group/btn w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                  isPlaying ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-emerald-500 hover:text-white'
-                }`}
-              >
-                <Volume2 className="w-6 h-6 transition-transform group-hover/btn:scale-110" />
-              </button>
             </div>
 
-            <div className="space-y-3 mb-10">
+            <div className="space-y-2 mb-8 text-center flex flex-col items-center w-full">
               <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{plan.name}</h3>
               <p className="text-base text-slate-500 dark:text-slate-400 font-medium">{plan.description}</p>
             </div>
 
-            <div className="mb-12">
+            <div className="mb-8 w-full flex flex-col items-center justify-center text-center">
               {getPriceDisplay(plan)}
-              <div className="mt-4 px-4 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 w-max">
-                 <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                 {plan.trial}
+              <div className="mt-4 px-3 py-2 w-full max-w-[280px] xs:max-w-xs bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1.5 mx-auto text-center">
+                 <Sparkles className="w-3.5 h-3.5 animate-pulse flex-shrink-0" />
+                 <span className="text-center leading-tight">{plan.trial}</span>
               </div>
             </div>
 
-            <div className="flex-1 space-y-5 mb-12">
+            <div className="flex-1 flex flex-col justify-center items-start w-full max-w-[240px] xs:max-w-[280px] sm:max-w-[320px] mx-auto space-y-4 sm:space-y-5 mb-8 px-1 sm:px-4">
               {plan.features.map((feature, j) => (
-                <div key={j} className="flex items-start gap-4">
-                  <div className={`mt-1 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                <div key={j} className="flex items-start gap-3.5 text-left w-full">
+                  <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
                     plan.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
                   }`}>
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 leading-tight">{feature}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 leading-tight flex-1">{feature}</span>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-4">
-              <button className={`w-full py-6 rounded-3xl font-black text-xs uppercase tracking-[3px] shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 ${
+            <div className="space-y-3 sm:space-y-4 w-full">
+              <button className={`w-full py-4 sm:py-5 rounded-3xl font-black text-[11px] sm:text-xs uppercase tracking-[1.5px] sm:tracking-[3px] shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 sm:gap-3 ${
                 plan.id === 'pro'
                 ? 'bg-amber-500 text-white shadow-amber-500/30 hover:bg-amber-600'
                 : 'bg-emerald-600 text-white shadow-emerald-600/30 hover:bg-emerald-700'
               }`}>
                 {plan.cta}
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               </button>
               
-              <button className="w-full py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2">
+              <button className="w-full py-3 rounded-2xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2">
                 Ver detalhes do plano
-                <Info className="w-3.5 h-3.5" />
+                <Info className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
           </motion.div>

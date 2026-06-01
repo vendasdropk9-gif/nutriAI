@@ -3,7 +3,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { analyzeBarcodeProduct, analyzeProductImage } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { UserProfile } from '../types';
-import { Barcode, Loader2, Play, Volume2, Info, AlertTriangle, CheckCircle2, RefreshCw, X, ShieldAlert, Camera, Upload, Target } from 'lucide-react';
+import { Barcode, Loader2, Play, Volume2, Info, AlertTriangle, CheckCircle2, RefreshCw, X, ShieldAlert, Camera, Upload, Target, Lock } from 'lucide-react';
 
 interface BarcodeScannerProps {
   profile: UserProfile | null;
@@ -297,28 +297,28 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-2 sm:px-4">
-      <div className="text-center space-y-4">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+    <div className="w-full max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-2 sm:px-4 overflow-x-hidden">
+      <div className="text-center space-y-2 sm:space-y-4 px-2">
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Scanner de Produtos
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-base sm:text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed">
           Escaneie o código de barras ou tire uma foto direta de qualquer lata ou produto para ver se ajuda ou atrapalha seu objetivo.
         </p>
       </div>
 
-      <div className="clay-card p-4 sm:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+      <div className="clay-card p-3 sm:p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 w-full overflow-hidden">
         
         {/* State 1: Selection Dashboard */}
         {!isScanning && !productData && !isAnalyzing && !isCameraActive && !previewImage && (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 border-2 border-dashed border-emerald-300 dark:border-emerald-700/50 bg-emerald-50/50 dark:bg-slate-800/40 rounded-[24px] p-6 text-center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-6">
+          <div className="flex flex-col items-center justify-center py-6 sm:py-12 border-2 border-dashed border-emerald-300 dark:border-emerald-700/50 bg-emerald-50/50 dark:bg-slate-800/40 rounded-[24px] p-4 sm:p-6 text-center w-full max-w-3xl mx-auto overflow-hidden">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 sm:mb-6 shrink-0">
               <Camera className="w-8 h-8 sm:w-10 sm:h-10 animate-pulse" />
             </div>
             
-            <div className="space-y-2 mb-8">
-              <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Pronto para escanear?</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm text-sm sm:text-base mx-auto leading-relaxed">
+            <div className="space-y-2 mb-6 sm:mb-8 px-2">
+              <h3 className="font-serif text-xl sm:text-2xl font-medium text-slate-800 dark:text-slate-100">Pronto para escanear?</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm text-xs sm:text-sm md:text-base mx-auto leading-relaxed">
                 Tire uma foto simples da lata/embalagem, carregue da galeria para analisar a tabela ou use o código de barras.
               </p>
             </div>
@@ -331,40 +331,40 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
               className="hidden"
             />
 
-            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-md px-4">
+            <div className="flex flex-col sm:flex-row gap-3 w-full justify-center max-w-md px-2 sm:px-4">
               <button
                 onClick={startCamera}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-6 py-3.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 text-xs sm:text-sm active:scale-95"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-4 sm:px-6 py-3 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 text-xs sm:text-sm active:scale-95 whitespace-normal break-words"
               >
-                <Camera className="w-4 h-4" />
-                Tirar Foto (Lata/Pote)
+                <Camera className="w-4 h-4 shrink-0" />
+                <span>Tirar Foto (Lata/Pote)</span>
               </button>
               
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-120 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-750 dark:text-slate-200 font-sans font-medium px-6 py-3.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 active:scale-95 bg-slate-100"
+                className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-sans font-medium px-4 sm:px-6 py-3 rounded-full transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 active:scale-95 whitespace-normal break-words"
               >
-                <Upload className="w-4 h-4" />
-                Obter Foto da Galeria
+                <Upload className="w-4 h-4 shrink-0" />
+                <span>Obter Foto da Galeria</span>
               </button>
             </div>
 
-            <div className="w-full flex items-center justify-center gap-3 my-6 max-w-xs px-6">
+            <div className="w-full flex items-center justify-center gap-2 my-5 max-w-xs px-4">
               <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider shrink-0">Ou use o leitor</span>
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider shrink-0">Ou use o leitor</span>
               <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
             </div>
 
             <button
               onClick={startScanner}
-              className="px-6 py-3 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-full font-medium transition-all text-xs sm:text-sm flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/60 active:scale-95"
+              className="w-full sm:w-auto justify-center px-5 sm:px-6 py-3 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-full font-medium transition-all text-xs sm:text-sm flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/60 active:scale-95"
             >
-              <Barcode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              Escanear Código de Barras
+              <Barcode className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Escanear Código de Barras</span>
             </button>
 
             {/* Manual entry fallback */}
-            <div className="w-full max-w-sm mt-6 border-t border-slate-200/50 dark:border-slate-800/60 pt-6 space-y-4">
+            <div className="w-full max-w-sm mt-6 border-t border-slate-200/50 dark:border-slate-800/60 pt-5 space-y-4 px-2 sm:px-0">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Inserir manualmente:</p>
               
               <form onSubmit={(e) => {
@@ -378,11 +378,11 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                   placeholder="Ex: 7891000077008"
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-805 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-medium transition-colors"
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-medium transition-colors shrink-0"
                 >
                   Analisar
                 </button>
@@ -390,8 +390,8 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
 
               {/* Simulation Quick Buttons */}
               <div className="space-y-2">
-                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-450 dark:text-slate-550">Simulador de Códigos de Barra:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
+                <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">Simulador de Códigos de Barra:</p>
+                <div className="flex flex-wrap gap-1.5 justify-center">
                   {[
                     { name: "Pepsi Cola Zero", barcode: "7891149105319" },
                     { name: "Aveia em Flocos", barcode: "7891000185901" },
@@ -405,7 +405,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                         setManualBarcode(sim.barcode);
                         handleBarcodeDetected(sim.barcode);
                       }}
-                      className="text-xs bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-650 dark:text-slate-350 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+                      className="text-[10px] sm:text-xs bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
                     >
                       {sim.name}
                     </button>
@@ -413,12 +413,25 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                 </div>
               </div>
             </div>
+
+            {/* Security Banner */}
+            <div className="w-full max-w-sm mt-6 p-3 sm:p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 rounded-2xl flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <h4 className="font-sans font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm truncate">Seus dados estão protegidos</h4>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                  Nenhuma imagem é salva sem sua permissão. Tudo é 100% seguro e privado.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* State 2: Live Camera View */}
         {isCameraActive && !previewImage && (
-          <div className="flex flex-col items-center justify-center space-y-6 w-full animate-in fade-in duration-300">
+          <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 w-full animate-in fade-in duration-300">
             <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-850 flex items-center justify-center shadow-inner">
               {!cameraError && (
                 <video
@@ -439,7 +452,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
 
               {cameraStream && !cameraError && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-48 h-48 sm:w-64 sm:h-64 border-2 border-dashed border-white/50 rounded-2xl flex items-center justify-center">
+                  <div className="w-36 h-36 sm:w-64 sm:h-64 border-2 border-dashed border-white/50 rounded-2xl flex items-center justify-center">
                     <Target className="w-8 h-8 text-white/40 animate-pulse" />
                   </div>
                 </div>
@@ -461,11 +474,11 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
             </div>
 
             {cameraStream && !cameraError && (
-              <div className="relative flex items-center justify-center w-full px-4 h-20">
+              <div className="flex flex-row items-center justify-between gap-4 w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="absolute left-0 sm:left-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-colors flex items-center gap-1.5 text-xs sm:text-sm shadow-sm"
+                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-colors flex items-center gap-1.5 text-xs sm:text-sm shadow-sm"
                 >
                   Cancelar
                 </button>
@@ -473,13 +486,15 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                 <button
                   type="button"
                   onClick={captureCameraPhoto}
-                  className="w-16 h-16 rounded-full bg-white border-4 border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all duration-150"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border-4 border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all duration-150 shrink-0"
                   title="Capturar Foto"
                 >
-                  <div className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-colors flex items-center justify-center">
-                    <Camera className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-colors flex items-center justify-center">
+                    <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                 </button>
+
+                <div className="w-16 sm:w-20 shrink-0 pointer-events-none opacity-0">Spacer</div>
               </div>
             )}
           </div>

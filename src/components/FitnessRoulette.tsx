@@ -1,70 +1,241 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Sparkles, Award, RotateCw, Utensils, Zap, HelpCircle, 
-  Flame, CheckCircle2, ChevronRight, Volume2, VolumeX, Eye
+  Leaf, RotateCw, Volume2, VolumeX, Award, Zap, Flame, 
+  CheckCircle2, Clock, Trash2, ArrowLeft, Coffee, Sparkles
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
-interface Dessert {
+interface Fruit {
   id: string;
   name: string;
   emoji: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  ingredients: string[];
-  type: 'light' | 'balanced' | 'high-calorie';
-  tier: 'unlocked' | 'premium';
+  calories: string;
+  benefits: string;
+  vitamins: string;
+  vitsLevel: string;
+  fibersLevel: string;
+  antioxidantsLevel: string;
+  suggestion: string;
+  colorHex: string;
+  gradientFrom: string;
+  gradientTo: string;
 }
 
-const ALL_DESSERTS: Dessert[] = [
-  // Light / Low Carb (Cutting)
-  { id: 'morango-choco', name: 'Morango c/ Choco 70%', emoji: '🍓', calories: 120, protein: 3, carbs: 12, fat: 8, ingredients: ['Morangos frescos', 'Cacau 70%', 'Gotas de Stévia'], type: 'light', tier: 'unlocked' },
-  { id: 'iogurte-protein', name: 'Iogurte com Frutas', emoji: '🍇', calories: 110, protein: 12, carbs: 10, fat: 1, ingredients: ['Iogurte natural desnatado', 'Frutas vermelhas', 'Psyllium'], type: 'light', tier: 'unlocked' },
-  { id: 'mousse-lowcarb', name: 'Mousse Abacate Lowcarb', emoji: '🥑', calories: 140, protein: 4, carbs: 7, fat: 11, ingredients: ['Abacate maduro', 'Whey protein de cacau', 'Eritritol'], type: 'light', tier: 'unlocked' },
-  { id: 'mousse-maracuja', name: 'Mousse de Maracujá Light', emoji: '🍋', calories: 95, protein: 8, carbs: 6, fat: 2, ingredients: ['Polpa de maracujá', 'Gelatina zero', 'Yorgus desnatado'], type: 'light', tier: 'premium' },
-  
-  // Balanced (Manutenção)
-  { id: 'banana-amendoim', name: 'Banana com Amendoim', emoji: '🍌', calories: 190, protein: 6, carbs: 22, fat: 9, ingredients: ['Banana prata assada', 'Pasta de amendoim integral', 'Canela'], type: 'balanced', tier: 'unlocked' },
-  { id: 'sorvete-proteico', name: 'Sorvete Fit Proteico', emoji: '🍨', calories: 175, protein: 18, carbs: 14, fat: 4, ingredients: ['Banana congelada', 'Whey Isolate', 'Leite de amêndoas'], type: 'balanced', tier: 'unlocked' },
-  { id: 'cupcake-fit', name: 'Cupcake de Cenoura Fit', emoji: '🧁', calories: 160, protein: 7, carbs: 16, fat: 5, ingredients: ['Farinha de aveia', 'Adoçante culinário', 'Cenoura ralada', 'Whey vanila'], type: 'balanced', tier: 'unlocked' },
-  { id: 'acai-clean', name: 'Açaí Proteico Whey', emoji: '🍧', calories: 195, protein: 12, carbs: 24, fat: 3, ingredients: ['Polpa de açaí puro', 'Xilitol', 'Colágeno hidrolisado'], type: 'balanced', tier: 'premium' },
-
-  // High-Calorie / High Protein (Bulking)
-  { id: 'brownie-fit', name: 'Brownie de Whey Premium', emoji: '🍫', calories: 230, protein: 11, carbs: 22, fat: 10, ingredients: ['Cacau 100%', 'Ovos', 'Farinha de coco', 'Whey hidrolisado'], type: 'high-calorie', tier: 'unlocked' },
-  { id: 'panqueca-doce', name: 'Panqueca Doce Whey', emoji: '🥞', calories: 260, protein: 22, carbs: 28, fat: 5, ingredients: ['Claras de ovos', 'Aveia fina', 'Banana amassada', 'Whey chocolate'], type: 'high-calorie', tier: 'unlocked' },
-  { id: 'cookie-fit', name: 'Cookie Proteico Macio', emoji: '🍪', calories: 210, protein: 14, carbs: 18, fat: 8, ingredients: ['Farinha de aveia', 'Pasta de castanha', 'Albumina', 'Chocolate 80%'], type: 'high-calorie', tier: 'unlocked' },
-  { id: 'waffle-honey', name: 'Waffle Fit de Mel', emoji: '🧇', calories: 275, protein: 15, carbs: 32, fat: 7, ingredients: ['Aveia', 'Mel orgânico puro', 'Queijo cottage lac-free', 'Claras'], type: 'high-calorie', tier: 'premium' },
+const ALL_FRUITS: Fruit[] = [
+  {
+    id: 'banana',
+    name: 'Banana',
+    emoji: '🍌',
+    calories: '89 kcal',
+    benefits: 'Fonte maravilhosa de potássio, fibras solúveis e energia limpa de rápida absorção. Ideal para prevenir cãibras e regular a saúde digestiva ao longo do dia.',
+    vitamins: 'Vitamina B6 & C',
+    vitsLevel: 'Alta',
+    fibersLevel: 'Alta',
+    antioxidantsLevel: 'Média',
+    suggestion: 'Consuma pura como snacks rápidos, misturada com aveia e mel refinado, ou batida de manhã na sua vitamina favorita.',
+    colorHex: 'from-amber-400 to-yellow-500',
+    gradientFrom: '#FCD34D',
+    gradientTo: '#EAB308'
+  },
+  {
+    id: 'maca',
+    name: 'Maçã',
+    emoji: '🍎',
+    calories: '52 kcal',
+    benefits: 'Riquíssima em pectina, uma fibra solúvel de alta qualidade que controla os picos de açúcar no sangue, aumenta a saciedade e otimiza o fluxo do colesterol.',
+    vitamins: 'Vitamina C & Fibras',
+    vitsLevel: 'Alta',
+    fibersLevel: 'Excelente',
+    antioxidantsLevel: 'Alta',
+    suggestion: 'Consuma com a casca para absorver todas as lignanas, corte em fatias com um fio de mel, ou asse com canela fina salpicada.',
+    colorHex: 'from-rose-500 to-red-600',
+    gradientFrom: '#FB7185',
+    gradientTo: '#DC2626'
+  },
+  {
+    id: 'morango',
+    name: 'Morango',
+    emoji: '🍓',
+    calories: '32 kcal',
+    benefits: 'Rico em vitamina C, antioxidantes e fibras. Excelente para combater radicais livres, fortalecer a imunidade e manter a elasticidade saudável da pele.',
+    vitamins: 'Vitamina C, Potássio',
+    vitsLevel: 'Muito Alta',
+    fibersLevel: 'Alta',
+    antioxidantsLevel: 'Ricos',
+    suggestion: 'Consuma in natura, em saladas de lanche refrescantes, acompanhado de iogurtes naturais ou batido em vitaminas frescas.',
+    colorHex: 'from-pink-500 to-rose-600',
+    gradientFrom: '#EC4899',
+    gradientTo: '#BE185D'
+  },
+  {
+    id: 'abacaxi',
+    name: 'Abacaxi',
+    emoji: '🍍',
+    calories: '50 kcal',
+    benefits: 'Extraoficialmente recheado de bromelina, uma enzima poderosa que potencializa a quebra e digestão de proteínas e ajuda a combater o inchaço abdominal.',
+    vitamins: 'Vitamina C & Manganês',
+    vitsLevel: 'Alta',
+    fibersLevel: 'Média',
+    antioxidantsLevel: 'Excelente',
+    suggestion: 'Sirva como fatias deliciosas após as refeições principais, grelhado de leve na canela ou no seu suco refrescante de hortelã.',
+    colorHex: 'from-yellow-400 to-amber-500',
+    gradientFrom: '#FBBF24',
+    gradientTo: '#D97706'
+  },
+  {
+    id: 'melancia',
+    name: 'Melancia',
+    emoji: '🍉',
+    calories: '30 kcal',
+    benefits: 'Contém cerca de 92% de água celular altamente nutritiva, repleta de l-citrulina e licopeno, essenciais para repor a hidratação muscular de forma rápida.',
+    vitamins: 'Licopeno & Complexo A',
+    vitsLevel: 'Média',
+    fibersLevel: 'Suave',
+    antioxidantsLevel: 'Alto',
+    suggestion: 'Saboreie bem gelada em fatias nos dias ensolarados, ou batida na hora como um super shake de hidratação sem água adicionada.',
+    colorHex: 'from-emerald-505 to-green-500',
+    gradientFrom: '#34D399',
+    gradientTo: '#059669'
+  },
+  {
+    id: 'uva',
+    name: 'Uva',
+    emoji: '🍇',
+    calories: '67 kcal',
+    benefits: 'Fornece resveratrol em quantidades excepcionais nas cascas escuras, ajudando a blindar a saúde do sistema cardiovascular e renovar as células corporais.',
+    vitamins: 'Vitamina K & Resveratrol',
+    vitsLevel: 'Média',
+    fibersLevel: 'Média',
+    antioxidantsLevel: 'Ricos',
+    suggestion: 'Perfeito para manter na geladeira e consumir aos poucos como snack fresco, ou adicionar a queijos leves e iogurtes gregos.',
+    colorHex: 'from-purple-500 to-indigo-600',
+    gradientFrom: '#A78BFA',
+    gradientTo: '#6D28D9'
+  },
+  {
+    id: 'manga',
+    name: 'Manga',
+    emoji: '🥭',
+    calories: '60 kcal',
+    benefits: 'Possui generoso teor de antioxidantes, betacaroteno e fibras solúveis que protegem a saúde ocular, melhoram o viço facial e estimulam a digestão saudável.',
+    vitamins: 'Vitamina A & C',
+    vitsLevel: 'Alta',
+    fibersLevel: 'Alta',
+    antioxidantsLevel: 'Alta',
+    suggestion: 'Coma picada fresca bem gelada, misture em saladas verdes crocantes ou faça smoothies cremosos sem adoçantes artificiais.',
+    colorHex: 'from-orange-400 to-yellow-600',
+    gradientFrom: '#FB923C',
+    gradientTo: '#EA580C'
+  },
+  {
+    id: 'kiwi',
+    name: 'Kiwi',
+    emoji: '🥝',
+    calories: '61 kcal',
+    benefits: 'Contém mais vitamina C pura que a própria laranja! Acelera o metabolismo de cura, fortalece as defesas naturais e apoia a circulação.',
+    vitamins: 'Vitamina C & E',
+    vitsLevel: 'Altíssima',
+    fibersLevel: 'Muito Alta',
+    antioxidantsLevel: 'Excelente',
+    suggestion: 'Corte simplesmente ao meio e retire a polpa rica com uma colher pequena, ou pique em saladas de frutas cítricas.',
+    colorHex: 'from-lime-500 to-emerald-600',
+    gradientFrom: '#A3E635',
+    gradientTo: '#15803D'
+  },
+  {
+    id: 'laranja',
+    name: 'Laranja',
+    emoji: '🍊',
+    calories: '47 kcal',
+    benefits: 'Excelente fonte de polifenóis bioativos e ácido cítrico. Auxilia na absorção de ferro de origem vegetal e protege as artérias coronárias.',
+    vitamins: 'Vitamina C & Fibras',
+    vitsLevel: 'Alta',
+    fibersLevel: 'Muito Alta',
+    antioxidantsLevel: 'Alta',
+    suggestion: 'Consuma preferencialmente inteira com o bagaço fibroso para retardar o açúcar, ou espremida no suco sem coar.',
+    colorHex: 'from-orange-500 to-amber-600',
+    gradientFrom: '#F97316',
+    gradientTo: '#EA580C'
+  },
+  {
+    id: 'pera',
+    name: 'Pera',
+    emoji: '🍐',
+    calories: '57 kcal',
+    benefits: 'Excelente teor de frutose de baixo impacto insulínico e água equilibrada. Apoia o emagrecimento saudável promovendo uma sensação de saciedade prolongada.',
+    vitamins: 'Vitamina K, C & Potássio',
+    vitsLevel: 'Média',
+    fibersLevel: 'Excelente',
+    antioxidantsLevel: 'Média',
+    suggestion: 'Saboreie como sua sobremesa leve de fim de noite, assada rapidamente com canela seca, ou junto a lâminas de castanhas de caju.',
+    colorHex: 'from-yellow-500 to-lime-600',
+    gradientFrom: '#FACC15',
+    gradientTo: '#65A30D'
+  },
+  {
+    id: 'coco',
+    name: 'Coco',
+    emoji: '🥥',
+    calories: '99 kcal',
+    benefits: 'Contém triglicerídeos de cadeia média (TCM), deliciosas gorduras saturadas de fácil e rápido consumo energético celular que geram saciedade imediata.',
+    vitamins: 'Potássio, Lipídeos Úteis',
+    vitsLevel: 'Média',
+    fibersLevel: 'Muito Alta',
+    antioxidantsLevel: 'Média',
+    suggestion: 'Saboreie pequenos pedaços ou cubinhos secos como um lanche da tarde revigorante, ou adicione raspas frescas a saladas.',
+    colorHex: 'from-amber-700 to-yellow-800',
+    gradientFrom: '#B45309',
+    gradientTo: '#78350F'
+  },
+  {
+    id: 'mamao',
+    name: 'Mamão',
+    emoji: '🍈',
+    calories: '43 kcal',
+    benefits: 'Contém enzimas proteolíticas como a papaína, ideais para facilitar a absorção de nutrientes, acalmar o estômago e manter o trato intestinal livre.',
+    vitamins: 'Vitamina A & Papaína',
+    vitsLevel: 'Excelente',
+    fibersLevel: 'Muito Alta',
+    antioxidantsLevel: 'Alta',
+    suggestion: 'Aproveite no café da manhã fatiado em metades, salpicando sementes de linhaça, chia hidratada ou granola caseira.',
+    colorHex: 'from-orange-500 to-yellow-600',
+    gradientFrom: '#FB923C',
+    gradientTo: '#D97706'
+  }
 ];
 
 export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
-  // Config states
-  const [objective, setObjective] = useState<'cutting' | 'balanced' | 'bulking'>('balanced');
-  const [activeTab, setActiveTab] = useState<'wheel' | 'menu' | 'smart-free'>('wheel');
+  // Config state
   const [isMuted, setIsMuted] = useState(false);
-
-  // Gamification & Control States
-  const [points, setPoints] = useState(profile?.points || 150);
-  const [spinsLeft, setSpinsLeft] = useState(2);
-  const [weeklyCompletedSpins, setWeeklyCompletedSpins] = useState<string[]>([]);
-  const [unlockedPremium, setUnlockedPremium] = useState(false);
-  const [level, setLevel] = useState(profile?.streak ? Math.min(10, Math.floor(profile.streak / 3) + 1) : 2);
-  const [levelProgress, setLevelProgress] = useState(45); // percent
+  const [points, setPoints] = useState(() => {
+    return profile?.points || 150;
+  });
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   
-  // Animation States
+  // Weekly spin history
+  const [weeklyCompletedSpins, setWeeklyCompletedSpins] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('nutri_roulette_history_v3');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Track spins
+  const [spinsLeft, setSpinsLeft] = useState(3);
+
+  // Animation and spin mechanics
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [shaking, setShaking] = useState(false);
-  const [result, setResult] = useState<Dessert | null>(null);
-  const [showResultModal, setShowResultModal] = useState(false);
   
-  // Smart Free Day Choice State
-  const [smartChoice, setSmartChoice] = useState<Dessert | null>(null);
-  const [isChoosingSmart, setIsChoosingSmart] = useState(false);
+  // Active selected fruit initially (We default to Morango at index 2 matching preview exactly)
+  const [result, setResult] = useState<Fruit | null>(ALL_FRUITS[2]);
+  const [glowWinner, setGlowWinner] = useState(false);
 
-  // References
+  // References for Web Confetti Overlay
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const confettiParticles = useRef<{
     x: number;
@@ -78,135 +249,108 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
   }[]>([]);
   const animationFrameId = useRef<number | null>(null);
 
-  // Auto detect objective based on user goals
+  // Sync history to localStorage
   useEffect(() => {
-    if (profile?.goals) {
-      const g = profile.goals.toLowerCase();
-      if (g.includes('emagrecer') || g.includes('perder') || g.includes('cutting') || g.includes('defini')) {
-        setObjective('cutting');
-      } else if (g.includes('ganhar') || g.includes('massa') || g.includes('hipertrofia') || g.includes('bulking')) {
-        setObjective('bulking');
-      } else {
-        setObjective('balanced');
-      }
+    try {
+      localStorage.setItem('nutri_roulette_history_v3', JSON.stringify(weeklyCompletedSpins));
+    } catch (e) {
+      console.warn("Storage syncing blocked:", e);
     }
-  }, [profile]);
+  }, [weeklyCompletedSpins]);
 
-  // Filter desserts dynamically
-  const filteredDesserts = ALL_DESSERTS.filter(dessert => {
-    // Show premium only if unlocked or if default
-    if (dessert.tier === 'premium' && !unlockedPremium) return false;
-    
-    if (objective === 'cutting') return dessert.type === 'light';
-    if (objective === 'bulking') return dessert.type === 'high-calorie';
-    return dessert.type === 'balanced' || dessert.type === 'light'; // maintenance allows both
-  });
-
-  // Sound Synth Synthesizer safely utilizing Web Audio API
-  const playSound = (type: 'tick' | 'win' | 'start' | 'premium' | 'error') => {
+  // Audio Synthesizer relying on Web Audio API safely
+  const playSound = (type: 'tick' | 'win' | 'start' | 'error') => {
     if (isMuted) return;
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
       
       if (type === 'start') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(700, ctx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
         osc.start();
-        osc.stop(ctx.currentTime + 0.4);
+        osc.stop(ctx.currentTime + 0.35);
       } else if (type === 'tick') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(450, ctx.currentTime);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(380, ctx.currentTime);
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
         osc.start();
-        osc.stop(ctx.currentTime + 0.04);
+        osc.stop(ctx.currentTime + 0.05);
       } else if (type === 'win') {
-        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // Arpeggio C4 to C6
+        // High quality bright C major arpeggio
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
-          gain.gain.setValueAtTime(0.08, ctx.currentTime + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.4);
-          osc.start(ctx.currentTime + idx * 0.08);
-          osc.stop(ctx.currentTime + idx * 0.08 + 0.4);
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.09);
+          gain.gain.setValueAtTime(0.06, ctx.currentTime + idx * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.09 + 0.45);
+          osc.start(ctx.currentTime + idx * 0.09);
+          osc.stop(ctx.currentTime + idx * 0.09 + 0.45);
         });
-      } else if (type === 'premium') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(600, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
       } else if (type === 'error') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, ctx.currentTime);
-        osc.frequency.setValueAtTime(150, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(180, ctx.currentTime);
         gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
         osc.start();
-        osc.stop(ctx.currentTime + 0.25);
+        osc.stop(ctx.currentTime + 0.2);
       }
     } catch (e) {
-      console.warn("Audio Context blocked by policy:", e);
+      console.warn("Sound blocked by client policy:", e);
     }
   };
 
-  // Neon Confetti Animation Loop
-  const spawnConfetti = () => {
+  // Sparkle Confetti Eruption Loop
+  const triggerConfetti = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = canvas.parentElement?.clientWidth || 600;
-    canvas.height = canvas.parentElement?.clientHeight || 600;
+    canvas.width = canvas.parentElement?.clientWidth || 500;
+    canvas.height = canvas.parentElement?.clientHeight || 500;
 
-    const colors = ['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e'];
+    const pallet = ['#ec4899', '#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#34d399', '#f43f5e'];
 
-    confettiParticles.current = Array.from({ length: 120 }, () => ({
+    confettiParticles.current = Array.from({ length: 90 }, () => ({
       x: canvas.width / 2,
-      y: canvas.height * 0.6,
-      vx: (Math.random() - 0.5) * 12,
-      vy: (-Math.random() * 12) - 4,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 8 + 4,
+      y: canvas.height * 0.4,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (-Math.random() * 10) - 5,
+      color: pallet[Math.floor(Math.random() * pallet.length)],
+      size: Math.random() * 6 + 4,
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 10
+      rotationSpeed: (Math.random() - 0.5) * 12
     }));
 
-    const updatePlay = () => {
+    const updateConfetti = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let alive = false;
 
       confettiParticles.current.forEach(p => {
-        p.vy += 0.35; // Gravity
-        p.vx *= 0.98; // Air resistance
+        p.vy += 0.3; // gravity
+        p.vx *= 0.98; // air resistance
         p.x += p.vx;
         p.y += p.vy;
         p.rotation += p.rotationSpeed;
@@ -217,8 +361,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rotation * Math.PI) / 180);
           ctx.fillStyle = p.color;
-          // draw rectangle particle
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
           ctx.shadowColor = p.color;
           ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
           ctx.restore();
@@ -226,723 +369,458 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
       });
 
       if (alive) {
-        animationFrameId.current = requestAnimationFrame(updatePlay);
+        animationFrameId.current = requestAnimationFrame(updateConfetti);
       }
     };
 
     if (animationFrameId.current) {
       cancelAnimationFrame(animationFrameId.current);
     }
-    updatePlay();
+    updateConfetti();
   };
 
-  // Perform Spin
+  // Handle spin action
   const spinTheWheel = () => {
     if (isSpinning) return;
     if (spinsLeft <= 0) {
       playSound('error');
-      alert('Sem giros disponíveis! Desbloqueie giros com Pontos ou completando os desafios de dieta.');
+      alert('Seus giros livres acabaram! Gire novamente em instantes ou coma bem hoje para restabelecer seus créditos.');
       return;
     }
 
     setIsSpinning(true);
-    setResult(null);
-    setSmartChoice(null);
+    setGlowWinner(false);
     playSound('start');
 
-    // Determine segments and pick randomized winning segment
-    const segmentCount = filteredDesserts.length;
-    const chosenIndex = Math.floor(Math.random() * segmentCount);
-    const degreePerSegment = 360 / segmentCount;
+    // Pick randomized winner index
+    const segmentCount = ALL_FRUITS.length;
+    const winnerIndex = Math.floor(Math.random() * segmentCount);
+    const degreesPerSegment = 360 / segmentCount;
 
-    // Calculate dynamic physical spin degree to match selected item
-    // Note: CSS rotation starts on top or right. Let's aim clearly
-    const offsetDegrees = 360 - (chosenIndex * degreePerSegment) - (degreePerSegment / 2);
-    const totalSpins = 6 * 360; // 6 fully premium cycles
-    const finalRotation = rotation - (rotation % 360) + totalSpins + offsetDegrees;
+    // Standard high rotational multiple + calculate target angle (Banana is 0 at top)
+    const topAlignOffset = 360 - (winnerIndex * degreesPerSegment);
+    const randomWedgeSlightIn = Math.random() * 20 - 10; // offset stop slightly inside slice
+    const totalSpins = 360 * 6; // spins 6 full times
+
+    // Calculate rotation to make segment arrive perfectly at peak positioning
+    const finalRotation = rotation - (rotation % 360) + totalSpins + topAlignOffset + randomWedgeSlightIn;
 
     setRotation(finalRotation);
 
-    // Audio tick rate during slowing spin
-    let tempTicks = 0;
-    const tickInterval = setInterval(() => {
-      tempTicks++;
-      if (tempTicks < 25) {
+    // Audio ticking simulation matching velocity decay
+    let tickCount = 0;
+    const totalTicks = 24;
+    const tickingInterval = setInterval(() => {
+      tickCount++;
+      if (tickCount <= totalTicks) {
         playSound('tick');
       } else {
-        clearInterval(tickInterval);
+        clearInterval(tickingInterval);
       }
-    }, 120);
+    }, 130 + tickCount * 8);
 
-    // Dynamic haptic vibration shake visual effect
-    setTimeout(() => setShaking(true), 2000);
+    // Minor shake as momentum winds down
+    setTimeout(() => {
+      setShaking(true);
+    }, 3600);
 
     setTimeout(() => {
       setIsSpinning(false);
       setShaking(false);
-      clearInterval(tickInterval);
+      clearInterval(tickingInterval);
 
-      if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
+      // Perform haptic vibration (device support check)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([120, 50, 150]);
       }
 
-      const winner = filteredDesserts[chosenIndex];
+      const winner = ALL_FRUITS[winnerIndex];
       setResult(winner);
-      setWeeklyCompletedSpins(prev => [...prev, winner.name]);
+      setWeeklyCompletedSpins(prev => [
+        `${winner.emoji} ${winner.name} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+        ...prev.slice(0, 19) // Keep last 20 records
+      ]);
       setSpinsLeft(prev => prev - 1);
-      
-      // Gain XP progression
-      setPoints(prev => prev + 30);
-      setLevelProgress(prev => {
-        const nextProg = prev + 25;
-        if (nextProg >= 100) {
-          setLevel(l => Math.min(10, l + 1));
-          return nextProg - 100;
-        }
-        return nextProg;
-      });
+      setPoints(prev => prev + 15);
 
       playSound('win');
-      setTimeout(() => {
-        spawnConfetti();
-        setShowResultModal(true);
-      }, 300);
-
-    }, 3200);
+      setGlowWinner(true);
+      triggerConfetti();
+    }, 4500); // 4.5s matches the smooth custom deceleration duration
   };
 
-  // Buy turn using currency points
-  const buyExtraTurn = () => {
-    if (points >= 50) {
-      setPoints(prev => prev - 50);
-      setSpinsLeft(prev => prev + 1);
-      playSound('premium');
-    } else {
-      playSound('error');
-    }
-  };
-
-  // Unlock premium desserts
-  const unlockPremiumTier = () => {
-    if (points >= 80) {
-      setPoints(prev => prev - 80);
-      setUnlockedPremium(true);
-      playSound('win');
-    } else {
-      playSound('error');
-    }
-  };
-
-  // Custom AI intelligent Free Day Dessert calculation / Suggestion
-  const loadSmartAIPlan = () => {
-    if (isChoosingSmart) return;
-    setIsChoosingSmart(true);
-    setSmartChoice(null);
-    playSound('start');
-
-    setTimeout(() => {
-      // Pick dynamic best suited light or premium dessert based on target
-      const targetCategory = objective === 'cutting' ? 'light' : objective === 'bulking' ? 'high-calorie' : 'balanced';
-      const possible = ALL_DESSERTS.filter(d => d.type === targetCategory);
-      const selected = possible[Math.floor(Math.random() * possible.length)];
-      setSmartChoice(selected);
-      setIsChoosingSmart(false);
-      playSound('win');
-      spawnConfetti();
-    }, 1800);
+  // Clear spin tracking history
+  const clearWeeklyHistory = () => {
+    setWeeklyCompletedSpins([]);
+    try {
+      localStorage.removeItem('nutri_roulette_history_v3');
+    } catch {}
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto p-4 md:p-8 bg-slate-950/70 border border-purple-500/20 rounded-[32px] overflow-hidden backdrop-blur-xl shadow-[0_0_50px_rgba(139,92,246,0.15)] select-none">
-      {/* Absolute canvas confetti overlay */}
+    <div id="roleta-fit-view" className="relative w-full max-w-4xl mx-auto p-4 sm:p-6 md:p-8 bg-slate-950/70 border border-purple-500/15 rounded-[32px] overflow-hidden backdrop-blur-2xl shadow-[0_0_55px_rgba(139,92,246,0.12)] select-none">
+      {/* Sparkly Canvas confetti overlay */}
       <canvas ref={canvasRef} className="absolute inset-0 z-50 pointer-events-none w-full h-full" />
 
-      {/* Header Bezel and Dashboard Details */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-purple-900/40 pb-6 mb-8 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)] relative">
-            <Utensils className="h-7 w-7 text-white" />
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 bg-emerald-500 rounded-full border border-slate-950 items-center justify-center text-[9px] font-black text-white">2</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase bg-clip-text">
-                Sobremesa Premiada
-              </h2>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 animate-pulse">
-                Fit da Semana
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Gire a roleta saudável para desbloquear doces inteligentes sem quebrar o físico!
-            </p>
-          </div>
-        </div>
-
-        {/* Currency tracker */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300">
-            <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
-            <span className="font-bold text-sm tracking-wide">{points} pts</span>
-          </div>
-
-          <button 
-            onClick={() => setIsMuted(!isMuted)} 
-            className="p-2 bg-slate-850 border border-slate-800 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-            title={isMuted ? "Ativar Áudio Synth" : "Mutar Áudio"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-purple-400" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Top Objective Navigation Pillbox */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-8 relative z-10">
-        <div className="flex gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 w-full sm:w-auto overflow-x-auto">
-          <button 
-            onClick={() => { setActiveTab('wheel'); setResult(null); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'wheel' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-850'}`}
-          >
-            <RotateCw className="w-3.5 h-3.5" />
-            Ativar Roleta Fit
-          </button>
-          
-          <button 
-            onClick={() => { setActiveTab('menu'); setResult(null); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'menu' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-850'}`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            Ver Cardápio Fit ({ALL_DESSERTS.length})
-          </button>
-
-          <button 
-            onClick={() => { setActiveTab('smart-free'); setResult(null); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'smart-free' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-850'}`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-            Dia Livre Inteligente
-          </button>
-        </div>
-
-        {/* Dynamic target adaptive selector */}
-        <div className="flex items-center gap-2 bg-slate-900/60 p-1.5 rounded-xl border border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
-          <span className="text-[10px] text-slate-500 uppercase font-black px-2">Meta da IA:</span>
-          <select 
-            value={objective} 
-            onChange={(e) => {
-              setObjective(e.target.value as any);
-              setResult(null);
-            }} 
-            className="bg-slate-950 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-800 focus:outline-none focus:border-purple-500 cursor-pointer"
-          >
-            <option value="cutting">🔥 Cutting / Dry (Low Carb)</option>
-            <option value="balanced">🥗 Manutenção (Equilibrado)</option>
-            <option value="bulking">💪 Bulking / Massa (Proteico+)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* MAIN LAYOUT SECTIONS */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* HEADER SECTION */}
+      <div className="flex items-center justify-between gap-4 border-b border-purple-900/20 pb-5 mb-6 relative z-10">
         
-        {/* Left Interactive / Playground Pane (8 cols or full width depending) */}
-        <div className="lg:col-span-8 flex flex-col items-center">
-          
-          {activeTab === 'wheel' && (
-            <div className="w-full flex flex-col items-center">
-              
-              {/* Spinning status alert */}
-              <div className="text-center mb-6">
-                <span className="text-sm font-semibold text-purple-300 flex items-center gap-1.5 justify-center">
-                  <Flame className="w-4 h-4 text-pink-500 animate-pulse" />
-                  Hoje é dia premiado! Giros Restantes: <strong className="text-white text-base px-2 py-0.5 bg-purple-500/20 rounded-md">{spinsLeft}</strong>
-                </span>
-                <p className="text-[10px] text-slate-500 mt-1">Sua dieta seguida gera recompensas de forma segura.</p>
-              </div>
+        {/* Styled Mock Back Button */}
+        <button 
+          onClick={() => {
+            // Smooth reset to default view or simulation reset
+            setResult(ALL_FRUITS[2]); // Back to morango
+            setGlowWinner(false);
+          }}
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850 transition-all active:scale-95 flex items-center justify-center shrink-0 shadow-sm"
+          title="Redefinir visualização"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
 
-              {/* STUNNING ROQUETA WHEEL CONSTRUCTURE */}
-              <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-[350px] md:h-[350px] mb-8">
-                
-                {/* Outliner physical gold bezel with neon lights pulsing */}
-                <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-indigo-600 p-2 shadow-[0_0_50px_rgba(236,72,153,0.3)] ${shaking ? 'animate-bounce' : ''}`}>
-                  <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center relative overflow-hidden p-1.5">
-                    
-                    {/* Glowing LED bulbs around the wheel border - positioned dynamically via math percentages */}
-                    {Array.from({ length: 16 }).map((_, i) => {
-                      const angle = (i * 360) / 16;
-                      const rad = (angle * Math.PI) / 180;
-                      // Place exactly at 48.2% from center so it aligns along the inner border responsively
-                      const x = 50 + 48.2 * Math.cos(rad);
-                      const y = 50 + 48.2 * Math.sin(rad);
-                      const isEven = i % 2 === 0;
-                      return (
-                        <div 
-                          key={i}
-                          className={`absolute w-1.5 h-1.5 rounded-full z-20 -translate-x-1/2 -translate-y-1/2 ${isEven ? 'bg-pink-400 shadow-[0_0_8px_#ec4899]' : 'bg-purple-300 shadow-[0_0_8px_#a855f7]'}`}
-                          style={{
-                            left: `${x}%`,
-                            top: `${y}%`,
-                          }}
-                        />
-                      );
-                    })}
-
-                    {/* Rotating Wheel body */}
-                    <motion.div 
-                      className="w-full h-full rounded-full relative overflow-hidden"
-                      style={{ transformOrigin: 'center' }}
-                      animate={{ rotate: rotation }}
-                      transition={isSpinning ? { duration: 3.2, ease: [0.12, 0.8, 0.15, 1] } : { duration: 0 }}
-                    >
-                      {/* Inner colorful circle with geometric lines */}
-                      <div className="absolute inset-0 rounded-full bg-slate-900 border-2 border-slate-800"></div>
-
-                      {/* Perfect SVG Sectors to prevent broken clip paths or gaps */}
-                      <svg viewBox="0 0 100 100" className="w-full h-full select-none overflow-hidden">
-                        <defs>
-                          <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor="#1e1b4b" />
-                            <stop offset="100%" stopColor="#020005" />
-                          </radialGradient>
-                          <linearGradient id="sliceGrad0" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#c084fc" stopOpacity="0.8" />
-                            <stop offset="100%" stopColor="#581c87" stopOpacity="0.9" />
-                          </linearGradient>
-                          <linearGradient id="sliceGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.75" />
-                            <stop offset="100%" stopColor="#1e1b4b" stopOpacity="0.9" />
-                          </linearGradient>
-                          <linearGradient id="sliceGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#f472b6" stopOpacity="0.8" />
-                            <stop offset="100%" stopColor="#701a75" stopOpacity="0.9" />
-                          </linearGradient>
-                          <linearGradient id="sliceGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.75" />
-                            <stop offset="100%" stopColor="#0c1221" stopOpacity="0.9" />
-                          </linearGradient>
-                        </defs>
-
-                        {/* Outer background fill */}
-                        <circle cx="50" cy="50" r="50" fill="url(#centerGlow)" />
-
-                        {filteredDesserts.map((dessert, index) => {
-                          const totalSegments = filteredDesserts.length;
-                          const sliceAngle = 360 / totalSegments;
-                          const startAngle = index * sliceAngle;
-                          
-                          // Convert angles to radians (adjusting offset by -90 so index 0 starts at top)
-                          const rad1 = ((startAngle - 90) * Math.PI) / 180;
-                          const rad2 = ((startAngle + sliceAngle - 90) * Math.PI) / 180;
-                          
-                          // Outer arc point coordinates
-                          const x1 = 50 + 50 * Math.cos(rad1);
-                          const y1 = 50 + 50 * Math.sin(rad1);
-                          const x2 = 50 + 50 * Math.cos(rad2);
-                          const y2 = 50 + 50 * Math.sin(rad2);
-                          
-                          // Position text labels at 65% of the radius (32.5 out of 50)
-                          const midAngle = startAngle + sliceAngle / 2;
-                          const midRad = ((midAngle - 90) * Math.PI) / 180;
-                          const tx = 50 + 32.5 * Math.cos(midRad);
-                          const ty = 50 + 32.5 * Math.sin(midRad);
-                          
-                          const gradId = `sliceGrad${index % 4}`;
-
-                          return (
-                            <g key={dessert.id}>
-                              {/* Vector Slice Sector Path */}
-                              <path 
-                                d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                                fill={`url(#${gradId})`}
-                                stroke="rgba(168, 85, 247, 0.45)"
-                                strokeWidth="0.4"
-                                className="transition-all duration-300 hover:brightness-110"
-                              />
-
-                              {/* Neon border accent divider */}
-                              <line 
-                                x1="50" 
-                                y1="50" 
-                                x2={x1} 
-                                y2={y1} 
-                                stroke="rgba(236, 72, 153, 0.25)" 
-                                strokeWidth="0.3" 
-                              />
-                              
-                              {/* Perfectly aligned readable emoji / label group */}
-                              <g transform={`translate(${tx}, ${ty}) rotate(${midAngle + 90})`}>
-                                {/* Large dynamic emoji */}
-                                <text 
-                                  x="0" 
-                                  y="1" 
-                                  textAnchor="middle" 
-                                  dominantBaseline="middle" 
-                                  fontSize="7.5" 
-                                  className="select-none pointer-events-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
-                                >
-                                  {dessert.emoji}
-                                </text>
-                                
-                                {/* Truncated small label */}
-                                <text 
-                                  x="0" 
-                                  y="6" 
-                                  textAnchor="middle" 
-                                  dominantBaseline="middle" 
-                                  fontSize="1.8" 
-                                  fontWeight="900" 
-                                  fill="#f3e8ff" 
-                                  className="font-mono tracking-wider select-none pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] uppercase opacity-85"
-                                >
-                                  {dessert.name.split(' ')[0]}
-                                </text>
-                              </g>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    </motion.div>
-
-                    {/* Needle Indicator point at the very center (3D bubble) */}
-                    <div className="absolute inset-0 m-auto w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 p-0.5 shadow-[0_0_20px_rgba(168,85,247,0.6)] z-30 flex items-center justify-center border-2 border-white/20">
-                      <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center relative">
-                        {/* Needle pin index arrow pointing exactly up */}
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 bg-pink-500 rotate-45 border-t border-l border-white/30 z-30 shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
-                        <Utensils className="h-5 w-5 text-white animate-pulse" />
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-
-              {/* Control Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-                <button 
-                  onClick={spinTheWheel}
-                  disabled={isSpinning || spinsLeft <= 0}
-                  className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-600 rounded-2xl font-black text-lg text-white shadow-[0_0_30px_rgba(168,85,247,0.4)] active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wider flex items-center justify-center gap-3 border border-white/10"
-                >
-                  <RotateCw className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
-                  {isSpinning ? 'Girando a Vida...' : 'Girar Roleta Fit'}
-                </button>
-
-                {spinsLeft <= 0 && (
-                  <button 
-                    onClick={buyExtraTurn}
-                    disabled={points < 50}
-                    className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-850 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                    title="Gaste 50 pontos da sua dieta para ganhar outro giro livre e seguro!"
-                  >
-                    <Zap className="w-4 h-4 text-amber-400" />
-                    Ganhar +1 Giro por 50 XP
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Tab Menu List Cardápio Fit */}
-          {activeTab === 'menu' && (
-            <div className="w-full space-y-4">
-              <div className="flex justify-between items-center bg-purple-950/10 border border-purple-500/20 p-4 rounded-xl">
-                <div>
-                  <h4 className="font-bold text-sm text-purple-300">Coleção Saudável da NutriAI</h4>
-                  <p className="text-xs text-slate-400">São ao todo {ALL_DESSERTS.length} doces gourmet calculados minuciosamente.</p>
-                </div>
-                {!unlockedPremium ? (
-                  <button 
-                    onClick={unlockPremiumTier}
-                    disabled={points < 80}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-black shadow-md shadow-purple-600/20 flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
-                  >
-                    Liberar Premium (80 pts)
-                  </button>
-                ) : (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-black border border-emerald-500/30 px-2 py-1 rounded-lg">
-                    PREMIUM LIBERADO 👑
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {ALL_DESSERTS.map(dessert => (
-                  <motion.div 
-                    key={dessert.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${dessert.tier === 'premium' && !unlockedPremium ? 'bg-slate-900/40 border-slate-800/40 opacity-70' : 'bg-slate-900/80 border-slate-800 hover:border-purple-500/30'}`}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center text-2xl border border-slate-800">
-                      {dessert.tier === 'premium' && !unlockedPremium ? '🔒' : dessert.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-bold text-sm text-white truncate">{dessert.name}</h4>
-                        {dessert.tier === 'premium' && (
-                          <span className="text-[8px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded">FIT+</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1 font-mono">
-                        <span>🔥 {dessert.calories} kcal</span>
-                        <span className="text-purple-300 font-bold">💪 {dessert.protein}g P</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Smart Free Day (Dia Livre Inteligente) tab layout */}
-          {activeTab === 'smart-free' && (
-            <div className="w-full bg-slate-900/50 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl" />
-
-              <div className="flex flex-col items-center text-center max-w-lg mx-auto relative z-10">
-                <Sparkles className="w-12 h-12 text-pink-400 mb-4 animate-bounce" />
-                <h3 className="text-xl font-bold text-white mb-2">🔥 Dia Livre Inteligente com IA</h3>
-                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                  Sem extrapolar a gordura semanal! Nossa Inteligência Artificial monta e dimensiona uma sobremesa de alto prazer encaixada milimetricamente nos seus macros restantes de hoje.
-                </p>
-
-                <button 
-                  onClick={loadSmartAIPlan}
-                  disabled={isChoosingSmart}
-                  className="px-8 py-3.5 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-black rounded-xl text-sm shadow-xl shadow-pink-500/20 flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
-                >
-                  {isChoosingSmart ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Dimensionando Prato...
-                    </>
-                  ) : (
-                    <>
-                      <Utensils className="w-4 h-4" />
-                      Mapear Sobremesa Inteligente
-                    </>
-                  )}
-                </button>
-
-                {/* Intelligent display of results */}
-                <AnimatePresence>
-                  {smartChoice && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="mt-8 p-6 bg-slate-950 border border-pink-500/30 rounded-2xl w-full text-left"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-3xl">{smartChoice.emoji}</span>
-                        <div>
-                          <span className="text-[10px] text-pink-400 uppercase font-black tracking-widest font-mono">IA Aprovado para Hoje</span>
-                          <h4 className="font-bold text-base text-white">{smartChoice.name}</h4>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-2 text-center bg-slate-900 p-3 rounded-xl border border-slate-800/60 mb-4">
-                        <div>
-                          <span className="block text-[9px] text-slate-500">Calorias</span>
-                          <span className="font-extrabold text-white text-xs">{smartChoice.calories}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[9px] text-slate-500">Proteínas</span>
-                          <span className="font-extrabold text-emerald-400 text-xs">{smartChoice.protein}g</span>
-                        </div>
-                        <div>
-                          <span className="block text-[9px] text-slate-500">Carbos</span>
-                          <span className="font-extrabold text-blue-400 text-xs">{smartChoice.carbs}g</span>
-                        </div>
-                        <div>
-                          <span className="block text-[9px] text-slate-500">Gorduras</span>
-                          <span className="font-extrabold text-pink-400 text-xs">{smartChoice.fat}g</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] text-slate-500 uppercase font-bold">Ingredientes & Modo de Fazer:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {smartChoice.ingredients.map((ing, i) => (
-                            <span key={i} className="text-[10px] px-2 py-1 bg-slate-900 border border-slate-800 text-slate-300 rounded-md">
-                              {ing}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed mt-2 italic">
-                          💡 Essa porção foi calculada para ser consumida preferencialmente após seu treino de força para maximizar a captação de glicose no músculo!
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
+        {/* Central Brand Label */}
+        <div className="text-center flex-1">
+          <div className="flex flex-col items-center justify-center gap-1">
+            <Leaf className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" />
+            <h1 className="font-sans font-black text-2xl sm:text-3xl tracking-wider text-white uppercase">
+              ROLETA <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400 font-black">FIT</span>
+            </h1>
+          </div>
+          <p className="text-[11px] sm:text-xs text-slate-400 font-medium mt-1">
+            Gire a roleta e descubra uma fruta saudável para o seu dia!
+          </p>
         </div>
 
-        {/* Right Gamification Sidebar & Rewards Stats (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* History Action Trigger */}
+        <button
+          onClick={() => setShowHistoryDrawer(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-850 transition-all active:scale-95 shrink-0"
+        >
+          <Clock className="w-4 h-4 text-purple-400" />
+          <span className="hidden sm:inline">Histórico</span>
+        </button>
+
+      </div>
+
+      {/* WHEEL CENTERPIECE & SPIN MECHANICS */}
+      <div className="flex flex-col items-center justify-center w-full py-4 relative z-10">
+        
+        {/* Pulse spins count status bar */}
+        <div className="text-center mb-6 z-10">
+          <span className="text-[11px] sm:text-xs font-bold tracking-widest text-purple-300 uppercase flex items-center gap-2 justify-center">
+            <Flame className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+            Giros Disponíveis Hoje: <strong className="text-white text-sm px-2.5 py-0.5 bg-pink-500/15 rounded-md border border-pink-500/20">{spinsLeft}</strong>
+          </span>
+        </div>
+
+        {/* PERFECTLY CIRCULAR WHEEL WRAPPER */}
+        <div className="relative w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[370px] md:max-w-[400px] aspect-square rounded-full flex items-center justify-center mb-8 mx-auto">
           
-          {/* Level Progress Banner */}
-          <div className="bg-gradient-to-b from-purple-900/30 to-slate-950 border border-purple-500/20 p-5 rounded-3xl">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs uppercase font-black tracking-wider text-purple-400">Nível Fitness</span>
-              <Award className="w-5 h-5 text-purple-400 animate-pulse" />
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-3xl font-black text-white">Lvl {level}</span>
-              <span className="text-xs text-slate-400 font-medium">Confeiteiro Fit</span>
-            </div>
-
-            {/* Slider bar */}
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden relative mb-4">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
-                style={{ width: `${levelProgress}%` }}
-              />
-            </div>
-
-            <div className="text-[10px] text-slate-400 flex justify-between items-center bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-              <span>Ganhe +25 XP por cada giro</span>
-              <span className="text-purple-300 font-bold">{100 - levelProgress} XP para Lvl {level + 1}</span>
-            </div>
+          {/* External locator needle map-pin pointing exactly down */}
+          <div className="absolute -top-[15px] left-1/2 -translate-x-1/2 z-40 select-none pointer-events-none drop-shadow-[0_8px_16px_rgba(236,72,153,0.5)]">
+            <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="url(#pinGrad)" />
+              <circle cx="14" cy="14" r="4.5" fill="#FFFFFF" />
+              <defs>
+                <linearGradient id="pinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#EC4899" />
+                  <stop offset="100%" stopColor="#8B5CF6" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
 
-          {/* Medalhas & Fit Badges Achieved */}
-          <div className="bg-slate-900/50 border border-slate-850 p-5 rounded-3xl space-y-3">
-            <h4 className="font-bold text-xs text-slate-300 uppercase tracking-widest flex items-center gap-2">
-              <Award className="w-4 h-4 text-pink-400" />
-              Medalhas de Doces
-            </h4>
+          {/* Glowing neon ring shell */}
+          <div className={`absolute inset-0 rounded-full border-4 border-purple-500/40 p-1 bg-slate-950/80 shadow-[0_0_35px_rgba(168,85,247,0.25)] flex items-center justify-center overflow-hidden ${shaking ? 'animate-bounce' : ''}`}>
             
-            <div className="grid grid-cols-4 gap-2">
-              <div className="flex flex-col items-center p-2 rounded-xl bg-slate-950 border border-slate-850 text-center" title="Completou o primeiro giro na roleta fit">
-                <span className="text-lg">🍭</span>
-                <span className="text-[8px] text-slate-400 font-bold mt-1 scale-90">Iniciante</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-slate-950 border border-slate-850 text-center" title="Conquistou doce após treino intenso">
-                <span className="text-lg">⚡</span>
-                <span className="text-[8px] text-slate-400 font-bold mt-1 scale-90">Pós-Treino</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-xl bg-slate-950 border border-slate-850 text-center" title="Manteve a consistência alimentar por 1 semana">
-                <span className="text-lg">🏆</span>
-                <span className="text-[8px] text-slate-400 font-bold mt-1 scale-90">Blindado</span>
-              </div>
-              <div className={`flex flex-col items-center p-2 rounded-xl text-center border transition-all ${unlockedPremium ? 'bg-slate-950 border-purple-500/20' : 'bg-slate-950/20 border-slate-900/40 opacity-40'}`} title="Desbloqueou sobremesas do menu premium fit">
-                <span className="text-lg">👑</span>
-                <span className="text-[8px] text-slate-400 font-bold mt-1 scale-90">Elite</span>
+            {/* LED Glowing border bulbs distributed evenly along boundary */}
+            {Array.from({ length: 16 }).map((_, i) => {
+              const angle = (i * 360) / 16;
+              const rad = (angle * Math.PI) / 180;
+              const x = 50 + 49.0 * Math.cos(rad);
+              const y = 50 + 49.0 * Math.sin(rad);
+              const isEven = i % 2 === 0;
+              return (
+                <div 
+                  key={i}
+                  className={`absolute w-1.5 h-1.5 rounded-full z-25 -translate-x-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                    isSpinning
+                      ? isEven ? 'bg-pink-400 shadow-[0_0_10px_#ec4899] scale-110' : 'bg-purple-400 shadow-[0_0_10px_#a855f7]'
+                      : isEven ? 'bg-pink-500/80 shadow-[0_0_6px_#ec4899]' : 'bg-purple-500/80 shadow-[0_0_6px_#a855f7]'
+                  }`}
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                />
+              );
+            })}
+
+            {/* Rotating SVG core */}
+            <motion.div 
+              className="w-full h-full rounded-full select-none"
+              style={{ transformOrigin: 'center' }}
+              animate={{ rotate: rotation }}
+              transition={isSpinning ? { duration: 4.5, ease: [0.15, 0.85, 0.2, 1] } : { duration: 0 }}
+            >
+              <svg viewBox="0 0 100 100" className="w-full h-full select-none overflow-hidden rounded-full">
+                <defs>
+                  <radialGradient id="centerSpaceGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#1e1b4b" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#03000a" stopOpacity="1" />
+                  </radialGradient>
+                  {ALL_FRUITS.map(fruit => (
+                    <linearGradient id={`grad-${fruit.id}`} key={fruit.id} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={fruit.gradientFrom} stopOpacity="0.85" />
+                      <stop offset="100%" stopColor={fruit.gradientTo} stopOpacity="0.95" />
+                    </linearGradient>
+                  ))}
+                </defs>
+
+                <circle cx="50" cy="50" r="50" fill="url(#centerSpaceGlow)" />
+
+                {ALL_FRUITS.map((fruit, index) => {
+                  const totalSegments = ALL_FRUITS.length;
+                  const sliceAngle = 360 / totalSegments;
+                  const startAngle = index * sliceAngle;
+                  
+                  const r = 48; // Leave small margin from border
+                  const rad1 = ((startAngle - 90) * Math.PI) / 180;
+                  const rad2 = ((startAngle + sliceAngle - 90) * Math.PI) / 180;
+                  
+                  const x1 = 50 + r * Math.cos(rad1);
+                  const y1 = 50 + r * Math.sin(rad1);
+                  const x2 = 50 + r * Math.cos(rad2);
+                  const y2 = 50 + r * Math.sin(rad2);
+                  
+                  const cx = 50;
+                  const cy = 50;
+                  
+                  // Text coordinates at distance 29.5 from center
+                  const midAngle = startAngle + sliceAngle / 2;
+                  const midRad = ((midAngle - 90) * Math.PI) / 180;
+                  const tx = 50 + 29.5 * Math.cos(midRad);
+                  const ty = 50 + 29.5 * Math.sin(midRad);
+
+                  return (
+                    <g key={fruit.id} className="cursor-pointer">
+                      {/* Sector Path Wedge */}
+                      <path 
+                        d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`}
+                        fill={`url(#grad-${fruit.id})`}
+                        stroke="#0f0726"
+                        strokeWidth="0.4"
+                        className="transition-all duration-300 hover:brightness-110"
+                      />
+                      
+                      {/* Segment Concentric aligned Name & Emojis */}
+                      <g transform={`translate(${tx}, ${ty}) rotate(${midAngle + 90})`}>
+                        <text 
+                          x="0" 
+                          y="-2" 
+                          textAnchor="middle" 
+                          dominantBaseline="middle" 
+                          fontSize="7.5"
+                          className="select-none pointer-events-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.75)] font-serif"
+                        >
+                          {fruit.emoji}
+                        </text>
+                        <text 
+                          x="0" 
+                          y="4" 
+                          textAnchor="middle" 
+                          dominantBaseline="middle" 
+                          fontSize="2.1" 
+                          fontWeight="900" 
+                          fill="#FFFFFF"
+                          className="font-sans uppercase tracking-widest select-none pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] fill-white"
+                        >
+                          {fruit.name}
+                        </text>
+                      </g>
+                    </g>
+                  );
+                })}
+              </svg>
+            </motion.div>
+
+            {/* Glowing static center axis cap with Leaf */}
+            <div className="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-indigo-600 p-0.5 shadow-[0_0_25px_rgba(168,85,247,0.7)] z-30 flex items-center justify-center border border-white/20">
+              <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center relative">
+                <Leaf className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]" />
+                <div className="absolute inset-1 rounded-full border border-purple-500/10 pointer-events-none animate-pulse"></div>
               </div>
             </div>
+
           </div>
+        </div>
 
-          {/* Historico / Weekly spin winners */}
-          <div className="bg-slate-900/50 border border-slate-850 p-5 rounded-3xl space-y-3">
-            <h4 className="font-bold text-xs text-slate-300 uppercase tracking-widest">
-              Conquistas da Semana
-            </h4>
-
-            {weeklyCompletedSpins.length === 0 ? (
-              <p className="text-[11px] text-slate-500 py-3 text-center italic">
-                Nenhuma sobremesa ganha ainda. Gire a roleta acima!
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {weeklyCompletedSpins.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-slate-950 border border-slate-850 p-2.5 rounded-xl">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-white truncate font-medium">{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Live Nutrition AI Rule Guide */}
-          <div className="bg-slate-900/30 border border-indigo-900/20 p-4 rounded-2xl">
-            <span className="text-[10px] text-indigo-400 uppercase font-bold block mb-1">Como Funciona a Gamificação?</span>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Consumir doces adaptados após o treino ajuda a recompor o glicogênio muscular de forma acelerada sem elevar a insulina de maneira prejudicial à saúde. Siga as orientações para evoluir o nível!
-            </p>
-          </div>
-
+        {/* MAIN SPIN ACTION BUTTON */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full max-w-sm px-4">
+          <button
+            onClick={spinTheWheel}
+            disabled={isSpinning || spinsLeft <= 0}
+            className="w-full py-4.5 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 hover:from-purple-600 hover:via-pink-600 hover:to-rose-600 text-white font-sans font-black text-lg text-center rounded-2xl flex items-center justify-center gap-2.5 shadow-[0_0_30px_rgba(236,72,153,0.4)] active:scale-95 transition-all disabled:opacity-45 disabled:pointer-events-none uppercase tracking-wider border border-white/10"
+          >
+            <RotateCw className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
+            {isSpinning ? 'Sorteando Vida...' : 'Girar Roleta Fit'}
+          </button>
         </div>
 
       </div>
 
-      {/* WIN RESULT MODAL */}
+      {/* DETAILED ACTIVE WIN RESULT PANEL */}
+      <AnimatePresence mode="wait">
+        {result && (
+          <motion.div
+            key={result.id}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className={`w-full mt-8 p-4 sm:p-6 rounded-[28px] border transition-all ${
+              glowWinner 
+                ? 'bg-slate-900/90 dark:bg-slate-950/90 border-pink-500/40 shadow-[0_0_30px_rgba(236,72,153,0.2)] animate-pulse'
+                : 'bg-slate-900/50 dark:bg-slate-950/50 border-purple-500/10'
+            }`}
+          >
+            
+            {/* Split result summary info */}
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              
+              {/* Left Glowing Avatar Ring containing fruit emoji */}
+              <div className="shrink-0 flex items-center justify-center relative">
+                <div className="absolute inset-0 rounded-full blur-xl opacity-70 bg-gradient-to-tr from-pink-500 to-purple-600 scale-110"></div>
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-950 border-2 border-pink-500/30 flex items-center justify-center text-4xl sm:text-5xl shadow-inner z-10">
+                  {result.emoji}
+                </div>
+              </div>
+
+              {/* Right Descriptions & Stats */}
+              <div className="flex-1 text-center md:text-left space-y-3 min-w-0">
+                <div>
+                  <h3 className="font-sans font-extrabold text-lg sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-500 to-purple-400 uppercase tracking-wide">
+                    {result.emoji} {result.name} sorteado!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-350 font-normal leading-relaxed mt-1">
+                    {result.benefits}
+                  </p>
+                </div>
+
+                {/* 4 columns micro stats table badges */}
+                <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 text-center pt-2">
+                  <div className="bg-slate-902/80 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">🍊 Calorias</span>
+                    <span className="font-extrabold text-orange-400 text-xs sm:text-sm mt-0.5">{result.calories}</span>
+                  </div>
+
+                  <div className="bg-slate-902/80 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">🧪 Vitamina C</span>
+                    <span className="font-extrabold text-emerald-400 text-xs sm:text-sm mt-0.5">{result.vitsLevel}</span>
+                  </div>
+
+                  <div className="bg-slate-902/80 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">🌿 Fibras</span>
+                    <span className="font-extrabold text-teal-400 text-xs sm:text-sm mt-0.5">{result.fibersLevel}</span>
+                  </div>
+
+                  <div className="bg-slate-902/80 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">🧬 Antioxidantes</span>
+                    <span className="font-extrabold text-purple-400 text-xs sm:text-sm mt-0.5">{result.antioxidantsLevel}</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Bottom Consumption Suggestion Row */}
+            <div className="mt-5 p-3.5 bg-slate-950/80 rounded-2xl border border-purple-500/10 flex items-start gap-3 text-left">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                <Coffee className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <h4 className="font-sans font-bold text-slate-300 text-xs uppercase tracking-wider">Sugestão de Consumo</h4>
+                <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed font-medium">
+                  {result.suggestion}
+                </p>
+              </div>
+            </div>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* QUICK NUTRITION RULES GUIDE SUMMARY */}
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800/40 text-xs">
+        <div className="space-y-1 text-center sm:text-left">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 uppercase font-bold tracking-widest block text-[10px]">
+            ALIMENTAÇÃO INTELIGENTE
+          </span>
+          <p className="text-slate-400 leading-relaxed max-w-xl">
+            As frutas trazem fitoquímicos e carboidratos nobres ideais para enriquecer sua nutrição. Aproveite os nutrientes frescos ao longo do seu dia!
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold shrink-0">
+          <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse" />
+          <span>{points} pts</span>
+        </div>
+      </div>
+
+      {/* HISTÓRICO DRAWER / DETAILED SLIDE-IN MODAL */}
       <AnimatePresence>
-        {showResultModal && result && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-md bg-gradient-to-b from-purple-900/50 to-slate-950 border border-purple-500/30 p-6 rounded-[32px] text-center shadow-[0_0_50px_rgba(168,85,247,0.5)] overflow-hidden"
+        {showHistoryDrawer && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-end bg-slate-950/80 backdrop-blur-sm p-4">
+            
+            {/* Backdrop click dismisses */}
+            <div className="absolute inset-0" onClick={() => setShowHistoryDrawer(false)} />
+
+            {/* Slide in panel container */}
+            <motion.div
+              initial={{ x: 280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 280, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+              className="relative w-full max-w-sm h-full max-h-[580px] sm:max-h-[640px] bg-slate-950 border border-slate-800 rounded-3xl p-6 flex flex-col shadow-2xl z-21"
             >
-              <div className="absolute top-0 right-0 p-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4.5 h-4.5 text-purple-400" />
+                  <h3 className="font-sans font-black text-white text-base uppercase tracking-wider">Histórico de Giros</h3>
+                </div>
                 <button 
-                  onClick={() => setShowResultModal(false)}
-                  className="text-slate-400 hover:text-white font-black text-sm p-1.5"
+                  onClick={() => setShowHistoryDrawer(false)}
+                  className="text-slate-500 hover:text-white p-1 text-sm font-bold"
                 >
-                  X
+                  Fechar
                 </button>
               </div>
 
-              {/* Glowing animated visual */}
-              <div className="w-20 h-20 rounded-full mx-auto bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-5xl mb-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-pulse">
-                {result.emoji}
+              {/* Scrollable list items */}
+              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                {weeklyCompletedSpins.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                    <Sparkles className="w-8 h-8 text-slate-650 mb-2 animate-bounce" />
+                    <p className="text-xs">Nenhum giro registrado.</p>
+                    <p className="text-[10px] text-slate-600 mt-1">Gire a roleta e monte seu menu de vantagens!</p>
+                  </div>
+                ) : (
+                  weeklyCompletedSpins.map((spin, k) => (
+                    <div key={k} className="p-3 rounded-xl bg-slate-900 border border-slate-850 flex items-center justify-between text-xs text-white">
+                      <span className="font-semibold">{spin}</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-2" />
+                    </div>
+                  ))
+                )}
               </div>
 
-              <span className="text-[10px] text-purple-300 uppercase tracking-widest font-black font-mono">
-                Sua Recompensa Saudável da Semana 🍓
-              </span>
-              
-              <h3 className="text-xl md:text-2xl font-black text-white mt-1 mb-4">
-                {result.name}
-              </h3>
-
-              {/* Macro nutritional table detailed stats */}
-              <div className="grid grid-cols-4 gap-2 text-center bg-slate-900/80 p-3.5 rounded-2xl border border-slate-850 mb-6 font-mono">
-                <div>
-                  <span className="block text-[9px] text-slate-500 uppercase">Kcal</span>
-                  <span className="font-extrabold text-white text-sm">{result.calories}</span>
-                </div>
-                <div>
-                  <span className="block text-[9px] text-slate-500 uppercase">Prot</span>
-                  <span className="font-extrabold text-emerald-400 text-sm">{result.protein}g</span>
-                </div>
-                <div>
-                  <span className="block text-[9px] text-slate-500 uppercase">Carb</span>
-                  <span className="font-extrabold text-blue-400 text-sm">{result.carbs}g</span>
-                </div>
-                <div>
-                  <span className="block text-[9px] text-slate-500 uppercase">Gord</span>
-                  <span className="font-extrabold text-pink-400 text-sm">{result.fat}g</span>
-                </div>
-              </div>
-
-              {/* Ingredients card */}
-              <div className="text-left bg-slate-900/40 p-4 rounded-xl border border-slate-850 mb-6 space-y-2">
-                <span className="text-[9px] text-slate-500 uppercase font-black">Ingredientes Aprovados pela IA:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.ingredients.map((ing, k) => (
-                    <span key={k} className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-md">
-                      {ing}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setShowResultModal(false)}
-                className="w-full py-3.5 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl text-white font-extrabold text-xs active:scale-95 transition-all uppercase tracking-wider"
-              >
-                Adicionar ao Meu Diário de Hoje
-              </button>
+              {/* Clear records button */}
+              {weeklyCompletedSpins.length > 0 && (
+                <button
+                  onClick={clearWeeklyHistory}
+                  className="mt-4 w-full py-2.5 rounded-xl bg-red-950/30 border border-red-900/40 text-red-400 hover:text-white hover:bg-red-900/50 transition-all font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Limpar Histórico
+                </button>
+              )}
 
             </motion.div>
           </div>
