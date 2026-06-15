@@ -8,7 +8,7 @@ const DETOX_SLIDES = [
     name: 'Detox Verde Energizante',
     benefit: 'Acelera o metabolismo e purifica',
     calories: '120 kcal',
-    image: 'https://images.unsplash.com/photo-1622947190547-0638e55e0987?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&q=80&w=1200',
     tip: 'Que tal começar o dia com esse detox leve? 💚'
   },
   {
@@ -16,7 +16,7 @@ const DETOX_SLIDES = [
     name: 'Poder Laranja Imunidade',
     benefit: 'Rico em Vitamina C e Antioxidantes',
     calories: '145 kcal',
-    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&q=80&w=1200',
     tip: 'Esse suco ajuda seu corpo a desinchar e fortalece sua defesa.'
   },
   {
@@ -24,7 +24,7 @@ const DETOX_SLIDES = [
     name: 'Red Glow Revitalizante',
     benefit: 'Pele radiante e circulação ativa',
     calories: '130 kcal',
-    image: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?auto=format&fit=crop&q=80&w=1200',
     tip: 'Refrescante, saudável e super fácil de preparar!'
   },
   {
@@ -32,7 +32,7 @@ const DETOX_SLIDES = [
     name: 'Yellow Zen Anti-inflamatório',
     benefit: 'Gengibre e cúrcuma para bem-estar',
     calories: '95 kcal',
-    image: 'https://images.unsplash.com/photo-1563821844227-41d92e5175a4?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=1200',
     tip: 'Quer ver como preparar essa dose extra de saúde?'
   },
   {
@@ -40,7 +40,7 @@ const DETOX_SLIDES = [
     name: 'Deep Green Clorofila',
     benefit: 'Limpeza profunda e oxigenação',
     calories: '80 kcal',
-    image: 'https://images.unsplash.com/photo-1510629954389-c1e0da47d414?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&q=80&w=1200',
     tip: 'Sinta a energia da natureza em cada gole. Você merece.'
   },
   {
@@ -56,7 +56,7 @@ const DETOX_SLIDES = [
     name: 'Cucumber Crisp Refresh',
     benefit: 'Hidratação extrema e diurético',
     calories: '65 kcal',
-    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1200',
+    image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=1200',
     tip: 'O equilíbrio perfeito para dias mais intensos.'
   },
   {
@@ -68,6 +68,80 @@ const DETOX_SLIDES = [
     tip: 'Combine com seu plano alimentar para resultados incríveis.'
   }
 ];
+
+interface DetoxSlideImageProps {
+  src: string;
+  alt: string;
+  slideId: string;
+}
+
+function DetoxSlideImage({ src, alt, slideId }: DetoxSlideImageProps) {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+    setIsLoading(true);
+  }, [src]);
+
+  const handleImgError = () => {
+    setHasError(true);
+    setIsLoading(false);
+  };
+
+  const handleImgLoad = () => {
+    setIsLoading(false);
+  };
+
+  if (hasError) {
+    let bgGradient = "from-emerald-800 via-emerald-900 to-teal-950";
+    let fruitsEmoji = "🥬 🍏 🥝";
+    
+    if (slideId === 'd2') {
+      bgGradient = "from-orange-600 via-amber-700 to-orange-950";
+      fruitsEmoji = "🍊 🍋 🥕";
+    } else if (slideId === 'd3') {
+      bgGradient = "from-rose-700 via-red-800 to-purple-950";
+      fruitsEmoji = "🍓 🍇 🍒";
+    } else if (slideId === 'd4') {
+      bgGradient = "from-yellow-600 via-amber-700 to-yellow-950";
+      fruitsEmoji = " Pineapple ✨";
+    } else if (slideId === 'd6') {
+      bgGradient = "from-indigo-700 via-purple-800 to-indigo-950";
+      fruitsEmoji = "🫐 🍓 🍇";
+    }
+
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-emerald-900 via-emerald-950 to-teal-950 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)] animate-pulse" />
+        <span className="text-4xl sm:text-6xl mb-3 filter drop-shadow-md select-none opacity-80">{fruitsEmoji}</span>
+        <div className="text-emerald-400/50 font-mono text-[8px] uppercase tracking-[0.25em] relative z-10 select-none">
+          Receita Saudável Ativa
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+          <div className="w-6 h-6 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+        </div>
+      )}
+      <img
+        src={imgSrc}
+        alt={alt}
+        onLoad={handleImgLoad}
+        onError={handleImgError}
+        className={`w-full h-full object-cover object-center transition-all duration-700 ${isLoading ? 'opacity-0 scale-102' : 'opacity-100 scale-100'}`}
+        referrerPolicy="no-referrer"
+      />
+    </div>
+  );
+}
 
 export function DetoxBanner() {
   const [index, setIndex] = useState(0);
@@ -92,7 +166,7 @@ export function DetoxBanner() {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img src={slide.image} className="w-full h-full object-cover object-center" alt={slide.name} />
+          <DetoxSlideImage src={slide.image} alt={slide.name} slideId={slide.id} />
           <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/95 via-emerald-950/40 to-black/20" />
           
           <div className="absolute top-3 left-3 sm:top-6 sm:left-6 md:top-8 md:left-8 flex gap-2 flex-wrap pr-4">

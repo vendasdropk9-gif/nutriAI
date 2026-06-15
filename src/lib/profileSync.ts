@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from './firebaseUtils';
-import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog } from '../types';
+import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
 
 export function useProfileSync(user: User | null, localProfile: UserProfile | null, setLocalProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>) {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -50,6 +50,7 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
           subUnsubs.push(listenSub('fastingLogs', 'fastingLogs'));
           subUnsubs.push(listenSub('bloodPressureLogs', 'bloodPressureLogs'));
           subUnsubs.push(listenSub('bodyMonitorLogs', 'bodyMonitorLogs'));
+          subUnsubs.push(listenSub('notes', 'notes'));
         }
 
         // We fetch initially instead of waiting for the subsnapshot to fire so there's no flicker
@@ -67,6 +68,7 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
           currentProfile.fastingLogs = await fetchSub('fastingLogs') as FastingLog[];
           currentProfile.bloodPressureLogs = await fetchSub('bloodPressureLogs') as BloodPressureLog[];
           currentProfile.bodyMonitorLogs = await fetchSub('bodyMonitorLogs') as BodyMonitorLog[];
+          currentProfile.notes = await fetchSub('notes') as Note[];
         } catch (e) {
           console.error("Error fetching subcollections", e);
         }
@@ -128,6 +130,7 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
         fastingLogs, 
         bloodPressureLogs,
         bodyMonitorLogs,
+        notes,
         email, 
         createdAt, 
         role, 
@@ -171,6 +174,7 @@ export function useProfileSync(user: User | null, localProfile: UserProfile | nu
       await syncSub(fastingLogs, 'fastingLogs');
       await syncSub(bloodPressureLogs, 'bloodPressureLogs');
       await syncSub(bodyMonitorLogs, 'bodyMonitorLogs');
+      await syncSub(notes, 'notes');
 
     } catch (error) {
       try { handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`); } catch(e) {}

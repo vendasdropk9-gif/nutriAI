@@ -38,6 +38,7 @@ import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
 import { AcademyPortal } from './components/AcademyPortal';
 import { BloodPressureTracker } from './components/BloodPressureTracker';
+import { Notebook } from './components/Notebook';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
@@ -72,7 +73,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -261,7 +262,7 @@ export default function App() {
                 id="header-feedback-trigger-btn"
               >
                 <MessageSquare className="w-4 h-4 text-emerald-500" />
-                <span className="hidden sm:inline">Feedback</span>
+                <span className="inline-block text-xs md:text-sm font-medium">Feedback</span>
               </motion.button>
 
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
@@ -316,6 +317,13 @@ export default function App() {
             )}
             {activeTab === 'habits' && (
               <HabitTracker 
+                profile={profile} 
+                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
+                onAwardPoints={awardPoints}
+              />
+            )}
+            {activeTab === 'notes' && (
+              <Notebook 
                 profile={profile} 
                 onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
                 onAwardPoints={awardPoints}

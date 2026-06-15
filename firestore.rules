@@ -151,6 +151,22 @@ service cloud.firestore {
                       incoming().status == 'pending';
         allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
       }
+
+      // SUBCOLLECTION FOR PERSONAL NOTES / BLOCO DE ANOTAÇÕES
+      match /notes/{noteId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                      incoming().userId == request.auth.uid &&
+                      incoming().createdAt == request.time &&
+                      incoming().updatedAt == request.time &&
+                      incoming().title is string &&
+                      incoming().content is string;
+        allow update: if isOwner(userId) && 
+                      incoming().updatedAt == request.time && 
+                      incoming().createdAt == existing().createdAt && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'updatedAt', 'category', 'tags']);
+        allow delete: if isOwner(userId);
+      }
     }
 
     // Recipes (global/saved)

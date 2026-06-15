@@ -117,6 +117,7 @@ export interface UserProfile {
   fastingLogs?: FastingLog[];
   bloodPressureLogs?: BloodPressureLog[];
   bodyMonitorLogs?: BodyMonitorLog[];
+  notes?: Note[];
 }
 
 export interface BodyMonitorLog {
@@ -361,4 +362,15 @@ export interface PlateAnalysisResult {
   };
   assistantMessage: string;
   suggestions: string[];
+}
+
+export interface Note {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  category?: string;
+  tags?: string[];
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
 }

@@ -75,7 +75,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
         setShowSuccess(false);
         setComment('');
         onClose();
-      }, 4000);
+      }, 2200);
 
     } catch (err: any) {
       console.warn('Erro ao enviar feedback para o Firestore, tentando salvar localmente:', err);
@@ -99,7 +99,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
           setShowSuccess(false);
           setComment('');
           onClose();
-        }, 4000);
+        }, 2200);
       } catch (fallbackErr) {
         setError('Ocorreu um erro ao processar seu feedback. Tente novamente mais tarde.');
       }
@@ -271,6 +271,21 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-sm">
                   Sua opinião nos motiva a evoluir diariamente e tornar o NutriAI cada vez mais completo e inteligente.
                 </p>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    playSfx('tap');
+                    setShowSuccess(false);
+                    setComment('');
+                    onClose();
+                  }}
+                  className="mt-6 px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
+                  id="dismiss-feedback-success-btn"
+                >
+                  Fechar
+                </motion.button>
 
                 <div className="mt-6 flex items-center gap-1.5 text-xs text-rose-500 font-semibold animate-pulse">
                   <span>Feito com</span>

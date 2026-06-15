@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat, PiggyBank, Star } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
+import { motion } from 'motion/react';
+import { playSfx, vibrate } from '../lib/sensory';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -22,6 +24,80 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
   
   const [rating, setRating] = useState<number>(0);
   const [isRated, setIsRated] = useState(false);
+
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'pt-BR';
+
+      rec.onstart = () => {
+        setIsListening(true);
+        playSfx('pop');
+        vibrate(30);
+      };
+
+      rec.onresult = (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        if (transcript) {
+          setIngredients(prev => {
+            const trimmed = prev.trim();
+            if (!trimmed) return transcript;
+            if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
+              return `${trimmed} ${transcript}`;
+            }
+            return `${trimmed}, ${transcript}`;
+          });
+          playSfx('success');
+          vibrate([40, 40]);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.error('Speech recognition error in Generator:', event.error);
+        setIsListening(false);
+        if (event.error !== 'aborted') {
+          playSfx('scratch');
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      playSfx('tap');
+      vibrate(20);
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error('Failed to start speech recognition:', err);
+      }
+    }
+  };
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -81,16 +157,69 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
           <form onSubmit={handleGenerate} className="space-y-8">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-4">
-                <label htmlFor="ingredients" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
-                  Ingredientes Disponíveis
-                </label>
-                <textarea
-                  id="ingredients"
-                  value={ingredients}
-                  onChange={(e) => setIngredients(e.target.value)}
-                  placeholder="Ex: frango, brócolis, arroz... ou use a câmera 👈"
-                  className="w-full h-32 p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none shadow-sm"
-                />
+                <div className="flex items-center justify-between gap-4">
+                  <label htmlFor="ingredients" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
+                    Ingredientes Disponíveis
+                  </label>
+                  {speechSupported && (
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={toggleListening}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer ${
+                        isListening
+                          ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/25'
+                          : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 shadow-emerald-500/5 dark:bg-emerald-500/10 dark:text-emerald-400'
+                      }`}
+                      id="speech-recognition-toggle-btn"
+                    >
+                      {isListening ? (
+                        <>
+                          <MicOff className="w-3.5 h-3.5 animate-[bounce_1s_infinite]" />
+                          Ouvindo... (Parar)
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          Falar Ingredientes
+                        </>
+                      )}
+                    </motion.button>
+                  )}
+                </div>
+                <div className="relative">
+                  <textarea
+                    id="ingredients"
+                    value={ingredients}
+                    onChange={(e) => setIngredients(e.target.value)}
+                    placeholder={
+                      isListening
+                        ? "Diga os ingredientes (ex: arroz, feijão, frango grelhado)..."
+                        : "Ex: frango, brócolis, arroz... ou use a câmera 👈"
+                    }
+                    className={`w-full h-32 p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none shadow-sm pb-10 ${
+                      isListening ? 'border-rose-500/40 ring-2 ring-rose-500/10' : 'border-white/40 dark:border-slate-600/50'
+                    }`}
+                  />
+                  {speechSupported && (
+                    <div className="absolute bottom-3 right-3 flex items-center gap-1.5 pointer-events-none select-none">
+                      {isListening ? (
+                        <div className="flex gap-1 items-center justify-center bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
+                          <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate]" />
+                          <span className="w-1 h-3.5 bg-rose-500 rounded-full animate-[pulse_0.3s_infinite_alternate_0.1s]" />
+                          <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate_0.2s]" />
+                          <span className="text-[9px] text-rose-500 font-mono font-bold uppercase ml-1 tracking-wider">Gravando...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 opacity-60">
+                          <Mic className="w-3 h-3 text-emerald-500" />
+                          <span className="text-[9px] text-slate-400 font-mono">Voz Ativa</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4">

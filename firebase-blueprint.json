@@ -318,6 +318,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "userName", "rating", "comment", "createdAt"]
+    },
+    "Note": {
+      "title": "User Note",
+      "description": "User notes, daily routines, thoughts, or custom plan drafts in the personal block notes",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -380,6 +395,10 @@
     "/users/{userId}/notifications/{notifId}": {
       "schema": "Notification",
       "description": "System alerts and recommendations log history"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Personal user notes, drafts, summaries, or checklists"
     },
     "/recipes/{recipeId}": {
       "schema": "Recipe",

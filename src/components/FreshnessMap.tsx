@@ -180,11 +180,35 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
 
   const filteredStores = useMemo(() => {
     return MOCK_STORES.filter(store => {
-      const matchesSearch = store.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchLower = searchQuery.toLowerCase().trim();
+      const matchesSearch = !searchLower || 
+        store.name.toLowerCase().includes(searchLower) ||
+        store.aiAnalysis.toLowerCase().includes(searchLower) ||
+        store.address.toLowerCase().includes(searchLower) ||
+        store.tags.some(tag => tag.label.toLowerCase().includes(searchLower)) ||
+        (searchLower.includes('fruta') && (store.id === 's1' || store.id === 's3')) ||
+        (searchLower.includes('legume') && (store.id === 's1' || store.id === 's2')) ||
+        (searchLower.includes('orgânic') && store.id === 's3') ||
+        (searchLower.includes('batata') && store.id === 's2') ||
+        (searchLower.includes('cebola') && store.id === 's2') ||
+        (searchLower.includes('ovo') && store.id === 's2') ||
+        (searchLower.includes('banana') && store.id === 's1') ||
+        (searchLower.includes('alface') && store.id === 's3') ||
+        (searchLower.includes('verdura') && store.id === 's3') ||
+        (searchLower.includes('laranja') && store.id === 's1');
+
       const matchesFilter = filter === 'all' || store.tags.some(tag => tag.type === filter);
       return matchesSearch && matchesFilter;
     });
   }, [filter, searchQuery]);
+
+  const handleSearchSubmit = () => {
+    playSfx('success');
+    vibrate(60);
+    if (filteredStores.length > 0) {
+      selectStore(filteredStores[0]);
+    }
+  };
 
   useEffect(() => {
     // Initial banner animation timer is handled above
@@ -339,25 +363,22 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               placeholder="Qual legume ou fruta procura?" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearchSubmit();
+                }
+              }}
               className="flex-1 bg-transparent min-w-0 outline-none text-xs md:text-sm font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 truncate"
             />
-            {searchQuery.trim() && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  playSfx('tap');
-                  vibrate(50);
-                }}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs px-3.5 md:px-5 py-1.5 md:py-2 rounded-full shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center gap-1"
-                id="freshness-search-apply-btn"
-              >
-                Buscar
-              </motion.button>
-            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSearchSubmit}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs px-3.5 md:px-5 py-1.5 md:py-2 rounded-full shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center gap-1"
+              id="freshness-search-apply-btn"
+            >
+              Buscar
+            </motion.button>
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar w-full box-border">
             {[

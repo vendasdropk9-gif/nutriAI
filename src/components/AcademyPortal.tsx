@@ -29,6 +29,108 @@ interface Academy {
   reviews: { id: string; author: string; rating: number; text: string; date: string }[];
 }
 
+export const getHighResAcademyImage = (src: string, name: string = ''): string => {
+  const normName = name.toLowerCase();
+  
+  if (normName.includes('iron gym') || src.includes('photo-1534438327276') || src.includes('a1')) {
+    return 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200';
+  }
+  if (normName.includes('yoga') || normName.includes('surya') || src.includes('photo-1544367567') || src.includes('a2')) {
+    return 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=1200';
+  }
+  if (normName.includes('acqua') || normName.includes('fitness') || normName.includes('natação') || src.includes('photo-1576013551') || src.includes('a3')) {
+    return 'https://images.unsplash.com/photo-1519315901367-f34ff9154487?auto=format&fit=crop&q=80&w=1200';
+  }
+  if (normName.includes('alliance') || normName.includes('jiu-jitsu') || src.includes('photo-1517838277') || src.includes('a4')) {
+    return 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&q=80&w=1200';
+  }
+  
+  // Upgrade sub-standard size requests to high resolution
+  if (src && src.includes('unsplash.com/photo-')) {
+    if (src.includes('w=600')) return src.replace('w=600', 'w=1200');
+    if (src.includes('w=800')) return src.replace('w=800', 'w=1200');
+    if (!src.includes('w=')) return `${src}&w=1200`;
+  }
+  
+  return src || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=1200';
+};
+
+interface AcademyImageProps {
+  src: string;
+  alt: string;
+  onClick?: () => void;
+  className?: string;
+  name?: string;
+}
+
+export function AcademyImage({ src, alt, onClick, className = "", name = "" }: AcademyImageProps) {
+  const [imgSrc, setImgSrc] = useState(() => getHighResAcademyImage(src, name));
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setImgSrc(getHighResAcademyImage(src, name));
+    setHasError(false);
+    setIsLoading(true);
+  }, [src, name]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleError = () => {
+    setHasError(true);
+    setIsLoading(false);
+  };
+
+  if (hasError || !imgSrc) {
+    const lowerName = name.toLowerCase();
+    let bgGradient = "from-emerald-500 to-teal-600";
+    let emblem = "🏋️";
+    
+    if (lowerName.includes("yoga") || lowerName.includes("surya")) {
+      bgGradient = "from-teal-500 to-cyan-600";
+      emblem = "🧘";
+    } else if (lowerName.includes("acqua") || lowerName.includes("natação") || lowerName.includes("piscina")) {
+      bgGradient = "from-blue-500 to-indigo-600";
+      emblem = "🏊";
+    } else if (lowerName.includes("jiu") || lowerName.includes("box") || lowerName.includes("luta")) {
+      bgGradient = "from-stone-700 to-slate-900";
+      emblem = "🥋";
+    }
+
+    return (
+      <div 
+        onClick={onClick}
+        className={`w-full h-full bg-gradient-to-br ${bgGradient} flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer ${className}`}
+      >
+        <span className="text-4xl md:text-5xl mb-2 filter drop-shadow-md animate-bounce">{emblem}</span>
+        <span className="text-white font-serif font-bold text-sm block tracking-wide">{name || "Academia"}</span>
+        <span className="text-white/60 font-mono text-[9px] uppercase tracking-widest mt-1">Conexão Offline/Segura Fallback</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative w-full h-full overflow-hidden ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+          <Dumbbell className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      )}
+      <img
+        src={imgSrc}
+        alt={alt}
+        onClick={onClick}
+        onLoad={handleLoad}
+        onError={handleError}
+        className={`w-full h-full object-cover transition-all duration-500 ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100 hover:scale-105'}`}
+        referrerPolicy="no-referrer"
+      />
+    </div>
+  );
+}
+
 const PRESET_ACADEMIAS: Academy[] = [
   {
     id: 'a1',
@@ -42,7 +144,7 @@ const PRESET_ACADEMIAS: Academy[] = [
     about: 'O maior centro de alta performance de Pinheiros. Equipamentos importados de última geração, ambiente climatizado, professores graduados e acompanhamento personalizado para hipertrofia e condicionamento extremo.',
     modalities: ['Musculação', 'Crossfit', 'Treino Funcional', 'Zumba'],
     hours: 'Seg a Sex: 06h às 23h • Sáb: 08h às 18h • Dom: 09h às 13h',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200',
     rating: 4.9,
     reviewsCount: 48,
     contactCount: 124,
@@ -65,7 +167,7 @@ const PRESET_ACADEMIAS: Academy[] = [
     about: 'Um santuário de paz na Vila Madalena. Oferecemos práticas diárias de Vinyasa, Hatha, Ashtanga Yoga e meditações guiadas, em sintonia com soluções holísticas de bem-estar, chá bar orgânico e terapeutas credenciados.',
     modalities: ['Yoga', 'Pilates', 'Meditação', 'Treino Funcional'],
     hours: 'Seg a Sex: 07h às 21h • Sáb: 09h às 14h',
-    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=1200',
     rating: 4.8,
     reviewsCount: 32,
     contactCount: 88,
@@ -87,7 +189,7 @@ const PRESET_ACADEMIAS: Academy[] = [
     about: 'Instalações aquáticas modernas de alta qualidade para todas as idades. Nossas piscinas são semiolímpicas, salinizadas e aquecidas na temperatura perfeita para natação esportiva e hidroginástica de alta intensidade.',
     modalities: ['Natação', 'Hidroginástica', 'Musculação', 'Pilates'],
     hours: 'Seg a Sex: 06h às 22h • Sáb: 08h às 15h',
-    image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1519315901367-f34ff9154487?auto=format&fit=crop&q=80&w=1200',
     rating: 4.7,
     reviewsCount: 19,
     contactCount: 65,
@@ -109,7 +211,7 @@ const PRESET_ACADEMIAS: Academy[] = [
     about: 'Lutas, autodefesa e condicionamento físico de alta intensidade unificados em Moema. Treine jiu-jitsu com campeões mundiais ou desafie seus limites na nossa área de Boxe e Treino Funcional.',
     modalities: ['Jiu-Jitsu', 'Lutas / Boxe', 'Treino Funcional'],
     hours: 'Seg a Sex: 07h às 22h • Sáb: 09h às 15h',
-    image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&q=80&w=1200',
     rating: 4.9,
     reviewsCount: 55,
     contactCount: 145,
@@ -126,10 +228,10 @@ const MODALIDADE_OPTIONS = [
 ];
 
 const PRESET_COVERS = [
-  { url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=600', label: 'Academia Musculação' },
-  { url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=600', label: 'Estúdio de Yoga' },
-  { url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600', label: 'Crossfit / Funcional' },
-  { url: 'https://images.unsplash.com/photo-1576013551627-1aa35b1d4021?auto=format&fit=crop&q=80&w=600', label: 'Natação / Piscina' }
+  { url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200', label: 'Academia Musculação' },
+  { url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=1200', label: 'Estúdio de Yoga' },
+  { url: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&q=80&w=1200', label: 'Crossfit / Funcional' },
+  { url: 'https://images.unsplash.com/photo-1519315901367-f34ff9154487?auto=format&fit=crop&q=80&w=1200', label: 'Natação / Piscina' }
 ];
 
 export function AcademyPortal() {
@@ -590,26 +692,27 @@ export function AcademyPortal() {
                   placeholder="Buscar por nome, bairro ou palavra-chave..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      playSfx('success');
+                      vibrate(60);
+                    }
+                  }}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              {searchTerm.trim() && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    playSfx('tap');
-                    vibrate(50);
-                  }}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs md:text-sm px-5 py-3 rounded-xl shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center justify-center"
-                  id="academy-search-apply-btn"
-                >
-                  Buscar
-                </motion.button>
-              )}
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  playSfx('success');
+                  vibrate(60);
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs md:text-sm px-5 py-3 rounded-xl shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center justify-center"
+                id="academy-search-apply-btn"
+              >
+                Buscar
+              </motion.button>
             </div>
 
             {/* Neighborhood Filter */}
@@ -672,12 +775,12 @@ export function AcademyPortal() {
                   <div>
                     {/* Cover image banner */}
                     <div className="relative h-48 sm:h-56 overflow-hidden">
-                      <img
+                      <AcademyImage
                         src={academy.image}
                         alt={academy.name}
                         onClick={() => handleViewAcademy(academy)}
+                        name={academy.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                        referrerPolicy="no-referrer"
                       />
                       <div className="absolute top-4 left-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-1 rounded-full text-[11px] font-bold text-emerald-600 tracking-wider uppercase border border-white/20 shadow-sm">
                         📍 {academy.neighborhood}
@@ -1411,7 +1514,7 @@ export function AcademyPortal() {
                 return (
                   <div key={ac.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
                     <div className="flex gap-4 items-center">
-                      <img src={ac.image} alt={ac.name} className="w-16 h-16 rounded-xl object-cover shrink-0" referrerPolicy="no-referrer" />
+                      <AcademyImage src={ac.image} alt={ac.name} name={ac.name} className="w-16 h-16 rounded-xl shrink-0" />
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <strong className="text-sm text-slate-800 dark:text-white">{ac.name}</strong>
@@ -1495,11 +1598,11 @@ export function AcademyPortal() {
 
               {/* Side Cover Panel */}
               <div className="md:w-5/12 relative h-48 md:h-full shrink-0 select-none">
-                <img
+                <AcademyImage
                   src={selectedAcademy.image}
-                  className="w-full h-full object-cover"
                   alt={selectedAcademy.name}
-                  referrerPolicy="no-referrer"
+                  name={selectedAcademy.name}
+                  className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/40 to-transparent flex flex-col justify-end p-6">
                   <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5 block">📍 Região: {selectedAcademy.neighborhood}</span>
