@@ -564,13 +564,23 @@ function writeString(view: DataView, offset: number, string: string) {
 }
 
 export const generateAvatarImage = async (prompt: string): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: {
-        parts: [{ text: prompt }]
+      model: 'gemini-2.5-flash-image',
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+        }
       }
     });
 
@@ -579,10 +589,151 @@ export const generateAvatarImage = async (prompt: string): Promise<string | null
         return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
       }
     }
-    return null;
+    throw new Error("No image data returned from model");
   } catch (error) {
-    console.error("Failed to generate avatar image:", error);
-    return null;
+    console.error("Gemini avatar generation failed, deploying high-quality Unsplash fallback:", error);
+    
+    // Parse period from prompt
+    let periodName = "Progresso";
+    let periodKey: "day1" | "day7" | "day30" | "day90" = "day1";
+    if (prompt.toLowerCase().includes("day1") || prompt.toLowerCase().includes("starting") || prompt.toLowerCase().includes("ponto de partida")) {
+      periodName = "Dia 1";
+      periodKey = "day1";
+    } else if (prompt.toLowerCase().includes("day7") || prompt.toLowerCase().includes("primeiros efeitos") || prompt.toLowerCase().includes("7 days")) {
+      periodName = "Dia 7";
+      periodKey = "day7";
+    } else if (prompt.toLowerCase().includes("day30") || prompt.toLowerCase().includes("evolução visível") || prompt.toLowerCase().includes("30 days")) {
+      periodName = "Dia 30";
+      periodKey = "day30";
+    } else if (prompt.toLowerCase().includes("day90") || prompt.toLowerCase().includes("metamorfose") || prompt.toLowerCase().includes("90 days")) {
+      periodName = "Dia 90";
+      periodKey = "day90";
+    }
+
+    // Parse gender from prompt
+    const isWoman = prompt.toLowerCase().includes("woman") || prompt.toLowerCase().includes("feminino");
+    const isMan = prompt.toLowerCase().includes("man") || prompt.toLowerCase().includes("masculino");
+
+    let imageUrl = "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600&h=600"; // default fallback
+
+    if (isWoman) {
+      const womanImages = {
+        day1: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&q=80&w=600&h=600", // Starting fitness
+        day7: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600&h=600", // Training
+        day30: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=600&h=600", // Workout progress
+        day90: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=600&h=600"  // Extremely fit
+      };
+      imageUrl = womanImages[periodKey];
+    } else if (isMan) {
+      const manImages = {
+        day1: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=600&h=600", // Man stretch
+        day7: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=600&h=600", // Active jog
+        day30: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600&h=600", // Muscle progress
+        day90: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&q=80&w=600&h=600"  // Fit posture
+      };
+      imageUrl = manImages[periodKey];
+    } else {
+      const defaultImages = {
+        day1: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=600&h=600",
+        day7: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600&h=600",
+        day30: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=600&h=600",
+        day90: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=600&h=600"
+      };
+      imageUrl = defaultImages[periodKey];
+    }
+
+    return await fetchImageAsBase64(imageUrl, `Avatar ${periodName}`);
+  }
+};
+
+async function fetchImageAsBase64(url: string, description: string): Promise<string> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    return `data:${contentType};base64,${base64}`;
+  } catch (err) {
+    console.error(`Failed to fetch fallback image for "${description}", returning SVG:`, err);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#g)"/>
+      <circle cx="200" cy="160" r="60" fill="#38bdf8" opacity="0.15"/>
+      <path d="M140,280 C140,220 260,220 260,280" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <text x="50%" y="280" font-family="system-ui, sans-serif" font-size="22" font-weight="bold" fill="#38bdf8" text-anchor="middle">${description}</text>
+    </svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+}
+
+export const generateRecipeImage = async (prompt: string): Promise<string | null> => {
+  const ai = new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        imageConfig: {
+          aspectRatio: "4:3",
+        }
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+    }
+    throw new Error("No image data returned from model");
+  } catch (error) {
+    console.error("Gemini recipe image generation failed, using high-quality Unsplash recipe fallback:", error);
+    
+    // Parse keywords from the prompt to select the best recipe image
+    const promptLower = prompt.toLowerCase();
+    let imageUrl = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=600&h=600"; // default delicious food
+    let recipeName = "Receita Nutritiva";
+
+    if (promptLower.includes("salada") || promptLower.includes("salad") || promptLower.includes("legumes") || promptLower.includes("vegetal")) {
+      imageUrl = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Salada Fresca";
+    } else if (promptLower.includes("frango") || promptLower.includes("chicken") || promptLower.includes("ave") || promptLower.includes("grelhado")) {
+      imageUrl = "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Frango Saudável";
+    } else if (promptLower.includes("salmão") || promptLower.includes("salmon") || promptLower.includes("peixe") || promptLower.includes("fish")) {
+      imageUrl = "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Peixe Grelhado";
+    } else if (promptLower.includes("smoothie") || promptLower.includes("shake") || promptLower.includes("suco") || promptLower.includes("juice") || promptLower.includes("bebida") || promptLower.includes("drink")) {
+      imageUrl = "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Bebida Energética";
+    } else if (promptLower.includes("pão") || promptLower.includes("bread") || promptLower.includes("aveia") || promptLower.includes("omelete") || promptLower.includes("café") || promptLower.includes("breakfast")) {
+      imageUrl = "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Café da Manhã Fit";
+    } else if (promptLower.includes("sopa") || promptLower.includes("soup") || promptLower.includes("caldo")) {
+      imageUrl = "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Sopa Nutritiva";
+    } else if (promptLower.includes("fruta") || promptLower.includes("doce") || promptLower.includes("sobremesa") || promptLower.includes("dessert") || promptLower.includes("sweet")) {
+      imageUrl = "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Sobremesa Fit";
+    } else if (promptLower.includes("carne") || promptLower.includes("beef") || promptLower.includes("steak")) {
+      imageUrl = "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=600&h=600";
+      recipeName = "Proteína Grelhada";
+    }
+
+    return await fetchImageAsBase64(imageUrl, recipeName);
   }
 };
 

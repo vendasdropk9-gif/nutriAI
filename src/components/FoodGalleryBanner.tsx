@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, Utensils, Zap, ShoppingCart } from 'lucide-react';
+import { ChevronRight, Utensils, Zap, ShoppingCart, ChefHat, Flame, Salad, Soup, Sparkles } from 'lucide-react';
 
 interface FoodSlide {
   id: string;
@@ -72,22 +72,45 @@ const FOOD_SLIDES: FoodSlide[] = [
 
 interface FoodGalleryBannerProps {
   onNavigateToMarket?: () => void;
+  isGenerating?: boolean;
+  recipesCount?: number;
 }
 
-export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps) {
+export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, recipesCount }: FoodGalleryBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevRecipesCount, setPrevRecipesCount] = useState<number | undefined>(recipesCount);
+  const [isPulsing, setIsPulsing] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % FOOD_SLIDES.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
+    if (recipesCount !== undefined) {
+      if (prevRecipesCount !== undefined && recipesCount > prevRecipesCount) {
+        setIsPulsing(true);
+        const timer = setTimeout(() => {
+          setIsPulsing(false);
+        }, 1500);
+        setPrevRecipesCount(recipesCount);
+        return () => clearTimeout(timer);
+      }
+      setPrevRecipesCount(recipesCount);
+    }
+  }, [recipesCount]);
 
   const slide = FOOD_SLIDES[currentIndex];
 
   return (
-    <div className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-white dark:bg-white transition-colors box-border">
+    <motion.div
+      animate={isPulsing ? {
+        scale: [1, 1.025, 0.985, 1.01, 1],
+        boxShadow: [
+          "0 25px 50px -12px rgba(16, 185, 129, 0)",
+          "0 0 0 10px rgba(16, 185, 129, 0.4), 0 25px 50px -12px rgba(16, 185, 129, 0.15)",
+          "0 0 0 20px rgba(16, 185, 129, 0.2), 0 25px 50px -12px rgba(16, 185, 129, 0.1)",
+          "0 0 0 30px rgba(16, 185, 129, 0), 0 25px 50px -12px rgba(16, 185, 129, 0)"
+        ]
+      } : {}}
+      transition={{ duration: 1.2, ease: "easeInOut" }}
+      className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-white dark:bg-white transition-all box-border z-10"
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
@@ -177,6 +200,101 @@ export function FoodGalleryBanner({ onNavigateToMarket }: FoodGalleryBannerProps
       
       {/* Decorative Blur Accent */}
       <div className="absolute top-8 right-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-    </div>
+
+      {/* Culinary Animated Loading Overlay */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-50 text-white p-4"
+          >
+            {/* Ambient glowing circles */}
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-emerald-500/15 rounded-full blur-2xl animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl animate-pulse" />
+
+            <div className="relative flex flex-col items-center max-w-[280px] sm:max-w-md text-center">
+              {/* Culinary Icon Carousel / Animation */}
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-6 flex items-center justify-center">
+                {/* Outer spinning ring */}
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+                  className="absolute inset-0 border-2 border-dashed border-emerald-500/50 rounded-full"
+                />
+                
+                {/* Inner glowing ring */}
+                <motion.div 
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="absolute inset-2 bg-emerald-500/20 rounded-full blur-md"
+                />
+
+                {/* Animated Culinary Icons */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.div
+                    animate={{
+                      y: [-4, 4, -4],
+                      rotate: [0, 5, -5, 0],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 3,
+                      ease: "easeInOut"
+                    }}
+                    className="relative z-10 text-emerald-400 bg-emerald-500/30 p-3.5 sm:p-4 rounded-2xl border border-emerald-500/40 shadow-lg"
+                  >
+                    <ChefHat className="w-8 h-8 sm:w-10 sm:h-10" />
+                  </motion.div>
+                </div>
+
+                {/* Orbiting side-icons */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 p-1 bg-slate-900 border border-emerald-500/30 rounded-lg text-emerald-400">
+                    <Flame className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 p-1 bg-slate-900 border border-emerald-500/30 rounded-lg text-emerald-400">
+                    <Salad className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 p-1 bg-slate-900 border border-emerald-500/30 rounded-lg text-emerald-400">
+                    <Soup className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute top-1/2 -right-1 -translate-y-1/2 p-1 bg-slate-900 border border-emerald-500/30 rounded-lg text-emerald-400">
+                    <Utensils className="w-3.5 h-3.5" />
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Text */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="space-y-1 sm:space-y-2"
+              >
+                <h3 className="font-serif text-sm sm:text-xl font-bold tracking-wide flex items-center justify-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                  NutriAI está Cozinhando...
+                </h3>
+                <p className="text-[10px] sm:text-xs text-slate-300 dark:text-slate-400 font-sans leading-relaxed">
+                  Gerando a melhor combinação de ingredientes e macros para o seu plano personalizado.
+                </p>
+                
+                {/* Chef Tip / Loading Tip ticker */}
+                <div className="mt-3 px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[9px] sm:text-[11px] font-mono rounded-xl max-w-sm mx-auto">
+                  💡 Sabia que o limão ajuda a preservar nutrientes de vegetais verdes?
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

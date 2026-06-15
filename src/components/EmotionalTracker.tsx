@@ -70,7 +70,11 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
       }, 100);
     } catch (err: any) {
       console.error("Accessing face camera failed:", err);
-      setFaceCameraError("Não foi possível acessar a câmera frontal de seu dispositivo. Verifique se o NutriAI tem permissão para usar a câmera.");
+      let userFriendlyMsg = "Não foi possível acessar a câmera frontal de seu dispositivo. Verifique se o NutriAI tem permissão para usar a câmera.";
+      if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = "Câmera de vídeo física não encontrada ou indisponível neste dispositivo. Por favor, envie uma foto de sua expressão facial utilizando a seleção manual de fotos abaixo.";
+      }
+      setFaceCameraError(userFriendlyMsg);
     }
   };
 

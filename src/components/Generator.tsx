@@ -10,9 +10,10 @@ interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
   profile: UserProfile | null;
   onAwardPoints?: (amount: number, reason: string) => void;
+  onGeneratingChange?: (generating: boolean) => void;
 }
 
-export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorProps) {
+export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingChange }: GeneratorProps) {
   const [ingredients, setIngredients] = useState('');
   const [preferences, setPreferences] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +26,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsGenerating(true);
+    if (onGeneratingChange) onGeneratingChange(true);
     setGeneratedRecipe(null);
     setRating(0);
     setIsRated(false);
@@ -42,6 +44,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints }: GeneratorPro
       alert("Erro ao gerar a receita.");
     } finally {
       setIsGenerating(false);
+      if (onGeneratingChange) onGeneratingChange(false);
     }
   };
 

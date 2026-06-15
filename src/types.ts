@@ -333,6 +333,7 @@ export interface Recipe {
   ingredients: string[];
   instructions: string[];
   nutrition: NutritionInfo;
+  image?: string;
 }
 
 export interface MealPlanDay {

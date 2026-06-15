@@ -23,6 +23,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { FreshnessStore } from '../types';
 import { speak } from '../lib/speech';
+import { playSfx, vibrate } from '../lib/sensory';
 
 // Fix Leaflet marker icons
 import 'leaflet/dist/leaflet.css';
@@ -331,7 +332,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
       {/* Filters Overlay */}
       <div className="absolute top-[216px] md:top-[288px] inset-x-0 z-[800] w-full px-4 md:px-6 flex flex-col items-center pointer-events-none box-border">
         <div className="w-full max-w-[500px] md:max-w-3xl space-y-3 pointer-events-auto box-border">
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-12 md:h-14 rounded-full shadow-2xl flex items-center px-4 md:px-6 gap-3 border border-white/50 dark:border-slate-800 w-full box-border">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl h-12 md:h-14 rounded-full shadow-2xl flex items-center pl-4 md:pl-6 pr-2 md:pr-3 gap-3 border border-white/50 dark:border-slate-800 w-full box-border">
             <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
             <input 
               type="text" 
@@ -340,6 +341,23 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent min-w-0 outline-none text-xs md:text-sm font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 truncate"
             />
+            {searchQuery.trim() && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(50);
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs px-3.5 md:px-5 py-1.5 md:py-2 rounded-full shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center gap-1"
+                id="freshness-search-apply-btn"
+              >
+                Buscar
+              </motion.button>
+            )}
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar w-full box-border">
             {[

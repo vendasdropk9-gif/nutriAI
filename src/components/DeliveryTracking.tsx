@@ -89,7 +89,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
           setDelivery(data);
         }
       } catch (err) {
-        console.error("Erro ao pollar dados de entrega:", err);
+        console.warn("Erro ao pollar dados de entrega:", err);
       } finally {
         setLoading(false);
       }

@@ -189,7 +189,11 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
 
     } catch (e: any) {
       console.error(e);
-      setError("Permissão de microfone negada ou erro ao conectar.");
+      let userFriendlyMsg = "Permissão de microfone negada ou erro ao conectar.";
+      if (e.name === 'NotFoundError' || e.message?.toLowerCase().includes('device not found') || e.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = "Microfone físico não encontrado ou indisponível neste dispositivo. Conecte um fone de ouvido ou microfone se desejar usar o Assistente de Voz.";
+      }
+      setError(userFriendlyMsg);
       setIsConnecting(false);
     }
   };
@@ -208,6 +212,31 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
           marginBottom: '-91px'
         }}
       >
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute bottom-full left-0 mb-4 w-72 bg-rose-500 text-white text-xs font-medium rounded-2xl p-4 shadow-xl border border-rose-450 flex flex-col gap-2 z-50 leading-relaxed"
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold uppercase tracking-wider text-[10px] text-rose-100">Assistente Malu</span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setError(null);
+                  }} 
+                  className="p-1 hover:bg-rose-600 rounded-lg transition-colors text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p>{error}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

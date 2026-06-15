@@ -40,7 +40,8 @@ import { AcademyPortal } from './components/AcademyPortal';
 import { BloodPressureTracker } from './components/BloodPressureTracker';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap } from 'lucide-react';
+import { FeedbackSystem } from './components/FeedbackSystem';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 
@@ -73,6 +74,8 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
     const id = Math.random().toString(36).substring(7);
@@ -247,13 +250,26 @@ export default function App() {
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <motion.button whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  playSfx('tap');
+                  setIsFeedbackOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full border border-emerald-500/10 hover:border-emerald-500/25 text-emerald-600 hover:bg-emerald-500/5 dark:border-slate-800 dark:text-emerald-400 dark:hover:bg-slate-800/60 transition-all font-medium text-xs md:text-sm shrink-0 shadow-sm"
+                title="Deixe seu feedback"
+                id="header-feedback-trigger-btn"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-500" />
+                <span className="hidden sm:inline">Feedback</span>
+              </motion.button>
+
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="p-2.5 rounded-full text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0"
                 title={isDarkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
               >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5 text-indigo-400" />}
               </motion.button>
             </div>
           </div>
@@ -281,10 +297,19 @@ export default function App() {
             className="w-full flex-1 flex flex-col min-h-[400px]"
           >
             {(activeTab === 'generator' || activeTab === 'plan') && (
-              <FoodGalleryBanner onNavigateToMarket={() => setActiveTab('market')} />
+              <FoodGalleryBanner 
+                onNavigateToMarket={() => setActiveTab('market')} 
+                isGenerating={isRecipesGenerating} 
+                recipesCount={savedRecipes.length}
+              />
             )}
             {activeTab === 'generator' && (
-              <Generator onSaveRecipe={handleSaveRecipe} profile={profile} onAwardPoints={awardPoints} />
+              <Generator 
+                onSaveRecipe={handleSaveRecipe} 
+                profile={profile} 
+                onAwardPoints={awardPoints} 
+                onGeneratingChange={setIsRecipesGenerating}
+              />
             )}
             {activeTab === 'juice' && (
               <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
@@ -319,6 +344,7 @@ export default function App() {
                 onUpdatePlan={handleUpdatePlan} 
                 onLogIntake={handleLogIntake}
                 profile={profile}
+                onGeneratingChange={setIsRecipesGenerating}
               />
             )}
             {activeTab === 'coach' && (
@@ -407,6 +433,13 @@ export default function App() {
       <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
       <LiveAssistant profile={profile} />
       <MagicRecipeFAB profile={profile} />
+      
+      <FeedbackSystem 
+        profile={profile} 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+        addNotification={addNotification} 
+      />
       
       <NotificationSystem 
         notifications={notifications} 

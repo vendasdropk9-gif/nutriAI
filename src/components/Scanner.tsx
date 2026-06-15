@@ -47,7 +47,11 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
       }, 100);
     } catch (err: any) {
       console.error("Accessing camera failed:", err);
-      setCameraError("Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão.");
+      let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
+      if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = "Câmera de vídeo física não encontrada ou não está conectada a este dispositivo. Por favor, conecte uma câmera ou utilize a opção de carregar imagem do rolo da câmera / arquivo abaixo.";
+      }
+      setCameraError(userFriendlyMsg);
     }
   };
 

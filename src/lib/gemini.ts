@@ -92,6 +92,10 @@ export const generateAvatarImage = async (prompt: string): Promise<string | null
   return callGeminiEndpoint('generateAvatarImage', [prompt]);
 };
 
+export const generateRecipeImage = async (prompt: string): Promise<string | null> => {
+  return callGeminiEndpoint('generateRecipeImage', [prompt]);
+};
+
 export const analyzeBodyImage = async (base64Image: string, mimeType: string, profile: any): Promise<any | null> => {
   return callGeminiEndpoint('analyzeBodyImage', [base64Image, mimeType, profile]);
 };

@@ -28,7 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
-import bannerImage1 from '../assets/images/regenerated_image_1779818530546.png';
+import bannerImage1 from '../assets/images/regenerated_image_1781049540812.jpg';
 import productImage1 from '../assets/images/regenerated_image_1779398315958.jpg';
 import storeImage1 from '../assets/images/store_vida_verde_1779398853750.png';
 import storeImage2 from '../assets/images/store_premium_hortifruti_1779398868799.png';
@@ -121,7 +121,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 setOrders(list);
              }
           } catch(e) { 
-             console.error('Erro ao buscar pedidos', e);
+             console.warn('Erro ao buscar pedidos', e);
           }
        };
        loadOrders();

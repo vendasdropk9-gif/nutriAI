@@ -78,7 +78,11 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
       }, 100);
     } catch (err: any) {
       console.error("Accessing camera failed:", err);
-      setCameraError("Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão.");
+      let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
+      if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = "Câmera de vídeo física não encontrada ou indisponível neste dispositivo. Por favor, faça upload de uma foto do seu prato utilizando a opção manual abaixo.";
+      }
+      setCameraError(userFriendlyMsg);
     }
   };
 

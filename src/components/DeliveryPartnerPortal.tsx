@@ -95,7 +95,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
         setStatus('available');
       }
     } catch (e) {
-      console.error("Falha ao pollar entregas no portal:", e);
+      console.warn("Falha ao pollar entregas no portal:", e);
     }
   };
 

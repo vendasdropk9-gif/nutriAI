@@ -175,6 +175,29 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Recipe feedback & ratings
+    match /recipeReviews/{reviewId} {
+      allow list, get: if isSignedIn();
+      allow create: if isSignedIn() &&
+                    isValidId(reviewId) &&
+                    incoming().keys().hasAll(['recipeId', 'rating', 'comment', 'userName', 'userId', 'createdAt']) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().rating >= 1 && incoming().rating <= 5 &&
+                    incoming().createdAt == request.time;
+      allow delete: if isSignedIn() && isValidId(reviewId) && existing().userId == request.auth.uid;
+    }
+
+    // General app feedback & ratings
+    match /feedbacks/{feedbackId} {
+      allow list, get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                    isValidId(feedbackId) &&
+                    incoming().keys().hasAll(['userId', 'userName', 'rating', 'comment', 'createdAt']) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().rating >= 1 && incoming().rating <= 5 &&
+                    incoming().createdAt == request.time;
+    }
+
     // Couriers / Delivery drivers
     match /couriers/{courierId} {
       allow read, write: if true;

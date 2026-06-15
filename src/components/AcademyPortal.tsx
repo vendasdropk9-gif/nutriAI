@@ -146,7 +146,7 @@ export function AcademyPortal() {
   const [adminLoading, setAdminLoading] = useState(false);
 
   // Load from database on mount
-  const loadAcademies = () => {
+  const loadAcademies = (retries = 2) => {
     fetch('/api/academies')
       .then(res => res.json())
       .then(data => {
@@ -179,8 +179,13 @@ export function AcademyPortal() {
         }
       })
       .catch(err => {
-        console.error("Erro ao carregar do banco de dados, usando presets locais:", err);
-        setAcademies(PRESET_ACADEMIAS);
+        if (retries > 0) {
+          console.warn(`Erro ao carregar do banco de dados, tentando novamente em 1.5s (${retries} tentativas restantes)...`);
+          setTimeout(() => loadAcademies(retries - 1), 1500);
+        } else {
+          console.warn("Utilizando presets locais após falhas na conexão:", err.message || err);
+          setAcademies(PRESET_ACADEMIAS);
+        }
       });
   };
 
@@ -193,7 +198,7 @@ export function AcademyPortal() {
           setAdminAcademies(data);
         }
       })
-      .catch(err => console.error(err))
+      .catch(err => console.warn("Erro ao obter academias de administrador:", err))
       .finally(() => setAdminLoading(false));
   };
 
@@ -577,15 +582,34 @@ export function AcademyPortal() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 p-5 rounded-[24px] shadow-sm flex flex-col md:flex-row gap-4 items-center">
             
             {/* Search Input */}
-            <div className="relative w-full md:flex-1">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar por nome, bairro ou palavra-chave..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
-              />
+            <div className="relative w-full md:flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, bairro ou palavra-chave..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              {searchTerm.trim() && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(50);
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs md:text-sm px-5 py-3 rounded-xl shrink-0 transition-all shadow-md shadow-emerald-500/15 cursor-pointer flex items-center justify-center"
+                  id="academy-search-apply-btn"
+                >
+                  Buscar
+                </motion.button>
+              )}
             </div>
 
             {/* Neighborhood Filter */}

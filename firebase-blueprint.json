@@ -291,9 +291,44 @@
         "carbs": { "type": "number" },
         "fat": { "type": "number" }
       }
+    },
+    "RecipeReview": {
+      "title": "Recipe Review",
+      "description": "User ratings and written comments about recipes",
+      "type": "object",
+      "properties": {
+        "recipeId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "userName": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipeId", "rating", "comment", "userName", "userId", "createdAt"]
+    },
+    "AppFeedback": {
+      "title": "App Feedback",
+      "description": "General user rating and suggestions about the NutriAI application",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "rating", "comment", "createdAt"]
     }
   },
   "firestore": {
+    "/feedbacks/{feedbackId}": {
+      "schema": "AppFeedback",
+      "description": "Global user feedback and reviews about the application"
+    },
+    "/recipeReviews/{reviewId}": {
+      "schema": "RecipeReview",
+      "description": "Global user feedback and ratings per recipe"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "Primary user profiles containing mealPlans and configurations"

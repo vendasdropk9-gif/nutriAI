@@ -10,6 +10,7 @@ interface MealPlanProps {
   onUpdatePlan: (day: string, mealName: string, recipeId: string | null, recipeObj?: Recipe) => void;
   onLogIntake: (log: IntakeLog) => void;
   profile: UserProfile | null;
+  onGeneratingChange?: (generating: boolean) => void;
 }
 
 const DAYS_OF_WEEK = [
@@ -29,7 +30,7 @@ const MEALS = [
   { id: 'dinner', label: 'Jantar' },
 ];
 
-export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake, profile }: MealPlanProps) {
+export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake, profile, onGeneratingChange }: MealPlanProps) {
   const [selectedDay, setSelectedDay] = useState<string>(DAYS_OF_WEEK[0]);
   const [addingTo, setAddingTo] = useState<{day: string, meal: string} | null>(null);
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
@@ -249,6 +250,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
 
   const handleGenerateDay = async () => {
     setIsGenerating(true);
+    if (onGeneratingChange) onGeneratingChange(true);
     try {
       const suggestions = await generateMealSuggestions(profile, selectedDay);
       if (suggestions && suggestions.length === 3) {
@@ -265,6 +267,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
       alert("Erro ao gerar plano.");
     } finally {
       setIsGenerating(false);
+      if (onGeneratingChange) onGeneratingChange(false);
     }
   };
 

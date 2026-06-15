@@ -75,7 +75,11 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
       }, 100);
     } catch (err: any) {
       console.error("Accessing camera failed:", err);
-      setCameraError("Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão.");
+      let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
+      if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = "Câmera de vídeo física não encontrada ou não instalada neste dispositivo. Por favor, digite o código de barras manualmente ou faça upload de uma foto nítida do código do produto abaixo.";
+      }
+      setCameraError(userFriendlyMsg);
     }
   };
 

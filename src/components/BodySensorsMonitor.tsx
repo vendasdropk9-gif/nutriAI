@@ -264,7 +264,11 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
       console.error("Camera access failed", err);
       setIsScanning(false);
       setCameraActive(false);
-      setCameraError('Acesso à câmera negado ou indisponível. Confirme se autorizou o uso pelo navegador.');
+      let userFriendlyMsg = 'Acesso à câmera negado ou indisponível. Confirme se autorizou o uso pelo navegador.';
+      if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
+        userFriendlyMsg = 'Câmera física não encontrada ou indisponível neste dispositivo. Por favor, conecte uma câmera para obter biossinais em tempo real ou altere suas permissões.';
+      }
+      setCameraError(userFriendlyMsg);
     }
   };
 
