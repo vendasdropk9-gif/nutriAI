@@ -352,9 +352,9 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
                   {BANNERS[currentBanner].title}
                </h3>
-               <p className="hidden sm:block text-white/80 text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{BANNERS[currentBanner].subtitle}</p>
+               <p className="hidden sm:block text-white text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{BANNERS[currentBanner].subtitle}</p>
                <button 
-                  style={{ color: '#ffffff' }} onClick={() => addToCart(PRODUCTS[0])}
+                  style={{ color: '#ffffff', backgroundColor: '#528f5c' }} onClick={() => addToCart(PRODUCTS[0])}
                   className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white"
                >
                   <ShoppingCart style={{ color: '#ffffff' }} className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />

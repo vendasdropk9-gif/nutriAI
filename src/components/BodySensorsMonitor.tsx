@@ -912,7 +912,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
                         setLatestSavedLog(null);
                         playSfx('tap');
                       }}
-                      className="py-2.5 px-6 rounded-xl bg-slate-100 dark:bg-slate-850 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-all hover:bg-slate-200"
+                      className="py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
                     >
                       Realizar Novo Exame
                     </button>

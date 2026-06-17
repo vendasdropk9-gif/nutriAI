@@ -920,16 +920,16 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
             </div>
 
             {/* Resumo da Classificação */}
-            <div className="flex items-center gap-4 bg-white/60 dark:bg-slate-850/60 border border-white/60 dark:border-slate-650/40 px-5 py-3.5 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-4 bg-white/60 dark:bg-slate-800/60 border border-white/60 dark:border-slate-700/40 px-5 py-3.5 rounded-2xl shadow-sm">
               <div className="text-center">
                 <span className="font-serif text-3xl font-extrabold text-slate-800 dark:text-slate-100 block leading-none">
                   {getAverageRating()}
                 </span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-350 font-bold">
                   Média
                 </span>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-750" />
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div>
                 <div className="flex gap-0.5 mb-1">
                   {[1, 2, 3, 4, 5].map((star) => {
@@ -946,7 +946,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                     );
                   })}
                 </div>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 font-mono">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-200 font-mono">
                   {(reviews.length > 0 ? reviews : getPresetReviews()).length} avaliações
                 </span>
               </div>

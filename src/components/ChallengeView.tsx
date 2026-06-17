@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Target, Trophy, Flame, ChevronRight, CheckCircle2, Circle, Sparkles, Volume2, Play, Calendar, Timer } from 'lucide-react';
 import { Challenge, UserProfile } from '../types';
 import { generateChallengeFeedback, textToSpeech } from '../lib/gemini';
+import { ConfettiCelebration } from './ConfettiCelebration';
 
 interface ChallengeViewProps {
   profile: UserProfile | null;
@@ -16,6 +17,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const challenge = profile?.currentChallenge;
 
@@ -61,6 +63,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
     onUpdateChallenge(updatedChallenge);
     if (onAwardPoints) onAwardPoints(100, `Dia ${nextDay} do desafio concluído`);
     setIsProcessing(false);
+    setShowConfetti(true);
     
     // Auto-play the feedback
     playTTS(feedback);
@@ -90,6 +93,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
   if (!challenge) {
     return (
       <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <ConfettiCelebration active={showConfetti} onComplete={() => setShowConfetti(false)} mode="all" />
         <div className="text-center space-y-4">
           <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
             Desafio Personalizado
@@ -147,6 +151,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      <ConfettiCelebration active={showConfetti} onComplete={() => setShowConfetti(false)} mode="all" />
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 clay-card p-8">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0">

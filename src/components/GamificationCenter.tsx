@@ -5,18 +5,51 @@ import { UserProfile, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenges } from '../lib/gemini';
 import { ScratchCard } from './ScratchCard';
 import { FitnessRoulette } from './FitnessRoulette';
+import { ConfettiCelebration } from './ConfettiCelebration';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
-const WEEKLY_TREATS = ['Brownie Fit com Sorvete', 'Bolo de Cenoura', 'Cheesecake de Frutas Vermelhas', 'Petit Gâteau Light', 'Pudim de Leite (Porção Pequena)'];
+interface WeeklyTreat {
+  name: string;
+  image: string;
+  description: string;
+}
+
+const WEEKLY_TREATS: WeeklyTreat[] = [
+  {
+    name: 'Brownie Fit com Sorvete',
+    image: 'https://images.unsplash.com/photo-1564355808539-22fda35bed7e?auto=format&fit=crop&q=80&w=600',
+    description: 'Chocolate belga & fatias com sorvete'
+  },
+  {
+    name: 'Bolo de Cenoura Fit',
+    image: 'https://images.unsplash.com/photo-1607349913338-fca6f7fc42d0?auto=format&fit=crop&q=80&w=600',
+    description: 'Calda de cacau 70% sem açúcar'
+  },
+  {
+    name: 'Cheesecake de Frutas Vermelhas',
+    image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&q=80&w=600',
+    description: 'Creme leve com calda rústica premium'
+  },
+  {
+    name: 'Petit Gâteau Light',
+    image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&q=80&w=600',
+    description: 'Bolinho quente cremosa por dentro'
+  },
+  {
+    name: 'Pudim de Leite Fit',
+    image: 'https://images.unsplash.com/photo-1511018556340-d16986a1c194?auto=format&fit=crop&q=80&w=600',
+    description: 'Calda brilhante de caramelo saudável'
+  }
+];
 
 export function GamificationCenter({ profile, onUpdateProfile }: GamificationCenterProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showScratchCard, setShowScratchCard] = useState(false);
-  const [revealedTreat, setRevealedTreat] = useState<string>('');
+  const [revealedTreat, setRevealedTreat] = useState<WeeklyTreat | null>(null);
 
   // Streak logic
   useEffect(() => {
@@ -90,8 +123,11 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
 
   return (
     <div className="space-y-8 p-4">
+      {/* Premium Full-screen Confetti Celebration Overlay */}
+      <ConfettiCelebration active={showConfetti} onComplete={() => setShowConfetti(false)} mode="all" />
+
       {/* Top Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-5">
         <motion.div 
           whileHover={{ y: -5 }}
           className="clay-card p-6 relative overflow-hidden"
@@ -103,8 +139,8 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             </div>
             <span className="text-xs font-black uppercase tracking-widest text-slate-400">Streak</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-black text-slate-900 dark:text-white">{profile?.streak || 0}</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{profile?.streak || 0}</span>
             <span className="text-sm font-bold text-slate-400">dias</span>
           </div>
         </motion.div>
@@ -120,8 +156,8 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             </div>
             <span className="text-xs font-black uppercase tracking-widest text-slate-400">Pontos</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-black text-slate-900 dark:text-white">{profile?.points || 0}</span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{profile?.points || 0}</span>
             <span className="text-sm font-bold text-slate-400">XP</span>
           </div>
         </motion.div>
@@ -129,12 +165,12 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
 
       {/* Weekly Challenges */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-2">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Target className="w-5 h-5 text-emerald-500" />
             Desafios Semanais
           </h3>
-          <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Renovam em 3d</span>
+          <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 sm:bg-transparent px-2 py-1 rounded-md sm:p-0">Renovam em 3d</span>
         </div>
 
         <div className="space-y-4">
@@ -210,19 +246,38 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
           <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] border border-slate-200 dark:border-slate-700">
             <p className="text-center text-slate-500 mb-6 font-medium">Use o dedo para raspar e revelar sua sobremesa da semana!</p>
             <ScratchCard 
-              width={250} 
-              height={150} 
+              width={320} 
+              height={200} 
               brushSize={25} 
-              finishPercent={50}
+              finishPercent={45}
               onComplete={() => setShowConfetti(true)}
             >
-              <div className="flex flex-col items-center text-center p-4">
-                <Utensils className="w-8 h-8 text-emerald-500 mb-2" />
-                <h4 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                  {revealedTreat}
-                </h4>
-                <p className="text-xs font-bold text-emerald-500 uppercase mt-2">Liberado esta semana!</p>
-              </div>
+              {revealedTreat && (
+                <div className="w-full h-full relative overflow-hidden group select-none">
+                  {/* Photo of the rewarded treat */}
+                  <img 
+                    src={revealedTreat.image} 
+                    alt={revealedTreat.name} 
+                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 group-hover:scale-105" 
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Elegant darkening mask for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent select-none pointer-events-none" />
+                  
+                  {/* Absolute content details inside the card */}
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-left flex flex-col justify-end select-none pointer-events-none">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                      🏆 Recompensa Revelada!
+                    </span>
+                    <h4 className="text-lg font-black text-white leading-tight mt-0.5 drop-shadow">
+                      {revealedTreat.name}
+                    </h4>
+                    <p className="text-[11px] text-slate-300 drop-shadow mt-0.5 line-clamp-1">
+                      {revealedTreat.description}
+                    </p>
+                  </div>
+                </div>
+              )}
             </ScratchCard>
           </div>
         )}

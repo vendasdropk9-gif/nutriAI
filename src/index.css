@@ -167,6 +167,7 @@ body {
 
 .dark .clay-btn {
   background: #1e293b;
+  color: #ffffff;
   box-shadow: 
     5px 5px 12px rgba(0, 0, 0, 0.25), 
     -5px -5px 12px rgba(255, 255, 255, 0.03),
@@ -212,10 +213,3 @@ body {
 
 /* Styles removed as target elements were deleted */
 
-div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1) {
-  transform: scale(0.9);
-  position: relative !important;
-  z-index: 50;
-  margin: 1rem auto;
-  align-self: center;
-}

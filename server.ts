@@ -117,6 +117,7 @@ async function startServer() {
 
   // Secure API Proxy for all Gemini queries
   app.post("/api/gemini", async (req, res) => {
+    console.log(`Received request for: ${req.body.functionName}`);
     const { functionName, args } = req.body;
     
     if (!functionName || typeof functionName !== "string") {
@@ -134,6 +135,35 @@ async function startServer() {
     } catch (err: any) {
       console.error(`Erro na execução da API Gemini '${functionName}':`, err);
       res.status(500).json({ error: err?.message || "Erro interno ao processar a requisição." });
+    }
+  });
+
+  app.post("/api/tts", express.json(), async (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: "No text provided" });
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text: text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        }
+      });
+      
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (!base64Audio) throw new Error("No audio generated");
+      
+      res.json({ audio: base64Audio });
+    } catch (e: any) {
+      console.error("TTS error:", e.message);
+      res.status(500).json({ error: e.message });
     }
   });
 
@@ -881,7 +911,7 @@ async function startServer() {
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }, // Female sounding voice for "Malu"
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }, // Female sounding voice for "Malu"
           },
           systemInstruction: "Você é a Malu, uma assistente pessoal e Coach de Saúde. Fale em português brasileiro de forma natural. Seja muito amigável, concisa e direta, pois o usuário está conversando por voz através da API Live.",
         },

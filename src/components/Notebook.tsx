@@ -306,20 +306,20 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${theme.color}`}>
                         {theme.label}
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenEditNote(note);
                           }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           title="Editar nota"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => handleDeleteNote(note.id, e)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           title="Excluir nota"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -393,7 +393,7 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Ex: Minhas Metas Fitness de Julho"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all text-sm font-medium"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                   />
                 </div>
 
@@ -407,14 +407,14 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all text-sm font-medium"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                     >
-                      <option value="diet">🍎 Dieta & Receitas</option>
-                      <option value="workout">🏋️ Treino & Cardio</option>
-                      <option value="health">❤️ Saúde & Pressão</option>
-                      <option value="mind">🧠 Mental & Sono</option>
-                      <option value="supps">💊 Suplementos</option>
-                      <option value="others">📝 Outros</option>
+                      <option value="diet" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🍎 Dieta & Receitas</option>
+                      <option value="workout" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🏋️ Treino & Cardio</option>
+                      <option value="health" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">❤️ Saúde & Pressão</option>
+                      <option value="mind" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🧠 Mental & Sono</option>
+                      <option value="supps" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">💊 Suplementos</option>
+                      <option value="others" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">📝 Outros</option>
                     </select>
                   </div>
 
@@ -428,7 +428,7 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
                       placeholder="Ex: foco, hipertrofia, jejum"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all text-sm font-medium"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
@@ -444,7 +444,7 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Escreva aqui suas ideias, treinos concluídos, objetivos de macros, lista de mercado livre, lista de treinos, diário alimentar..."
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all text-sm resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm resize-none"
                   />
                 </div>
 

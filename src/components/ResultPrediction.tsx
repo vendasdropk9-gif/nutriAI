@@ -176,37 +176,55 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
                  <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">Trajeto Final</h3>
               </div>
 
-              <div className="relative pt-12 pb-8 px-4">
-                 {/* Line */}
-                 <div className="absolute top-24 left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-700" />
-                 
-                 <div className="flex justify-between relative z-10">
-                    <div className="flex flex-col items-center gap-4">
-                       <div className="w-4 h-4 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                       <div className="text-center">
-                          <p className="text-sm font-bold text-slate-400 uppercase">Hoje</p>
-                          <p className="text-2xl font-serif font-bold text-slate-700 dark:text-slate-200">{profile.weight}kg</p>
-                       </div>
-                    </div>
+              <div className="space-y-6">
+                {/* Labels of Today and Goal placed above and offset */}
+                <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800/60 pb-3 font-sans">
+                   <div>
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 font-sans">Hoje</p>
+                      <p className="text-3xl font-serif font-extrabold text-emerald-600 dark:text-emerald-400">{profile.weight} <span className="text-sm font-sans font-medium text-slate-500 dark:text-slate-400 font-sans">kg</span></p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 font-sans">Objetivo</p>
+                      <p className="text-3xl font-serif font-extrabold text-purple-600 dark:text-purple-400">{profile.targetWeight} <span className="text-sm font-sans font-medium text-slate-500 dark:text-slate-400 font-sans">kg</span></p>
+                   </div>
+                </div>
 
-                    <div className="flex flex-col items-center gap-4">
-                       <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700" />
-                       <div className="text-center">
-                          <p className="text-sm font-bold text-slate-400 uppercase">Objetivo</p>
-                          <p className="text-2xl font-serif font-bold text-slate-700 dark:text-slate-200">{profile.targetWeight}kg</p>
-                       </div>
-                    </div>
-                 </div>
+                {/* Progress Visual Track container */}
+                <div className="relative pt-8 pb-4 px-2">
+                  {/* Track line connector background */}
+                  <div className="absolute top-[44px] left-0 right-0 h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full border border-slate-200/40 dark:border-slate-700/40 shadow-inner overflow-hidden">
+                     {/* Safe progress fill indicator */}
+                     <div 
+                       className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-purple-500 rounded-full"
+                       style={{ width: `${Math.min(Math.max((Math.abs(profile.weight - profile.targetWeight) / 10) * 10, 10), 90)}%` }}
+                     />
+                  </div>
 
-                 {/* Car/Icon moving along the path */}
-                 <div 
-                   className="absolute top-20 transition-all duration-1000 ease-out"
-                   style={{ left: `calc(4px + ${Math.min(Math.max((Math.abs(profile.weight - profile.targetWeight) / 10) * 10, 10), 90)}%)` }}
-                 >
-                    <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-lg text-white animate-bounce">
-                       <Sparkles className="w-5 h-5" />
-                    </div>
-                 </div>
+                  {/* Left node (Start point circle) */}
+                  <div className="absolute left-0 top-[40px] w-5 h-5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 shadow-md flex items-center justify-center z-10">
+                     <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                  </div>
+
+                  {/* Right node (End point circle) */}
+                  <div className="absolute right-0 top-[40px] w-5 h-5 rounded-full bg-purple-500 ring-4 ring-purple-500/20 shadow-md flex items-center justify-center z-10">
+                     <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                  </div>
+
+                  {/* Moving Pin Indicator sliding without any text collisions */}
+                  <div 
+                    className="absolute top-0 transition-all duration-1000 ease-out z-20"
+                    style={{ left: `calc(${Math.min(Math.max((Math.abs(profile.weight - profile.targetWeight) / 10) * 10, 10), 90)}% - 20px)` }}
+                  >
+                     <div className="flex flex-col items-center">
+                        <div className="bg-emerald-500 dark:bg-emerald-600 text-[10px] font-bold text-white px-2 py-0.5 rounded-md shadow-md animate-bounce mb-1 tracking-wider whitespace-nowrap font-sans">
+                           Rumo ao foco!
+                        </div>
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white ring-4 ring-emerald-500/10 text-white">
+                           <Sparkles className="w-4 h-4" />
+                        </div>
+                     </div>
+                  </div>
+                </div>
               </div>
 
               <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-800/30 flex items-start gap-4">

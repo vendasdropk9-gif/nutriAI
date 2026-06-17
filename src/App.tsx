@@ -14,6 +14,7 @@ import { Profile } from './components/Profile';
 import { PlateAnalyzer } from './components/PlateAnalyzer';
 import { JourneyVisualizer } from './components/JourneyVisualizer';
 import { JuiceGenerator } from './components/JuiceGenerator';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { BarcodeScanner } from './components/BarcodeScanner';
 import { EmotionalTracker } from './components/EmotionalTracker';
 import { ChallengeView } from './components/ChallengeView';
@@ -218,7 +219,18 @@ export default function App() {
   }
 
   if (user && isLocked) {
-    return <LockScreen onUnlock={() => setIsLocked(false)} userEmail={user.email} />;
+    return (
+      <LockScreen 
+        onUnlock={() => setIsLocked(false)} 
+        userEmail={user.email} 
+        onDisableBiometric={() => {
+          localStorage.removeItem('nutri-biometric-enabled');
+          setIsLocked(false);
+        }}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+      />
+    );
   }
 
   return (
@@ -287,7 +299,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="sticky top-16 md:top-20 z-[15]">
+      <div className="sticky top-16 md:top-20 z-[15] w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <DraggableNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
@@ -300,7 +312,7 @@ export default function App() {
         ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
       }`}>
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
@@ -309,7 +321,8 @@ export default function App() {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="w-full flex-1 flex flex-col min-h-[400px]"
           >
-            {(activeTab === 'generator' || activeTab === 'plan') && (
+            <ErrorBoundary>
+              {(activeTab === 'generator' || activeTab === 'plan') && (
               <FoodGalleryBanner 
                 onNavigateToMarket={() => setActiveTab('market')} 
                 isGenerating={isRecipesGenerating} 
@@ -446,6 +459,7 @@ export default function App() {
             {activeTab === 'academies' && (
               <AcademyPortal />
             )}
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>

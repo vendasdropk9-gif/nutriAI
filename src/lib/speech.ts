@@ -74,6 +74,23 @@ export const speak = async (text: string, options?: SpeechOptions) => {
 };
 
 export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
+  // If the browser has modern premium natural/neural/online voices, we should use them
+  // directly since they sound incredibly human, clear, and superior to Google Translate.
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const voices = window.speechSynthesis.getVoices();
+    const hasPremiumVoice = voices.some(v => {
+      const nameLower = v.name.toLowerCase();
+      const isPtBr = v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt');
+      if (!isPtBr) return false;
+      return nameLower.includes('natural') || nameLower.includes('neural') || nameLower.includes('online') || nameLower.includes('google');
+    });
+
+    if (hasPremiumVoice) {
+      console.log("High-quality natural local voice detected. Preferring Native SpeechSynthesis.");
+      return executeBrowserTTS(text, options);
+    }
+  }
+
   // First try Google Translate TTS for a much more natural fallback
   try {
     const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=${encodeURIComponent(text)}`;
@@ -121,19 +138,36 @@ const executeBrowserTTS = (text: string, options?: SpeechOptions) => {
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'pt-BR';
-  utterance.rate = options?.rate ?? 0.85; // Slower for smoother, softer speech
-  utterance.pitch = options?.pitch ?? 1.15; // Slightly higher for a "friendlier/female" tone
-  utterance.volume = 0.5; // Softer volume
+  
+  // Natural human rate (0.95 - 1.0) and comfortable pitch for default speech
+  utterance.rate = options?.rate ?? 0.98; 
+  utterance.pitch = options?.pitch ?? 1.05; 
+  utterance.volume = 0.95; // Clearer, audible volume
 
-  // Try to find a female voice
+  // Try to find a premium, natural female voice in pt-BR
   const voices = window.speechSynthesis.getVoices();
-  const femaleVoice = voices.find(v => 
-    (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('luciana') || v.name.toLowerCase().includes('valeria') || v.name.toLowerCase().includes('google')) && 
-    v.lang.includes('pt-BR')
-  ) || voices.find(v => v.lang.includes('pt-BR'));
+  const femaleKeywords = [
+    'natural', 'neural', 'maria', 'francisca', 'luciana', 'valeria', 
+    'helena', 'raquel', 'joana', 'victoria', 'daniela', 'female', 
+    'mulher', 'feminina', 'suave', 'soft'
+  ];
+
+  // 1. Try to find pt-BR voice that has a premium keyword and matches female names
+  let femaleVoice = voices.find(v => {
+    const nameLower = v.name.toLowerCase();
+    const isPtBr = v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt');
+    if (!isPtBr) return false;
+    return femaleKeywords.some(keyword => nameLower.includes(keyword));
+  });
+
+  // 2. Or fallback to any pt-BR voice
+  if (!femaleVoice) {
+    femaleVoice = voices.find(v => v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt'));
+  }
 
   if (femaleVoice) {
     utterance.voice = femaleVoice;
+    console.log(`Using selected pt-BR voice: ${femaleVoice.name}`);
   }
 
   if (options?.onEnded) {

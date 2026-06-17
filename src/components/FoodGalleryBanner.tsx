@@ -173,7 +173,7 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             key={`benefit-${slide.id}`}
-            className="hidden sm:block text-white/80 font-sans text-xs sm:text-base md:text-xl max-w-md line-clamp-1 sm:line-clamp-2 md:line-clamp-none break-words"
+            className="hidden sm:block text-white font-sans text-xs sm:text-base md:text-xl max-w-md line-clamp-1 sm:line-clamp-2 md:line-clamp-none break-words"
           >
             {slide.benefit}
           </motion.p>

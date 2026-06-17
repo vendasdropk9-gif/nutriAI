@@ -160,22 +160,22 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
               <div className="flex items-center gap-3 mb-4">
                 <Sparkles className="w-6 h-6 text-emerald-500" />
                 <h3 className="font-serif text-3xl md:text-4xl leading-tight text-slate-800 dark:text-slate-100">
-                  {generatedJuice.name}
+                  {generatedJuice.name || "Suco Saudável"}
                 </h3>
               </div>
               
               <div className="flex flex-wrap items-center gap-3 mt-6">
                 <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full border border-white/60 dark:border-slate-600/50 shadow-sm text-sm font-medium text-slate-600 dark:text-slate-300">
                   <Flame className="w-4 h-4 text-orange-500" />
-                  {generatedJuice.nutrition.calories} kcal
+                  {generatedJuice.nutrition?.calories ?? 120} kcal
                 </div>
                 <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full border border-white/60 dark:border-slate-600/50 shadow-sm text-sm font-medium text-slate-600 dark:text-slate-300">
                   <Leaf className="w-4 h-4 text-emerald-500" />
-                  Fibras: {generatedJuice.nutrition.fiber}g
+                  Fibras: {generatedJuice.nutrition?.fiber ?? 3}g
                 </div>
                 <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full border border-white/60 dark:border-slate-600/50 shadow-sm text-sm font-medium text-slate-600 dark:text-slate-300">
                   <HeartPulse className="w-4 h-4 text-rose-500" />
-                  Carboidratos: {generatedJuice.nutrition.carbs}g
+                  Carboidratos: {generatedJuice.nutrition?.carbs ?? 25}g
                 </div>
               </div>
             </div>
@@ -188,7 +188,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
                     Ingredientes
                   </h4>
                   <ul className="space-y-3">
-                    {generatedJuice.ingredients.map((ing: string, idx: number) => (
+                    {(generatedJuice.ingredients || []).map((ing: string, idx: number) => (
                       <li key={idx} className="flex gap-3 text-slate-600 dark:text-slate-300 font-medium items-center">
                         <Plus className="w-4 h-4 text-emerald-500 shrink-0" />
                         <span className="leading-relaxed">{ing}</span>
@@ -202,7 +202,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
                     Benefícios para o seu objetivo
                   </h4>
                   <ul className="space-y-3">
-                    {generatedJuice.benefits.map((ben: string, idx: number) => (
+                    {(generatedJuice.benefits || []).map((ben: string, idx: number) => (
                       <li key={idx} className="flex gap-3 text-slate-600 dark:text-slate-300 items-start">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0"></div>
                         <span className="leading-relaxed">{ben}</span>
@@ -217,7 +217,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
                   Modo de Preparo
                 </h4>
                 <div className="space-y-5">
-                  {generatedJuice.instructions.map((step: string, idx: number) => (
+                  {(generatedJuice.instructions || []).map((step: string, idx: number) => (
                     <div key={idx} className="flex gap-4 group">
                       <div className="w-8 h-8 rounded-full bg-white/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-white/60 dark:border-slate-600/50 flex items-center justify-center font-serif text-lg flex-shrink-0 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">
                         {idx + 1}

@@ -5,6 +5,7 @@ import {
   CheckCircle2, Clock, Trash2, ArrowLeft, Coffee, Sparkles
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { playSfx } from '../lib/sensory';
 
 interface Fruit {
   id: string;
@@ -142,66 +143,6 @@ const ALL_FRUITS: Fruit[] = [
     colorHex: 'from-lime-500 to-emerald-600',
     gradientFrom: '#A3E635',
     gradientTo: '#15803D'
-  },
-  {
-    id: 'laranja',
-    name: 'Laranja',
-    emoji: '🍊',
-    calories: '47 kcal',
-    benefits: 'Excelente fonte de polifenóis bioativos e ácido cítrico. Auxilia na absorção de ferro de origem vegetal e protege as artérias coronárias.',
-    vitamins: 'Vitamina C & Fibras',
-    vitsLevel: 'Alta',
-    fibersLevel: 'Muito Alta',
-    antioxidantsLevel: 'Alta',
-    suggestion: 'Consuma preferencialmente inteira com o bagaço fibroso para retardar o açúcar, ou espremida no suco sem coar.',
-    colorHex: 'from-orange-500 to-amber-600',
-    gradientFrom: '#F97316',
-    gradientTo: '#EA580C'
-  },
-  {
-    id: 'pera',
-    name: 'Pera',
-    emoji: '🍐',
-    calories: '57 kcal',
-    benefits: 'Excelente teor de frutose de baixo impacto insulínico e água equilibrada. Apoia o emagrecimento saudável promovendo uma sensação de saciedade prolongada.',
-    vitamins: 'Vitamina K, C & Potássio',
-    vitsLevel: 'Média',
-    fibersLevel: 'Excelente',
-    antioxidantsLevel: 'Média',
-    suggestion: 'Saboreie como sua sobremesa leve de fim de noite, assada rapidamente com canela seca, ou junto a lâminas de castanhas de caju.',
-    colorHex: 'from-yellow-500 to-lime-600',
-    gradientFrom: '#FACC15',
-    gradientTo: '#65A30D'
-  },
-  {
-    id: 'coco',
-    name: 'Coco',
-    emoji: '🥥',
-    calories: '99 kcal',
-    benefits: 'Contém triglicerídeos de cadeia média (TCM), deliciosas gorduras saturadas de fácil e rápido consumo energético celular que geram saciedade imediata.',
-    vitamins: 'Potássio, Lipídeos Úteis',
-    vitsLevel: 'Média',
-    fibersLevel: 'Muito Alta',
-    antioxidantsLevel: 'Média',
-    suggestion: 'Saboreie pequenos pedaços ou cubinhos secos como um lanche da tarde revigorante, ou adicione raspas frescas a saladas.',
-    colorHex: 'from-amber-700 to-yellow-800',
-    gradientFrom: '#B45309',
-    gradientTo: '#78350F'
-  },
-  {
-    id: 'mamao',
-    name: 'Mamão',
-    emoji: '🍈',
-    calories: '43 kcal',
-    benefits: 'Contém enzimas proteolíticas como a papaína, ideais para facilitar a absorção de nutrientes, acalmar o estômago e manter o trato intestinal livre.',
-    vitamins: 'Vitamina A & Papaína',
-    vitsLevel: 'Excelente',
-    fibersLevel: 'Muito Alta',
-    antioxidantsLevel: 'Alta',
-    suggestion: 'Aproveite no café da manhã fatiado em metades, salpicando sementes de linhaça, chia hidratada ou granola caseira.',
-    colorHex: 'from-orange-500 to-yellow-600',
-    gradientFrom: '#FB923C',
-    gradientTo: '#D97706'
   }
 ];
 
@@ -230,6 +171,69 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [shaking, setShaking] = useState(false);
+
+  // Physics-based clapper needle simulation
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const [pinRotation, setPinRotation] = useState(0);
+
+  useEffect(() => {
+    if (!isSpinning) {
+      setPinRotation(0);
+      return;
+    }
+
+    let lastTickAngle = -999;
+    let animFrame: number;
+
+    const updatePinPhysics = () => {
+      const el = wheelRef.current;
+      if (el) {
+        const style = window.getComputedStyle(el);
+        const transform = style.transform || style.webkitTransform;
+        if (transform && transform !== 'none') {
+          const values = transform.split('(')[1].split(')')[0].split(',');
+          if (values.length >= 2) {
+            const a = parseFloat(values[0]);
+            const b = parseFloat(values[1]);
+            let angle = Math.atan2(b, a) * (180 / Math.PI);
+            if (angle < 0) angle += 360;
+
+            // Segments are 45 degrees wide (360 / 8)
+            const segmentAngle = 45;
+            const relativeAngle = angle % segmentAngle; // 0 to 45
+            
+            // High-precision physical snapping clapper simulation.
+            // As a peg approaches, it drags/deflects the pin to positive angle, then slips off.
+            let targetPin = 0;
+            if (relativeAngle > 34) {
+              const fraction = (relativeAngle - 34) / 11; // 0 to 1
+              targetPin = fraction * 18; // deflect up to 18 degrees
+            } else if (relativeAngle < 6) {
+              const fraction = relativeAngle / 6; // 0 to 1
+              targetPin = -12 * (1 - fraction); // springy overshoot rebound
+            }
+
+            setPinRotation(targetPin);
+
+            // Tick sound precisely synchronized with the visual pin passing a wedge divider
+            const currentPegId = Math.floor((angle + 6) / 45);
+            if (currentPegId !== lastTickAngle) {
+              if (lastTickAngle !== -999) {
+                playSound('tick');
+              }
+              lastTickAngle = currentPegId;
+            }
+          }
+        }
+      }
+      animFrame = requestAnimationFrame(updatePinPhysics);
+    };
+
+    animFrame = requestAnimationFrame(updatePinPhysics);
+    return () => {
+      cancelAnimationFrame(animFrame);
+    };
+  }, [isSpinning]);
   
   // Active selected fruit initially (We default to Morango at index 2 matching preview exactly)
   const [result, setResult] = useState<Fruit | null>(ALL_FRUITS[2]);
@@ -246,6 +250,8 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
     size: number;
     rotation: number;
     rotationSpeed: number;
+    shape: 'square' | 'circle' | 'triangle' | 'star';
+    scaleY: number;
   }[]>([]);
   const animationFrameId = useRef<number | null>(null);
 
@@ -331,39 +337,90 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
     canvas.width = canvas.parentElement?.clientWidth || 500;
     canvas.height = canvas.parentElement?.clientHeight || 500;
 
-    const pallet = ['#ec4899', '#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#34d399', '#f43f5e'];
+    const pallet = ['#ec4899', '#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#34d399', '#f43f5e', '#ef4444', '#06b6d4'];
+    const shapes: ('square' | 'circle' | 'triangle' | 'star')[] = ['square', 'circle', 'triangle', 'star'];
 
-    confettiParticles.current = Array.from({ length: 90 }, () => ({
+    // Play advanced synthesis sound effect
+    if (!isMuted) {
+      playSfx('confetti');
+    }
+
+    confettiParticles.current = Array.from({ length: 130 }, () => ({
       x: canvas.width / 2,
-      y: canvas.height * 0.4,
-      vx: (Math.random() - 0.5) * 14,
-      vy: (-Math.random() * 10) - 5,
+      y: canvas.height * 0.45,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (-Math.random() * 12) - 6,
       color: pallet[Math.floor(Math.random() * pallet.length)],
-      size: Math.random() * 6 + 4,
+      size: Math.random() * 8 + 5,
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 12
+      rotationSpeed: (Math.random() - 0.5) * 15,
+      shape: shapes[Math.floor(Math.random() * shapes.length)],
+      scaleY: Math.random()
     }));
+
+    const drawStar = (cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number) => {
+      let rot = (Math.PI / 2) * 3;
+      let x = cx;
+      let y = cy;
+      const step = Math.PI / spikes;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerRadius;
+        y = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+
+        x = cx + Math.cos(rot) * innerRadius;
+        y = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(x, y);
+        rot += step;
+      }
+      ctx.lineTo(cx, cy - outerRadius);
+      ctx.closePath();
+      ctx.fill();
+    };
 
     const updateConfetti = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let alive = false;
 
       confettiParticles.current.forEach(p => {
-        p.vy += 0.3; // gravity
+        p.vy += 0.28; // gravity
         p.vx *= 0.98; // air resistance
         p.x += p.vx;
         p.y += p.vy;
         p.rotation += p.rotationSpeed;
+        p.scaleY = Math.sin(p.rotation / 15);
 
         if (p.y < canvas.height && p.x > 0 && p.x < canvas.width) {
           alive = true;
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.scale(1, p.scaleY);
           ctx.fillStyle = p.color;
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 6;
           ctx.shadowColor = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+
+          if (p.shape === 'circle') {
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size / 2, 0, 2 * Math.PI);
+            ctx.fill();
+          } else if (p.shape === 'triangle') {
+            ctx.beginPath();
+            ctx.moveTo(0, -p.size / 2);
+            ctx.lineTo(p.size / 2, p.size / 2);
+            ctx.lineTo(-p.size / 2, p.size / 2);
+            ctx.closePath();
+            ctx.fill();
+          } else if (p.shape === 'star') {
+            drawStar(0, 0, 5, p.size / 1.5, p.size / 3);
+          } else {
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          }
+          
           ctx.restore();
         }
       });
@@ -407,27 +464,8 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
 
     setRotation(finalRotation);
 
-    // Audio ticking simulation matching velocity decay
-    let tickCount = 0;
-    const totalTicks = 24;
-    const tickingInterval = setInterval(() => {
-      tickCount++;
-      if (tickCount <= totalTicks) {
-        playSound('tick');
-      } else {
-        clearInterval(tickingInterval);
-      }
-    }, 130 + tickCount * 8);
-
-    // Minor shake as momentum winds down
-    setTimeout(() => {
-      setShaking(true);
-    }, 3600);
-
     setTimeout(() => {
       setIsSpinning(false);
-      setShaking(false);
-      clearInterval(tickingInterval);
 
       // Perform haptic vibration (device support check)
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -516,8 +554,13 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
         {/* PERFECTLY CIRCULAR WHEEL WRAPPER */}
         <div className="relative w-full max-w-[280px] xs:max-w-[320px] sm:max-w-[370px] md:max-w-[400px] aspect-square rounded-full flex items-center justify-center mb-8 mx-auto">
           
-          {/* External locator needle map-pin pointing exactly down */}
-          <div className="absolute -top-[15px] left-1/2 -translate-x-1/2 z-40 select-none pointer-events-none drop-shadow-[0_8px_16px_rgba(236,72,153,0.5)]">
+          {/* External locator needle map-pin pointing exactly down - high fidelity physical ticking */}
+          <motion.div 
+            className="absolute -top-[15px] left-1/2 -translate-x-1/2 z-40 select-none pointer-events-none drop-shadow-[0_8px_16px_rgba(236,72,153,0.5)]"
+            style={{ transformOrigin: 'top center' }}
+            animate={{ rotate: pinRotation }}
+            transition={{ type: 'spring', stiffness: 550, damping: 14 }}
+          >
             <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="url(#pinGrad)" />
               <circle cx="14" cy="14" r="4.5" fill="#FFFFFF" />
@@ -528,10 +571,10 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
                 </linearGradient>
               </defs>
             </svg>
-          </div>
+          </motion.div>
 
           {/* Glowing neon ring shell */}
-          <div className={`absolute inset-0 rounded-full border-4 border-purple-500/40 p-1 bg-slate-950/80 shadow-[0_0_35px_rgba(168,85,247,0.25)] flex items-center justify-center overflow-hidden ${shaking ? 'animate-bounce' : ''}`}>
+          <div className="absolute inset-0 rounded-full border-4 border-purple-500/40 p-1 bg-slate-950/80 shadow-[0_0_35px_rgba(168,85,247,0.25)] flex items-center justify-center overflow-hidden">
             
             {/* LED Glowing border bulbs distributed evenly along boundary */}
             {Array.from({ length: 16 }).map((_, i) => {
@@ -555,6 +598,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
 
             {/* Rotating SVG core */}
             <motion.div 
+              ref={wheelRef}
               className="w-full h-full rounded-full select-none"
               style={{ transformOrigin: 'center' }}
               animate={{ rotate: rotation }}

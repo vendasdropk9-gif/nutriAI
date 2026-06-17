@@ -422,7 +422,10 @@ Responda APENAS com um objeto JSON.`;
 };
 
 export const scanIngredients = async (base64Image: string, mimeType: string): Promise<string[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY || '',
+    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+  });
   
   const prompt = `Identifique todos os ingredientes alimentícios visíveis nesta imagem. \nRetorne APENAS um array JSON de strings, onde cada string é o nome do ingrediente identificado em português. Exemplo: ["maçã", "banana", "leite"]. Se não houver comida, retorne [].`;
   
@@ -452,7 +455,7 @@ export const scanIngredients = async (base64Image: string, mimeType: string): Pr
     if (!text) return [];
     return JSON.parse(text) as string[];
   } catch (error) {
-    console.info("Failed to scan ingredients:");
+    console.error("Failed to scan ingredients:", error);
     return [];
   }
 };
@@ -572,13 +575,9 @@ export const textToSpeech = async (text: string) => {
       return b64;
     }
   } catch (error: any) {
-    if (error?.status === 'RESOURCE_EXHAUSTED' || error?.message?.includes('429')) {
-      console.info("Gemini TTS quota exceeded.");
-    } else {
-      console.warn("Gemini TTS warning:");
-    }
+    console.error("Gemini TTS failed:", error);
+    return null;
   }
-  return null;
 };
 
 function wrapPcmInWav(pcmBase64: string, sampleRate: number): Uint8Array {
@@ -1071,14 +1070,27 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.info("Fallback triggered: juice");
+    console.info("Fallback triggered: juice", error);
     return {
-      name: "Suco Inteligente",
-      description: "Uma opção refrescante e nutritiva.",
-      prepTime: "5 min",
-      ingredients: ["1 fruta base", "1 porção de vegetais", "200ml de água"],
-      instructions: ["Bata tudo no liquidificador"],
-      nutrition: { calories: 150, protein: 2, carbs: 35, fat: 1 }
+      name: "Suco Verde Equilíbrio",
+      assistantMessage: "Este suco refrescante vai ajudar a energizar seu dia e acelerar seu metabolismo!",
+      ingredients: ["1 maçã verde fatiada", "2 folhas de couve manteiga", "Suco de 1 limão", "1 pedaço pequeno de gengibre", "150ml de água de coco"],
+      instructions: [
+        "Lave bem todos os ingredientes.",
+        "Corte a maçã em pedaços pequenos, removendo as sementes.",
+        "Bata tudo no liquidificador por cerca de 2 minutos até que fique homogêneo.",
+        "Sirva imediatamente, de preferência sem coar para preservar as fibras."
+      ],
+      nutrition: { 
+        calories: 125, 
+        carbs: 28, 
+        fiber: 5 
+      },
+      benefits: [
+        "Acelera o metabolismo e purifica o corpo",
+        "Rico em antioxidantes naturais e anti-inflamatório",
+        "Fonte de fibras solúveis que prolongam a saciedade"
+      ]
     };
   }
 };
@@ -1204,10 +1216,9 @@ Regras:
   } catch (error) {
     console.info("Fallback triggered: emotional patterns");
     return {
-      period: "recent",
-      overallMood: "normal",
       insight: "Seu humor parece estável ultimamente.",
-      suggestions: ["Beba mais água", "Tente relaxar"]
+      suggestion: "Mantenha o hábito de registrar suas emoções para identificar padrões.",
+      assistantMessage: "Seu humor parece equilibrado. Conte comigo para manter esse ritmo calmo e saudável!"
     };
   }
 };

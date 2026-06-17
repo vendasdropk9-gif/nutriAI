@@ -325,28 +325,30 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                 </h4>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Acompanhe suas calorias e nutrientes contra a meta recomendada.</p>
               </div>
-              <div className="flex bg-slate-100 dark:bg-slate-900/40 p-1 rounded-xl w-full sm:w-auto">
+              <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/40 rounded-xl w-full sm:w-auto sm:flex sm:flex-row gap-0.5">
                 <button
                   type="button"
                   onClick={() => setActiveTrackerTab('planned')}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all truncate text-center cursor-pointer ${
                     activeTrackerTab === 'planned'
                       ? 'bg-emerald-500 text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
+                  title={`Plano (${selectedDay})`}
                 >
-                  Plano ({selectedDay})
+                  <span className="truncate block">Plano ({selectedDay})</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTrackerTab('actual')}
-                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all truncate text-center cursor-pointer ${
                     activeTrackerTab === 'actual'
                       ? 'bg-emerald-500 text-white shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
+                  title="Consumo Real (Hoje)"
                 >
-                  Consumo Real (Hoje)
+                  <span className="truncate block">Consumo Real</span>
                 </button>
               </div>
             </div>

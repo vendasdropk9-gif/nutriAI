@@ -297,7 +297,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       <div className="text-center space-y-4">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Personal Trainer 3D
@@ -548,7 +548,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                          {tutorialStep < (currentExercise?.tutorialSteps?.length || 0) - 1 ? (
                            <button
                              onClick={nextTutorialStep}
-                             className="flex-1 py-4 md:py-5 clay-primary px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 text-sm md:text-base"
+                             className="flex-1 py-4 md:py-5 clay-primary px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 text-sm md:text-base text-white"
                            >
                               Próximo
                               <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
@@ -597,7 +597,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                            {!isTimerActive ? (
                              <button
                                onClick={startExercise}
-                               className="flex-1 py-4 md:py-5 bg-emerald-500 hover:clay-primary px-6 py-3 md:rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
+                               className="flex-1 py-4 md:py-5 bg-emerald-500 text-white hover:clay-primary px-6 py-3 md:rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
                              >
                                <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
                                Começar

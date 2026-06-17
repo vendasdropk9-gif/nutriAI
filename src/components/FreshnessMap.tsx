@@ -294,6 +294,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                       if (store) selectStore(store);
                     }}
                     className="px-5 md:px-6 py-2.5 md:py-3 clay-btn font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
+                    style={{ color: '#fffefe' }}
                   >
                     Comprar Agora
                     <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
@@ -421,7 +422,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center gap-3 md:gap-4 min-w-0">
                   <img src={selectedStore.image} className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover shrink-0 shadow-sm" referrerPolicy="no-referrer" />
                   <div className="min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white uppercase font-sans tracking-tight truncate">{selectedStore.name}</h3>
+                    <h3 className="text-lg md:text-xl font-bold text-white uppercase font-sans tracking-tight truncate" style={{ color: '#fffefe' }}>{selectedStore.name}</h3>
                     <div className="flex items-center gap-1.5 md:gap-2 mt-1 flex-wrap">
                       <Star className="w-3.5 h-3.5 md:w-4 md:h-4 fill-amber-400 text-amber-400 shrink-0" />
                       <span className="text-xs md:text-sm font-bold">{selectedStore.rating}</span>
@@ -450,7 +451,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t border-emerald-200/30 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <Leaf className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
-                    <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Fresco: {selectedStore.freshnessScore}/10</span>
+                    <span className="text-[10px] font-black uppercase text-white">Fresco: {selectedStore.freshnessScore}/10</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500" />
@@ -471,10 +472,13 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               </div>
 
               <div className="flex gap-3 w-full box-border">
-                <button className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate">
+                <button 
+                  className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate"
+                  style={{ color: '#fffefe' }}
+                >
                   Ver Produtos
                 </button>
-                <button className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate">
+                <button className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate text-white">
                   Comprar
                 </button>
               </div>

@@ -615,32 +615,32 @@ export function AcademyPortal() {
   const myAcademy = myAcademyId ? academies.find(a => a.id === myAcademyId) : null;
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16 px-1 sm:px-4">
+    <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16 px-4 overflow-hidden w-full">
       
       {/* Visual Header */}
-      <div className="text-center space-y-4 mb-10">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-800 dark:text-emerald-400">
+      <div className="text-center space-y-4 mb-10 px-2 sm:px-0">
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-emerald-800 dark:text-emerald-400 leading-tight break-words">
           Academias Parceiras & Fitness
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-base sm:text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed">
           Encontre os melhores locais avaliados de treino da sua região, ou registre a sua própria academia para conectar-se com nossa comunidade fitness.
         </p>
 
         {/* Tab Selection */}
-        <div className="inline-flex flex-wrap p-1 bg-slate-100 dark:bg-slate-850 rounded-[20px] mx-auto border border-slate-200/60 dark:border-slate-800 gap-1 justify-center">
+        <div className="flex flex-col sm:inline-flex sm:flex-row p-1 bg-slate-100 dark:bg-slate-850 rounded-[20px] mx-auto border border-slate-200/60 dark:border-slate-800 gap-1 justify-center w-full max-w-[280px] sm:max-w-none">
           <button
             onClick={() => {
               setViewMode('explore');
               playSfx('tap');
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'explore'
                 ? 'bg-emerald-500 text-white shadow-md'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            <Compass className="w-4 h-4" />
-            Buscar Academias
+            <Compass className="w-4 h-4 shrink-0" />
+            <span className="truncate">Buscar Academias</span>
           </button>
           
           <button
@@ -648,14 +648,14 @@ export function AcademyPortal() {
               setViewMode('partner');
               playSfx('tap');
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'partner'
                 ? 'bg-emerald-500 text-white shadow-md'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            <Building2 className="w-4 h-4" />
-            Portal do Parceiro Gym
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span className="truncate">Portal do Parceiro Gym</span>
           </button>
 
           <button
@@ -664,14 +664,14 @@ export function AcademyPortal() {
               playSfx('tap');
               loadAdminAcademies();
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'admin'
                 ? 'bg-amber-500 text-white shadow-md'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-white'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            Moderação Staff
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span className="truncate">Moderação Staff</span>
           </button>
         </div>
       </div>
@@ -1464,18 +1464,18 @@ export function AcademyPortal() {
           </div>
 
           {/* Mini Stats Grid */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-4 rounded-2xl shadow-xs text-center">
-              <span className="block text-[10px] uppercase font-bold text-slate-400">Total Solicitado</span>
-              <strong className="text-2xl text-slate-800 dark:text-white font-serif">{adminAcademies.length}</strong>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+              <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 truncate">Total</span>
+              <strong className="text-lg sm:text-2xl text-slate-800 dark:text-white font-serif">{adminAcademies.length}</strong>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-4 rounded-2xl shadow-xs text-center">
-              <span className="block text-[10px] uppercase font-bold text-amber-500">Aguardando Revisão</span>
-              <strong className="text-2xl text-amber-500 font-serif">{adminAcademies.filter(a => a.status === 'PENDENTE').length}</strong>
+            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+              <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-amber-500 truncate">Pendentes</span>
+              <strong className="text-lg sm:text-2xl text-amber-500 font-serif">{adminAcademies.filter(a => a.status === 'PENDENTE').length}</strong>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-4 rounded-2xl shadow-xs text-center">
-              <span className="block text-[10px] uppercase font-bold text-emerald-500">Ativas no App</span>
-              <strong className="text-2xl text-emerald-500 font-serif">{adminAcademies.filter(a => a.status === 'ATIVO').length}</strong>
+            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+              <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-emerald-500 truncate">Ativas</span>
+              <strong className="text-lg sm:text-2xl text-emerald-500 font-serif">{adminAcademies.filter(a => a.status === 'ATIVO').length}</strong>
             </div>
           </div>
 
