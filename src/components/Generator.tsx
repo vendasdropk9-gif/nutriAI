@@ -258,23 +258,42 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                 </div>
               </button>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={isGenerating}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 w-full md:w-auto justify-center"
+                whileHover={!isGenerating ? { scale: 1.02, translateY: -2 } : {}}
+                whileTap={!isGenerating ? { scale: 0.98 } : {}}
+                className="relative overflow-hidden bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-medium px-8 py-4 rounded-full transition-all duration-300 flex items-center gap-3 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 w-full md:w-auto justify-center disabled:bg-emerald-600/90"
               >
+                {/* Shimmer sweep effect during loading */}
+                {isGenerating && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '100%' }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.2,
+                      ease: "linear",
+                    }}
+                  />
+                )}
+                
                 {isGenerating ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Criando receita...
+                    <div className="relative flex items-center justify-center w-5 h-5">
+                      <span className="absolute inset-0 rounded-full border-2 border-white/20" />
+                      <span className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    </div>
+                    <span className="relative z-10 animate-pulse font-semibold">Criando receita...</span>
                   </>
                 ) : (
                   <>
-                    <ChefHat className="w-5 h-5" />
-                    Gerar Receita Mágica
+                    <ChefHat className="w-5 h-5 transition-transform group-hover:rotate-6" />
+                    <span>Gerar Receita Mágica</span>
                   </>
                 )}
-              </button>
+              </motion.button>
             </div>
           </form>
         </div>

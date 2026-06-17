@@ -56,10 +56,28 @@ body {
   border: 1px solid rgba(16, 185, 129, 0.03);
   box-shadow: 
     10px 10px 20px rgba(16, 185, 129, 0.04), 
-    -10px -10px 20px rgba(255, 255, 255, 1),
+    -10px -10px 20px rgba(255, 255, 255, 0.35),
     inset 2px 2px 4px rgba(255, 255, 255, 1), 
     inset -2px -2px 4px rgba(16, 185, 129, 0.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Specific overrides for clay-card styled on dark or translucent/glow-sensitive containers */
+.bg-slate-900.clay-card,
+.bg-emerald-950.clay-card,
+.bg-slate-950.clay-card,
+.bg-emerald-900.clay-card,
+.bg-slate-900 .clay-card,
+.bg-emerald-950 .clay-card,
+.bg-slate-950 .clay-card,
+.bg-emerald-900 .clay-card,
+.bg-white\/5.clay-card,
+.bg-white\/10.clay-card {
+  box-shadow: 
+    10px 10px 20px rgba(0, 0, 0, 0.25), 
+    -10px -10px 20px rgba(255, 255, 255, 0.03),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.05), 
+    inset -2px -2px 4px rgba(0, 0, 0, 0.2);
 }
 
 @utility clay-panel {

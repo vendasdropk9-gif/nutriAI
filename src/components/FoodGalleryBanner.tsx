@@ -80,6 +80,7 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevRecipesCount, setPrevRecipesCount] = useState<number | undefined>(recipesCount);
   const [isPulsing, setIsPulsing] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (recipesCount !== undefined) {
@@ -120,11 +121,22 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
           transition={{ duration: 1, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img 
-            src={slide.image} 
-            alt={slide.name}
-            className="w-full h-full object-cover object-center"
-          />
+          {!failedImages[slide.id] ? (
+            <img 
+              src={slide.image} 
+              alt={slide.name}
+              className="w-full h-full object-cover object-center"
+              referrerPolicy="no-referrer"
+              onError={() => {
+                setFailedImages(prev => ({ ...prev, [slide.id]: true }));
+              }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)] animate-pulse" />
+              <span className="text-4xl sm:text-6xl mb-3 filter drop-shadow-md select-none opacity-80">🥗 🥙 🥩</span>
+            </div>
+          )}
           {/* Subtle Overlay Gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent md:bg-gradient-to-t md:from-black/80 md:via-black/20 md:to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent hidden md:block" />

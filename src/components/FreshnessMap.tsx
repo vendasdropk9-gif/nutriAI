@@ -37,7 +37,7 @@ const MOCK_STORES: FreshnessStore[] = [
     rating: 4.8,
     deliveryTime: '20-35 min',
     minOrder: 15,
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200',
     distance: '0.8 km',
     coordinates: { lat: -23.552, lng: -46.635 },
     freshnessScore: 9.5,
@@ -58,7 +58,7 @@ const MOCK_STORES: FreshnessStore[] = [
     rating: 4.5,
     deliveryTime: '40-50 min',
     minOrder: 10,
-    image: 'https://images.unsplash.com/photo-1488459711635-de82da10d981?auto=format&fit=crop&q=80&w=400',
+    image: 'https://images.unsplash.com/photo-1488459711635-de82da10d981?auto=format&fit=crop&q=80&w=1200',
     distance: '1.5 km',
     coordinates: { lat: -23.555, lng: -46.630 },
     freshnessScore: 7.2,
@@ -79,7 +79,7 @@ const MOCK_STORES: FreshnessStore[] = [
     rating: 4.9,
     deliveryTime: '30-45 min',
     minOrder: 30,
-    image: 'https://images.unsplash.com/photo-1516594798947-e65505dbb29d?auto=format&fit=crop&q=80&w=400',
+    image: 'https://images.unsplash.com/photo-1516594798947-e65505dbb29d?auto=format&fit=crop&q=80&w=1200',
     distance: '2.3 km',
     coordinates: { lat: -23.548, lng: -46.628 },
     freshnessScore: 9.8,
@@ -99,21 +99,21 @@ const MOCK_STORES: FreshnessStore[] = [
 const BANNER_SLIDES = [
   {
     id: 'b1',
-    image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200',
     title: 'Fresquinho perto de você',
     subtitle: 'Direto do produtor local',
     storeId: 's1'
   },
   {
     id: 'b2',
-    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=1200',
     title: 'Verduras Premium',
     subtitle: 'Mais barato hoje na Bio Garden',
     storeId: 's3'
   },
   {
     id: 'b3',
-    image: 'https://images.unsplash.com/photo-1590779033100-9f60705a2f3b?auto=format&fit=crop&q=80&w=800',
+    image: 'https://images.unsplash.com/photo-1590779033100-9f60705a2f3b?auto=format&fit=crop&q=80&w=1200',
     title: 'Legumes Selecionados',
     subtitle: 'Custo-benefício imbatível',
     storeId: 's2'
@@ -261,6 +261,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 src={BANNER_SLIDES[currentSlide].image} 
                 className="w-full h-full object-cover"
                 alt="Fresh produce"
+                referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
               
@@ -418,7 +419,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
             <div className="px-4 md:px-8 pb-8 space-y-5 md:space-y-6 overflow-y-auto w-full box-border no-scrollbar flex-1">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                  <img src={selectedStore.image} className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover shrink-0 shadow-sm" />
+                  <img src={selectedStore.image} className="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover shrink-0 shadow-sm" referrerPolicy="no-referrer" />
                   <div className="min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white uppercase font-sans tracking-tight truncate">{selectedStore.name}</h3>
                     <div className="flex items-center gap-1.5 md:gap-2 mt-1 flex-wrap">

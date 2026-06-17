@@ -56,7 +56,7 @@ export function PartnerPortal() {
         price: '45.00', 
         unit: 'Cesta', 
         description: 'Uma seleção premium de frutas frescas colhidas hoje.',
-        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
+        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200',
         category: 'Cestas'
       }
     ],
@@ -110,7 +110,7 @@ export function PartnerPortal() {
       price: '',
       unit: 'kg',
       description: '',
-      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=400',
+      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200',
       category: 'Frutas'
     });
     setIsProductModalOpen(true);
@@ -329,8 +329,8 @@ export function PartnerPortal() {
 
   // Registration Flow
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="clay-card p-6 overflow-hidden">
+    <div className="max-w-4xl mx-auto w-full py-0 sm:py-4 md:py-12">
+      <div className="clay-card overflow-hidden !rounded-none sm:!rounded-[32px] !border-x-0 sm:!border-x">
         {/* Progress Bar */}
         <div className="h-2 bg-slate-100 dark:bg-slate-800 flex">
            {[ 'business', 'location', 'service', 'products', 'hours', 'payment'].map((s, i) => {
@@ -346,7 +346,7 @@ export function PartnerPortal() {
            })}
         </div>
 
-        <div className="p-8 md:p-12 space-y-10">
+        <div className="p-6 md:p-12 space-y-8 md:space-y-10">
            {/* Step Header */}
            <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -501,7 +501,7 @@ export function PartnerPortal() {
                       {form.products.map((p) => (
                         <div key={p.id} className="bg-slate-50 dark:bg-slate-950 rounded-[32px] clay-card border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden group shadow-sm hover:shadow-md transition-all">
                            <div className="relative h-40 overflow-hidden">
-                              <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                               <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 text-[10px] font-bold text-emerald-600 uppercase">
                                 {p.category}
                               </div>
@@ -720,7 +720,7 @@ export function PartnerPortal() {
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Imagem (URL)</label>
                             <div className="relative group overflow-hidden rounded-2xl aspect-video bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center p-4">
                                {editingProduct.image ? (
-                                 <img src={editingProduct.image} className="absolute inset-0 w-full h-full object-cover" />
+                                 <img src={editingProduct.image} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
                                ) : (
                                  <>
                                    <Upload className="w-8 h-8 text-slate-400 mb-2" />

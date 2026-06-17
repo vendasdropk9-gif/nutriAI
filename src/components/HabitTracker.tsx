@@ -142,7 +142,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints }: HabitT
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl md:w-max mx-auto shadow-inner">
+      <div className="flex w-[92%] max-w-sm sm:max-w-md md:w-max p-1 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl mx-auto shadow-inner">
         {[
           { id: 'hydration', label: 'Água', icon: <Droplet className="w-4 h-4" /> },
           { id: 'sleep', label: 'Sono', icon: <Moon className="w-4 h-4" /> },
@@ -151,7 +151,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints }: HabitT
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm md:text-base font-bold transition-all ${
               activeTab === tab.id
                 ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md'
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -172,15 +172,22 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints }: HabitT
                   style={{ height: `${waterPercentage}%` }}
                 />
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-48 h-48 rounded-full border-8 border-slate-100 dark:border-slate-700 flex items-center justify-center relative bg-white/40 dark:bg-slate-800/40">
-                    <div className="text-center">
+                  <div className="w-48 h-48 rounded-full flex items-center justify-center relative bg-white/40 dark:bg-slate-800/40">
+                    <div className="text-center relative z-10">
                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Restam</p>
                        <p className="text-4xl font-serif font-bold text-emerald-600">
                           {Math.max(goalWater - currentTotalWater, 0)}ml
                        </p>
                        <p className="text-xs text-slate-400 mt-1">de {goalWater}ml</p>
                     </div>
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <svg viewBox="0 0 192 192" className="absolute inset-0 w-full h-full -rotate-90">
+                       {/* Background template track */}
+                       <circle
+                         cx="96" cy="96" r="88" fill="none"
+                         stroke="currentColor" strokeWidth="8"
+                         className="text-slate-100 dark:text-slate-700/60"
+                       />
+                       {/* Foreground active progress circle */}
                        <circle
                          cx="96" cy="96" r="88" fill="none"
                          stroke="currentColor" strokeWidth="8"

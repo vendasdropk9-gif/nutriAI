@@ -61,7 +61,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       rec.onerror = (event: any) => {
         console.error('Speech recognition error', event);
         if (event.error === 'not-allowed') {
-          setRecordingError('Permissão do microfone negada. Dê acesso no navegador.');
+          setRecordingError('Permissão do microfone negada. Dê acesso no navegador (tente abrir em nova aba).');
         } else if (event.error === 'no-speech') {
           // Ignore silence errors to keep the UX clean
         } else {
@@ -87,28 +87,34 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
     };
   }, []);
 
-  const handleStartRecording = (e: React.MouseEvent | React.TouchEvent) => {
+  const toggleRecording = async (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (!recognitionRef.current) return;
     
-    // Smooth transition
+    if (isRecording) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.error('Failed to stop recognition:', err);
+      }
+      return;
+    }
+
+    // Start recording
     setDescription('');
     setRecordingError(null);
     try {
+      // Em iframes (AI Studio), precisamos pedir a mídia antes para forçar o prompt do microfone
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Podemos fechar a stream já que só precisamos engatilhar a permissão
+      stream.getTracks().forEach(track => track.stop());
+      
       recognitionRef.current.start();
-    } catch (err) {
-      console.error('Failed to start recognition:', err);
-    }
-  };
-
-  const handleStopRecording = (e?: React.MouseEvent | React.TouchEvent | React.FocusEvent) => {
-    if (e) e.preventDefault();
-    if (!recognitionRef.current) return;
-    
-    try {
-      recognitionRef.current.stop();
-    } catch (err) {
-      console.error('Failed to stop recognition:', err);
+    } catch (err: any) {
+      console.error('Failed to start recognition or get media devices:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+        setRecordingError('Permissão do microfone negada. Dê acesso no navegador (pode ser necessário abrir em nova aba).');
+      }
     }
   };
 
@@ -181,7 +187,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
           {/* Welcome guide */}
           <div className="text-center mb-2">
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
-              {isRecording ? "Transcrevendo em tempo real... Continue falando!" : "Segure o botão abaixo para falar o que tem no seu cardápio de hoje."}
+              {isRecording ? "Transcrevendo em tempo real... Toque para parar." : "Toque no botão abaixo para falar o que tem no seu cardápio de hoje."}
             </p>
           </div>
 
@@ -199,23 +205,19 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
             {/* Microfone Trigger Button */}
             <button
               type="button"
-              onMouseDown={handleStartRecording}
-              onMouseUp={() => handleStopRecording()}
-              onMouseLeave={() => handleStopRecording()}
-              onTouchStart={handleStartRecording}
-              onTouchEnd={() => handleStopRecording()}
+              onClick={toggleRecording}
               className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center relative cursor-pointer select-none transition-all duration-300 ${
                 isRecording 
                   ? 'bg-red-500 text-white scale-110 shadow-xl shadow-red-500/30' 
                   : 'bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:scale-105 shadow-md shadow-emerald-500/10'
               }`}
-              title="Mantenha pressionado para falar"
+              title="Toque para falar"
             >
               <Mic className={`w-10 h-10 sm:w-12 sm:h-12 ${isRecording ? 'animate-bounce' : ''}`} />
               
               {/* Tap Indicator label inside or below the node */}
               <span className="text-[10px] sm:text-xs font-medium uppercase mt-2 select-none">
-                {isRecording ? 'Ouvindo...' : 'Falar'}
+                {isRecording ? 'Parar' : 'Falar'}
               </span>
             </button>
 
@@ -316,7 +318,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
                 {analysis.betterAlternative && (
                   <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-4">
-                     <div className="w-10 h-10 clay-primary px-6 py-3 flex items-center justify-center shrink-0">
+                     <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 shrink-0">
                         <CheckCircle2 className="w-6 h-6" />
                      </div>
                      <div>

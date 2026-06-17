@@ -325,7 +325,25 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
           </div>
         )}
 
-        {/* State 3: Analysis Done */}
+        {previewImage && !analysisResult && !isScanning && (
+          <div className="flex flex-col items-center justify-center p-6 sm:p-12 border-2 border-dashed border-red-300 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/10 rounded-[24px]">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-6">
+              <RefreshCw className="w-8 h-8 sm:w-10 sm:h-10" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 font-medium mb-6 text-center max-w-md text-sm sm:text-base">
+              Houve um problema ao processar a imagem do prato.
+            </p>
+            <button
+              onClick={resetScanner}
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-sans font-medium px-6 py-3.5 sm:px-8 sm:py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 text-sm sm:text-base"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Tentar Novamente
+            </button>
+          </div>
+        )}
+
+        {/* State 4: Analysis Done */}
         {previewImage && analysisResult && !isScanning && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             {/* Top section: small image + assistant message */}

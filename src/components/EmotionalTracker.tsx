@@ -250,31 +250,31 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-      <div className="text-center space-y-4">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+    <div className="max-w-4xl mx-auto px-1 sm:px-0 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      <div className="text-center space-y-4 px-2">
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Equilíbrio Emocional
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-base sm:text-lg leading-relaxed">
           Entenda como suas emoções influenciam sua alimentação e descubra padrões de fome emocional com ajuda da IA.
         </p>
       </div>
 
-      <div className="clay-card p-8">
+      <div className="clay-card p-4 sm:p-6 md:p-8 mx-2 sm:mx-0">
         <div className="space-y-8">
-          <div className="text-center">
-            <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">Como você está se sentindo agora?</h3>
+          <div className="text-center px-2">
+            <h3 className="font-serif text-xl sm:text-2xl text-slate-800 dark:text-slate-100 font-medium">Como você está se sentindo agora?</h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
             {Object.entries(moodIcons).map(([key, { icon, color }]) => (
               <button
                 key={key}
                 onClick={() => setMood(key)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border shadow-sm transition-all hover:scale-105 active:scale-95 ${mood === key ? 'bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20' : color}`}
+                className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border shadow-sm transition-all hover:scale-105 active:scale-95 ${mood === key ? 'bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20' : color}`}
               >
                 {icon}
-                <span className="text-xs font-bold uppercase mt-2">{key}</span>
+                <span className="text-[10px] sm:text-xs font-bold uppercase mt-2 truncate w-full text-center">{key}</span>
               </button>
             ))}
           </div>
@@ -304,16 +304,16 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
       </div>
 
       {/* ----------------- ESPELHO DO HUMOR: LEITURA FACIAL VOLUNTÁRIA E PRIVADA ----------------- */}
-      <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[32px] space-y-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Camera className="w-6 h-6" />
+      <div className="clay-card p-4 sm:p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] sm:rounded-[32px] space-y-6 mx-2 sm:mx-0">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Camera className="w-5 sm:w-6 h-5 sm:h-6" />
           </div>
-          <div>
-            <h3 className="font-serif text-2xl text-slate-800 dark:text-slate-100 font-medium">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-serif text-lg sm:text-2xl text-slate-800 dark:text-slate-100 font-medium leading-tight">
               Reflexo do Bem-Estar: Espelho do Humor IA
             </h3>
-            <p className="font-sans text-slate-500 dark:text-slate-400 text-sm leading-relaxed mt-1">
+            <p className="font-sans text-slate-500 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mt-1">
               Uma funcionalidade 100% opcional e amigável. Ative voluntariamente a sua câmera para analisar expressões sutis de humor ou ansiedade, ajudando a compor sugestões nutritivas e chás para o final do seu dia.
             </p>
           </div>
@@ -321,35 +321,35 @@ export function EmotionalTracker({ profile, onUpdateLogs }: EmotionalTrackerProp
 
         {/* State 1: Consent Step */}
         {!isFaceCameraActive && !facePreviewImage && !isFaceAnalyzing && !faceAnalysisResult && (
-          <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-105 dark:border-slate-800/80 p-5 rounded-2xl">
-            <div className="flex gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/40 dark:border-emerald-900/30 p-4 rounded-xl items-start">
+          <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-105 dark:border-slate-800/80 p-4 sm:p-5 rounded-2xl">
+            <div className="flex gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/40 dark:border-emerald-900/30 p-3 sm:p-4 rounded-xl items-start">
               <ShieldCheck className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
-              <div className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-400 leading-relaxed">
+              <div className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-400 leading-relaxed min-w-0 flex-1">
                 <strong>Privacidade em Primeiro Lugar:</strong> O NutriAI analisa padrões visuais de forma estritamente local e segura, **sem nunca salvar, persistir ou monitorar continuamente** suas imagens. O processamento é descartado na hora, respeitando totalmente você.
               </div>
             </div>
 
             <div className="space-y-3">
-              <label className="flex items-start gap-3 cursor-pointer group">
+              <label className="flex items-start gap-3 cursor-pointer group min-w-0">
                 <input
                   type="checkbox"
                   checked={consentCheck1}
                   onChange={(e) => setConsentCheck1(e.target.checked)}
-                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer"
+                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer shrink-0"
                 />
-                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white">
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white min-w-0 flex-1">
                   Compreendo que a câmera frontal será usada apenas temporariamente para identificar nuances sutis de cansaço ou ansiedade focando no meu equilíbrio de bem-estar.
                 </span>
               </label>
 
-              <label className="flex items-start gap-3 cursor-pointer group">
+              <label className="flex items-start gap-3 cursor-pointer group min-w-0">
                 <input
                   type="checkbox"
                   checked={consentCheck2}
                   onChange={(e) => setConsentCheck2(e.target.checked)}
-                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer"
+                  className="w-4 h-4 rounded mt-1 accent-emerald-500 cursor-pointer shrink-0"
                 />
-                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white">
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed select-none group-hover:text-slate-800 dark:group-hover:text-white min-w-0 flex-1">
                   Consinto ativamente em ativar a câmera para obter minhas sugestões personalizadas de alimentação e práticas de descanso de hoje.
                 </span>
               </label>

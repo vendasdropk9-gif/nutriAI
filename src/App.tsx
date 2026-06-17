@@ -250,19 +250,29 @@ export default function App() {
               </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <motion.button whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.96 }}
+                     <div className="flex items-center gap-3">
+              <motion.button 
+                whileHover={{ scale: 1.05, y: -0.5 }} 
+                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   playSfx('tap');
                   setIsFeedbackOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full border border-emerald-500/10 hover:border-emerald-500/25 text-emerald-600 hover:bg-emerald-500/5 dark:border-slate-800 dark:text-emerald-400 dark:hover:bg-slate-800/60 transition-all font-medium text-xs md:text-sm shrink-0 shadow-sm"
+                className="relative p-[1.5px] rounded-full overflow-hidden shrink-0 shadow-[0_0_15px_rgba(93,255,0,0.45)] dark:shadow-[0_0_20px_rgba(255,255,255,0.18)] focus:outline-none active:scale-95 cursor-pointer group"
                 title="Deixe seu feedback"
                 id="header-feedback-trigger-btn"
               >
-                <MessageSquare className="w-4 h-4 text-emerald-500" />
-                <span className="inline-block text-xs md:text-sm font-medium">Feedback</span>
+                {/* Rotating neon light trail - custom green in light mode, white in dark mode */}
+                <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_40%,rgba(93,255,0,0.15)_60%,#5dff00_90%,rgba(93,255,0,0.15)_100%)] dark:bg-[conic-gradient(from_0deg,transparent_40%,rgba(255,255,255,0.15)_60%,#ffffff_90%,rgba(255,255,255,0.15)_100%)] animate-[spin_2.5s_linear_infinite]" />
+                
+                {/* Inner button mask */}
+                <div className="relative flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 border border-transparent text-emerald-600 dark:text-emerald-400 font-medium text-xs md:text-sm hover:bg-slate-50 dark:hover:bg-slate-850/90 transition-colors">
+                  <div className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <MessageSquare className="w-4 h-4 text-emerald-500 relative z-10 shrink-0" />
+                  <span className="inline-block text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200">
+                    Feedback
+                  </span>
+                </div>
               </motion.button>
 
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
@@ -286,6 +296,8 @@ export default function App() {
       <main className={`relative z-10 flex-1 flex flex-col min-h-0 w-full mx-auto transition-all duration-500 ${
         activeTab === 'frescor' 
         ? 'max-w-none px-0 py-0' 
+        : activeTab === 'partner'
+        ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
       }`}>
         <AnimatePresence mode="popLayout">

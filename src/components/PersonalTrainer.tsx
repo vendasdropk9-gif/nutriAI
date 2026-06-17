@@ -359,19 +359,20 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         <div className="grid lg:grid-cols-12 gap-8 items-start">
            {/* Left Column: Avatar and Visuals */}
            <div className="lg:col-span-12 xl:col-span-7 space-y-6 relative">
-              <Avatar3D 
-                activeMuscles={currentExercise?.primaryMuscles || []} 
-                animation={
-                  showWrongMode ? 'wrong' : 
-                  (activeMode === 'tutorial' ? currentExercise?.tutorialSteps?.[tutorialStep]?.animationState || 'tutorial' : 
-                  (isTimerActive ? 'executing' : 'idle'))
-                }
-                view={cameraView}
-                playbackSpeed={playbackSpeed}
-              />
+             <div className="relative w-full rounded-[40px] overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
+               <Avatar3D 
+                 activeMuscles={currentExercise?.primaryMuscles || []} 
+                 animation={
+                   showWrongMode ? 'wrong' : 
+                   (activeMode === 'tutorial' ? currentExercise?.tutorialSteps?.[tutorialStep]?.animationState || 'tutorial' : 
+                   (isTimerActive ? 'executing' : 'idle'))
+                 }
+                 view={cameraView}
+                 playbackSpeed={playbackSpeed}
+               />
 
               {/* Viewpoint Controls */}
-              <div className="absolute top-4 left-4 md:top-6 md:left-6 flex flex-col gap-2 z-10">
+              <div className="absolute top-6 left-6 md:top-8 md:left-8 flex flex-col gap-2 z-10">
                 {(['front', 'side', 'detail'] as const).map(v => (
                   <button
                     key={v}
@@ -388,7 +389,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
               </div>
 
               {/* Ambient Music Controls Overlay */}
-              <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+              <div className="absolute top-6 right-6 md:top-8 md:right-8 z-10">
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -426,8 +427,9 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                    </div>
                 </motion.div>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+             </div>
+             
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                  <div className="bg-white/40 dark:bg-slate-800/40 p-4 md:p-6 rounded-2xl md:rounded-[28px] border border-white/60 dark:border-slate-700/50 flex items-center justify-between">
                     <div>
                         <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progressos</p>
@@ -646,23 +648,23 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 disabled={isGenerating}
                 className={`w-full bg-gradient-to-r ${isSpeakingTips ? 'from-amber-500/15 via-amber-500/5' : 'from-emerald-500/15 via-emerald-500/5'} to-transparent dark:from-emerald-500/25 dark:via-emerald-500/10 border ${isSpeakingTips ? 'border-amber-500/30' : 'border-emerald-500/20'} p-5 rounded-[24px] hover:rounded-[28px] flex items-center justify-between hover:border-emerald-500/40 hover:scale-[1.01] transition-all group active:scale-95 text-left`}
               >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl ${isSpeakingTips ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'} flex items-center justify-center shadow-lg ${isSpeakingTips ? 'shadow-amber-500/30' : 'shadow-emerald-500/30'} group-hover:scale-110 transition-transform`}>
+                <div className="flex items-center gap-4 min-w-0 flex-1 mr-2">
+                  <div className={`w-12 h-12 rounded-2xl shrink-0 ${isSpeakingTips ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'} flex items-center justify-center shadow-lg ${isSpeakingTips ? 'shadow-amber-500/30' : 'shadow-emerald-500/30'} group-hover:scale-110 transition-transform`}>
                     {isSpeakingTips ? (
                       <Pause className="w-5 h-5 fill-current animate-pulse" />
                     ) : (
                       <Volume2 className="w-5 h-5" />
                     )}
                   </div>
-                  <div>
-                    <p className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                      {isSpeakingTips ? 'Pausar Dicas por Voz' : 'Dicas de Execução por Voz (IA)'}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif text-sm sm:text-base md:text-lg font-bold text-slate-800 dark:text-slate-100 flex flex-wrap items-center gap-1.5 md:gap-2 leading-tight">
+                      <span>{isSpeakingTips ? 'Pausar Dicas por Voz' : 'Dicas de Execução por Voz (IA)'}</span>
                       <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-medium ${isSpeakingTips ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
                         {isSpeakingTips ? 'Tocando' : 'Premium'}
                       </span>
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {isSpeakingTips ? 'Clique para pausar a reprodução de voz' : 'Ouça como executar, respirar e evitar erros comuns'}
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug break-words">
+                      {isSpeakingTips ? 'Clique para pausar a reprodução do áudio' : 'Ouça como executar, respirar e evitar erros comuns'}
                     </p>
                   </div>
                 </div>

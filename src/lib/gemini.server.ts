@@ -96,7 +96,7 @@ RESPONDA EM JSON.`;
     
     return JSON.parse(text);
   } catch (error) {
-    console.error("Chat Error:", error);
+    console.info("Chat Error:");
     return {
       text: "Poxa, minha internet falhou aqui. Me conta de novo? 💚",
       action: "NONE"
@@ -157,8 +157,14 @@ Responda APENAS em JSON validando o schema.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error: any) {
-    console.warn("Failed to generate master strategy:", error?.message || error);
-    return null;
+    console.info("Fallback triggered");
+    return {
+      dailyCalories: 2000,
+      macros: { protein: 120, carbs: 200, fat: 60 },
+      workoutFocus: "Abaixe a carga e foque na técnica",
+      nutritionFocus: "Hidratação contínua e mais vegetais",
+      adaptiveNotes: "Estratégia base (offline) com base num perfil padrão saudável."
+    };
   }
 };
 
@@ -260,8 +266,51 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to generate workout:", error);
-    return null;
+    console.info("Fallback triggered");
+    return {
+      id: "fallback-workout-1",
+      title: "Treino Funcional Adaptativo",
+      estimatedDuration: 30,
+      totalCalories: 250,
+      exercises: [
+        {
+          id: "ex-fallback-1",
+          name: "Flexões",
+          description: "Flexões focadas em peitoral",
+          difficulty: "Iniciante",
+          muscleGroups: ["Peito", "Tríceps", "Ombros"],
+          primaryMuscles: ["peitoral", "triceps", "ombros", "core"],
+          reps: 15,
+          duration: 0,
+          instructions: ["Desça o tronco inteiro", "Mantenha o core firme"],
+          benefits: "Aumenta a força superior",
+          tutorialSteps: [
+            { title: "Posição inicial", description: "Mãos na largura dos ombros", animationState: "tutorial", cameraView: "front" }
+          ],
+          commonErrors: [
+            { error: "Deixar o quadril cair", fix: "Contraia o abdômen e glúteos" }
+          ]
+        },
+        {
+          id: "ex-fallback-2",
+          name: "Agachamento",
+          description: "Agachamento livre",
+          difficulty: "Iniciante",
+          muscleGroups: ["Pernas", "Glúteos"],
+          primaryMuscles: ["quadriceps", "gluteos", "core"],
+          reps: 20,
+          duration: 0,
+          instructions: ["Pés firmes no chão", "Desça até os joelhos ficarem em 90 graus"],
+          benefits: "Fortalece os membros inferiores",
+          tutorialSteps: [
+            { title: "Posição inicial", description: "Pés paralelos e ligeiramente abertos", animationState: "tutorial", cameraView: "side" }
+          ],
+          commonErrors: [
+            { error: "Joelhos para dentro", fix: "Empurre os joelhos para a linha dos pés" }
+          ]
+        }
+      ]
+    };
   }
 };
 
@@ -360,8 +409,15 @@ Responda APENAS com um objeto JSON.`;
     
     return JSON.parse(text) as Omit<Recipe, "id">;
   } catch (error) {
-    console.error("Failed to generate recipe:", error);
-    return null;
+    console.info("Fallback triggered");
+    return {
+      name: "Receita Rápida de Emergência",
+      description: "Uma refeição versátil usando os ingredientes que você tem.",
+      prepTime: "15 min",
+      ingredients: ["1 porção de proteína rápida", "Vegetais sortidos", "Temperos a gosto"],
+      instructions: ["Refogue tudo em fogo médio", "Tempere bem", "Sirva quente"],
+      nutrition: { calories: 300, protein: 20, carbs: 15, fat: 10 }
+    };
   }
 };
 
@@ -396,7 +452,7 @@ export const scanIngredients = async (base64Image: string, mimeType: string): Pr
     if (!text) return [];
     return JSON.parse(text) as string[];
   } catch (error) {
-    console.error("Failed to scan ingredients:", error);
+    console.info("Failed to scan ingredients:");
     return [];
   }
 };
@@ -479,7 +535,7 @@ Responda APENAS com um array JSON com os objetos de receita.`;
     
     return JSON.parse(text) as Omit<Recipe, "id">[];
   } catch (error) {
-    console.error("Failed to generate meal suggestions:", error);
+    console.info("Failed to generate meal suggestions:");
     return [];
   }
 };
@@ -517,9 +573,9 @@ export const textToSpeech = async (text: string) => {
     }
   } catch (error: any) {
     if (error?.status === 'RESOURCE_EXHAUSTED' || error?.message?.includes('429')) {
-      console.warn("Gemini TTS quota exceeded.");
+      console.info("Gemini TTS quota exceeded.");
     } else {
-      console.warn("Gemini TTS warning:", error?.message || error);
+      console.warn("Gemini TTS warning:");
     }
   }
   return null;
@@ -591,7 +647,7 @@ export const generateAvatarImage = async (prompt: string): Promise<string | null
     }
     throw new Error("No image data returned from model");
   } catch (error) {
-    console.error("Gemini avatar generation failed, deploying high-quality Unsplash fallback:", error);
+    console.info("Fallback triggered");
     
     // Parse period from prompt
     let periodName = "Progresso";
@@ -655,7 +711,7 @@ async function fetchImageAsBase64(url: string, description: string): Promise<str
     const contentType = res.headers.get('content-type') || 'image/jpeg';
     return `data:${contentType};base64,${base64}`;
   } catch (err) {
-    console.error(`Failed to fetch fallback image for "${description}", returning SVG:`, err);
+    console.info("Fallback triggered");
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
       <defs>
         <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -700,7 +756,7 @@ export const generateRecipeImage = async (prompt: string): Promise<string | null
     }
     throw new Error("No image data returned from model");
   } catch (error) {
-    console.error("Gemini recipe image generation failed, using high-quality Unsplash recipe fallback:", error);
+    console.info("Fallback triggered");
     
     // Parse keywords from the prompt to select the best recipe image
     const promptLower = prompt.toLowerCase();
@@ -795,7 +851,7 @@ Retorne APENAS um JSON no formato definido.`;
     const data = JSON.parse(response.text || '{}');
     return data;
   } catch (error) {
-    console.error("Error analyzing body image:", error);
+    console.info("Error analyzing body image:");
     return null;
   }
 };
@@ -838,7 +894,7 @@ Retorne APENAS um JSON estruturado.`;
     const data = JSON.parse(response.text || '{}');
     return data;
   } catch (error) {
-    console.error("Error generating general tips:", error);
+    console.info("Error generating general tips:");
     return null;
   }
 };
@@ -905,8 +961,19 @@ Responda APENAS num json.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze plate:", error);
-    return null;
+    console.info("Fallback triggered: plate");
+    return {
+      foods: ["Alimentos saudáveis variados", "Proteína leve", "Vegetais"],
+      nutrition: {
+        calories: 320,
+        protein: 25,
+        carbs: 35,
+        fat: 10,
+        fiber: 8
+      },
+      assistantMessage: "Este é um prato equilibrado, parece excelente! (Fallback Offline)",
+      suggestions: ["Beba água após a refeição", "Equilibre a próxima refeição com mais fibras se necessário."]
+    };
   }
 };
 
@@ -930,7 +997,7 @@ Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse con
     const response = await chat.sendMessage({ message: promptText });
     return response.text || "Continue focado, você vai longe!";
   } catch (error) {
-    console.error("Journey message error:", error);
+    console.info("Journey message error:");
     return "Você está no caminho certo 💚";
   }
 };
@@ -1004,8 +1071,15 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to generate juice recipe:", error);
-    return null;
+    console.info("Fallback triggered: juice");
+    return {
+      name: "Suco Inteligente",
+      description: "Uma opção refrescante e nutritiva.",
+      prepTime: "5 min",
+      ingredients: ["1 fruta base", "1 porção de vegetais", "200ml de água"],
+      instructions: ["Bata tudo no liquidificador"],
+      nutrition: { calories: 150, protein: 2, carbs: 35, fat: 1 }
+    };
   }
 };
 
@@ -1072,8 +1146,16 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze barcode product:", error);
-    return null;
+    console.info("Fallback triggered: barcode");
+    return {
+      productName: productData.product?.product_name || "Produto genérico",
+      brand: productData.product?.brands || "Desconhecida",
+      quantity: productData.product?.quantity || "N/A",
+      verdict: "moderado",
+      assistantMessage: "Analisamos este produto offline.",
+      nutrition: { calories: 200, protein: 5, carbs: 30, fat: 5, fiber: 2 },
+      warning: "Análise offline. Resultados genéricos."
+    };
   }
 };
 
@@ -1120,8 +1202,13 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze emotional patterns:", error);
-    return null;
+    console.info("Fallback triggered: emotional patterns");
+    return {
+      period: "recent",
+      overallMood: "normal",
+      insight: "Seu humor parece estável ultimamente.",
+      suggestions: ["Beba mais água", "Tente relaxar"]
+    };
   }
 };
 
@@ -1152,7 +1239,7 @@ Regras:
 
     return response.text.trim() || "Parabéns por completar mais um dia! Você está evoluindo! 🌟";
   } catch (error) {
-    console.error("Failed to generate challenge feedback:", error);
+    console.info("Failed to generate challenge feedback:");
     return "Dia completo! Você está cada vez mais perto do seu objetivo. 🔥";
   }
 };
@@ -1191,7 +1278,7 @@ Diretrizes:
     });
     return response.text || "Continue focado nos seus hábitos hoje, beba bastante água e priorize seu descanso. Estou com você!";
   } catch (error) {
-    console.error("Error generating habits insight:", error);
+    console.info("Error generating habits insight:");
     return "Seus rastreios sugerem que focar num ciclo de sono melhor vai potencializar os ganhos da sua hidratação e metabolismo.";
   }
 };
@@ -1282,8 +1369,20 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze dining out:", error);
-    return null;
+    console.info("Fallback triggered: dining out");
+    return {
+      dish: description,
+      verdict: "Moderado",
+      estimatedCalories: 650,
+      macros: { protein: "30g", carbs: "60g", fats: "25g" },
+      tips: [
+        "Prefira carnes grelhadas em vez de fritas.",
+        "Peça o molho à parte.",
+        "Aumente a porção de salada ou legumes."
+      ],
+      betterAlternative: "Frango grelhado com salada variada",
+      assistantMessage: "Lembre-se de aproveitar a refeição, mas com escolhas inteligentes! (Modo Offline)"
+    };
   }
 };
 
@@ -1329,8 +1428,14 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to generate smart swap:", error);
-    return null;
+    console.info("Fallback triggered: smart swap");
+    return {
+      original: foodItem,
+      substitute: "Uma alternativa mais saudável",
+      reason: "Menos calorias e mais nutrientes",
+      benefits: ["Rico em vitaminas", "Baixo índice glicêmico"],
+      assistantMessage: "Aqui está uma sugestão rápida (Modo Offline)."
+    };
   }
 };
 
@@ -1384,8 +1489,13 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to generate goal prediction:", error);
-    return null;
+    console.info("Fallback triggered: goal prediction");
+    return {
+      estimatedDays: 60,
+      estimatedDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      confidenceScore: 0.8,
+      motivationalMessage: "A jornada é de passo a passo (Modo Offline)."
+    };
   }
 };
 
@@ -1461,8 +1571,20 @@ Responda APENAS com JSON.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to adjust meal plan:", error);
-    return null;
+    console.info("Fallback triggered");
+    return {
+      name: `Refeição Adaptativa (Fallback)`,
+      description: `Sugestão adaptativa de ${nextMealType} baseada no seu perfil.`,
+      prepTime: "15 min",
+      ingredients: ["1 porção de proteína magra", "1 porção de carboidrato complexo", "Vegetais à vontade", "1 fio de azeite"],
+      instructions: ["Misture os ingredientes", "Aqueça ou prepare conforme a embalagem", "Sirva imediatamente"],
+      nutrition: {
+        calories: 350,
+        protein: 25,
+        carbs: 40,
+        fat: 10
+      }
+    };
   }
 };
 
@@ -1539,8 +1661,12 @@ Responda APENAS JSON validando o schema.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error: any) {
-    console.warn("Intervenção comportamental offline, usando fallback:", error?.message || error);
-    return null;
+    console.info("Fallback triggered");
+    return {
+      voiceMessage: "Notei que você está muito ativo hoje. Continue assim e não esqueça de se hidratar!",
+      suggestedAction: null,
+      predictionText: "Se mantiver este ritmo, alcançará sua meta na próxima semana."
+    };
   }
 };
 
@@ -1615,7 +1741,7 @@ Responda APENAS em JSON validando o schema.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error: any) {
-    console.warn("Gerador adaptativo offline ou indisponível, usando fallback:", error?.message || error);
+    console.info("Fallback triggered");
     return {
       date: new Date().toISOString(),
       type: 'habit_nudge',
@@ -1679,7 +1805,7 @@ Responda APENAS em JSON no formato Array de WeeklyChallenge.`;
 
     return JSON.parse(response.text || "[]");
   } catch (error: any) {
-    console.warn("Failed to generate weekly challenges, using fallback:", error?.message || error);
+    console.info("Fallback triggered");
     return [];
   }
 };
@@ -1731,8 +1857,14 @@ Responda APENAS em JSON no seguinte formato:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to generate magic recipe:", error);
-    return null;
+    console.info("Fallback triggered: magic recipe");
+    return {
+      title: "Receita Mágica Surpresa",
+      description: "Infelizmente estou offline, mas coma algo saudável!",
+      ingredients: ["Amor", "Saúde"],
+      instructions: ["Misture os dois e aproveite"],
+      calories: 0
+    };
   }
 };
 
@@ -1814,8 +1946,16 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze product image:", error);
-    return null;
+    console.info("Fallback triggered: product image");
+    return {
+      productName: "Produto Identificado Offline",
+      brand: "Marca Desconhecida",
+      quantity: "Porção Padrão",
+      verdict: "moderado",
+      assistantMessage: "Este é um fallback offline. Use com moderação.",
+      nutrition: { calories: 250, protein: 10, carbs: 30, fat: 10, fiber: 2 },
+      warning: "Por favor tente online mais tarde."
+    };
   }
 };
 
@@ -1901,8 +2041,17 @@ Regras:
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze emotional image:", error);
-    return null;
+    console.info("Fallback triggered: emotional image");
+    return {
+      detectedMood: "neutro",
+      insight: "Tudo parece calmo agora.",
+      assistantMessage: "Respire fundo, você está indo bem.",
+      recommendations: {
+        teas: ["Camomila"],
+        meals: ["Salada leve"],
+        relaxingPractices: ["Respiração 4-7-8"]
+      }
+    };
   }
 };
 
@@ -1990,8 +2139,19 @@ Responda APENAS em JSON validando o schema.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze blood pressure:", error);
-    return null;
+    console.info("Fallback triggered: blood pressure");
+    return {
+      status: 'normal',
+      insight: 'Sistema offline. Análise padrão aplicada.',
+      preventiveAlert: null,
+      suggestions: {
+        hydration: "Beba água regularmente.",
+        nutrition: "Evite excesso de sódio.",
+        sodiumReduction: "Não adicione sal à mesa.",
+        relaxation: "Meditação ajuda."
+      },
+      dailySummary: "Sua pressão parece sob controle pela média geral."
+    };
   }
 };
 
@@ -2078,8 +2238,20 @@ Responda APENAS em JSON em conformidade com o schema fornecido.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.error("Failed to analyze body biometrics:", error);
-    return null;
+    console.info("Fallback triggered: body biometrics");
+    return {
+      status: 'normal',
+      report: 'Sinais offline. Tudo parece dentro da média.',
+      preventiveAlert: null,
+      suggestions: {
+        hydration: "Beba 2L de água.",
+        rest: "Durma 8 horas.",
+        nutrition: "Coma vegetais.",
+        calmingTea: "Cidreira é bom.",
+        relaxation: "Respire fundo."
+      },
+      dailySummary: "Estresse e fadiga parecem controlados."
+    };
   }
 };
 

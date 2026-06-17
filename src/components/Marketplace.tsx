@@ -59,11 +59,11 @@ const MARKET_PARTNERS: MarketPartner[] = [
 
 const PRODUCTS: Product[] = [
   { id: 'p1', name: 'Morango Orgânico', category: 'Frutas', price: 12.90, unit: 'bandeja', image: productImage1, isOrganic: true, description: 'Morangos frescos direto do produtor.', rating: 4.8, reviewCount: 24, reviews: [{ id: 'r1', userName: 'Ana Paula', rating: 5, comment: 'Maravilhosos e muito doces!', date: '2024-04-20' }] },
-  { id: 'p2', name: 'Kit Salada Prática', category: 'Kits', price: 19.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400', isSeasonal: true, description: 'Mix de folhas limpas e higienizadas.', rating: 4.5, reviewCount: 15, reviews: [{ id: 'r2', userName: 'Carlos M.', rating: 4, comment: 'Muito prático para o dia a dia.', date: '2024-04-18' }] },
-  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&q=80&w=400', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
-  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=400', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
-  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1570586437263-ab629fccc818?auto=format&fit=crop&q=80&w=400', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
-  { id: 'p6', name: 'Combo Emagrecimento', category: 'Kits', price: 89.00, unit: 'kit', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=400', description: 'Seleção especial da nossa IA.', rating: 5.0, reviewCount: 8 },
+  { id: 'p2', name: 'Kit Salada Prática', category: 'Kits', price: 19.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=1200', isSeasonal: true, description: 'Mix de folhas limpas e higienizadas.', rating: 4.5, reviewCount: 15, reviews: [{ id: 'r2', userName: 'Carlos M.', rating: 4, comment: 'Muito prático para o dia a dia.', date: '2024-04-18' }] },
+  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&q=80&w=1200', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
+  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=1200', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
+  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1570586437263-ab629fccc818?auto=format&fit=crop&q=80&w=1200', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
+  { id: 'p6', name: 'Combo Emagrecimento', category: 'Kits', price: 89.00, unit: 'kit', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200', description: 'Seleção especial da nossa IA.', rating: 5.0, reviewCount: 8 },
 ];
 
 const BANNERS = [
@@ -102,6 +102,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [addingAI, setAddingAI] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (showOrders) {
@@ -291,7 +292,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 : 'clay-btn opacity-80 hover:opacity-100 border-none'
               }`}
             >
-              <img src={market.image} className="w-10 h-10 rounded-full object-cover shrink-0" />
+              <img src={market.image} className="w-10 h-10 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
               <div className="text-left flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{market.name}</p>
                 <div className="flex items-center gap-1 text-[10px] text-slate-500">
@@ -315,13 +316,25 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             transition={{ duration: 0.8 }}
             className="absolute inset-0"
           >
-            <img 
-              src={BANNERS[currentBanner].image} 
-              className="w-full h-full object-cover object-center block" 
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            {!failedImages[BANNERS[currentBanner].id] ? (
+              <img 
+                src={BANNERS[currentBanner].image} 
+                alt={BANNERS[currentBanner].title}
+                className="w-full h-full object-cover object-center block" 
+                referrerPolicy="no-referrer"
+                onError={() => {
+                  setFailedImages(prev => ({ ...prev, [BANNERS[currentBanner].id]: true }));
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-emerald-950 to-teal-950 flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)] animate-pulse" />
+                <span className="text-4xl sm:text-6xl mb-2 filter drop-shadow-md select-none opacity-80">🍊 🥗 🥑</span>
+                <span className="text-emerald-400 font-mono text-[9px] uppercase tracking-[0.25em] relative z-10 select-none">
+                  Hortifruti Premium
+                </span>
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border z-20">
                <div className="flex items-center gap-1.5 sm:gap-3">
@@ -331,8 +344,9 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                   <button 
                     onClick={() => handleSpeak(BANNERS[currentBanner].tip)}
                     className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
+                    style={{ color: '#ffffff' }}
                   >
-                     <Volume2 className="w-3 h-3 sm:w-5 sm:h-5" />
+                     <Volume2 className="w-3 h-3 sm:w-5 sm:h-5" style={{ color: '#ffffff' }} />
                   </button>
                </div>
                <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
@@ -416,7 +430,21 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             className="bg-white dark:bg-slate-900/40 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-xl transition-all group flex flex-col items-center text-center justify-between h-full w-full max-w-[600px] mx-auto gap-4 box-border"
           >
             <div className="relative w-full h-40 rounded-2xl overflow-hidden shrink-0">
-              <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              {!failedImages[product.id] ? (
+                <img 
+                  src={product.image} 
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  referrerPolicy="no-referrer"
+                  onError={() => {
+                    setFailedImages(prev => ({ ...prev, [product.id]: true }));
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center text-4xl select-none">
+                  {product.category === 'Frutas' ? '🍎' : product.category === 'Verduras' ? '🥬' : product.category === 'Legumes' ? '🥕' : '🥗'}
+                </div>
+              )}
               {product.isOrganic && (
                 <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
                   Orgânico
@@ -541,7 +569,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               <div className="flex-1 overflow-y-auto space-y-6 pr-2">
                 {cart.map(item => (
                   <div key={item.id} className="flex gap-4 items-center">
-                    <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" />
+                    <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                     <div className="flex-1">
                       <h5 className="font-bold text-slate-800 dark:text-slate-100">{item.name}</h5>
                       <p className="text-sm text-slate-500">R$ {item.price.toFixed(2)} / {item.unit}</p>
@@ -721,7 +749,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             >
               <div className="p-8 border-b dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
-                  <img src={selectedProductReview.image} className="w-16 h-16 rounded-2xl object-cover" />
+                  <img src={selectedProductReview.image} className="w-16 h-16 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                   <div>
                     <h3 className="text-xl font-serif font-bold text-slate-800 dark:text-slate-100">{selectedProductReview.name}</h3>
                     <div className="flex items-center gap-1.5 mt-1">

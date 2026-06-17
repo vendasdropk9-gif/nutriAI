@@ -103,10 +103,20 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   useEffect(() => {
     if (containerRef.current) {
       const parentWidth = containerRef.current.parentElement?.offsetWidth || 0;
+      // Calculate padding needed to center the first and last items
+      const firstItem = containerRef.current.firstElementChild as HTMLElement;
+      const lastItem = containerRef.current.lastElementChild as HTMLElement;
+      
+      const paddingLeft = parentWidth > 0 && firstItem ? (parentWidth / 2) - (firstItem.offsetWidth / 2) : 32;
+      const paddingRight = parentWidth > 0 && lastItem ? (parentWidth / 2) - (lastItem.offsetWidth / 2) : 32;
+      
+      containerRef.current.style.paddingLeft = `${paddingLeft}px`;
+      containerRef.current.style.paddingRight = `${paddingRight}px`;
+      
       const contentWidth = containerRef.current.scrollWidth;
-      setConstraints({ left: -(contentWidth - parentWidth + 40), right: 0 });
+      setConstraints({ left: -(contentWidth - parentWidth), right: 0 });
     }
-  }, [activeTab]);
+  }, [activeTab, NAV_ITEMS]);
 
   const springX = useSpring(x, { stiffness: 300, damping: 30 });
 
@@ -129,13 +139,13 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   }, [activeTab, constraints]);
 
   return (
-    <div className="w-[calc(100%-2rem)] md:w-full max-w-[500px] md:max-w-none mx-auto relative overflow-hidden h-16 md:h-20 flex items-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800/60 shadow-lg mt-2 md:mt-4 mb-2 md:mb-4 rounded-[32px] md:rounded-[40px] shrink-0">
+    <div className="w-[calc(100%-2rem)] md:w-full md:max-w-none mx-auto relative overflow-hidden h-16 md:h-20 flex items-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800/60 shadow-lg mt-2 md:mt-4 mb-2 md:mb-4 rounded-[32px] md:rounded-[40px] shrink-0">
       <motion.div
         ref={containerRef}
         drag="x"
         dragConstraints={constraints}
         style={{ x: springX }}
-        className="flex items-center gap-3 px-8 cursor-grab active:cursor-grabbing select-none h-full"
+        className="flex items-center gap-3 cursor-grab active:cursor-grabbing select-none h-full"
       >
         {NAV_ITEMS.map((item) => (
           <motion.button
