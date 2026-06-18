@@ -1,0 +1,10 @@
+{
+  "nav": {
+    "coach": "AI Coach",
+    "market": "Market",
+    "profile": "Profile"
+  },
+  "settings": {
+    "language": "Language"
+  }
+}
