@@ -139,7 +139,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   }, [activeTab, constraints]);
 
   return (
-    <div className="w-[calc(100%-2rem)] md:w-full md:max-w-none mx-auto relative overflow-hidden h-16 md:h-20 flex items-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800/60 shadow-lg mt-2 md:mt-4 mb-2 md:mb-4 rounded-[32px] md:rounded-[40px] shrink-0">
+    <div className="w-full relative overflow-hidden h-14 md:h-16 flex items-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-md shrink-0 transition-all duration-500">
       <motion.div
         ref={containerRef}
         drag="x"

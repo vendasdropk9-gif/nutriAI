@@ -299,7 +299,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="sticky top-16 md:top-20 z-[15] w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sticky top-16 md:top-20 z-[15] w-full">
         <DraggableNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
