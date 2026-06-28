@@ -382,7 +382,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                   placeholder="Ex: 7891000077008"
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
-                  className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
                 <button
                   type="submit"
@@ -409,7 +409,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                         setManualBarcode(sim.barcode);
                         handleBarcodeDetected(sim.barcode);
                       }}
-                      className="text-[10px] sm:text-xs bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
+                      className="text-[10px] sm:text-xs bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"
                     >
                       {sim.name}
                     </button>
@@ -436,7 +436,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         {/* State 2: Live Camera View */}
         {isCameraActive && !previewImage && (
           <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6 w-full animate-in fade-in duration-300">
-            <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-850 flex items-center justify-center shadow-inner">
+            <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner">
               {!cameraError && (
                 <video
                   ref={videoRef}
@@ -597,7 +597,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                 {isPlaying ? <Volume2 className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
               </button>
               <div>
-                <h4 className="font-serif text-xl text-emerald-850 dark:text-emerald-400 font-medium mb-1">O que a assistente diz:</h4>
+                <h4 className="font-serif text-xl text-emerald-800 dark:text-emerald-400 font-medium mb-1">O que a assistente diz:</h4>
                 <p className="font-sans text-slate-700 dark:text-slate-300 text-base sm:text-lg leading-relaxed italic">
                   "{analysis.assistantMessage}"
                 </p>

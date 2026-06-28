@@ -24,7 +24,10 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('app:openLiveAssistant', handleOpen);
     return () => {
+      window.removeEventListener('app:openLiveAssistant', handleOpen);
       stopLive();
     };
   }, []);

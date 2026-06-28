@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Dumbbell, MapPin, Phone, Globe, Clock, Star, Share2, 
@@ -67,12 +67,19 @@ export function AcademyImage({ src, alt, onClick, className = "", name = "" }: A
   const [imgSrc, setImgSrc] = useState(() => getHighResAcademyImage(src, name));
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     setImgSrc(getHighResAcademyImage(src, name));
     setHasError(false);
     setIsLoading(true);
   }, [src, name]);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setIsLoading(false);
+    }
+  }, [imgSrc]);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -99,10 +106,23 @@ export function AcademyImage({ src, alt, onClick, className = "", name = "" }: A
       emblem = "🥋";
     }
 
+    const isSmall = className.includes("w-16") || className.includes("w-12") || className.includes("w-20") || className.includes("h-16") || className.includes("h-12");
+
+    if (isSmall) {
+      return (
+        <div 
+          onClick={onClick}
+          className={`bg-gradient-to-br ${bgGradient} flex items-center justify-center select-none cursor-pointer overflow-hidden rounded-xl shadow-xs shrink-0 ${className}`}
+        >
+          <span className="text-2xl filter drop-shadow-sm">{emblem}</span>
+        </div>
+      );
+    }
+
     return (
       <div 
         onClick={onClick}
-        className={`w-full h-full bg-gradient-to-br ${bgGradient} flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer ${className}`}
+        className={`w-full h-full bg-gradient-to-br ${bgGradient} flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer overflow-hidden ${className}`}
       >
         <span className="text-4xl md:text-5xl mb-2 filter drop-shadow-md animate-bounce">{emblem}</span>
         <span className="text-white font-serif font-bold text-sm block tracking-wide">{name || "Academia"}</span>
@@ -112,13 +132,14 @@ export function AcademyImage({ src, alt, onClick, className = "", name = "" }: A
   }
 
   return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`}>
+    <div className={`relative overflow-hidden ${className}`}>
       {isLoading && (
         <div className="absolute inset-0 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
           <Dumbbell className="w-8 h-8 text-emerald-500 animate-spin" />
         </div>
       )}
       <img
+        ref={imgRef}
         src={imgSrc}
         alt={alt}
         onClick={onClick}
@@ -619,15 +640,15 @@ export function AcademyPortal() {
       
       {/* Visual Header */}
       <div className="text-center space-y-4 mb-10 px-2 sm:px-0">
-        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-emerald-800 dark:text-emerald-400 leading-tight break-words">
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-emerald-900 dark:text-emerald-300 leading-tight break-words">
           Academias Parceiras & Fitness
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed">
+        <p className="font-sans text-slate-600 dark:text-slate-200 max-w-xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed font-medium">
           Encontre os melhores locais avaliados de treino da sua região, ou registre a sua própria academia para conectar-se com nossa comunidade fitness.
         </p>
 
         {/* Tab Selection */}
-        <div className="flex flex-col sm:inline-flex sm:flex-row p-1 bg-slate-100 dark:bg-slate-850 rounded-[20px] mx-auto border border-slate-200/60 dark:border-slate-800 gap-1 justify-center w-full max-w-[280px] sm:max-w-none">
+        <div className="flex flex-col sm:inline-flex sm:flex-row p-1 bg-slate-100 dark:bg-slate-800 rounded-[20px] mx-auto border border-slate-200/60 dark:border-slate-800 gap-1 justify-center w-full max-w-[280px] sm:max-w-none">
           <button
             onClick={() => {
               setViewMode('explore');
@@ -667,7 +688,7 @@ export function AcademyPortal() {
             className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
               viewMode === 'admin'
                 ? 'bg-amber-500 text-white shadow-md'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
             <ShieldCheck className="w-4 h-4 shrink-0" />
@@ -698,7 +719,7 @@ export function AcademyPortal() {
                       vibrate(60);
                     }
                   }}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <motion.button
@@ -720,7 +741,7 @@ export function AcademyPortal() {
               <select
                 value={selectedNeighborhood}
                 onChange={e => setSelectedNeighborhood(e.target.value)}
-                className="w-full p-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none border-none cursor-pointer"
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none border-none cursor-pointer"
               >
                 <option value="Todos">📍 Todos os Bairros</option>
                 {neighborhoodsList.filter(n => n !== 'Todos').map(n => (
@@ -734,7 +755,7 @@ export function AcademyPortal() {
               <select
                 value={selectedModality}
                 onChange={e => setSelectedModality(e.target.value)}
-                className="w-full p-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none border-none cursor-pointer"
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none border-none cursor-pointer"
               >
                 <option value="Todos">🏋️ Todas as Modalidades</option>
                 {MODALIDADE_OPTIONS.map(opt => (
@@ -760,7 +781,7 @@ export function AcademyPortal() {
                   setSelectedNeighborhood('Todos');
                   setSelectedModality('Todos');
                 }}
-                className="px-6 py-2.5 bg-emerald-550 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all"
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all"
               >
                 Limpar Todos os Filtros
               </button>
@@ -770,7 +791,7 @@ export function AcademyPortal() {
               {filteredAcademies.map(academy => (
                 <div
                   key={academy.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 shadow-sm rounded-3xl overflow-hidden group hover:shadow-lg transition-all flex flex-col justify-between"
+                  className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden group hover:shadow-lg transition-all flex flex-col justify-between"
                 >
                   <div>
                     {/* Cover image banner */}
@@ -797,7 +818,7 @@ export function AcademyPortal() {
                       <div className="space-y-1.5">
                         <h4
                           onClick={() => handleViewAcademy(academy)}
-                          className="font-serif text-xl sm:text-2xl text-slate-850 dark:text-white font-semibold cursor-pointer hover:text-emerald-600 transition-colors"
+                          className="font-serif text-xl sm:text-2xl text-slate-800 dark:text-white font-semibold cursor-pointer hover:text-emerald-600 transition-colors"
                         >
                           {academy.name}
                         </h4>
@@ -812,30 +833,30 @@ export function AcademyPortal() {
                         {academy.modalities.map(m => (
                           <span
                             key={m}
-                            className="bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                            className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-bold"
                           >
                             {m}
                           </span>
                         ))}
                       </div>
 
-                      <p className="text-slate-500 dark:text-slate-450 text-xs leading-relaxed line-clamp-3">
+                      <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed line-clamp-3">
                         {academy.about}
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-6 pt-0 border-t border-slate-50 dark:border-slate-850/50 mt-auto flex items-center justify-between gap-3">
+                  <div className="p-6 pt-0 border-t border-slate-50 dark:border-slate-800/50 mt-auto flex items-center justify-between gap-3">
                     <button
                       onClick={() => handleViewAcademy(academy)}
-                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs flex items-center gap-1 transition-colors"
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:opacity-80 rounded-xl font-bold text-xs flex items-center gap-1 transition-opacity"
                     >
                       Ver Detalhes
                     </button>
 
                     <button
                       onClick={() => handleContactClick(academy)}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-550 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 duration-150"
+                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 duration-150"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       Falar c/ Consultor
@@ -863,7 +884,7 @@ export function AcademyPortal() {
                 <h3 className="font-serif text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight font-medium">
                   Cadastre sua Academia no <span className="text-emerald-600">NutriAI</span>
                 </h3>
-                <p className="text-slate-500 dark:text-slate-450 text-sm leading-relaxed">
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
                   Conecte o seu estabelecimento físico com dezenas de alunos próximos do seu bairro que buscam melhores hábitos de vida e exercícios integrativos com nossa inteligência artificial.
                 </p>
 
@@ -916,10 +937,10 @@ export function AcademyPortal() {
           {/* Form Wizard Step */}
           {regStep === 'form' && (
             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[32px] p-6 sm:p-10 shadow-lg space-y-8 animate-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-5">
                 <div className="space-y-1">
-                  <h3 className="font-serif text-2xl text-slate-850 dark:text-white font-semibold">Formulário de Entrada</h3>
-                  <p className="text-xs text-slate-450">Insira as informações do estabelecimento para nossa moderação.</p>
+                  <h3 className="font-serif text-2xl text-slate-800 dark:text-white font-semibold">Formulário de Entrada</h3>
+                  <p className="text-xs text-slate-400">Insira as informações do estabelecimento para nossa moderação.</p>
                 </div>
                 <button
                   type="button"
@@ -927,7 +948,7 @@ export function AcademyPortal() {
                     setRegStep('welcome');
                     playSfx('tap');
                   }}
-                  className="px-4 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 text-xs font-bold rounded-xl transition-colors"
+                  className="px-4 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors"
                 >
                   Voltar
                 </button>
@@ -961,8 +982,8 @@ export function AcademyPortal() {
                       placeholder="Ex: Studio Fitness Integrativo"
                       value={businessName}
                       onChange={e => setBusinessName(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.name ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.name ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -975,8 +996,8 @@ export function AcademyPortal() {
                       placeholder="00.000.000/0001-00"
                       value={cnpj}
                       onChange={e => setCnpj(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.cnpj ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.cnpj ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -989,8 +1010,8 @@ export function AcademyPortal() {
                       placeholder="Ex: (11) 99999-9999"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.phone ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.phone ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -1003,8 +1024,8 @@ export function AcademyPortal() {
                       placeholder="gerencia@academia.com.br"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.email ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.email ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -1019,7 +1040,7 @@ export function AcademyPortal() {
                       placeholder="Ex: https://instagram.com/suaacademia"
                       value={website}
                       onChange={e => setWebsite(e.target.value)}
-                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ring-1 ring-slate-205 dark:ring-slate-700"
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ring-1 ring-slate-200 dark:ring-slate-700"
                     />
                   </div>
 
@@ -1030,13 +1051,13 @@ export function AcademyPortal() {
                       placeholder="Ex: Seg a Sex: 06h às 22h • Sábado: 08h às 14h"
                       value={hours}
                       onChange={e => setHours(e.target.value)}
-                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ring-1 ring-slate-205 dark:ring-slate-700"
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ring-1 ring-slate-200 dark:ring-slate-700"
                     />
                   </div>
                 </div>
 
                 {/* Section 3: Modalities Checklist */}
-                <div className="space-y-3.5 bg-slate-50 dark:bg-slate-850/40 p-5 rounded-2xl">
+                <div className="space-y-3.5 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Modalidades Oferecidas</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {MODALIDADE_OPTIONS.map(mod => {
@@ -1046,8 +1067,8 @@ export function AcademyPortal() {
                           key={mod}
                           className={`flex items-center gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-all select-none ${
                             isChecked
-                              ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-emerald-700 dark:text-emerald-450'
-                              : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-100'
+                              ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-emerald-700 dark:text-emerald-400'
+                              : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                           }`}
                         >
                           <input
@@ -1084,8 +1105,8 @@ export function AcademyPortal() {
                       placeholder="Rua, Avenida, número..."
                       value={address}
                       onChange={e => setAddress(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.address ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.address ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -1098,8 +1119,8 @@ export function AcademyPortal() {
                       placeholder="Ex: Pinheiros, Moema"
                       value={neighborhood}
                       onChange={e => setNeighborhood(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.neighborhood ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.neighborhood ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -1112,8 +1133,8 @@ export function AcademyPortal() {
                       placeholder="Ex: São Paulo - SP"
                       value={city || 'São Paulo - SP'}
                       onChange={e => setCity(e.target.value)}
-                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        fieldErrors.city ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-205 dark:ring-slate-700'
+                      className={`w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.city ? 'ring-2 ring-red-400' : 'ring-1 ring-slate-200 dark:ring-slate-700'
                       }`}
                     />
                   </div>
@@ -1160,7 +1181,7 @@ export function AcademyPortal() {
                       onChange={e => {
                         setCustomCoverUrl(e.target.value);
                       }}
-                      className="w-full p-3 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-700"
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700"
                     />
                   </div>
                 </div>
@@ -1173,7 +1194,7 @@ export function AcademyPortal() {
                     placeholder="Fale um pouco sobre o ambiente, professores credenciados, estacionamento e os diferenciais que atraem pessoas para treinar com vocês..."
                     value={about}
                     onChange={e => setAbout(e.target.value)}
-                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-sm rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500 resize-none"
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500 resize-none"
                   />
                 </div>
 
@@ -1185,7 +1206,8 @@ export function AcademyPortal() {
                       setRegStep('welcome');
                       playSfx('tap');
                     }}
-                    className="px-6 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs sm:text-sm rounded-xl transition-colors"
+                    style={{ color: '#000000' }}
+                    className="px-6 py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-800 font-bold text-xs sm:text-sm rounded-xl transition-colors"
                   >
                     Retroceder
                   </button>
@@ -1203,7 +1225,7 @@ export function AcademyPortal() {
 
           {/* Submitted Screen - Confirmation of Email Receipt */}
           {regStep === 'submitted' && (
-            <div className="space-y-8 animate-in zoom-in-95 duration-550 max-w-2xl mx-auto text-center">
+            <div className="space-y-8 animate-in zoom-in-95 duration-600 max-w-2xl mx-auto text-center">
               <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-8 sm:p-12 rounded-[40px] shadow-2xl relative space-y-6">
                 
                 <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-sm">
@@ -1211,7 +1233,7 @@ export function AcademyPortal() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="font-serif text-3xl text-slate-850 dark:text-white font-semibold">Solicitação Enviada!</h3>
+                  <h3 className="font-serif text-3xl text-slate-800 dark:text-white font-semibold">Solicitação Enviada!</h3>
                   <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto leading-relaxed">
                     Sua academia se registrou no aplicativo de forma independente. O perfil entrou em status de revisão e em aprovação.
                   </p>
@@ -1226,12 +1248,12 @@ export function AcademyPortal() {
 
                 {/* Simulated Email Accordion for visual validation */}
                 {simulatedEmail && (
-                  <div className="text-left bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-850 p-4 rounded-xl space-y-2 font-mono text-[11px] text-slate-650 dark:text-slate-400 overflow-hidden">
+                  <div className="text-left bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-2 font-mono text-[11px] text-slate-600 dark:text-slate-400 overflow-hidden">
                     <p className="font-bold border-b border-slate-200 dark:border-slate-800 pb-1 text-[10px] uppercase text-emerald-600">Simulação de Inbox Recebido (Fins de Conferência)</p>
                     <p><strong>De:</strong> NutriAI Partners Team &lt;parcerias@nutriai.com&gt;</p>
                     <p><strong>Para:</strong> {simulatedEmail.to}</p>
                     <p><strong>Assunto:</strong> {simulatedEmail.subject}</p>
-                    <p className="whitespace-pre-line text-xs pt-1 border-t border-slate-100 dark:border-slate-850 leading-relaxed font-sans">{simulatedEmail.body}</p>
+                    <p className="whitespace-pre-line text-xs pt-1 border-t border-slate-100 dark:border-slate-800 leading-relaxed font-sans">{simulatedEmail.body}</p>
                   </div>
                 )}
 
@@ -1241,7 +1263,7 @@ export function AcademyPortal() {
                       setRegStep('dashboard');
                       playSfx('tap');
                     }}
-                    className="flex-1 py-3 bg-slate-900 hover:bg-slate-850 dark:bg-slate-800 dark:hover:bg-slate-750 text-white font-bold text-xs sm:text-sm rounded-xl transition-all duration-150 flex items-center justify-center gap-1 shadow-md"
+                    className="flex-1 py-3 bg-slate-900 hover:bg-slate-950 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all duration-150 flex items-center justify-center gap-1 shadow-md"
                   >
                     Acessar Meu Painel de Monitoração
                     <ChevronRight className="w-4 h-4" />
@@ -1253,18 +1275,18 @@ export function AcademyPortal() {
 
           {/* Owner Dashboard Step - Edit Details & Mod Moderate actions */}
           {regStep === 'dashboard' && myAcademy && (
-            <div className="grid lg:grid-cols-12 gap-8 animate-in fade-in duration-350">
+            <div className="grid lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
               
               {/* Profile details & status widgets */}
               <aside className="lg:col-span-4 space-y-6">
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-6 rounded-3xl shadow-sm space-y-6">
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-6">
                   
-                  <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-850">
+                  <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
                     <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center font-bold text-lg select-none">
                       {myAcademy.name ? myAcademy.name.charAt(0) : 'G'}
                     </div>
                     <div>
-                      <h4 className="font-serif font-bold text-slate-850 dark:text-white text-base truncate max-w-[170px]">
+                      <h4 className="font-serif font-bold text-slate-800 dark:text-white text-base truncate max-w-[170px]">
                         {myAcademy.name}
                       </h4>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide flex items-center gap-1 mt-0.5">
@@ -1304,7 +1326,7 @@ export function AcademyPortal() {
                         <div className="pt-4">
                           <button
                             onClick={handleSimulateApproval}
-                            className="w-full py-2 bg-emerald-555 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm"
+                            className="w-full py-2 bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm"
                           >
                             <Play className="w-3.5 h-3.5 fill-white" />
                             Aprovação Direta (Simulação)
@@ -1313,7 +1335,7 @@ export function AcademyPortal() {
                       </div>
                     ) : (
                       <div className="bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-250/50 p-4 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-450 font-bold text-xs">
+                        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold text-xs">
                           <span className="w-2 h-2 bg-emerald-500 rounded-full" />
                           Cadastro Ativo & Listado
                         </div>
@@ -1325,7 +1347,7 @@ export function AcademyPortal() {
                   </div>
 
                   {/* Helpful Quick Stats list */}
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-850 space-y-3">
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Canal de Métricas</span>
                     
                     <div className="flex justify-between items-center text-xs">
@@ -1354,7 +1376,7 @@ export function AcademyPortal() {
                           playSfx('tap');
                         }
                       }}
-                      className="w-full py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-red-500 font-bold text-[10px] rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+                      className="w-full py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-800 text-red-500 font-bold text-[10px] rounded-lg transition-colors border border-transparent hover:border-red-500/20"
                     >
                       Remover Academia & Recomeçar Onboarding
                     </button>
@@ -1377,8 +1399,8 @@ export function AcademyPortal() {
                 </div>
 
                 {/* Inline Editing Form Card */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-6 rounded-3xl space-y-6 shadow-sm">
-                  <h4 className="font-serif text-lg text-slate-850 dark:text-white font-semibold">Editar Perfil Ativo</h4>
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl space-y-6 shadow-sm">
+                  <h4 className="font-serif text-lg text-slate-800 dark:text-white font-semibold">Editar Perfil Ativo</h4>
                   
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -1387,7 +1409,7 @@ export function AcademyPortal() {
                         type="text"
                         value={myAcademy.name}
                         onChange={e => handleUpdateAcademyDetails({ name: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -1397,7 +1419,7 @@ export function AcademyPortal() {
                         type="text"
                         value={myAcademy.phone}
                         onChange={e => handleUpdateAcademyDetails({ phone: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -1407,7 +1429,7 @@ export function AcademyPortal() {
                         type="text"
                         value={myAcademy.website}
                         onChange={e => handleUpdateAcademyDetails({ website: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -1417,7 +1439,7 @@ export function AcademyPortal() {
                         type="text"
                         value={myAcademy.hours}
                         onChange={e => handleUpdateAcademyDetails({ hours: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -1427,7 +1449,7 @@ export function AcademyPortal() {
                         type="text"
                         value={myAcademy.address}
                         onChange={e => handleUpdateAcademyDetails({ address: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -1437,7 +1459,7 @@ export function AcademyPortal() {
                         rows={3}
                         value={myAcademy.about}
                         onChange={e => handleUpdateAcademyDetails({ about: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-2 focus:ring-emerald-500 resize-none font-sans"
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-xl outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-emerald-500 resize-none font-sans"
                       />
                     </div>
                   </div>
@@ -1512,52 +1534,85 @@ export function AcademyPortal() {
                 };
 
                 return (
-                  <div key={ac.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-                    <div className="flex gap-4 items-center">
-                      <AcademyImage src={ac.image} alt={ac.name} name={ac.name} className="w-16 h-16 rounded-xl shrink-0" />
-                      <div className="space-y-1">
+                  <div key={ac.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-5 rounded-3xl space-y-4 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-700">
+                    {/* Header: Image & Info */}
+                    <div className="flex gap-4 items-start">
+                      <AcademyImage src={ac.image} alt={ac.name} name={ac.name} className="w-16 h-16 rounded-2xl shrink-0" />
+                      
+                      <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <strong className="text-sm text-slate-800 dark:text-white">{ac.name}</strong>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          <strong className="text-base font-bold text-slate-800 dark:text-white truncate">{ac.name}</strong>
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                             ac.status === 'ATIVO' 
-                              ? 'bg-emerald-500/10 text-emerald-600' 
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
                               : ac.status === 'REJEITADO' 
-                              ? 'bg-rose-500/10 text-rose-600' 
-                              : 'bg-amber-500/10 text-amber-600'
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' 
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                           }`}>
                             {ac.status}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{ac.address} - {ac.neighborhood}, {ac.city}</p>
-                        <p className="text-[10px] text-slate-450 dark:text-slate-400">Modalidades: {ac.modalities.join(', ')} | Tel: {ac.phone} | E-mail: {ac.email}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          📍 {ac.address} • <span className="font-semibold">{ac.neighborhood}</span>, {ac.city}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-none pt-3 sm:pt-0">
+                    {/* Metadata Section (CNPJ, modalities, contact) */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl space-y-2.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800/40">
+                      <div>
+                        <span className="font-bold text-slate-400 dark:text-slate-500 text-[9px] uppercase block tracking-wider mb-1.5">Modalidades Ativas</span>
+                        <div className="flex flex-wrap gap-1">
+                          {ac.modalities && ac.modalities.length > 0 ? (
+                            ac.modalities.map(m => (
+                              <span key={m} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-md text-[10px] font-semibold">
+                                {m}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">Nenhuma modalidade informada</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-150 dark:border-slate-800/50 mt-1">
+                        <p className="flex items-center gap-1.5 text-[11px]">
+                          <span className="text-slate-400">📞 WhatsApp:</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-200">{ac.phone}</span>
+                        </p>
+                        <p className="flex items-center gap-1.5 text-[11px] min-w-0">
+                          <span className="text-slate-400 shrink-0">✉️ E-mail:</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-200 truncate" title={ac.email}>{ac.email}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Action buttons (Approving, Rejecting, Resetting) */}
+                    <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-800/40">
                       {ac.status !== 'ATIVO' && (
                         <button
                           onClick={() => handleUpdateStatus('ATIVO')}
-                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer"
+                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap"
                         >
-                          <Check className="w-3.5 h-3.5" />
-                          Aprovar
+                          <Check className="w-4 h-4" />
+                          Aprovar Cadastro
                         </button>
                       )}
                       {ac.status !== 'REJEITADO' && (
                         <button
                           onClick={() => handleUpdateStatus('REJEITADO')}
-                          className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer"
+                          className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Rejeitar
+                          <Trash2 className="w-4 h-4" />
+                          Rejeitar Cadastro
                         </button>
                       )}
                       {ac.status !== 'PENDENTE' && (
                         <button
                           onClick={() => handleUpdateStatus('PENDENTE')}
-                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 text-xs rounded-xl transition-all cursor-pointer"
+                          className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:opacity-80 font-bold text-xs rounded-xl transition-opacity cursor-pointer whitespace-nowrap"
                         >
-                          Resetar p/ Análise
+                          Resetar para Análise
                         </button>
                       )}
                     </div>
@@ -1647,13 +1702,13 @@ export function AcademyPortal() {
                   {/* Description About */}
                   <div className="space-y-2">
                     <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Sobre o Estabelecimento</span>
-                    <p className="text-slate-600 dark:text-slate-350 text-xs sm:text-sm leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
                       {selectedAcademy.about}
                     </p>
                   </div>
 
                   {/* Reviews Section */}
-                  <div className="space-y-3.5 pt-2 border-t border-slate-100 dark:border-slate-850">
+                  <div className="space-y-3.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Feedback da Comunidade</span>
                     
                     {selectedAcademy.reviews.length === 0 ? (
@@ -1661,7 +1716,7 @@ export function AcademyPortal() {
                     ) : (
                       <div className="space-y-3">
                         {selectedAcademy.reviews.map(rev => (
-                          <div key={rev.id} className="bg-slate-50 dark:bg-slate-850 p-3 rounded-xl space-y-1">
+                          <div key={rev.id} className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl space-y-1">
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-bold text-slate-800 dark:text-slate-200">{rev.author}</span>
                               <span className="text-slate-400 dark:text-slate-500 text-[10px]">{rev.date}</span>
@@ -1674,18 +1729,18 @@ export function AcademyPortal() {
                                 />
                               ))}
                             </div>
-                            <p className="text-slate-650 dark:text-slate-400 text-[11px] leading-relaxed">{rev.text}</p>
+                            <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">{rev.text}</p>
                           </div>
                         ))}
                       </div>
                     )}
 
                     {/* Review Form */}
-                    <form onSubmit={(e) => handlePostReview(e, selectedAcademy.id)} className="pt-2 space-y-3 border-t border-slate-50 dark:border-slate-850/50">
+                    <form onSubmit={(e) => handlePostReview(e, selectedAcademy.id)} className="pt-2 space-y-3 border-t border-slate-50 dark:border-slate-800/50">
                       <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Deixe sua Avaliação</span>
                       
                       {reviewSuccess && (
-                        <div className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-450 text-xs py-2 px-3 rounded-lg border border-emerald-100 font-bold">
+                        <div className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-400 text-xs py-2 px-3 rounded-lg border border-emerald-100 font-bold">
                           ✓ Obrigado! Sua avaliação foi adicionada ao espaço com sucesso.
                         </div>
                       )}
@@ -1697,10 +1752,10 @@ export function AcademyPortal() {
                           placeholder="Seu Nome"
                           value={reviewAuthor}
                           onChange={e => setReviewAuthor(e.target.value)}
-                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-lg outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-lg outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-1 focus:ring-emerald-500"
                         />
-                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-805 p-2 px-3 rounded-lg">
-                          <span className="text-[11px] text-slate-450 font-bold">Estrelas:</span>
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2 px-3 rounded-lg">
+                          <span className="text-[11px] text-slate-400 font-bold">Estrelas:</span>
                           <div className="flex gap-1">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <button
@@ -1725,7 +1780,7 @@ export function AcademyPortal() {
                           placeholder="Fale um pouco sobre o espaço, equipe e instalações..."
                           value={reviewText}
                           onChange={e => setReviewText(e.target.value)}
-                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-white text-xs rounded-lg outline-none ring-1 ring-slate-205 dark:ring-slate-705 focus:ring-1 focus:ring-emerald-500"
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs rounded-lg outline-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-1 focus:ring-emerald-500"
                         />
                         <button
                           type="submit"
@@ -1741,12 +1796,12 @@ export function AcademyPortal() {
 
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-850/50 flex gap-4 mt-8 items-center">
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50 flex gap-4 mt-8 items-center">
                   <a
                     href={selectedAcademy.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-805 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-205 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:opacity-80 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-opacity"
                   >
                     <Globe className="w-4 h-4 text-slate-500" />
                     Site Oficial
@@ -1754,7 +1809,7 @@ export function AcademyPortal() {
 
                   <button
                     onClick={() => handleContactClick(selectedAcademy)}
-                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-650 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 duration-100"
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 duration-100"
                   >
                     <Phone className="w-4 h-4" />
                     Marcar Aula Experimental WhatsApp

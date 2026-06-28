@@ -149,7 +149,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-6">
           <Scanner onIngredientsDetected={handleIngredientsDetected} />
         </div>
 
@@ -223,15 +223,46 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
               </div>
 
               <div className="space-y-4">
+                <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
+                  Objetivo / Dieta
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Emagrecimento', 'Ganho de massa', 'Diabetes', 'Hipertensão', 
+                    'Vegetariano', 'Vegano', 'Sem glúten', 'Sem lactose'
+                  ].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        if (preferences.includes(tag)) {
+                          setPreferences(prev => prev.replace(tag, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim());
+                        } else {
+                          setPreferences(prev => prev ? `${prev}, ${tag}` : tag);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        preferences.includes(tag)
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 <label htmlFor="preferences" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
-                  Restrições ou Preferências Extras
+                  Outras Restrições ou Preferências Extras
                 </label>
                 <input
                   id="preferences"
                   type="text"
                   value={preferences}
                   onChange={(e) => setPreferences(e.target.value)}
-                  placeholder="Ex: sem glúten, vegano, refeição rápida..."
+                  placeholder="Ex: sem amendoim, refeição rápida..."
                   className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all shadow-sm"
                 />
               </div>

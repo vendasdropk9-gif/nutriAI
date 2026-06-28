@@ -16,6 +16,8 @@ import { JourneyVisualizer } from './components/JourneyVisualizer';
 import { JuiceGenerator } from './components/JuiceGenerator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BarcodeScanner } from './components/BarcodeScanner';
+import { FoodAllergyDetector } from './components/FoodAllergyDetector';
+import { ProductComparer } from './components/ProductComparer';
 import { EmotionalTracker } from './components/EmotionalTracker';
 import { ChallengeView } from './components/ChallengeView';
 import { HabitTracker } from './components/HabitTracker';
@@ -40,14 +42,21 @@ import { DraggableNav } from './components/DraggableNav';
 import { AcademyPortal } from './components/AcademyPortal';
 import { BloodPressureTracker } from './components/BloodPressureTracker';
 import { Notebook } from './components/Notebook';
+import { MedicinalHerbs } from './components/MedicinalHerbs';
+import { SmartFridge } from './components/SmartFridge';
+import { SmartGarden } from './components/SmartGarden';
+import { WellnessHub } from './components/WellnessHub';
+import { PhotoEvolution } from './components/PhotoEvolution';
+import { Assistant360 } from './components/Assistant360';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare } from 'lucide-react';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
+import { LanguageModal } from './components/LanguageModal';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
@@ -74,10 +83,11 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'juice' | 'barcode' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies'>('market');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'assistant360'>('assistant360');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
     const id = Math.random().toString(36).substring(7);
@@ -252,8 +262,8 @@ export default function App() {
 
       <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20">
-            <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+          <div className="flex justify-between items-center h-16 md:h-20 gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 text-emerald-600 dark:text-emerald-400 shrink-0">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
@@ -262,7 +272,7 @@ export default function App() {
               </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
-                     <div className="flex items-center gap-3">
+                     <div className="flex items-center gap-2 sm:gap-3">
               <motion.button 
                 whileHover={{ scale: 1.05, y: -0.5 }} 
                 whileTap={{ scale: 0.95 }}
@@ -278,13 +288,26 @@ export default function App() {
                 <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_40%,rgba(93,255,0,0.15)_60%,#5dff00_90%,rgba(93,255,0,0.15)_100%)] dark:bg-[conic-gradient(from_0deg,transparent_40%,rgba(255,255,255,0.15)_60%,#ffffff_90%,rgba(255,255,255,0.15)_100%)] animate-[spin_2.5s_linear_infinite]" />
                 
                 {/* Inner button mask */}
-                <div className="relative flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 border border-transparent text-emerald-600 dark:text-emerald-400 font-medium text-xs md:text-sm hover:bg-slate-50 dark:hover:bg-slate-850/90 transition-colors">
+                <div className="relative flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 border border-transparent text-emerald-600 dark:text-emerald-400 font-medium text-xs md:text-sm hover:bg-slate-50 dark:hover:bg-slate-800/90 transition-colors">
                   <div className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <MessageSquare className="w-4 h-4 text-emerald-500 relative z-10 shrink-0" />
                   <span className="inline-block text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200">
                     Feedback
                   </span>
                 </div>
+              </motion.button>
+
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(10);
+                  setIsLanguageOpen(true);
+                }}
+                className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                title="Mudar idioma / Change language"
+                id="header-language-trigger-btn"
+              >
+                <Globe className="w-5 h-5" />
               </motion.button>
 
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
@@ -329,6 +352,17 @@ export default function App() {
                 recipesCount={savedRecipes.length}
               />
             )}
+            {activeTab === 'assistant360' && (
+              <Assistant360 profile={profile} onNavigate={(tab) => {
+                if (tab === 'live') {
+                  // handle opening live assistant (we might have a state or we can just keep the floating button for it)
+                  // Let's just dispatch an event to open live assistant
+                  window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
+                } else {
+                  setActiveTab(tab as any);
+                }
+              }} />
+            )}
             {activeTab === 'generator' && (
               <Generator 
                 onSaveRecipe={handleSaveRecipe} 
@@ -345,6 +379,7 @@ export default function App() {
                 profile={profile} 
                 onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
                 onAwardPoints={awardPoints}
+                addNotification={addNotification}
               />
             )}
             {activeTab === 'notes' && (
@@ -363,6 +398,12 @@ export default function App() {
             )}
             {activeTab === 'barcode' && (
               <BarcodeScanner profile={profile} />
+            )}
+            {activeTab === 'allergy' && (
+              <FoodAllergyDetector />
+            )}
+            {activeTab === 'comparer' && (
+              <ProductComparer />
             )}
             {activeTab === 'emotional' && (
               <EmotionalTracker 
@@ -415,6 +456,9 @@ export default function App() {
             {activeTab === 'trainer' && (
               <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={updateProfile} />
             )}
+            {activeTab === 'wellness' && (
+              <WellnessHub />
+            )}
             {activeTab === 'prediction' && (
               <ResultPrediction 
                 profile={profile} 
@@ -433,6 +477,9 @@ export default function App() {
             )}
             {activeTab === 'journey' && (
               <JourneyVisualizer profile={profile} />
+            )}
+            {activeTab === 'evolution' && (
+              <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />
             )}
             {activeTab === 'challenge' && (
               <ChallengeView 
@@ -459,6 +506,15 @@ export default function App() {
             {activeTab === 'academies' && (
               <AcademyPortal />
             )}
+            {activeTab === 'herbs' && (
+              <MedicinalHerbs />
+            )}
+            {activeTab === 'fridge' && (
+              <SmartFridge />
+            )}
+            {activeTab === 'garden' && (
+              <SmartGarden />
+            )}
             </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
@@ -473,6 +529,11 @@ export default function App() {
         isOpen={isFeedbackOpen} 
         onClose={() => setIsFeedbackOpen(false)} 
         addNotification={addNotification} 
+      />
+
+      <LanguageModal
+        isOpen={isLanguageOpen}
+        onClose={() => setIsLanguageOpen(false)}
       />
       
       <NotificationSystem 

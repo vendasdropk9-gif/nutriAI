@@ -35,6 +35,7 @@ import storeImage2 from '../assets/images/store_premium_hortifruti_1779398868799
 import { speak } from '../lib/speech';
 import { vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
+import { DailyTips } from './DailyTips';
 
 const MARKET_PARTNERS: MarketPartner[] = [
   {
@@ -374,6 +375,9 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           ))}
         </div>
       </div>
+
+      {/* Dicas Diárias (Daily Tips AI) Component */}
+      <DailyTips profile={profile} />
 
       {/* AI Recommendation Section */}
       <div className="bg-white dark:bg-slate-900/60 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col items-center justify-center text-center space-y-4 w-full max-w-[600px] mx-auto box-border">

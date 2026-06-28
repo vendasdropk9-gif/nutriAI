@@ -229,9 +229,9 @@ export function PartnerBanner() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 shadow-sm h-auto sm:h-16 md:h-20 flex items-center justify-center py-2 sm:py-0 mx-0 mt-0 -mb-[5px] transition-colors duration-500">
+    <div className="relative w-full overflow-hidden bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 shadow-sm h-auto py-5 sm:py-8 md:py-10 flex items-center justify-center mx-0 mt-0 -mb-[5px] transition-colors duration-500">
       {/* Imagens de frutas rotacionando de 5 em 5 segundos no fundo */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-[0.55] dark:opacity-[0.45]">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-[0.18] dark:opacity-[0.12]">
         <AnimatePresence mode="sync">
           <motion.img
             key={bgIndex}
@@ -245,8 +245,8 @@ export function PartnerBanner() {
           />
         </AnimatePresence>
         {/* Soft elegant edge fades to integrate beautifully into the app header */}
-        <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent dark:from-slate-900" />
-        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent dark:from-slate-900" />
+        <div className="absolute inset-y-0 left-0 w-24 md:w-48 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80" />
+        <div className="absolute inset-y-0 right-0 w-24 md:w-48 bg-gradient-to-l from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80" />
       </div>
 
       {/* Decorative pulse background */}
@@ -254,13 +254,13 @@ export function PartnerBanner() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.1)_0%,transparent_70%)] animate-pulse" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 w-full flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 relative z-10 animate-fade">
-        <div className="hidden lg:flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] tracking-widest uppercase font-bold">
-          <Store className="w-3.5 h-3.5" />
+      <div className="max-w-7xl mx-auto px-4 w-full flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 relative z-10 animate-fade">
+        <div className="hidden lg:flex items-center gap-2 bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 px-3.5 py-1.5 rounded-full font-mono text-[10px] tracking-widest uppercase font-extrabold shadow-sm">
+          <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span>Fidelidade Parceira</span>
         </div>
 
-        <div className="w-full sm:flex-1 flex justify-center items-center h-8 sm:h-full overflow-hidden relative min-h-[32px] sm:min-h-[40px]">
+        <div className="w-full sm:flex-1 flex justify-center items-center h-12 sm:h-14 md:h-16 overflow-hidden relative min-h-[48px] sm:min-h-[56px] md:min-h-[64px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={index}
@@ -271,41 +271,41 @@ export function PartnerBanner() {
                 duration: 1.0,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="absolute inset-x-0 mx-auto text-center flex justify-center items-center px-3 py-1 sm:px-5 sm:py-1.5 max-w-[95%] sm:max-w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-[6px] rounded-full border border-slate-200/50 dark:border-slate-800/60 shadow-md"
+              className="relative text-center flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 w-full max-w-[95%] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-[8px] rounded-full border border-slate-300 dark:border-slate-800/80 shadow-lg"
             >
-              <span className="font-serif text-xs min-[400px]:text-sm sm:text-[15px] md:text-lg font-semibold text-slate-800 dark:text-slate-100 tracking-wide block max-w-full">
+              <span className="font-serif text-xs min-[400px]:text-sm sm:text-[16px] md:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-wide block max-w-full">
                 {PARTNERS[index]}
               </span>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 dark:bg-slate-800/40 p-1 sm:p-1.5 rounded-full border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-[6px] p-1.5 rounded-full border border-slate-300 dark:border-slate-800/80 shadow-md shrink-0">
           {/* Micro pill sound type switcher */}
-          <div className="flex items-center gap-1 bg-slate-200/50 dark:bg-slate-900/40 rounded-full p-0.5">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/60 rounded-full p-0.5">
             <button
               onClick={() => setSoundType("cooking")}
-              className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-extrabold transition-all cursor-pointer ${
                 soundType === "cooking"
                   ? "bg-emerald-500 text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  : "text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white"
               }`}
               title="Música saudável & alegre de culinária (Acústico)"
             >
-              <Utensils className="w-3 h-3" />
-              <span className="hidden sm:inline">Nutri-Ritmo</span>
+              <Utensils className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Nutri-Ritmo</span>
             </button>
             <button
               onClick={() => setSoundType("meditative")}
-              className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-extrabold transition-all cursor-pointer ${
                 soundType === "meditative"
                   ? "bg-teal-500 text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  : "text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white"
               }`}
               title="Frequências zen de meditação e foco"
             >
-              <Compass className="w-3 h-3" />
-              <span className="hidden sm:inline">Meditar</span>
+              <Compass className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Meditar</span>
             </button>
           </div>
 

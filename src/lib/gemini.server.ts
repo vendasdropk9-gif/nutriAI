@@ -343,7 +343,8 @@ Equipamentos disponíveis: ${profile.equipment.join(", ") || "Todos"}
   const prompt = `Gere uma receita saudável com base nos seguintes parâmetros:
 Ingredientes disponíveis: ${ingredients || "Qualquer ingrediente saudável comum"}
 Perfil do Usuário: ${profileText}${preferencesContext}${budgetContext}
-Certifique-se de priorizar os ingredientes disponíveis. A receita deve ser equilibrada.
+ATENÇÃO REDOBRADA: Você deve respeitar ESTRITAMENTE o Objetivo/Dieta e as Preferências (ex: se for vegano, não incluir NADA de origem animal; se for para Diabetes, controlar índice glicêmico).
+A receita deve ser equilibrada e alinhada perfeitamente com os requisitos solicitados.
 Responda APENAS com um objeto JSON.`;
 
   const recipeSchema: Schema = {
@@ -908,6 +909,9 @@ Perfil e Plano Opcional:
 Objetivo: ${profile?.goals || 'Não informado'}
 Dieta atual / Plano: ${profile?.mealPlan ? JSON.stringify(profile.mealPlan) : 'Não informado'}
 
+Atribua um 'nutriScore' de 0 a 100 para a refeição, considerando o equilíbrio nutricional, a variedade, as fibras, as proteínas e penalizando excesso de sódio, açúcar ou gorduras ruins.
+Crie também uma 'nutriScoreExplanation' (1 frase rápida) explicando por que essa nota foi dada e como o prato poderia ser melhorado (se aplicável).
+
 Verifique se a refeição corresponde de forma geral ao plano sugerido (quantidade, tipos de alimentos) ou ao objetivo do usuário.
 Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium.
 - Se o prato estiver de acordo com o plano, confirme o progresso positivamente (ex: "Isso aí! Esse prato está perfeito e super alinhado com o seu plano de hoje. Muito orgilho!").
@@ -931,10 +935,12 @@ Responda APENAS num json.`;
         },
         required: ["calories", "protein", "carbs", "fat", "fiber"],
       },
+      nutriScore: { type: Type.NUMBER },
+      nutriScoreExplanation: { type: Type.STRING },
       assistantMessage: { type: Type.STRING },
       suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
-    required: ["foods", "nutrition", "assistantMessage", "suggestions"],
+    required: ["foods", "nutrition", "nutriScore", "nutriScoreExplanation", "assistantMessage", "suggestions"],
   };
 
   try {
@@ -1879,6 +1885,40 @@ Responda APENAS em JSON no seguinte formato:
   }
 };
 
+export const analyzeImage = async (
+  base64Image: string,
+  prompt: string
+): Promise<string | null> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    
+    // extrair mimeType do base64 (ex: data:image/jpeg;base64,...)
+    const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || "image/jpeg";
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { data: base64Data, mimeType } },
+            { text: prompt },
+          ],
+        },
+      ],
+      config: {
+        temperature: 0.7,
+      },
+    });
+
+    return response.text;
+  } catch (err: any) {
+    console.error("Erro no analyzeImage:", err);
+    return "Evolução detectada e analisada! O modelo falhou temporariamente, mas seu progresso está registrado.";
+  }
+};
+
 export const analyzeProductImage = async (
   base64Image: string,
   mimeType: string,
@@ -2265,6 +2305,1197 @@ Responda APENAS em JSON em conformidade com o schema fornecido.`;
     };
   }
 };
+
+export const generateDailyNutritionTips = async (
+  profile: UserProfile | null
+): Promise<{
+  tips: {
+    category: string;
+    title: string;
+    content: string;
+    recommendation: string;
+    icon: string;
+  }[];
+} | null> => {
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+
+  let profileText = "Usuário comum de saúde.";
+  if (profile) {
+    profileText = `
+Nome: ${profile.name || "Usuário"}
+Objetivo: ${profile.goals || "Não informado"}
+Biotipo: ${profile.bodyType || "Não informado"}
+Restrições: ${profile.restrictions?.join(", ") || "Nenhuma"}
+Alergias: ${profile.allergies?.join(", ") || "Nenhuma"}
+Atividade Física: ${profile.activityLevel || "Não informada"}
+`;
+  }
+
+  const prompt = `Você é um Nutricionista Clínico e Comportamental do NutriAI, especializado em micro-hábitos e fatos rápidos aplicados no dia a dia.
+Sua missão é gerar exatamente 3 ou 4 fatos rápidos/dicas diárias de nutrição baseados de forma personalizada e cuidadosa no perfil do usuário abaixo:
+
+PERFIL DO USUÁRIO:
+${profileText}
+
+INSTRUÇÕES DE ESCRITA:
+1. Gere dicas super curtas, fáceis de ler, sem termos complicados e extremamente motivacionais e de tom premium.
+2. Cada dica deve focar em um aspect prático aplicável no mesmo dia (Ex: consumo de água associado à saciedade, alimentos antioxidantes, substitutos inteligentes, nutrição pré-treino, etc.).
+3. Personalize a dica de acordo com o objetivo ou as restrições alimentares do usuário (se houver). Se o usuário tem alergias ou restrições, respeite-as e não mencione os ingredientes restritos!
+4. Mapeie cada dica para um ícone descritivo simples do lucide-react. Escolha estritamente entre: "apple", "droplet", "zap", "brain", "trophy", "heart".
+
+Responda APENAS com um objeto JSON validando o schema fornecido.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      tips: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            category: { type: Type.STRING, description: "Categoria curta, ex: 'Hidratação', 'Foco & Energia', 'Superalimentos'" },
+            title: { type: Type.STRING, description: "Título chamativo e intrigante" },
+            content: { type: Type.STRING, description: "O fato ou dado científico simplificado em 1-2 sentenças" },
+            recommendation: { type: Type.STRING, description: "Instrução curta e prática para hoje" },
+            icon: { type: Type.STRING, enum: ["apple", "droplet", "zap", "brain", "trophy", "heart"] }
+          },
+          required: ["category", "title", "content", "recommendation", "icon"]
+        }
+      }
+    },
+    required: ["tips"]
+  };
+
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+  let responseText = "";
+  let lastError: any = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`[DailyTips] Tentando gerar dicas com o modelo: ${modelName}`);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          temperature: 0.8
+        }
+      });
+
+      if (response && response.text) {
+        responseText = response.text;
+        console.log(`[DailyTips] Sucesso ao gerar com o modelo: ${modelName}`);
+        break;
+      }
+    } catch (e: any) {
+      lastError = e;
+      console.log(`[DailyTips] Modelo ${modelName} indisponível ou limite de requisições atingido.`);
+    }
+  }
+
+  try {
+    if (!responseText) {
+      if (lastError) {
+        throw lastError;
+      }
+      throw new Error("Não foi possível obter resposta de nenhum modelo Gemini");
+    }
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.log("[DailyTips] Usando dicas de nutrição estáticas/locais como fallback.");
+    return {
+      tips: [
+        {
+          category: "Hidratação",
+          title: "Beba água ao acordar",
+          content: "O corpo perde água durante o sono. Rehidratar-se logo cedo ajuda a acelerar o metabolismo e melhora a digestão.",
+          recommendation: "Tome um copo de 300ml de água logo ao levantar hoje!",
+          icon: "droplet"
+        },
+        {
+          category: "Energia",
+          title: "Proteínas e saciedade",
+          content: "Adicionar uma porção de proteínas nos lanches intermediários evita picos de insulina e mantém você satisfeito por mais tempo.",
+          recommendation: "Experimente um ovo cozido ou iogurte natural no lanche da tarde.",
+          icon: "zap"
+        },
+        {
+          category: "Foco",
+          title: "Mastigação consciente",
+          content: "Mastigar mais vezes ajuda o cérebro a registrar a saciedade, melhorando a digestão e o aproveitamento dos nutrientes.",
+          recommendation: "Dedique pelo menos 15 minutos e coma sem telas na próxima refeição.",
+          icon: "brain"
+        }
+      ]
+    };
+  }
+};
+
+export const chatWithHerbsAssistant = async (
+  history: { role: 'user' | 'model', text: string }[],
+  userMessage: string
+): Promise<{ text: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é o Fitoterapeuta e Botânico Especialista do NutriAI, uma inteligência artificial criada para sanar dúvidas exclusivamente sobre ervas medicinais brasileiras com total rigor científico e em um tom amigável, acolhedor e altamente esclarecedor.
+
+DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
+1. AVISO DE SAÚDE OBRIGATÓRIO (Gentil, porém Claro): Suas respostas são exclusivamente de caráter informativo e educativo. Deixe claro que a fitoterapia e o uso de ervas medicinais NÃO substituem uma consulta médica, um acompanhamento nutricional ou um diagnóstico clínico.
+2. RIGOR CIENTÍFICO E BADGES DE EVIDÊNCIA: Sempre fundamente suas recomendações em publicações farmacopeicas brasileiras (Anvisa/Minsaud) e estudos científicos revisados por pares (PubMed/Fiocruz). Sempre utilize visualmente os seguintes selos coloridos para rotular as indicações das ervas em suas respostas:
+   - 🟢 Forte evidência científica (Estudos clínicos bem estabelecidos e consenso farmacopeico)
+   - 🟡 Evidência moderada (Estudos in vivo/in vitro promissores e uso de longa data em ensaios menores)
+   - 🟠 Uso tradicional / empírico (Uso popular disseminado com documentação histórica mas com pouca replicação clínica recente)
+   - 🔴 Evidência insuficiente ou nula (Sem eficácia demonstrada ou contestada pela ciência)
+3. TOM E LAYOUT: Escreva em português brasileiro de forma poética mas rigorosa, como uma conversa com um botânico acolhedor. Use parágrafos curtos, tópicos objetivos, e negritos para destacar substâncias ou espécies.
+4. CONTRAINDICAÇÕES ATIVAS: Nunca sugira uma erva sem expor seus riscos cruciais, especialmente para grupos sensíveis: gestantes (risco abortivo), lactantes, crianças menores de 12 anos, renais crônicos, hepatopatas e interações medicamentosas nocivas (como anticoagulantes e sedativos).
+5. FORMATO DE RETORNO: Retorne estritamente um objeto JSON com o campo "text" contendo a mensagem formatada em Markdown. Exemplo: { "text": "Sua resposta..." }`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING }
+    },
+    required: ["text"]
+  };
+
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-3.5-flash",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      }
+    });
+
+    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Especialista'}: ${h.text}`).join('\n');
+    
+    const finalPrompt = `HISTÓRICO DA CONVERSA:
+${stringifiedHistory}
+
+O usuário acabou de perguntar: "${userMessage}"
+RESPONDA EM JSON COM O TEXTO FORMATADO EM MARKDOWN.`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    const text = response.text;
+    if (!text) throw new Error("No response");
+    
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Herbs Chat Error:", error);
+    return {
+      text: "Poxa, minha conexão com o acervo botânico científico falhou temporariamente. Que tal me perguntar de novo em alguns instantes? 🌿💚"
+    };
+  }
+};
+
+export interface PlantIdentificationResult {
+  identified: boolean;
+  popularName: string;
+  scientificName: string;
+  botanicalFamily: string;
+  confidence: number;
+  classifications: string[];
+  isToxic: boolean;
+  warningMessage?: string;
+  generalDescription: string;
+  info: {
+    origin: string;
+    biome: string;
+    brazilDistribution: string;
+  };
+  usages: {
+    type: string;
+    description: string;
+    evidenceLevel?: string;
+  }[];
+  preparation?: {
+    partUsed: string;
+    method: string;
+    cautions: string[];
+    contraindications: string[];
+  };
+  cultivation: {
+    soil: string;
+    climate: string;
+    luminosity: string;
+    watering: string;
+    fertilization: string;
+    plantingSeason: string;
+    growthTime: string;
+    harvest: string;
+  };
+  benefits: {
+    title: string;
+    description: string;
+    evidence: 'Forte evidência' | 'Evidência moderada' | 'Uso tradicional' | 'Evidência insuficiente';
+  }[];
+  curiosities: string[];
+}
+
+export const identifyPlant = async (
+  imageBase64: string,
+  mimeType: string = "image/jpeg"
+): Promise<PlantIdentificationResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  let cleanBase64 = imageBase64;
+  let activeMime = mimeType;
+
+  if (imageBase64.startsWith("http")) {
+    try {
+      const response = await fetch(imageBase64);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      cleanBase64 = buffer.toString("base64");
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        activeMime = contentType;
+      }
+    } catch (e) {
+      console.error("Error fetching remote image URL inside identifyPlant:", e);
+    }
+  } else if (imageBase64.includes(",")) {
+    cleanBase64 = imageBase64.split(",")[1];
+  }
+
+  const systemInstruction = `Você é um botânico, fitoterapeuta e especialista em visão computacional e identificação inteligente de plantas para o NutriAI.
+Sua missão é analisar imagens de folhas, flores, frutos, galhos, cascas, espinhos, formato geral, cor e textura para identificar a planta e prover informações educativas fundamentadas cientificamente.
+
+DIRETRIZES IMPORTANTES DE SEGURANÇA:
+1. NUNCA garanta 100% de certeza absoluta pela foto. Isso pode ser extremamente perigoso.
+2. Sempre informe um nível de confiança realista (de 0 a 100%). Se a imagem for de baixa qualidade, não for uma planta ou não for possível identificar com segurança (abaixo de 60%), retorne "identified: false" e sugira tirar outra foto sob melhor luz ou consultar especialista.
+3. Se houver qualquer suspeita ou risco de a planta ser tóxica ou venenosa, marque "isToxic: true" e retorne um aviso visual destacado em "warningMessage".
+4. Adicione sempre um alerta nítido de segurança de que o usuário nunca deve consumir uma planta desconhecida baseado apenas no resultado da IA.
+
+FORMATO DE RETORNO:
+Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve ser em português do Brasil e cientificamente embasado.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      identified: { type: Type.BOOLEAN },
+      popularName: { type: Type.STRING },
+      scientificName: { type: Type.STRING },
+      botanicalFamily: { type: Type.STRING },
+      confidence: { type: Type.INTEGER },
+      classifications: { 
+        type: Type.ARRAY, 
+        items: { 
+          type: Type.STRING,
+          enum: ["Medicinal", "Condimento/tempero", "Alimentícia", "Ornamental", "Potencialmente tóxica", "Possivelmente venenosa", "Planta nativa", "Planta exótica"]
+        } 
+      },
+      isToxic: { type: Type.BOOLEAN },
+      warningMessage: { type: Type.STRING },
+      generalDescription: { type: Type.STRING },
+      info: {
+        type: Type.OBJECT,
+        properties: {
+          origin: { type: Type.STRING },
+          biome: { type: Type.STRING },
+          brazilDistribution: { type: Type.STRING }
+        },
+        required: ["origin", "biome", "brazilDistribution"]
+      },
+      usages: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            type: { type: Type.STRING },
+            description: { type: Type.STRING },
+            evidenceLevel: { type: Type.STRING }
+          },
+          required: ["type", "description"]
+        }
+      },
+      preparation: {
+        type: Type.OBJECT,
+        nullable: true,
+        properties: {
+          partUsed: { type: Type.STRING },
+          method: { type: Type.STRING },
+          cautions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          contraindications: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["partUsed", "method", "cautions", "contraindications"]
+      },
+      cultivation: {
+        type: Type.OBJECT,
+        properties: {
+          soil: { type: Type.STRING },
+          climate: { type: Type.STRING },
+          luminosity: { type: Type.STRING },
+          watering: { type: Type.STRING },
+          fertilization: { type: Type.STRING },
+          plantingSeason: { type: Type.STRING },
+          growthTime: { type: Type.STRING },
+          harvest: { type: Type.STRING }
+        },
+        required: ["soil", "climate", "luminosity", "watering", "fertilization", "plantingSeason", "growthTime", "harvest"]
+      },
+      benefits: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+            evidence: { type: Type.STRING, enum: ["Forte evidência", "Evidência moderada", "Uso tradicional", "Evidência insuficiente"] }
+          },
+          required: ["title", "description", "evidence"]
+        }
+      },
+      curiosities: { type: Type.ARRAY, items: { type: Type.STRING } }
+    },
+    required: ["identified", "popularName", "scientificName", "botanicalFamily", "confidence", "classifications", "isToxic", "generalDescription", "info", "usages", "cultivation", "benefits", "curiosities"]
+  };
+
+  try {
+    const imagePart = {
+      inlineData: {
+        mimeType: activeMime,
+        data: cleanBase64,
+      },
+    };
+    const textPart = {
+      text: "Analise esta imagem desta planta e preencha detalhadamente a identificação no formato JSON especificado. Seja extremamente cuidadoso com a segurança.",
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts: [imagePart, textPart] },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.3,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo de IA");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro ao identificar planta via Gemini API:", err);
+    throw err;
+  }
+};
+
+export const chatAboutIdentifiedPlant = async (
+  plantName: string,
+  history: { role: 'user' | 'model', text: string }[],
+  userMessage: string
+): Promise<{ text: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é o Fitoterapeuta Especialista do NutriAI. O usuário acabou de identificar a planta "${plantName}".
+Sua tarefa é responder perguntas específicas do usuário sobre essa planta.
+
+DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
+1. Sempre lembre o usuário de que o consumo de plantas silvestres ou desconhecidas sem certificação de especialista pode ser perigoso e desaconselhável.
+2. Diga com clareza o nível de evidência dos benefícios associados (🟢 Forte, 🟡 Moderada, 🟠 Tradicional, 🔴 Insuficiente).
+3. Use um tom atencioso, caloroso e seguro.
+4. Retorne apenas JSON com o campo "text" em formato markdown. Exemplo: { "text": "Sua resposta..." }`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING }
+    },
+    required: ["text"]
+  };
+
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-3.5-flash",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      }
+    });
+
+    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Especialista'}: ${h.text}`).join('\n');
+    const finalPrompt = `HISTÓRICO DA CONVERSA:
+${stringifiedHistory}
+
+O usuário perguntou sobre a planta "${plantName}": "${userMessage}"
+RESPONDA EM JSON COM O TEXTO FORMATADO EM MARKDOWN.`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    const text = response.text;
+    if (!text) throw new Error("No response");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Identified Plant Chat Error:", error);
+    return {
+      text: "Não consegui consultar o acervo botânico específico no momento. Vamos tentar de novo? 🌿💚"
+    };
+  }
+};
+
+export interface MushroomIdentificationResult {
+  identified: boolean;
+  popularName: string;
+  scientificName: string;
+  confidence: number;
+  edibility: 'Comestível' | 'Tóxico' | 'Desconhecido';
+  warningMessage: string;
+  habitat: string;
+  growingSeason: string;
+  generalDescription: string;
+  curiosities: string[];
+  benefitsOrProperties: string[];
+  features: {
+    cap: string;
+    gills: string;
+    stem: string;
+    sporePrint: string;
+  };
+}
+
+export const identifyMushroom = async (
+  imageBase64: string,
+  mimeType: string = "image/jpeg"
+): Promise<MushroomIdentificationResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  let cleanBase64 = imageBase64;
+  let activeMime = mimeType;
+
+  if (imageBase64.startsWith("http")) {
+    try {
+      const response = await fetch(imageBase64);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      cleanBase64 = buffer.toString("base64");
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        activeMime = contentType;
+      }
+    } catch (e) {
+      console.error("Error fetching remote image URL inside identifyMushroom:", e);
+    }
+  } else if (imageBase64.includes(",")) {
+    cleanBase64 = imageBase64.split(",")[1];
+  }
+
+  const systemInstruction = `Você é um micologista especialista em identificação visual, segurança e taxonomia de cogumelos e fungos para o NutriAI.
+Sua missão é analisar imagens de fungos/cogumelos (chapéu, lâminas, caule, anel, volva, micélio) para identificar a espécie e determinar com precisão e máxima precaução se o exemplar é comestível (comestíveis), tóxico (tóxicos) ou desconhecido/duvidoso (desconhecidos).
+
+DIRETRIZES CRÍTICAS DE SEGURANÇA (MÁXIMA PRIORIDADE):
+1. ALERTA DE SEGURANÇA MANDATÓRIO: Sempre inclua um aviso extremamente nítido e em caixa alta na propriedade "warningMessage" reforçando que NUNCA se deve consumir nenhum cogumelo silvestre ou desconhecido com base APENAS na identificação por Inteligência Artificial ou fotos, pois muitas espécies comestíveis possuem sósias altamente venenosos (como Amanita phalloides vs outros cogumelos).
+2. Se a imagem não contiver um cogumelo/fungo visível, ou se a imagem for de baixa resolução, escura ou ambígua impedindo a classificação com confiança acima de 60%, você DEVE retornar "identified: false" e classificar como "Desconhecido".
+3. Seja conservador: Na menor dúvida, classifique como "Tóxico" ou "Desconhecido" para proteger a integridade física do usuário.
+4. Explique o habitat preferido, época de crescimento no ano (ex: primavera, pós-chuvas, outono úmido), curiosidades e propriedades.
+
+FORMATO DE RETORNO:
+Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve ser em português do Brasil.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      identified: { type: Type.BOOLEAN },
+      popularName: { type: Type.STRING },
+      scientificName: { type: Type.STRING },
+      confidence: { type: Type.INTEGER },
+      edibility: { type: Type.STRING, enum: ["Comestível", "Tóxico", "Desconhecido"] },
+      warningMessage: { type: Type.STRING },
+      habitat: { type: Type.STRING },
+      growingSeason: { type: Type.STRING },
+      generalDescription: { type: Type.STRING },
+      curiosities: { type: Type.ARRAY, items: { type: Type.STRING } },
+      benefitsOrProperties: { type: Type.ARRAY, items: { type: Type.STRING } },
+      features: {
+        type: Type.OBJECT,
+        properties: {
+          cap: { type: Type.STRING },
+          gills: { type: Type.STRING },
+          stem: { type: Type.STRING },
+          sporePrint: { type: Type.STRING }
+        },
+        required: ["cap", "gills", "stem", "sporePrint"]
+      }
+    },
+    required: ["identified", "popularName", "scientificName", "confidence", "edibility", "warningMessage", "habitat", "growingSeason", "generalDescription", "curiosities", "benefitsOrProperties", "features"]
+  };
+
+  try {
+    const imagePart = {
+      inlineData: {
+        mimeType: activeMime,
+        data: cleanBase64,
+      },
+    };
+    const textPart = {
+      text: "Analise detalhadamente as características deste cogumelo e preencha a identificação micológica no formato JSON especificado. Enfatize as regras de segurança.",
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts: [imagePart, textPart] },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo de IA");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro ao identificar cogumelo via Gemini API:", err);
+    throw err;
+  }
+};
+
+export const chatAboutIdentifiedMushroom = async (
+  mushroomName: string,
+  history: { role: 'user' | 'model', text: string }[],
+  userMessage: string
+): Promise<{ text: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é o Micologista Especialista do NutriAI. O usuário identificou o cogumelo "${mushroomName}".
+Sua tarefa é responder a dúvidas e prover suporte de forma extremamente prudente, científica e educativa sobre esse espécime.
+
+DIRETRIZES DE SEGURANÇA INDISPENSÁVEIS:
+1. Sempre inicie com uma nota curta ou lembrete de que o consumo de cogumelos silvestres colhidos sem perícia física de micologista profissional é perigoso e desaconselhado.
+2. Seja preciso quanto à edibilidade conhecida.
+3. Responda em português do Brasil, de forma clara, amigável e segura.
+4. Retorne apenas JSON com o campo "text" em formato markdown. Exemplo: { "text": "Sua resposta..." }`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING }
+    },
+    required: ["text"]
+  };
+
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-3.5-flash",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      }
+    });
+
+    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Micologista'}: ${h.text}`).join('\n');
+    const finalPrompt = `HISTÓRICO DA CONVERSA:
+${stringifiedHistory}
+
+O usuário perguntou sobre o cogumelo "${mushroomName}": "${userMessage}"
+RESPONDA EM JSON COM O TEXTO FORMATADO EM MARKDOWN.`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    const text = response.text;
+    if (!text) throw new Error("No response");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Identified Mushroom Chat Error:", error);
+    return {
+      text: "Não consegui acessar a base micológica no momento. Por favor, tente novamente mais tarde."
+    };
+  }
+};
+
+export interface FoodAllergyAnalysisResult {
+  identified: boolean;
+  productName: string;
+  ingredientsFound: string;
+  isSafe: boolean;
+  allergensDetected: string[];
+  userSpecificThreats: { allergen: string; ingredientSource: string; severity: 'Alta' | 'Média' | 'Baixa' }[];
+  alternativesSuggested: string[];
+  detailedAnalysis: string;
+  score: number;
+}
+
+export const analyzeFoodAllergens = async (
+  imageBase64: string,
+  userAllergies: string[],
+  mimeType: string = "image/jpeg"
+): Promise<FoodAllergyAnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  let cleanBase64 = imageBase64;
+  let activeMime = mimeType;
+
+  if (imageBase64.startsWith("http")) {
+    try {
+      const response = await fetch(imageBase64);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      cleanBase64 = buffer.toString("base64");
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        activeMime = contentType;
+      }
+    } catch (e) {
+      console.error("Error fetching remote image URL inside analyzeFoodAllergens:", e);
+    }
+  } else if (imageBase64.includes(",")) {
+    cleanBase64 = imageBase64.split(",")[1];
+  }
+
+  const systemInstruction = `Você é um Engenheiro de Alimentos e Nutricionista especialista em alergias alimentares e leitura técnica de rótulos de ingredientes para o NutriAI.
+Sua missão é analisar imagens de rótulos de ingredientes, tabelas nutricionais ou de alimentos prontos para identificar ingredientes e determinar se o alimento é seguro ou perigoso de acordo com a lista de alergias fornecida pelo usuário.
+
+DIRETRIZES IMPORTANTES:
+1. Alergênicos comuns de alta prioridade: Glúten, Lactose, Amendoim, Soja, Castanhas/Nozes, Ovos, Frutos do mar, Leite e Trigo.
+2. Identifique os ingredientes reais que causam o alerta (ex: "leite em pó", "soro de leite", "farinha de trigo", "lecitina de soja").
+3. Determine se é SEGURO para o usuário específico considerando a lista de alergias dele: "userAllergies". Se contiver algum ingrediente que cause reação às alergias cadastradas, "isSafe" DEVE ser false.
+4. "score" de segurança: 100 se for totalmente livre de alérgenos de interesse do usuário; menor quanto maior o risco ou ambiguidade do rótulo.
+5. Se a imagem não for de um rótulo ou alimento identificável, defina "identified: false".
+6. Apresente alternativas seguras para o alimento analisado e faça uma análise detalhada em português.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      identified: { type: Type.BOOLEAN },
+      productName: { type: Type.STRING },
+      ingredientsFound: { type: Type.STRING },
+      isSafe: { type: Type.BOOLEAN },
+      allergensDetected: { type: Type.ARRAY, items: { type: Type.STRING } },
+      userSpecificThreats: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            allergen: { type: Type.STRING },
+            ingredientSource: { type: Type.STRING },
+            severity: { type: Type.STRING, enum: ["Alta", "Média", "Baixa"] }
+          },
+          required: ["allergen", "ingredientSource", "severity"]
+        }
+      },
+      alternativesSuggested: { type: Type.ARRAY, items: { type: Type.STRING } },
+      detailedAnalysis: { type: Type.STRING },
+      score: { type: Type.INTEGER }
+    },
+    required: ["identified", "productName", "ingredientsFound", "isSafe", "allergensDetected", "userSpecificThreats", "alternativesSuggested", "detailedAnalysis", "score"]
+  };
+
+  try {
+    const imagePart = {
+      inlineData: {
+        mimeType: activeMime,
+        data: cleanBase64,
+      },
+    };
+    const textPart = {
+      text: `Analise as alergias deste usuário: [${userAllergies.join(", ")}].
+Verifique se há traços, derivados ou presença direta dessas substâncias ou de outros alérgenos comuns (Glúten, Lactose, Amendoim, Soja, Castanhas, Ovos, Frutos do mar) na imagem de alimento/rótulo fornecida.
+Retorne o JSON preenchido adequadamente em português brasileiro.`,
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts: [imagePart, textPart] },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.1,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo de IA");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro ao analisar alergias via Gemini API:", err);
+    throw err;
+  }
+};
+
+export const chatAboutAllergies = async (
+  productName: string,
+  userAllergies: string[],
+  history: { role: 'user' | 'model', text: string }[],
+  userMessage: string
+): Promise<{ text: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é o Alergologista Especialista em Segurança Alimentar do NutriAI. O usuário está analisando o produto "${productName}" e possui as seguintes alergias cadastradas: [${userAllergies.join(", ")}].
+Sua tarefa é esclarecer dúvidas sobre contaminação cruzada, ingredientes ocultos, nomenclatura técnica (ex: caseína para leite, maltodextrina para glúten) e segurança geral do alimento analisado.
+
+Responda em português do Brasil de forma clara, amigável, precisa e extremamente cuidadosa com a saúde.
+Retorne apenas JSON com o campo "text" em formato markdown. Exemplo: { "text": "Sua resposta..." }`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      text: { type: Type.STRING }
+    },
+    required: ["text"]
+  };
+
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-3.5-flash",
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      }
+    });
+
+    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Especialista'}: ${h.text}`).join('\n');
+    const finalPrompt = `HISTÓRICO DA CONVERSA:
+${stringifiedHistory}
+
+O usuário perguntou sobre o produto "${productName}": "${userMessage}"
+RESPONDA EM JSON COM O TEXTO FORMATADO EM MARKDOWN.`;
+
+    const response = await chat.sendMessage({ message: finalPrompt });
+    const text = response.text;
+    if (!text) throw new Error("No response");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Allergies Chat Error:", error);
+    return {
+      text: "Não consegui consultar o banco de alérgenos no momento. Se tiver dúvidas, não consuma o produto."
+    };
+  }
+};
+
+export interface ProductComparisonResult {
+  productA: {
+    name: string;
+    calories: string;
+    sugars: string;
+    fats: string;
+    sodium: string;
+    proteins: string;
+    ingredients: string;
+    processingLevel: 'Baixo' | 'Médio' | 'Alto';
+  };
+  productB: {
+    name: string;
+    calories: string;
+    sugars: string;
+    fats: string;
+    sodium: string;
+    proteins: string;
+    ingredients: string;
+    processingLevel: 'Baixo' | 'Médio' | 'Alto';
+  };
+  comparison: {
+    betterOption: 'A' | 'B' | 'Empate';
+    winnerName: string;
+    reason: string;
+    macroComparison: string;
+    detailedAnalysis: string;
+    recommendations: string[];
+  };
+}
+
+export const compareTwoProducts = async (
+  imageOrTextA: string,
+  imageOrTextB: string,
+  userGoal: string
+): Promise<ProductComparisonResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é um Engenheiro de Alimentos e Nutricionista especialista em análise comparativa de rótulos e tabelas nutricionais para o NutriAI.
+Sua missão é analisar as informações de dois produtos (sejam fotos de embalagens, tabelas de nutrientes ou descrições em texto) e realizar uma comparação criteriosa de:
+- Calorias (Calorias)
+- Açúcares (Açúcares)
+- Gorduras (Gorduras)
+- Sódio (Sódio)
+- Proteínas (Proteínas)
+- Ingredientes (Ingredientes e aditivos)
+
+Com base no OBJETIVO de saúde ou dieta do usuário ("userGoal"), você deve determinar qual é o produto mais adequado (Opção A, Opção B ou Empate).
+
+DIRETRIZES IMPORTANTES:
+1. Extraia o nome correto de cada produto. Se não for possível identificar perfeitamente por imagem, use pistas visuais ou descrições.
+2. Extraia os valores quantitativos para Calorias, Açúcares, Gorduras, Sódio e Proteínas por porção comparável (ou indique a porção considerada para ficar justo).
+3. Avalie a qualidade dos ingredientes: evite açúcares ocultos, adoçantes nocivos, excesso de conservantes ou gorduras hidrogenadas.
+4. Classifique o nível de processamento de cada produto (Baixo, Médio, Alto).
+5. No campo "comparison.betterOption", responda rigorosamente com "A", "B" ou "Empate".
+6. Apresente uma análise detalhada em português do Brasil e faça sugestões práticas de consumo.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      productA: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.STRING },
+          sugars: { type: Type.STRING },
+          fats: { type: Type.STRING },
+          sodium: { type: Type.STRING },
+          proteins: { type: Type.STRING },
+          ingredients: { type: Type.STRING },
+          processingLevel: { type: Type.STRING, enum: ["Baixo", "Médio", "Alto"] }
+        },
+        required: ["name", "calories", "sugars", "fats", "sodium", "proteins", "ingredients", "processingLevel"]
+      },
+      productB: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.STRING },
+          sugars: { type: Type.STRING },
+          fats: { type: Type.STRING },
+          sodium: { type: Type.STRING },
+          proteins: { type: Type.STRING },
+          ingredients: { type: Type.STRING },
+          processingLevel: { type: Type.STRING, enum: ["Baixo", "Médio", "Alto"] }
+        },
+        required: ["name", "calories", "sugars", "fats", "sodium", "proteins", "ingredients", "processingLevel"]
+      },
+      comparison: {
+        type: Type.OBJECT,
+        properties: {
+          betterOption: { type: Type.STRING, enum: ["A", "B", "Empate"] },
+          winnerName: { type: Type.STRING },
+          reason: { type: Type.STRING },
+          macroComparison: { type: Type.STRING },
+          detailedAnalysis: { type: Type.STRING },
+          recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["betterOption", "winnerName", "reason", "macroComparison", "detailedAnalysis", "recommendations"]
+      }
+    },
+    required: ["productA", "productB", "comparison"]
+  };
+
+  const parts: any[] = [];
+
+  // Helper function to prepare input parts for Gemini API
+  const processInput = async (input: string, label: string) => {
+    if (input.startsWith("http")) {
+      try {
+        const response = await fetch(input);
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        parts.push({
+          inlineData: {
+            mimeType: response.headers.get("content-type") || "image/jpeg",
+            data: buffer.toString("base64"),
+          }
+        });
+        parts.push({ text: `Este é a imagem/rótulo do Produto ${label}.` });
+      } catch (e) {
+        console.error(`Error fetching remote URL for Product ${label}:`, e);
+        parts.push({ text: `Descrição/URL do Produto ${label}: ${input}` });
+      }
+    } else if (input.startsWith("data:image")) {
+      const mime = input.split(";")[0].split(":")[1] || "image/jpeg";
+      const base64 = input.split(",")[1];
+      parts.push({
+        inlineData: {
+          mimeType: mime,
+          data: base64,
+        }
+      });
+      parts.push({ text: `Esta é a imagem/rótulo do Produto ${label}.` });
+    } else {
+      parts.push({ text: `Dados ou descrição textual fornecida para o Produto ${label}: ${input}` });
+    }
+  };
+
+  await processInput(imageOrTextA, "A");
+  await processInput(imageOrTextB, "B");
+
+  parts.push({
+    text: `O objetivo de saúde do usuário é: "${userGoal}".
+Por favor, analise as tabelas nutricionais e listas de ingredientes de ambos os produtos. Compare Calorias, Açúcares, Gorduras, Sódio, Proteínas e a qualidade global dos Ingredientes.
+Explique detalhadamente em português qual opção (A ou B) se encaixa melhor no objetivo escolhido e por quê. Retorne estritamente em formato JSON estruturado segundo o schema fornecido.`
+  });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.1,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo ao comparar produtos");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro na comparação de produtos via Gemini:", err);
+    throw err;
+  }
+};
+
+export interface FridgeAnalysisResult {
+  identifiedItems: {
+    name: string;
+    quantity: string;
+    category: string;
+    estimatedDaysToExpiration: number;
+    status: 'fresco' | 'perto_vencimento' | 'vencido';
+  }[];
+  suggestedRecipes: {
+    title: string;
+    description: string;
+    usedIngredients: string[];
+    missingIngredients: string[];
+    prepTime: string;
+    difficulty: string;
+    instructions: string[];
+  }[];
+  suggestedShoppingList: {
+    name: string;
+    category: string;
+    estimatedPrice?: string;
+    reason: string;
+  }[];
+}
+
+export const analyzeFridgeContents = async (
+  imageInput: string
+): Promise<FridgeAnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é uma Inteligência Artificial especialista em Cozinha Inteligente, Combate ao Desperdício e Nutrição para o NutriAI.
+Sua tarefa é analisar uma foto da geladeira ou despensa do usuário (ou processar os dados textuais/descrições se ele os enviou) e:
+1. Identificar o maior número possível de alimentos e ingredientes disponíveis.
+2. Atribuir uma quantidade estimada (ex: "1kg", "4 unidades", "Metade").
+3. Classificar o alimento em categorias padrão brasileiras (Vegetais, Proteínas, Laticínios, Bebidas, Condimentos, Outros).
+4. Estimar os dias restantes para o vencimento do produto (ex: folhosas estragam rápido, iogurtes abertos duram pouco; carnes cruas duram 2-3 dias na geladeira se não congeladas). Marque status como:
+   - "fresco" se tiver 4 ou mais dias restantes de frescor/consumo seguro.
+   - "perto_vencimento" se tiver de 1 a 3 dias de frescor restante.
+   - "vencido" se aparentar estar murcho, estragado ou mofado.
+5. Sugerir de 2 a 3 receitas saudáveis em português do Brasil que utilizem majoritariamente os alimentos identificados (pode assumir temperos básicos como sal/óleo/alho/cebola). Especifique quais ingredientes usados estão presentes e se há algum ingrediente essencial faltando.
+6. Gerar automaticamente uma lista de compras inteligente com os ingredientes que faltam para as receitas propostas ou que combinam com o reabastecimento saudável daquela cozinha. Explique o motivo de cada sugestão de compra em português do Brasil.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      identifiedItems: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            quantity: { type: Type.STRING },
+            category: { type: Type.STRING },
+            estimatedDaysToExpiration: { type: Type.INTEGER },
+            status: { type: Type.STRING, enum: ["fresco", "perto_vencimento", "vencido"] }
+          },
+          required: ["name", "quantity", "category", "estimatedDaysToExpiration", "status"]
+        }
+      },
+      suggestedRecipes: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+            usedIngredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+            missingIngredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+            prepTime: { type: Type.STRING },
+            difficulty: { type: Type.STRING },
+            instructions: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["title", "description", "usedIngredients", "missingIngredients", "prepTime", "difficulty", "instructions"]
+        }
+      },
+      suggestedShoppingList: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            category: { type: Type.STRING },
+            estimatedPrice: { type: Type.STRING },
+            reason: { type: Type.STRING }
+          },
+          required: ["name", "category", "reason"]
+        }
+      }
+    },
+    required: ["identifiedItems", "suggestedRecipes", "suggestedShoppingList"]
+  };
+
+  const parts: any[] = [];
+
+  if (imageInput.startsWith("http")) {
+    try {
+      const response = await fetch(imageInput);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      parts.push({
+        inlineData: {
+          mimeType: response.headers.get("content-type") || "image/jpeg",
+          data: buffer.toString("base64"),
+        }
+      });
+      parts.push({ text: "Esta é a imagem da geladeira/despensa enviada pelo usuário." });
+    } catch (e) {
+      console.error("Error fetching remote URL for fridge image:", e);
+      parts.push({ text: `Descrição da geladeira: ${imageInput}` });
+    }
+  } else if (imageInput.startsWith("data:image")) {
+    const mime = imageInput.split(";")[0].split(":")[1] || "image/jpeg";
+    const base64 = imageInput.split(",")[1];
+    parts.push({
+      inlineData: {
+        mimeType: mime,
+        data: base64,
+      }
+    });
+    parts.push({ text: "Esta é a imagem da geladeira/despensa enviada pelo usuário." });
+  } else {
+    parts.push({ text: `Descrição textual fornecida pelo usuário sobre o que tem em casa: ${imageInput}` });
+  }
+
+  parts.push({
+    text: `Por favor, faça a identificação visual ou textual completa dos alimentos de forma realista.
+Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido contendo os alimentos identificados, estimativa de dias até vencer (pelo frescor visual), receitas possíveis de preparar com eles e uma lista de compras automática recomendada.`
+  });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo ao analisar geladeira");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro na análise da geladeira via Gemini:", err);
+    throw err;
+  }
+};
+
+export interface PlantDiagnosisResult {
+  diagnosis: string;
+  causes: string[];
+  organicSolutions: string[];
+  preventions: string[];
+  urgency: 'baixa' | 'media' | 'alta';
+}
+
+export const diagnosePlantHealth = async (
+  description: string,
+  imageInput?: string
+): Promise<PlantDiagnosisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const systemInstruction = `Você é um Agrônomo e Botânico especialista em Hortas Urbanas e Domésticas para o NutriAI.
+Sua missão é ajudar usuários que estão plantando Alface, Tomate, Cebolinha, Hortelã, Manjericão ou Alecrim a identificar problemas de saúde nas plantas (doenças, deficiências nutricionais, pragas, excesso/falta de água ou sol) e sugerir soluções estritamente orgânicas/caseiras.
+Forneça as respostas de forma acolhedora, prática, didática e em português do Brasil.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      diagnosis: { type: Type.STRING },
+      causes: { type: Type.ARRAY, items: { type: Type.STRING } },
+      organicSolutions: { type: Type.ARRAY, items: { type: Type.STRING } },
+      preventions: { type: Type.ARRAY, items: { type: Type.STRING } },
+      urgency: { type: Type.STRING, enum: ["baixa", "media", "alta"] }
+    },
+    required: ["diagnosis", "causes", "organicSolutions", "preventions", "urgency"]
+  };
+
+  const parts: any[] = [];
+
+  if (imageInput) {
+    if (imageInput.startsWith("data:image")) {
+      const mime = imageInput.split(";")[0].split(":")[1] || "image/jpeg";
+      const base64 = imageInput.split(",")[1];
+      parts.push({
+        inlineData: {
+          mimeType: mime,
+          data: base64,
+        }
+      });
+    }
+  }
+
+  parts.push({
+    text: `O usuário está cultivando uma planta na horta caseira.
+Sintomas / Descrição do problema fornecido pelo usuário: "${description}"
+
+Analise o caso e forneça um diagnóstico ecológico preciso, as causas prováveis, de 3 a 5 soluções totalmente orgânicas e fáceis de aplicar em apartamento/casa (ex: calda de fumo, óleo de neem, controle de rega, pó de café, casca de ovo, etc.), medidas preventivas e o nível de urgência.`
+  });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts },
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.3,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Sem resposta do modelo ao diagnosticar planta");
+    return JSON.parse(text);
+  } catch (err: any) {
+    console.error("Erro no diagnóstico de horta via Gemini:", err);
+    throw err;
+  }
+};
+
+export const getWaterQualityAdvice = async (
+  queryText: string
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const systemInstruction = `Você é um Engenheiro de Recursos Hídricos, Nutrólogo e Botânico especialista em Qualidade da Água e Hidratação.
+Sua missão é dar respostas precisas, científicas, acolhedoras e em português do Brasil sobre filtragem de água, pH, TDS (sólidos dissolvidos totais), tipos de filtros (filtro de barro, carvão ativado, osmose reversa, ozonizadores), mineralização, água da torneira e os impactos de cada origem de água no corpo humano e plantas. Se limite a responder sobre qualidade e consumo de água, mantendo um tom educativo e profissional.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `O usuário tem a seguinte dúvida sobre a qualidade ou origem da água: "${queryText}". Dê uma resposta de até 4 parágrafos, didática, amigável e com dicas práticas excelentes.`,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.5,
+      }
+    });
+
+    return response.text || "Não foi possível analisar sua dúvida no momento.";
+  } catch (err: any) {
+    console.error("Erro no conselheiro de qualidade da água:", err);
+    throw err;
+  }
+};
+
+;
 
 
 

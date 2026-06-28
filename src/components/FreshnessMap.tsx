@@ -293,8 +293,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                       const store = MOCK_STORES.find(s => s.id === BANNER_SLIDES[currentSlide].storeId);
                       if (store) selectStore(store);
                     }}
-                    className="px-5 md:px-6 py-2.5 md:py-3 clay-btn font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
-                    style={{ color: '#fffefe' }}
+                    className="px-5 md:px-6 py-2.5 md:py-3 clay-btn text-emerald-800 dark:text-emerald-400 font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
                   >
                     Comprar Agora
                     <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
@@ -451,7 +450,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center gap-3 md:gap-4 mt-3 md:mt-4 pt-3 md:pt-4 border-t border-emerald-200/30 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <Leaf className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-500" />
-                    <span className="text-[10px] font-black uppercase text-white">Fresco: {selectedStore.freshnessScore}/10</span>
+                    <span className="text-[10px] font-black uppercase text-black">Fresco: {selectedStore.freshnessScore}/10</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500" />
@@ -473,8 +472,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
 
               <div className="flex gap-3 w-full box-border">
                 <button 
-                  className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate"
-                  style={{ color: '#fffefe' }}
+                  className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate text-[#00ff01]"
                 >
                   Ver Produtos
                 </button>

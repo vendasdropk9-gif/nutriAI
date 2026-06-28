@@ -135,6 +135,12 @@ export const analyzeProductImage = async (
   return callGeminiEndpoint('analyzeProductImage', [base64Image, mimeType, profile]);
 };
 
+export const analyzeImage = async (
+  base64Image: string,
+  prompt: string
+): Promise<string | null> => {
+  return callGeminiEndpoint('analyzeImage', [base64Image, prompt]);
+};
 
 export const analyzeEmotionalPatterns = async (
   logs: EmotionalLog[],
@@ -277,5 +283,72 @@ export const analyzeBodyBiometrics = async (
 } | null> => {
   return callGeminiEndpoint('analyzeBodyBiometrics', [logs, profile]);
 };
+
+export const generateDailyNutritionTips = async (
+  profile: UserProfile | null
+): Promise<{
+  tips: {
+    category: string;
+    title: string;
+    content: string;
+    recommendation: string;
+    icon: string;
+  }[];
+} | null> => {
+  return callGeminiEndpoint('generateDailyNutritionTips', [profile]);
+};
+
+export interface FridgeAnalysisResult {
+  identifiedItems: {
+    name: string;
+    quantity: string;
+    category: string;
+    estimatedDaysToExpiration: number;
+    status: 'fresco' | 'perto_vencimento' | 'vencido';
+  }[];
+  suggestedRecipes: {
+    title: string;
+    description: string;
+    usedIngredients: string[];
+    missingIngredients: string[];
+    prepTime: string;
+    difficulty: string;
+    instructions: string[];
+  }[];
+  suggestedShoppingList: {
+    name: string;
+    category: string;
+    estimatedPrice?: string;
+    reason: string;
+  }[];
+}
+
+export const analyzeFridgeContents = async (
+  imageInput: string
+): Promise<FridgeAnalysisResult> => {
+  return callGeminiEndpoint('analyzeFridgeContents', [imageInput]);
+};
+
+export interface PlantDiagnosisResult {
+  diagnosis: string;
+  causes: string[];
+  organicSolutions: string[];
+  preventions: string[];
+  urgency: 'baixa' | 'media' | 'alta';
+}
+
+export const diagnosePlantHealth = async (
+  description: string,
+  imageInput?: string
+): Promise<PlantDiagnosisResult> => {
+  return callGeminiEndpoint('diagnosePlantHealth', [description, imageInput]);
+};
+
+export const getWaterQualityAdvice = async (
+  queryText: string
+): Promise<string> => {
+  return callGeminiEndpoint('getWaterQualityAdvice', [queryText]);
+};
+
 
 

@@ -259,7 +259,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
             </p>
           </div>
 
-          <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-[32px]">
+          <div className="clay-card p-6 md:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[32px]">
             
             {/* State 1: Selection - Live Camera, Photo Upload or Recommendations only */}
             {!previewImage && !isScanning && !analysisResult && !isCameraActive && (
@@ -297,7 +297,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
 
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-705 text-slate-750 dark:text-slate-200 font-sans font-medium text-xs rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 hover:-translate-y-0.5 duration-200"
+                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-sans font-medium text-xs rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 hover:-translate-y-0.5 duration-200"
                   >
                     <Upload className="w-4 h-4" />
                     Enviar Foto
@@ -331,7 +331,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
 
         {/* State 1.5: Front-facing/Webcam Live Stream Preview */}
         {isCameraActive && !previewImage && (
-          <div className="flex flex-col items-center justify-center space-y-6 w-full animate-in fade-in duration-350">
+          <div className="flex flex-col items-center justify-center space-y-6 w-full animate-in fade-in duration-300">
             <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner">
               
               {!cameraError && (
@@ -366,7 +366,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                   </p>
                   <button
                     onClick={stopCamera}
-                    className="bg-slate-800 hover:bg-slate-705 text-white font-medium px-6 py-2.5 rounded-full text-xs transition-all active:scale-95 shadow-md"
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-medium px-6 py-2.5 rounded-full text-xs transition-all active:scale-95 shadow-md"
                   >
                     Voltar para Seleção
                   </button>
@@ -379,7 +379,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 <button
                   type="button"
                   onClick={stopCamera}
-                  className="absolute left-0 sm:left-4 bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-colors flex items-center gap-1.5 text-xs sm:text-sm shadow-sm active:scale-95"
+                  className="absolute left-0 sm:left-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-colors flex items-center gap-1.5 text-xs sm:text-sm shadow-sm active:scale-95"
                 >
                   Cancelar
                 </button>
@@ -440,7 +440,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                   </button>
                   <div className="pt-1 flex-1">
                     <h4 className="font-serif text-xl text-slate-800 dark:text-slate-100 font-medium mb-2">Mensagem do Treinador:</h4>
-                    <p className="font-sans text-slate-600 dark:text-slate-300 text-base md:text-lg leading-relaxed italic border-l-4 border-emerald-500 pl-4 bg-slate-50 dark:bg-slate-850/40 py-2 rounded-r-lg">
+                    <p className="font-sans text-slate-600 dark:text-slate-300 text-base md:text-lg leading-relaxed italic border-l-4 border-emerald-500 pl-4 bg-slate-50 dark:bg-slate-800/40 py-2 rounded-r-lg">
                       "{analysisResult.assistantMessage}"
                     </p>
                   </div>
@@ -449,7 +449,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
               <div className="shrink-0 w-full md:w-auto pt-2 flex justify-end">
                  <button
                   onClick={resetAnalyzer}
-                  className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-205 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full md:w-auto shadow-sm"
+                  className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 w-full md:w-auto shadow-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Reiniciar
@@ -458,7 +458,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-850 rounded-[24px] p-6 shadow-sm">
+              <div className="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800 rounded-[24px] p-6 shadow-sm">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center">
                        <Heart className="w-5 h-5" />
@@ -475,7 +475,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                  </ul>
               </div>
 
-              <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-105 dark:border-blue-850 rounded-[24px] p-6 shadow-sm">
+              <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-105 dark:border-blue-800 rounded-[24px] p-6 shadow-sm">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
                        <Droplet className="w-5 h-5" />
@@ -492,7 +492,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                  </ul>
               </div>
 
-              <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-850 rounded-[24px] p-6 shadow-sm">
+              <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800 rounded-[24px] p-6 shadow-sm">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
                        <Dumbbell className="w-5 h-5" />

@@ -189,7 +189,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                     </div>
                  </div>
                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-650 dark:text-emerald-400 rounded-2xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shrink-0">
                        <Wallet className="w-6 h-6" />
                     </div>
                     <div>
@@ -202,7 +202,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
               <div className="flex gap-4">
                 <button 
                    onClick={() => setStep('register')}
-                   className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl hover:bg-emerald-650 hover:scale-[1.01] transition-all flex items-center gap-2"
+                   className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl hover:bg-emerald-600 hover:scale-[1.01] transition-all flex items-center gap-2"
                 >
                    Começar Cadastro
                    <Bike className="w-5 h-5" />
@@ -270,21 +270,21 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
               <div className="space-y-4">
                  <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Nome Completo</label>
-                    <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: Lucas Ferreira de Souza" />
+                    <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: Lucas Ferreira de Souza" />
                  </div>
                  <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Celular / WhatsApp</label>
-                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: (11) 99999-8888" />
+                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: (11) 99999-8888" />
                  </div>
 
                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Documento (RG)</label>
-                       <input required type="text" value={rg} onChange={e => setRg(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: 12.345.678-9" />
+                       <input required type="text" value={rg} onChange={e => setRg(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: 12.345.678-9" />
                     </div>
                     <div>
                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Habilitação (CNH)</label>
-                       <input required type="text" value={cnh} onChange={e => setCnh(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: 01234567890" />
+                       <input required type="text" value={cnh} onChange={e => setCnh(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: 01234567890" />
                     </div>
                  </div>
 
@@ -313,9 +313,9 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                         {vehicleType === 'moto' ? 'Marca/Modelo & Placa' : 'Marca/Modelo do Veículo'}
                       </label>
                       <div className="flex gap-2">
-                        <input type="text" value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder={vehicleType === 'moto' ? "Ex: Honda CG" : "Ex: Caloi Explorer"} />
+                        <input type="text" value={vehicleModel} onChange={e => setVehicleModel(e.target.value)} className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder={vehicleType === 'moto' ? "Ex: Honda CG" : "Ex: Caloi Explorer"} />
                         {vehicleType === 'moto' && (
-                          <input required type="text" value={plate} onChange={e => setPlate(e.target.value)} className="w-24 p-4 bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205 text-center uppercase" placeholder="ABC-1234" />
+                          <input required type="text" value={plate} onChange={e => setPlate(e.target.value)} className="w-24 p-4 bg-slate-100 dark:bg-slate-950 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200 text-center uppercase" placeholder="ABC-1234" />
                         )}
                       </div>
                    </div>
@@ -324,11 +324,11 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                  <div className="grid md:grid-cols-2 gap-4">
                    <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Rotas Preferenciais</label>
-                      <input type="text" value={routes} onChange={e => setRoutes(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: Paulista, Jardins, Pinheiros" />
+                      <input type="text" value={routes} onChange={e => setRoutes(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: Paulista, Jardins, Pinheiros" />
                    </div>
                    <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Horários Disponíveis</label>
-                      <input type="text" value={hours} onChange={e => setHours(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-805 dark:text-slate-205" placeholder="Ex: 08:00 - 18:00" />
+                      <input type="text" value={hours} onChange={e => setHours(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 text-xs text-slate-800 dark:text-slate-200" placeholder="Ex: 08:00 - 18:00" />
                    </div>
                  </div>
               </div>
@@ -337,7 +337,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                  <button 
                   type="submit" 
                   disabled={isLoading}
-                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-650 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2"
                  >
                     {isLoading ? 'Conectando...' : 'Finalizar Ativação do Entregador'}
                     <Check className="w-5 h-5" />
@@ -352,7 +352,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
   return (
     <div className="max-w-md mx-auto min-h-[80vh] bg-slate-50 dark:bg-slate-900 rounded-[32px] shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 relative animate-in zoom-in-95 duration-500 pb-20">
       {/* Port Header */}
-      <div className="bg-white dark:bg-slate-800 p-6 shadow-sm z-10 flex items-center justify-between border-b dark:border-slate-750">
+      <div className="bg-white dark:bg-slate-800 p-6 shadow-sm z-10 flex items-center justify-between border-b dark:border-slate-700">
          <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border-2 border-emerald-500">
                <img src={courier?.photoURL || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=150&h=150"} alt="Avatar" className="w-full h-full object-cover" />
@@ -432,7 +432,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                      </div>
                   ) : (
                      activeJobs.map((job) => (
-                        <div key={job.id} className="bg-white dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-705 shadow-sm space-y-6">
+                        <div key={job.id} className="bg-white dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
                            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700/60">
                               <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 bg-emerald-50 content-[''] flex items-center justify-center rounded-xl text-emerald-600 shrink-0">
@@ -457,7 +457,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                                  </div>
                                  <div className="flex-1">
                                     <p className="font-bold text-slate-400 uppercase text-[8px] tracking-widest mb-1 text-left">Ponto de Coleta</p>
-                                    <p className="text-slate-800 dark:text-slate-205 font-bold">NutriAI Fresh Market</p>
+                                    <p className="text-slate-800 dark:text-slate-200 font-bold">NutriAI Fresh Market</p>
                                     <p className="text-[10px] text-slate-500 truncate">Av. Paulista, 1500 • Bela Vista</p>
                                  </div>
                               </div>
@@ -469,7 +469,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                                  </div>
                                  <div className="flex-1">
                                     <p className="font-bold text-slate-400 uppercase text-[8px] tracking-widest mb-1 text-left">Local da Entrega</p>
-                                    <p className="text-slate-800 dark:text-slate-205 font-bold">{job.deliveryAddress}</p>
+                                    <p className="text-slate-800 dark:text-slate-200 font-bold">{job.deliveryAddress}</p>
                                     <p className="text-[10px] text-slate-500">Aproximadamente 4.2 km de rota</p>
                                  </div>
                               </div>
@@ -549,7 +549,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
       </AnimatePresence>
 
       {/* Footer Nav tabs */}
-      <div className="absolute inset-x-0 bottom-0 bg-white dark:bg-slate-800 border-t border-slate-205 dark:border-slate-750 flex justify-around p-4 font-sans">
+      <div className="absolute inset-x-0 bottom-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around p-4 font-sans">
          {[
             { id: 'home', icon: Navigation, label: 'Painel' },
             { id: 'settings', icon: Settings, label: 'Voltar' }

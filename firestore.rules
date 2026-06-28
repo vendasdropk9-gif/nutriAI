@@ -167,6 +167,47 @@ service cloud.firestore {
                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'updatedAt', 'category', 'tags']);
         allow delete: if isOwner(userId);
       }
+
+      // SUBCOLLECTION FOR USER FAVORITE HERBS
+      match /favoriteHerbs/{favoriteId} {
+        allow list, get, create, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR PLANT IDENTIFICATIONS HISTORY
+      match /plantIdentifications/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR MUSHROOM IDENTIFICATIONS HISTORY
+      match /mushroomIdentifications/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR ALLERGY SCANS HISTORY
+      match /allergyScans/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR PRODUCT COMPARISONS HISTORY
+      match /productComparisons/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR SMART FRIDGE INVENTORY ITEMS
+      match /fridgeItems/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+
+      // SUBCOLLECTION FOR SMART GARDEN CROPS
+      match /gardenCrops/{id} {
+        allow list, get, create, update, delete: if isOwner(userId);
+      }
+    }
+
+    // Medicinal Herbs (global encyclopedia)
+    match /medicinalHerbs/{herbId} {
+      allow list, get: if isSignedIn();
+      allow write: if false; // Deny direct client writes to preserve clinical accuracy
     }
 
     // Recipes (global/saved)

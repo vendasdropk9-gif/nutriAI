@@ -277,7 +277,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
       {/* Premium Header */}
       <div className="text-center md:text-left space-y-2">
         <h2 className="font-serif text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 flex items-center justify-center md:justify-start gap-3">
-          <Heart className="w-9 h-9 text-rose-500 animate-pulse fill-rose-550" />
+          <Heart className="w-9 h-9 text-rose-500 animate-pulse fill-rose-600" />
           Medidor de Pressão Arterial Inteligente
         </h2>
         <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-2xl">
@@ -309,7 +309,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
       </div>
 
       {/* Main card panel */}
-      <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/60 dark:border-slate-750/60 rounded-[32px] shadow-2xl p-6 md:p-8 space-y-8 relative overflow-hidden transition-all duration-300">
+      <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 rounded-[32px] shadow-2xl p-6 md:p-8 space-y-8 relative overflow-hidden transition-all duration-300">
         
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && (
@@ -447,7 +447,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                     <ClipboardList className="w-5 h-5 text-emerald-500" />
                     Inserir Manualmente
                   </h4>
-                  <p className="text-xs text-slate-400 dark:text-slate-550">Digite os valores caso tenha medido em um aparelho mecânico ou Bluetooth externo.</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-600">Digite os valores caso tenha medido em um aparelho mecânico ou Bluetooth externo.</p>
                 </div>
 
                 <form onSubmit={handleManualSubmit} className="space-y-4">
@@ -536,7 +536,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
 
                   <button
                     type="submit"
-                    className="w-full bg-slate-850 hover:bg-slate-900 dark:bg-slate-700 hover:dark:bg-slate-650 text-white font-bold py-3.5 rounded-[16px] transition-all duration-300 text-xs shadow-md shadow-slate-900/10"
+                    className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 hover:dark:bg-slate-600 text-white font-bold py-3.5 rounded-[16px] transition-all duration-300 text-xs shadow-md shadow-slate-900/10"
                   >
                     Salvar Registro Manual (+10 XP)
                   </button>
@@ -575,15 +575,15 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
               {/* Stat Boxes */}
               {statsSummary && (
                 <div className="grid grid-cols-3 gap-3 md:gap-4 text-center">
-                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] uppercase font-bold text-slate-400">Sis Média</p>
                     <p className="text-xl md:text-2xl font-mono font-bold text-slate-800 dark:text-slate-100 mt-0.5">{statsSummary.avgSys} <span className="text-xs font-normal text-slate-400">mmHg</span></p>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] uppercase font-bold text-slate-400">Dia Média</p>
                     <p className="text-xl md:text-2xl font-mono font-bold text-slate-700 dark:text-slate-200 mt-0.5">{statsSummary.avgDia} <span className="text-xs font-normal text-slate-400">mmHg</span></p>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 md:p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] uppercase font-bold text-slate-400">Avg Pulso</p>
                     <p className="text-xl md:text-2xl font-mono font-bold text-rose-500 mt-0.5">{statsSummary.avgBpm} <span className="text-xs font-normal text-slate-400">BPM</span></p>
                   </div>
@@ -646,7 +646,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
 
               {/* History Log List */}
               <div className="space-y-3">
-                <h5 className="text-xs font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1">
+                <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                   <ClipboardList className="w-4 h-4 text-slate-500" />
                   Linha do Tempo Cardio
                 </h5>
@@ -770,14 +770,14 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                     aiAnalysisResult.status === 'high_pressure' 
                       ? 'bg-red-500/10 border-red-500/20 text-red-950 dark:text-red-200'
                       : aiAnalysisResult.status === 'attention'
-                        ? 'bg-amber-550/10 border-amber-500/20 text-amber-900 dark:text-amber-200'
+                        ? 'bg-amber-600/10 border-amber-500/20 text-amber-900 dark:text-amber-200'
                         : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-950 dark:text-emerald-200'
                   }`}>
                     <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
                       aiAnalysisResult.status === 'high_pressure' 
                         ? 'text-red-500 animate-bounce' 
                         : aiAnalysisResult.status === 'attention' 
-                          ? 'text-amber-550' 
+                          ? 'text-amber-600' 
                           : 'text-emerald-500'
                     }`} />
                     <div className="space-y-1">
@@ -808,7 +808,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                   {/* Summary Box */}
                   <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/40 space-y-1.5">
                     <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-black">Resumo Diário do Coração</span>
-                    <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-350">{aiAnalysisResult.dailySummary}</p>
+                    <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{aiAnalysisResult.dailySummary}</p>
                   </div>
 
                   {/* Suggestions Quadrant Grid */}
@@ -819,7 +819,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                         <Droplet className="w-5 h-5 fill-sky-500/15" />
                         <span className="text-xs font-bold uppercase tracking-wide">Conselho de Hidratação</span>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed">{aiAnalysisResult.suggestions.hydration}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysisResult.suggestions.hydration}</p>
                     </div>
 
                     {/* Nutrition */}
@@ -828,7 +828,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                         <Apple className="w-5 h-5" />
                         <span className="text-xs font-bold uppercase tracking-wide">Nutrição Recomendada</span>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed">{aiAnalysisResult.suggestions.nutrition}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysisResult.suggestions.nutrition}</p>
                     </div>
 
                     {/* Sodium */}
@@ -837,7 +837,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                         <AlertTriangle className="w-5 h-5" />
                         <span className="text-xs font-bold uppercase tracking-wide">Redução de Sódio</span>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed">{aiAnalysisResult.suggestions.sodiumReduction}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysisResult.suggestions.sodiumReduction}</p>
                     </div>
 
                     {/* Relaxation & Teas */}
@@ -846,7 +846,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                         <Wind className="w-5 h-5" />
                         <span className="text-xs font-bold uppercase tracking-wide">Relaxamento e Chás Camomila/Cidreira</span>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed">{aiAnalysisResult.suggestions.relaxation}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{aiAnalysisResult.suggestions.relaxation}</p>
                     </div>
                   </div>
 

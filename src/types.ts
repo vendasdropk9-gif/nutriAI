@@ -97,6 +97,10 @@ export interface UserProfile {
   weeklyChallenges?: WeeklyChallenge[];
   waterGoal?: number; // in ml
   hydrationLogs?: HydrationLog[];
+  waterReminderEnabled?: boolean;
+  waterReminderIntervalMinutes?: number;
+  waterReminderStartHour?: number;
+  waterReminderEndHour?: number;
   points?: number;
   pointsHistory?: PointsEntry[];
   streak?: number;
@@ -254,6 +258,7 @@ export interface HydrationLog {
   id: string;
   date: string; // ISO
   amount: number; // in ml
+  source?: 'Filtrada' | 'Mineral' | 'Torneira' | 'Alcalina' | 'Poço' | 'Coco' | 'Outra';
 }
 
 export interface SleepLog {
@@ -360,6 +365,8 @@ export interface PlateAnalysisResult {
     fat: number;
     fiber: number;
   };
+  nutriScore: number;
+  nutriScoreExplanation: string;
   assistantMessage: string;
   suggestions: string[];
 }

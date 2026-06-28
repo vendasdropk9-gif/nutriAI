@@ -18,8 +18,16 @@ const DAYS_OF_WEEK = [
   'Sábado'
 ];
 
+const PROACTIVE_TIPS = [
+  "Você bebeu pouca água hoje.",
+  "Sua ingestão de proteínas está abaixo da meta.",
+  "Que tal uma caminhada de 20 minutos?",
+  "Há frutas na sua geladeira que podem estragar em breve."
+];
+
 export function useMealPushNotifications(profile: UserProfile | null, addNotification: (notif: { title: string; message: string; type: any }) => void) {
   const notifiedMeals = useRef<Set<string>>(new Set());
+  const proactiveNotified = useRef(false);
 
   useEffect(() => {
     // Request permission on mount
@@ -27,6 +35,26 @@ export function useMealPushNotifications(profile: UserProfile | null, addNotific
       Notification.requestPermission();
     }
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    // Simulate AI Proactive Assistant Notification
+    const proactiveInterval = setInterval(() => {
+       if (!proactiveNotified.current && Math.random() > 0.5) {
+          const randomTip = PROACTIVE_TIPS[Math.floor(Math.random() * PROACTIVE_TIPS.length)];
+          addNotification({
+            title: 'Assistente Proativo 🤖',
+            message: randomTip,
+            type: 'info'
+          });
+          sendPushNotification('Assistente Proativo 🤖', randomTip);
+          proactiveNotified.current = true;
+       }
+    }, 45000); // Check every 45s, send once per session roughly
+
+    return () => clearInterval(proactiveInterval);
+  }, [profile]);
 
   useEffect(() => {
     if (!profile || !profile.mealPlan) return;

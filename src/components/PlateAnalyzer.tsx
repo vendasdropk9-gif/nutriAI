@@ -379,6 +379,42 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
               </div>
             </div>
 
+            {/* NutriScore Section */}
+            <div className={`rounded-[24px] p-6 sm:p-8 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6 sm:gap-8 ${
+               analysisResult.nutriScore >= 80 
+                 ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
+                 : analysisResult.nutriScore >= 50
+                   ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                   : 'bg-gradient-to-r from-rose-500 to-red-600'
+            }`}>
+               <div className="absolute top-0 right-0 opacity-10 translate-x-4 -translate-y-4 pointer-events-none">
+                  <Target className="w-48 h-48" />
+               </div>
+               
+               <div className="relative shrink-0 text-center">
+                  <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-white/20 backdrop-blur-md border-4 border-white/40 flex items-center justify-center flex-col shadow-inner">
+                     <span className="text-4xl sm:text-5xl font-black font-serif tracking-tighter">
+                        {analysisResult.nutriScore}
+                     </span>
+                     <span className="text-sm sm:text-base font-bold uppercase tracking-widest text-white/80">
+                        /100
+                     </span>
+                  </div>
+               </div>
+
+               <div className="relative z-10 flex-1 space-y-3 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md mb-2">
+                     <Target className="w-4 h-4" /> NutriScore
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-serif font-black tracking-tight leading-tight">
+                    Avaliação da sua refeição
+                  </h3>
+                  <p className="text-white/90 text-sm sm:text-base md:text-lg leading-relaxed font-medium">
+                    {analysisResult.nutriScoreExplanation}
+                  </p>
+               </div>
+            </div>
+
             {/* Nutrients Grid */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
               <div className="bg-orange-50 dark:bg-orange-950/20 p-4 sm:p-6 rounded-[20px] text-center border border-orange-100/50 dark:border-orange-950/30 hover:-translate-y-1 transition-transform">
