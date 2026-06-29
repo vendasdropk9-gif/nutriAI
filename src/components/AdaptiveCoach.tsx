@@ -236,6 +236,16 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
               <p className="text-emerald-50/80 text-lg font-medium leading-relaxed max-w-2xl">
                 {loading ? 'Monitorando seus micronutrientes e biotipo para otimizar o próximo passo...' : insight || 'Estou pronta para ajustar seu dia conforme suas escolhas reais.'}
               </p>
+              {!loading && (
+                <div className="pt-2">
+                  <button
+                    onClick={loadInsight}
+                    className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-sm font-bold tracking-wide transition-all border border-white/20 shadow-sm flex items-center gap-2"
+                  >
+                    <Zap className="w-4 h-4 fill-current" /> Atualizar Análise
+                  </button>
+                </div>
+              )}
             </div>
             
             <button 

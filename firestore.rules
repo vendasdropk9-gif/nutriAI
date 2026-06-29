@@ -206,7 +206,7 @@ service cloud.firestore {
 
     // Medicinal Herbs (global encyclopedia)
     match /medicinalHerbs/{herbId} {
-      allow list, get: if isSignedIn();
+      allow list, get: if true;
       allow write: if false; // Deny direct client writes to preserve clinical accuracy
     }
 

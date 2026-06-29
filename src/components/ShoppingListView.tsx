@@ -16,7 +16,8 @@ import {
   Heart, 
   ShoppingCart, 
   Info, 
-  Check, 
+  Check,
+  Copy, 
   ChevronDown, 
   ChevronUp, 
   AlertCircle,
@@ -460,12 +461,34 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
               className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all shadow-sm"
             />
           </div>
-          <div className="md:col-span-4 text-right">
+          <div className="md:col-span-4 flex justify-end gap-2">
+            <button
+              onClick={() => {
+                vibrate(10);
+                playSfx('tap');
+                let exportText = "🛒 *Minha Lista de Compras - NutriAI*\n\n";
+                Object.entries(groupedItems).forEach(([cat, items]) => {
+                  if (items.length > 0) {
+                    exportText += `📦 *${cat}*\n`;
+                    items.forEach(item => {
+                      exportText += `- [${item.checked ? 'x' : ' '}] ${item.name}\n`;
+                    });
+                    exportText += "\n";
+                  }
+                });
+                navigator.clipboard.writeText(exportText)
+                  .then(() => alert("Lista copiada para a área de transferência!"))
+                  .catch(() => alert("Erro ao copiar a lista."));
+              }}
+              className="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1 w-full justify-center md:w-auto"
+            >
+              <Copy className="w-3.5 h-3.5" /> Copiar Lista
+            </button>
             <button
               onClick={handleClearAll}
               className="px-4 py-3 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-2xl border border-rose-200 dark:border-rose-950 transition-all cursor-pointer inline-flex items-center gap-1 w-full justify-center md:w-auto"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Limpar Lista Completa
+              <Trash2 className="w-3.5 h-3.5" /> Limpar
             </button>
           </div>
         </div>
