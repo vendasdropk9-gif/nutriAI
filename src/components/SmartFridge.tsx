@@ -503,9 +503,9 @@ export function SmartFridge() {
       
       {/* Header Banner */}
       <div className="text-center space-y-4 mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium text-sm border border-emerald-200 dark:border-emerald-800">
-          <Sparkles className="w-4 h-4 animate-pulse" />
-          Nutrição Sem Desperdício
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium text-xs md:text-sm border border-emerald-200 dark:border-emerald-800 max-w-full select-none shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 animate-pulse shrink-0" />
+          <span className="truncate">Nutrição Sem Desperdício</span>
         </div>
         <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-850 dark:text-slate-100">
           Geladeira Inteligente
@@ -1144,11 +1144,11 @@ export function SmartFridge() {
                 type="text"
                 name="manualItem"
                 placeholder="Ex: 1L Leite de Coco, 500g Tapioca..."
-                className="flex-grow px-4 py-2.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-650 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
+                className="flex-grow min-w-0 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-650 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
               />
               <button
                 type="submit"
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all shadow-md flex items-center gap-2"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all shadow-md flex items-center gap-2 shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar

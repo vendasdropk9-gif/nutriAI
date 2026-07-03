@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { motion, useMotionValue, useSpring } from 'motion/react';
+import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { 
   Utensils, CalendarDays, ShoppingBasket, User, Camera, 
@@ -63,8 +63,6 @@ const BASE_NAV_ITEMS: NavItem[] = [
 export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const [constraints, setConstraints] = useState({ left: 0, right: 0 });
 
   // Adaptive Navigation Logic
   const NAV_ITEMS = useMemo(() => {
@@ -123,73 +121,23 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
 
   useEffect(() => {
     if (containerRef.current) {
-      const parentWidth = containerRef.current.parentElement?.offsetWidth || 0;
-      // Calculate padding needed to center the first and last items
-      const firstItem = containerRef.current.firstElementChild as HTMLElement;
-      const lastItem = containerRef.current.lastElementChild as HTMLElement;
-      
-      const paddingLeft = parentWidth > 0 && firstItem ? (parentWidth / 2) - (firstItem.offsetWidth / 2) : 32;
-      const paddingRight = parentWidth > 0 && lastItem ? (parentWidth / 2) - (lastItem.offsetWidth / 2) : 32;
-      
-      containerRef.current.style.paddingLeft = `${paddingLeft}px`;
-      containerRef.current.style.paddingRight = `${paddingRight}px`;
-      
-      const contentWidth = containerRef.current.scrollWidth;
-      setConstraints({ left: -(contentWidth - parentWidth), right: 0 });
-    }
-  }, [activeTab, NAV_ITEMS, resizeTrigger]);
-
-  const springX = useSpring(x, { stiffness: 300, damping: 30 });
-
-  useEffect(() => {
-    if (containerRef.current) {
       const activeElement = containerRef.current.querySelector(`[data-id="${activeTab}"]`);
       if (activeElement instanceof HTMLElement) {
-        const parent = containerRef.current.parentElement;
-        if (parent) {
-          const parentWidth = parent.offsetWidth;
-          const left = activeElement.offsetLeft;
-          const width = activeElement.offsetWidth;
-          const targetX = -(left - (parentWidth / 2) + (width / 2));
-          // Clamp to constraints
-          const clampedX = Math.max(constraints.left, Math.min(constraints.right, targetX));
-          x.set(clampedX);
-        }
+        const container = containerRef.current;
+        const scrollLeft = activeElement.offsetLeft - (container.offsetWidth / 2) + (activeElement.offsetWidth / 2);
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        });
       }
     }
-  }, [activeTab, constraints, resizeTrigger]);
-
-  // Support horizontal wheel scrolling for desktop users
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        const currentX = x.get();
-        const newX = currentX - e.deltaY;
-        const clampedX = Math.max(constraints.left, Math.min(constraints.right, newX));
-        x.set(clampedX);
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleWheel, { passive: false });
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, [constraints, x]);
+  }, [activeTab, resizeTrigger]);
 
   return (
-    <div className="w-full relative overflow-hidden h-14 md:h-16 flex items-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-md shrink-0 transition-all duration-500">
-      <motion.div
+    <div className="w-full relative h-14 md:h-16 flex items-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-md shrink-0 transition-all duration-500">
+      <div
         ref={containerRef}
-        drag="x"
-        dragConstraints={constraints}
-        style={{ x: springX }}
-        className="flex items-center gap-3 cursor-grab active:cursor-grabbing select-none h-full shrink-0 min-w-max"
+        className="flex items-center gap-3 h-full shrink-0 min-w-max overflow-x-auto scrollbar-none px-4 md:px-8 w-full scroll-smooth"
       >
         {NAV_ITEMS.map((item) => (
           <motion.button
@@ -235,7 +183,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
             )}
           </motion.button>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -2994,36 +2994,78 @@ DIRETRIZES IMPORTANTES:
     required: ["identified", "productName", "ingredientsFound", "isSafe", "allergensDetected", "userSpecificThreats", "alternativesSuggested", "detailedAnalysis", "score"]
   };
 
-  try {
-    const imagePart = {
-      inlineData: {
-        mimeType: activeMime,
-        data: cleanBase64,
-      },
-    };
-    const textPart = {
-      text: `Analise as alergias deste usuário: [${userAllergies.join(", ")}].
+  const modelsToTry = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  let responseText = "";
+  let lastError: any = null;
+
+  const imagePart = {
+    inlineData: {
+      mimeType: activeMime,
+      data: cleanBase64,
+    },
+  };
+  const textPart = {
+    text: `Analise as alergias deste usuário: [${userAllergies.join(", ")}].
 Verifique se há traços, derivados ou presença direta dessas substâncias ou de outros alérgenos comuns (Glúten, Lactose, Amendoim, Soja, Castanhas, Ovos, Frutos do mar) na imagem de alimento/rótulo fornecida.
 Retorne o JSON preenchido adequadamente em português brasileiro.`,
-    };
+  };
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: { parts: [imagePart, textPart] },
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        temperature: 0.1,
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`[AllergyAnalysis] Tentando analisar com o modelo: ${modelName}`);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: { parts: [imagePart, textPart] },
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          temperature: 0.1,
+        }
+      });
+
+      if (response && response.text) {
+        responseText = response.text;
+        console.log(`[AllergyAnalysis] Sucesso ao analisar com o modelo: ${modelName}`);
+        break;
       }
-    });
+    } catch (e: any) {
+      lastError = e;
+      console.warn(`[AllergyAnalysis] Modelo ${modelName} falhou ou retornou erro. Erro:`, e?.message || e);
+    }
+  }
 
-    const text = response.text;
-    if (!text) throw new Error("Sem resposta do modelo de IA");
-    return JSON.parse(text);
+  try {
+    if (!responseText) {
+      if (lastError) {
+        throw lastError;
+      }
+      throw new Error("Não foi possível obter resposta de nenhum modelo Gemini");
+    }
+    return JSON.parse(responseText);
   } catch (err: any) {
-    console.error("Erro ao analisar alergias via Gemini API:", err);
-    throw err;
+    console.error("Erro ao analisar alergias via Gemini API (Modo de Segurança ativado):", err);
+    
+    const threats = userAllergies.map(allergy => ({
+      allergen: allergy,
+      ingredientSource: "Ingrediente sob suspeita (Modo Offline / Segurança)",
+      severity: "Média" as const
+    }));
+
+    return {
+      identified: true,
+      productName: "Alimento Analisado (Modo de Segurança / Offline)",
+      ingredientsFound: "Rótulo não analisado digitalmente devido à instabilidade temporária do servidor de IA.",
+      isSafe: userAllergies.length === 0,
+      allergensDetected: userAllergies,
+      userSpecificThreats: threats,
+      alternativesSuggested: [
+        "Verifique sempre a embalagem física do produto antes de consumir.",
+        "Em caso de dúvida quanto à presença de alérgenos, evite o alimento."
+      ],
+      detailedAnalysis: "O sistema de IA do NutriAI está temporariamente instável ou offline (Erro 503 / Sem Conexão). Por motivos de segurança e prevenção rigorosa de reações alérgicas, recomendamos ler com extrema atenção o rótulo impresso do produto físico. As alergias cadastradas em seu perfil são: " + (userAllergies.join(", ") || "Nenhuma registrada") + ".",
+      score: userAllergies.length === 0 ? 100 : 30
+    };
   }
 };
 

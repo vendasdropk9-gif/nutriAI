@@ -249,10 +249,10 @@ export function MedicinalHerbs() {
         </div>
 
         {/* Dynamic sub-tab switcher */}
-        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl self-start md:self-center">
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl self-start md:self-center overflow-x-auto max-w-full flex-nowrap whitespace-nowrap scrollbar-none gap-1">
           <button
             onClick={() => setActiveSubTab('encyclopedia')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all shrink-0 ${
               activeSubTab === 'encyclopedia'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
@@ -264,7 +264,7 @@ export function MedicinalHerbs() {
           </button>
           <button
             onClick={() => setActiveSubTab('chat')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all shrink-0 ${
               activeSubTab === 'chat'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
@@ -276,7 +276,7 @@ export function MedicinalHerbs() {
           </button>
           <button
             onClick={() => setActiveSubTab('identifier')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all shrink-0 ${
               activeSubTab === 'identifier'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
@@ -288,7 +288,7 @@ export function MedicinalHerbs() {
           </button>
           <button
             onClick={() => setActiveSubTab('mushroom')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all shrink-0 ${
               activeSubTab === 'mushroom'
                 ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
@@ -525,32 +525,34 @@ export function MedicinalHerbs() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[550px]"
+            className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-auto lg:h-[550px]"
           >
             {/* Left sidebar with helpful suggestions */}
-            <div className="lg:col-span-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 h-full">
+            <div className="lg:col-span-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 h-auto lg:h-full">
               <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
-                Sugestões Rápidas
+                <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Sugestões Rápidas</span>
               </div>
 
-              {[
-                { title: "Chá para Gastrite", query: "Quais são as plantas medicinais recomendadas para gastrite e refluxo?" },
-                { title: "Contraindicações do Guaco", query: "Quais são as contraindicações importantes do Guaco?" },
-                { title: "Como plantar Alecrim", query: "Como plantar e cultivar Alecrim em casa ou vaso?" },
-                { title: "Chás calmantes", query: "Quais chás têm forte evidência científica para diminuir a ansiedade e dormir melhor?" }
-              ].map((sug, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSendMessage(sug.query)}
-                  disabled={chatLoading}
-                  className="w-full text-left p-3 rounded-xl bg-gray-50 hover:bg-emerald-50/40 dark:bg-gray-800/50 dark:hover:bg-emerald-950/20 text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-800 dark:hover:text-emerald-300 border border-transparent hover:border-emerald-200/40 dark:hover:border-emerald-900/40 font-medium transition-all"
-                >
-                  {sug.title}
-                </button>
-              ))}
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 scrollbar-none whitespace-nowrap lg:whitespace-normal">
+                {[
+                  { title: "Chá para Gastrite", query: "Quais são as plantas medicinais recomendadas para gastrite e refluxo?" },
+                  { title: "Contraindicações do Guaco", query: "Quais são as contraindicações importantes do Guaco?" },
+                  { title: "Como plantar Alecrim", query: "Como plantar e cultivar Alecrim em casa ou vaso?" },
+                  { title: "Chás calmantes", query: "Quais chás têm forte evidência científica para diminuir a ansiedade e dormir melhor?" }
+                ].map((sug, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSendMessage(sug.query)}
+                    disabled={chatLoading}
+                    className="w-auto lg:w-full text-left p-3 rounded-xl bg-gray-50 hover:bg-emerald-50/40 dark:bg-gray-800/50 dark:hover:bg-emerald-950/20 text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-800 dark:hover:text-emerald-300 border border-transparent hover:border-emerald-200/40 dark:hover:border-emerald-900/40 font-medium transition-all shrink-0 lg:shrink"
+                  >
+                    {sug.title}
+                  </button>
+                ))}
+              </div>
 
-              <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
+              <div className="hidden lg:block mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                   <Check className="w-3.5 h-3.5" />
                   Garantia Científica
@@ -562,7 +564,7 @@ export function MedicinalHerbs() {
             </div>
 
             {/* Chat Box Container */}
-            <div className="lg:col-span-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl flex flex-col h-full overflow-hidden shadow-sm">
+            <div className="lg:col-span-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl flex flex-col h-[480px] lg:h-full overflow-hidden shadow-sm">
               
               {/* Chat Header */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
@@ -576,7 +578,7 @@ export function MedicinalHerbs() {
               </div>
 
               {/* Chat Message Scroll */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
                 {chatHistory.map((msg, index) => {
                   const isModel = msg.role === 'model';
                   return (

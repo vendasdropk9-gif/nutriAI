@@ -415,6 +415,11 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Serve the manual directly
+  app.get(["/manual", "/manual.html"], (req, res) => {
+    res.sendFile(path.join(process.cwd(), "public", "manual_nutriai.html"));
+  });
+
   // GET Medicinal Herbs
   app.get("/api/herbs", async (req, res) => {
     try {

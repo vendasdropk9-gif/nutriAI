@@ -213,3 +213,28 @@ body {
 
 /* Styles removed as target elements were deleted */
 
+
+.markdown-body {
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.markdown-body p {
+  margin-bottom: 0.5rem;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-body strong {
+  font-weight: 700;
+}

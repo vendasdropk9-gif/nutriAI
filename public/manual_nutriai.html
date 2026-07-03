@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Completo de Funcionalidades - NutriAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --primary-light: #d1fae5;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--slate-800);
+      background-color: var(--slate-50);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 60px;
+      border-radius: 32px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--slate-200);
+    }
+
+    header {
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 30px;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      font-size: 32px;
+    }
+
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      color: var(--slate-900);
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--slate-700);
+      font-weight: 500;
+    }
+
+    .meta-info {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+
+    /* Print action bar */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--slate-100);
+      padding: 16px 24px;
+      border-radius: 16px;
+      margin-bottom: 40px;
+    }
+
+    .action-bar p {
+      font-size: 14px;
+      color: var(--slate-700);
+    }
+
+    .btn-print {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-print:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Table of contents */
+    .toc {
+      background-color: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 50px;
+    }
+
+    .toc h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .toc ul {
+      list-style-type: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .toc li a {
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toc li a:hover {
+      text-decoration: underline;
+    }
+
+    /* Content Styling */
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: var(--slate-900);
+      border-bottom: 1px solid var(--slate-200);
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .feature-card {
+      background-color: var(--slate-50);
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      border-radius: 0 16px 16px 0;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-bottom: 6px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--slate-700);
+      margin-bottom: 10px;
+    }
+
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      background-color: var(--slate-200);
+      color: var(--slate-700);
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .badge-ai {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-health {
+      background-color: #fce7f3;
+      color: #9d174d;
+    }
+
+    footer {
+      border-top: 1px solid var(--slate-200);
+      padding-top: 30px;
+      margin-top: 60px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background-color: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .section {
+        page-break-inside: avoid;
+      }
+      .feature-card {
+        page-break-inside: avoid;
+        background-color: #fafafa !important;
+        border-left: 4px solid #059669 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="logo-area">
+        <span class="logo-icon">🎛️</span>
+        <span class="logo-text">NutriAI</span>
+      </div>
+      <h1>Manual de Recursos & Funcionalidades</h1>
+      <div class="subtitle">Guia Oficial e Catálogo Geral do Aplicativo</div>
+      <div class="meta-info">Documento Gerado Automatizadamente • Versão Integrada 2026</div>
+    </header>
+
+    <div class="action-bar no-print">
+      <p>💡 <strong>Como salvar em PDF?</strong> Clique no botão ao lado para abrir as opções de impressão do seu navegador, em seguida escolha <strong>"Salvar como PDF"</strong>.</p>
+      <button class="btn-print" onclick="window.print()">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right:4px;">
+          <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm6 1a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM2 6h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm3 5v2h6v-2H5z"/>
+        </svg>
+        Imprimir / PDF
+      </button>
+    </div>
+
+    <div class="toc no-print">
+      <h2>Índice de Módulos</h2>
+      <ul>
+        <li><a href="#modulo-ia">1. Inteligência Artificial & Diagnósticos</a></li>
+        <li><a href="#modulo-nutricao">2. Nutrição & Planejamento</a></li>
+        <li><a href="#modulo-compras">3. Inteligência de Compras</a></li>
+        <li><a href="#modulo-saude">4. Saúde, Alergias & Vantagens</a></li>
+        <li><a href="#modulo-progresso">5. Evolução, Progresso & Biometria</a></li>
+        <li><a href="#modulo-estilo">6. Estilo de Vida & Rotina</a></li>
+        <li><a href="#modulo-comunidade">7. Gamificação & Parcerias</a></li>
+      </ul>
+    </div>
+
+    <!-- Módulo 1 -->
+    <div class="section" id="modulo-ia">
+      <h2>🧠 1. Inteligência Artificial & Diagnósticos</h2>
+      
+      <div class="feature-card">
+        <h3>Assistente 360 & Chat Clínico</h3>
+        <p>Um centro de interação onde você pode conversar em tempo real com a Inteligência Artificial. Oferece aconselhamento de saúde dinâmico, esclarecimentos sobre ingredientes e suporte de rotina de forma holística.</p>
+        <div class="badge-container">
+          <span class="badge badge-ai">Gemini AI</span>
+          <span class="badge">Chat Tempo Real</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Análise Adaptativa Real (Adaptive Coach)</h3>
+        <p>Ajusta sua estratégia nutricional e física de acordo com suas escolhas reais e diárias. Caso você registre uma refeição diferente do planejado ou pule um treino, o Coach IA recalcula instantaneamente os próximos passos para garantir o alcance de suas metas sem frustrações.</p>
+        <div class="badge-container">
+          <span class="badge badge-ai">Adaptativo</span>
+          <span class="badge">Recálculo de Macros</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Plate Analyzer (Análise de Prato por Foto)</h3>
+        <p>Permite carregar uma foto do seu prato. A IA analisa visualmente os alimentos presentes, estima as porções de macronutrientes (carboidratos, proteínas, gorduras) e calorias totais, e registra automaticamente no seu diário de consumo.</p>
+        <div class="badge-container">
+          <span class="badge badge-ai">Visão Computacional</span>
+          <span class="badge">Registro por Imagem</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 2 -->
+    <div class="section" id="modulo-nutricao">
+      <h2>🥗 2. Nutrição & Planejamento</h2>
+
+      <div class="feature-card">
+        <h3>Plano de Refeições Personalizado</h3>
+        <p>Geração de cronograma alimentar completo baseado no seu perfil (altura, peso, objetivo, biotipo, alergias e restrições). Abrange café da manhã, lanche da manhã, almoço, lanche da tarde, jantar e ceia com metas calóricas rígidas.</p>
+        <div class="badge-container">
+          <span class="badge">Planejamento</span>
+          <span class="badge">Calorias & Macros</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Smart Fridge (Geladeira Inteligente)</h3>
+        <p>Um inventário digital onde você cadastra os ingredientes que possui em casa. A IA cria receitas personalizadas e deliciosas baseadas exclusivamente no que você tem disponível, minimizando o desperdício de alimentos.</p>
+        <div class="badge-container">
+          <span class="badge badge-ai">Fórmula de Receitas</span>
+          <span class="badge">Anti-desperdício</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Juice & Detox Builder</h3>
+        <p>Criador interativo de sucos naturais e shakes funcionais. Selecione a base energética, ingredientes ativos e metabólicos para que o sistema estime as propriedades antioxidantes, vitaminas e benefícios digestivos da sua bebida.</p>
+        <div class="badge-container">
+          <span class="badge">Detox</span>
+          <span class="badge">Sucos Funcionais</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Enciclopédia de Ervas Medicinais</h3>
+        <p>Um compêndio científico de ervas medicinais, plantas curativas e fitoterapia. Permite explorar indicações clínicas, modos de preparo (infusão, decocção) e contraindicações formais para um estilo de vida puramente natural.</p>
+        <div class="badge-container">
+          <span class="badge badge-health">Fitoterapia</span>
+          <span class="badge">Clinical Database</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 3 -->
+    <div class="section" id="modulo-compras">
+      <h2>🛒 3. Inteligência de Compras</h2>
+
+      <div class="feature-card">
+        <h3>Shopping List (Lista de Compras Inteligente)</h3>
+        <p>Mapeia os ingredientes necessários para executar o seu plano alimentar da semana. Classifica automaticamente os itens por categorias (Hortifrúti, Proteínas, Cereais, etc.) para otimizar sua ida ao mercado.</p>
+        <div class="badge-container">
+          <span class="badge">Automação</span>
+          <span class="badge">Exportável</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Comparador de Preços em Tempo Real</h3>
+        <p>Analisa e compara o valor total da sua lista de compras em diferentes redes de supermercados e parceiros cadastrados locais, garantindo economia direta na rotina financeira.</p>
+        <div class="badge-container">
+          <span class="badge">Economia</span>
+          <span class="badge">Geolocalizado</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Recurso de Exportação & Cópia Rápida</h3>
+        <p>Permite exportar a lista de compras formatada em texto amigável diretamente para a área de transferência para envio rápido pelo WhatsApp ou bloco de notas.</p>
+        <div class="badge-container">
+          <span class="badge">Produtividade</span>
+          <span class="badge">Compartilhamento</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 4 -->
+    <div class="section" id="modulo-saude">
+      <h2>🛡️ 4. Saúde, Alergias & Vantagens</h2>
+
+      <div class="feature-card">
+        <h3>Detector de Alergias & Contraindicações</h3>
+        <p>Análise preventiva cruzada. Ao registrar alergias ou condições médicas (como intolerância a lactose ou diabetes), o aplicativo bloqueia ou emite alertas graves sobre qualquer ingrediente prejudicial sugerido nas receitas.</p>
+        <div class="badge-container">
+          <span class="badge badge-health">Segurança Alimentar</span>
+          <span class="badge">Algoritmo Clínico</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Barcode Scanner (Leitor de Código de Barras)</h3>
+        <p>Utiliza a câmera do celular para escanear produtos industrializados em tempo real, destrinchando a tabela nutricional, nível de processamento e compatibilidade direta com a sua dieta ativa.</p>
+        <div class="badge-container">
+          <span class="badge">Escaneamento</span>
+          <span class="badge">Análise de Rótulo</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Product Comparer (Comparador de Produtos)</h3>
+        <p>Permite colocar lado a lado dois produtos semelhantes para avaliar qual possui melhor balanço nutricional, menor índice de aditivos químicos, sódio ou açúcares refinados.</p>
+        <div class="badge-container">
+          <span class="badge">Consumo Consciente</span>
+          <span class="badge">Tabela Comparativa</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 5 -->
+    <div class="section" id="modulo-progresso">
+      <h2>📊 5. Evolução, Progresso & Biometria</h2>
+
+      <div class="feature-card">
+        <h3>Body Analyzer (Composição Corporal)</h3>
+        <p>Rastreador detalhado de dobras cutâneas, gordura corporal estimada, índice de massa livre de gordura (IMLG), água corporal total e evolução gráfica de peso e medidas de circunferência.</p>
+        <div class="badge-container">
+          <span class="badge badge-health">Medidas</span>
+          <span class="badge">Gráficos d3 / Recharts</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Photo Evolution (Antes & Depois)</h3>
+        <p>Ferramenta para registro fotográfico cronológico de evolução física. Alinha fotos de frente, costas e perfil para comparação visual exata das mudanças estéticas ao longo dos meses.</p>
+        <div class="badge-container">
+          <span class="badge">Antropometria Visual</span>
+          <span class="badge">Privacidade Garantida</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Journey Visualizer (Linha do Tempo)</h3>
+        <p>Uma representação interativa da sua trajetória no aplicativo, marcando o peso perdido, recordes de treinos, objetivos batidos e hábitos consolidados ao longo do tempo.</p>
+        <div class="badge-container">
+          <span class="badge">Gamificado</span>
+          <span class="badge">Histórico</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 6 -->
+    <div class="section" id="modulo-estilo">
+      <h2>🏋️ 6. Estilo de Vida & Rotina</h2>
+
+      <div class="feature-card">
+        <h3>Personal Trainer Digital</h3>
+        <p>Criação automática de treinos baseados no seu nível de condicionamento (Iniciante, Intermediário, Avançado) e objetivo (Hipertrofia, Emagrecimento, Resistência). Inclui cronometria e guias de execução.</p>
+        <div class="badge-container">
+          <span class="badge">Atividade Física</span>
+          <span class="badge">Séries & Repetições</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Wellness Hub (Meditação & Mindful Eating)</h3>
+        <p>Guia de áudios de respiração guiada, exercícios de atenção plena ao comer (mindful eating) e artigos de educação em saúde para equilibrar a relação com a alimentação.</p>
+        <div class="badge-container">
+          <span class="badge badge-health">Saúde Mental</span>
+          <span class="badge">Foco & Atenção</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Rastreadores de Hábitos & Diários</h3>
+        <p>Consiste no monitor de hábitos diários (sono, água, passos), Diário Emocional (relação de humor e alimentação) e Diário de Pressão Arterial para acompanhamento clínico preventivo de hipertensão.</p>
+        <div class="badge-container">
+          <span class="badge badge-health">Sinais Vitais</span>
+          <span class="badge">Bem-Estar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Módulo 7 -->
+    <div class="section" id="modulo-comunidade">
+      <h2>🏆 7. Gamificação & Parcerias</h2>
+
+      <div class="feature-card">
+        <h3>Gamification Center & Recompensas</h3>
+        <p>Ganhe pontos de experiência (XP) ao registrar refeições corretas, completar treinos, beber água e bater metas diárias. Suba de nível e resgate benefícios exclusivos de parceiros locais.</p>
+        <div class="badge-container">
+          <span class="badge">Recompensas</span>
+          <span class="badge">Pontuação Real</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Ranking Global</h3>
+        <p>Competição amigável e saudável com outros usuários do aplicativo para ver quem acumula mais pontos de consistência e hábitos saudáveis na semana ou no mês.</p>
+        <div class="badge-container">
+          <span class="badge">Comunidade</span>
+          <span class="badge">Engajamento</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <h3>Freshness Map (Mapa de Alimentos Orgânicos)</h3>
+        <p>Mapeia feiras locais de produtores independentes, mercados parceiros orgânicos e hortas comunitárias para incentivar o consumo de alimentos frescos, sustentáveis e sem agrotóxicos.</p>
+        <div class="badge-container">
+          <span class="badge">Sustentabilidade</span>
+          <span class="badge">Geolocalização</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Este documento descreve detalhadamente o ecossistema NutriAI. Todas as recomendações nutricionais e de treinos devem ser acompanhadas de profissionais de saúde qualificados.</p>
+      <p style="margin-top: 10px;">NutriAI Applet Engine • Todos os direitos reservados © 2026</p>
+    </footer>
+  </div>
+
+</body>
+</html>

@@ -397,10 +397,10 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 rounded-[36px] shadow-lg relative overflow-hidden">
+      <div className="w-full bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-8 rounded-[36px] shadow-lg relative overflow-hidden">
         <div className="absolute right-0 bottom-0 translate-y-8 translate-x-8 opacity-10">
           <ShoppingBag className="w-48 h-48" />
         </div>
@@ -419,7 +419,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[24px] shadow-inner gap-1">
+      <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[24px] shadow-inner gap-1">
         {[
           { id: 'list', label: 'Lista Inteligente', icon: <CheckCircle2 className="w-4 h-4" /> },
           { id: 'compare', label: 'Comparar Preços', icon: <ArrowLeftRight className="w-4 h-4" /> },
@@ -461,7 +461,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
               className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all shadow-sm"
             />
           </div>
-          <div className="md:col-span-4 flex justify-end gap-2">
+          <div className="md:col-span-4 flex flex-col sm:flex-row justify-end gap-2">
             <button
               onClick={() => {
                 vibrate(10);
@@ -480,13 +480,13 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   .then(() => alert("Lista copiada para a área de transferência!"))
                   .catch(() => alert("Erro ao copiar a lista."));
               }}
-              className="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1 w-full justify-center md:w-auto"
+              className="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1 w-full sm:w-auto justify-center"
             >
               <Copy className="w-3.5 h-3.5" /> Copiar Lista
             </button>
             <button
               onClick={handleClearAll}
-              className="px-4 py-3 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-2xl border border-rose-200 dark:border-rose-950 transition-all cursor-pointer inline-flex items-center gap-1 w-full justify-center md:w-auto"
+              className="px-4 py-3 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-2xl border border-rose-200 dark:border-rose-950 transition-all cursor-pointer inline-flex items-center gap-1 w-full sm:w-auto justify-center"
             >
               <Trash2 className="w-3.5 h-3.5" /> Limpar
             </button>
@@ -557,7 +557,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   value={newCustomName}
                   onChange={(e) => setNewCustomName(e.target.value)}
                   placeholder="Ex: Ovos, Abacate, Whey Protein..."
-                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="submit"

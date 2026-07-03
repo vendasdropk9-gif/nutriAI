@@ -472,9 +472,9 @@ export function SmartGarden() {
       
       {/* Upper header section */}
       <div className="text-center space-y-4 mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 font-medium text-sm border border-teal-200 dark:border-teal-800">
-          <Sprout className="w-4 h-4 animate-bounce" />
-          Minha Horta Inteligente
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 font-medium text-xs md:text-sm border border-teal-200 dark:border-teal-800 max-w-full select-none shadow-sm">
+          <Sprout className="w-3.5 h-3.5 md:w-4 md:h-4 animate-bounce shrink-0" />
+          <span className="truncate">Minha Horta Inteligente</span>
         </div>
         <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-850 dark:text-slate-100">
           Horta Caseira Inteligente
