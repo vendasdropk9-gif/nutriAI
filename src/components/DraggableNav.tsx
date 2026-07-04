@@ -120,24 +120,30 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   }, []);
 
   useEffect(() => {
-    if (containerRef.current) {
-      const activeElement = containerRef.current.querySelector(`[data-id="${activeTab}"]`);
-      if (activeElement instanceof HTMLElement) {
-        const container = containerRef.current;
-        const scrollLeft = activeElement.offsetLeft - (container.offsetWidth / 2) + (activeElement.offsetWidth / 2);
-        container.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
-        });
+    const scrollToActive = () => {
+      if (containerRef.current) {
+        const activeElement = containerRef.current.querySelector(`[data-id="${activeTab}"]`);
+        if (activeElement instanceof HTMLElement) {
+          const container = containerRef.current;
+          const scrollLeft = activeElement.offsetLeft - (container.offsetWidth / 2) + (activeElement.offsetWidth / 2);
+          container.scrollTo({
+            left: scrollLeft,
+            behavior: 'smooth'
+          });
+        }
       }
-    }
+    };
+
+    scrollToActive();
+    const timer = setTimeout(scrollToActive, 100);
+    return () => clearTimeout(timer);
   }, [activeTab, resizeTrigger]);
 
   return (
     <div className="w-full relative h-14 md:h-16 flex items-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-md shrink-0 transition-all duration-500">
       <div
         ref={containerRef}
-        className="flex items-center gap-3 h-full shrink-0 min-w-max overflow-x-auto scrollbar-none px-4 md:px-8 w-full scroll-smooth"
+        className="relative flex items-center gap-3 h-full overflow-x-auto scrollbar-none px-4 md:px-8 w-full scroll-smooth"
       >
         {NAV_ITEMS.map((item) => (
           <motion.button
