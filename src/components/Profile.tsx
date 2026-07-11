@@ -5,6 +5,7 @@ import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -12,6 +13,7 @@ interface ProfileProps {
 }
 
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
+  const { logoutLocally } = useAuth();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
@@ -29,7 +31,9 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
+      playSfx('tap');
+      vibrate(15);
+      await logoutLocally();
     } catch (error) {
       console.error("Logout failed", error);
     }

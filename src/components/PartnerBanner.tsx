@@ -229,9 +229,9 @@ export function PartnerBanner() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 shadow-sm h-auto py-5 sm:py-8 md:py-10 flex items-center justify-center mx-0 mt-0 -mb-[5px] transition-colors duration-500">
+    <div className="relative w-full overflow-hidden bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 shadow-sm h-auto py-6 sm:py-8 md:py-10 flex items-center justify-center mx-0 mt-0 -mb-[5px] transition-colors duration-500">
       {/* Imagens de frutas rotacionando de 5 em 5 segundos no fundo */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-[0.18] dark:opacity-[0.12]">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-[0.55] dark:opacity-[0.4]">
         <AnimatePresence mode="sync">
           <motion.img
             key={bgIndex}
@@ -254,13 +254,13 @@ export function PartnerBanner() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.1)_0%,transparent_70%)] animate-pulse" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 w-full flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 relative z-10 animate-fade">
+      <div className="max-w-7xl mx-auto px-4 w-full flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 relative z-10 animate-fade">
         <div className="hidden lg:flex items-center gap-2 bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 px-3.5 py-1.5 rounded-full font-mono text-[10px] tracking-widest uppercase font-extrabold shadow-sm">
           <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span>Fidelidade Parceira</span>
         </div>
 
-        <div className="w-full sm:flex-1 flex justify-center items-center h-12 sm:h-14 md:h-16 overflow-hidden relative min-h-[48px] sm:min-h-[56px] md:min-h-[64px]">
+        <div className="flex flex-1 justify-center items-center h-10 sm:h-12 md:h-14 overflow-hidden relative min-h-[40px] sm:min-h-[48px] w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={index}
@@ -271,16 +271,16 @@ export function PartnerBanner() {
                 duration: 1.0,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="relative text-center flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 w-full max-w-[95%] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[480px] xl:max-w-[540px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-[8px] rounded-full border border-slate-300 dark:border-slate-800/80 shadow-lg"
+              className="relative text-center flex justify-center items-center px-4 py-1.5 sm:px-6 sm:py-2.5 w-full max-w-[95%] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[480px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-[8px] rounded-full border border-slate-300 dark:border-slate-800/80 shadow-md"
             >
-              <span className="font-serif text-xs min-[400px]:text-sm sm:text-[16px] md:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-wide block max-w-full">
+              <span className="font-serif text-[11px] min-[400px]:text-xs sm:text-sm md:text-[15px] font-extrabold text-slate-900 dark:text-slate-100 tracking-wide block max-w-full truncate">
                 {PARTNERS[index]}
               </span>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-[6px] p-1.5 rounded-full border border-slate-300 dark:border-slate-800/80 shadow-md shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-[6px] pt-1 pb-1 pl-1 pr-[1px] ml-[45px] mr-[-193px] mt-[13px] mb-[16px] rounded-full border border-slate-300 dark:border-slate-800/80 shadow-md shrink-0">
           {/* Micro pill sound type switcher */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/60 rounded-full p-0.5">
             <button
@@ -326,7 +326,7 @@ export function PartnerBanner() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={toggleMusic}
-            className={`p-1.5 rounded-full border transition-all duration-300 ${
+            className={`p-1 py-1 rounded-full border transition-all duration-300 ${
               !isMuted
                 ? soundType === "cooking"
                   ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)]"
@@ -337,9 +337,9 @@ export function PartnerBanner() {
             id="toggle-ambient-music-btn"
           >
             {isMuted ? (
-              <VolumeX className="w-4 h-4" />
+              <VolumeX className="w-3.5 h-3.5" />
             ) : (
-              <Volume2 className="w-4 h-4" />
+              <Volume2 className="w-3.5 h-3.5" />
             )}
           </motion.button>
         </div>

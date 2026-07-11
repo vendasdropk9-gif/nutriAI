@@ -18,6 +18,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "firebase/firestore": [
+        "./src/lib/firebase.ts"
       ]
     },
     "allowImportingTsExtensions": true,
