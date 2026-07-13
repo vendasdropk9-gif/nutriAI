@@ -15,23 +15,32 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   // Inicializa a referência de áudio com segurança para persistir em re-renders
   if (!audioRef.current && typeof Audio !== 'undefined') {
-    audioRef.current = new Audio(nutriaiVoiceUrl);
-    audioRef.current.preload = 'auto';
-    audioRef.current.volume = 0.95; // Volume limpo, balanceado e direto
+    try {
+      audioRef.current = new Audio(nutriaiVoiceUrl);
+      audioRef.current.preload = 'auto';
+      audioRef.current.volume = 0.95; // Volume limpo, balanceado e direto
+    } catch (e) {
+      console.warn('Audio initialization not supported or blocked in this environment:', e);
+      audioRef.current = null;
+    }
   }
 
   const playVoice = () => {
     if (hasPlayedRef.current || !audioRef.current) return;
     
-    audioRef.current.play()
-      .then(() => {
-        hasPlayedRef.current = true;
-        document.removeEventListener('click', playVoice);
-        document.removeEventListener('touchstart', playVoice);
-      })
-      .catch(e => {
-        console.log('Autoplay do áudio aguardando interação natural do usuário (tocar/clicar)...', e);
-      });
+    try {
+      audioRef.current.play()
+        .then(() => {
+          hasPlayedRef.current = true;
+          document.removeEventListener('click', playVoice);
+          document.removeEventListener('touchstart', playVoice);
+        })
+        .catch(e => {
+          console.log('Autoplay do áudio aguardando interação natural do usuário (tocar/clicar)...', e);
+        });
+    } catch (e) {
+      console.warn('Audio playback blocked or failed:', e);
+    }
   };
 
   useEffect(() => {
@@ -46,8 +55,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 800);
-    }, 3200); // Garante que a fala seja concluída tranquilamente antes de sair
+      setTimeout(onComplete, 500);
+    }, 1200); // Reduzido para iniciar muito mais rápido e evitar espera longa
 
     return () => {
       clearTimeout(timer);
@@ -65,14 +74,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, [onComplete]);
 
+  const handleSkip = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsVisible(false);
+    onComplete();
+  };
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.05, filter: 'blur(15px)' }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#05080c] overflow-hidden"
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          onClick={() => {
+            setIsVisible(false);
+            onComplete();
+          }}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#05080c] overflow-hidden cursor-pointer"
+          title="Clique para pular"
         >
           {/* Subtle Premium Background Gradients */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.12)_0%,rgba(0,0,0,0)_60%)]" />
@@ -84,7 +104,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               initial={{ scale: 0.85, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ 
-                duration: 1.2, 
+                duration: 1.0, 
                 ease: [0.16, 1, 0.3, 1],
                 delay: 0.1
               }}
@@ -101,7 +121,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 <motion.div
                   initial={{ x: '-150%', skewX: -20 }}
                   animate={{ x: '200%' }}
-                  transition={{ duration: 1.5, ease: "easeInOut", delay: 0.4 }}
+                  transition={{ duration: 1.2, ease: "easeInOut", delay: 0.3 }}
                   className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent z-20"
                 />
               </div>
@@ -113,7 +133,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                   opacity: [0.3, 0.6, 0.3]
                 }}
                 transition={{ 
-                  duration: 3, 
+                  duration: 2.5, 
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
@@ -125,7 +145,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 1.2 }}
+              transition={{ delay: 0.3, duration: 1.0 }}
               className="text-center"
             >
               <h1 className="font-serif text-5xl font-bold tracking-tight text-white mb-3 drop-shadow-lg">
@@ -136,20 +156,20 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 <motion.div
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 24, opacity: 1 }}
-                  transition={{ delay: 0.8, duration: 1 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
                   className="h-[1px] bg-gradient-to-r from-transparent to-emerald-500/50"
                 />
                 <motion.span
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9, duration: 0.8 }}
+                  transition={{ delay: 0.6, duration: 0.6 }}
                 >
                   Inteligência Premium
                 </motion.span>
                 <motion.div
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 24, opacity: 1 }}
-                  transition={{ delay: 0.8, duration: 1 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
                   className="h-[1px] bg-gradient-to-l from-transparent to-emerald-500/50"
                 />
               </div>
@@ -157,12 +177,23 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
           </div>
 
+          {/* Skip Button */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.5 }}
+            whileHover={{ opacity: 0.9, scale: 1.05 }}
+            onClick={handleSkip}
+            className="absolute bottom-8 right-8 text-[11px] text-slate-400 font-medium tracking-wider uppercase bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full cursor-pointer transition-all duration-200 z-[110]"
+          >
+            Pular →
+          </motion.button>
+
           {/* Elegant Loading Line (Bottom) */}
           <motion.div 
             className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
             initial={{ width: "0%", left: "50%", opacity: 0 }}
             animate={{ width: "100%", left: "0%", opacity: 1 }}
-            transition={{ duration: 2.2, ease: "easeInOut", delay: 0.2 }}
+            transition={{ duration: 1.2, ease: "easeInOut", delay: 0.1 }}
           />
         </motion.div>
       )}

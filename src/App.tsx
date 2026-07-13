@@ -218,49 +218,57 @@ export default function App() {
     });
   };
 
-  if (!user && !authLoading) {
-    return <Login />;
-  }
+  const renderContent = () => {
+    if (authLoading) {
+      return (
+        <div className="min-h-screen w-full bg-[#f4f9f6] dark:bg-[#0f172a] flex flex-col items-center justify-center">
+          {!showSplash && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>}
+        </div>
+      );
+    }
 
-  // Enforce email verification (if not Google and not bypassed)
-  const isGoogleProvider = user?.providerData.some(p => p.providerId === 'google.com');
-  if (user && !user.emailVerified && !isGoogleProvider && !emailVerificationBypassed) {
-    return <VerifyEmailScreen user={user} onVerified={() => setEmailVerificationBypassed(true)} />;
-  }
+    if (!user) {
+      return <Login />;
+    }
 
-  if (user && isLocked) {
+    // Enforce email verification (if not Google and not bypassed)
+    const isGoogleProvider = user?.providerData?.some(p => p.providerId === 'google.com');
+    if (!user.emailVerified && !isGoogleProvider && !emailVerificationBypassed) {
+      return <VerifyEmailScreen user={user} onVerified={() => setEmailVerificationBypassed(true)} />;
+    }
+
+    if (isLocked) {
+      return (
+        <LockScreen 
+          onUnlock={() => setIsLocked(false)} 
+          userEmail={user.email} 
+          onDisableBiometric={() => {
+            localStorage.removeItem('nutri-biometric-enabled');
+            setIsLocked(false);
+          }}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        />
+      );
+    }
+
     return (
-      <LockScreen 
-        onUnlock={() => setIsLocked(false)} 
-        userEmail={user.email} 
-        onDisableBiometric={() => {
-          localStorage.removeItem('nutri-biometric-enabled');
-          setIsLocked(false);
-        }}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-      />
-    );
-  }
+      <div className="min-h-screen w-full overflow-x-hidden bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
+        <motion.div 
+          className="flex-1 flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: showSplash ? 0 : 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        >
+          {/* Mesh Background */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-teal-200/30 dark:bg-teal-900/30 blur-[100px] transition-colors duration-1000"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-100/40 dark:bg-emerald-900/20 blur-[120px] transition-colors duration-1000"></div>
+          <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-slate-200/50 dark:bg-slate-800/40 blur-[100px] transition-colors duration-1000"></div>
+        </div>
 
-  return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
-      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-      
-      <motion.div 
-        className="flex-1 flex flex-col"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: showSplash ? 0 : 1 }}
-        transition={{ duration: 1, ease: "easeOut" }}
-      >
-        {/* Mesh Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-teal-200/30 dark:bg-teal-900/30 blur-[100px] transition-colors duration-1000"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-100/40 dark:bg-emerald-900/20 blur-[120px] transition-colors duration-1000"></div>
-        <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-slate-200/50 dark:bg-slate-800/40 blur-[100px] transition-colors duration-1000"></div>
-      </div>
+        <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500">
 
-      <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20 gap-4">
             <div className="flex items-center gap-2 sm:gap-3 text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -542,5 +550,13 @@ export default function App() {
       />
       </motion.div>
     </div>
+    );
+  };
+
+  return (
+    <>
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      {renderContent()}
+    </>
   );
 }

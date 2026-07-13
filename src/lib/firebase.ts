@@ -108,6 +108,29 @@ function serializeRow(table: string, data: any, userId?: string) {
     delete converted.planned;
     delete converted.actual;
   }
+
+  if (table === 'medicinal_herbs') {
+    const extra: any = {};
+    const allowedKeys = [
+      'id', 'popular_name', 'scientific_name', 'botanical_family',
+      'other_names', 'description', 'origin', 'biome', 'states',
+      'harvest_season', 'part_used', 'properties', 'indications',
+      'preparation', 'dosage', 'contraindications', 'created_at', 'user_id'
+    ];
+    
+    const contraindicationsObj = converted.contraindications || {};
+    for (const key of Object.keys(converted)) {
+      if (!allowedKeys.includes(key)) {
+        extra[key] = converted[key];
+        delete converted[key];
+      }
+    }
+    converted.contraindications = {
+      ...contraindicationsObj,
+      extra_fields: extra
+    };
+  }
+
   return converted;
 }
 
@@ -136,6 +159,15 @@ function deserializeRow(table: string, row: any) {
     delete converted.actualCarbs;
     delete converted.actualFat;
   }
+
+  if (table === 'medicinal_herbs') {
+    if (converted.contraindications && converted.contraindications.extraFields) {
+      const extra = converted.contraindications.extraFields;
+      delete converted.contraindications.extraFields;
+      Object.assign(converted, extra);
+    }
+  }
+
   return converted;
 }
 
@@ -509,8 +541,8 @@ export async function setDoc(docRef: any, data: any, options?: any) {
       .upsert(serialized);
 
     if (error) throw error;
-  } catch (err) {
-    console.warn(`Supabase setDoc failed on ${docRef.table}/${docRef.id}. Written locally only.`);
+  } catch (err: any) {
+    console.warn(`Supabase setDoc failed on ${docRef.table}/${docRef.id}. Written locally only. Error:`, err?.message || err);
   }
 }
 
@@ -528,8 +560,8 @@ export async function addDoc(collectionRef: any, data: any) {
       .insert(serialized);
 
     if (error) throw error;
-  } catch (err) {
-    console.warn(`Supabase addDoc failed on ${collectionRef.table}. Saved locally only.`);
+  } catch (err: any) {
+    console.warn(`Supabase addDoc failed on ${collectionRef.table}. Saved locally only. Error:`, err?.message || err);
   }
 
   return localRes;
@@ -549,8 +581,8 @@ export async function updateDoc(docRef: any, data: any) {
       .eq('id', docRef.id);
 
     if (error) throw error;
-  } catch (err) {
-    console.warn(`Supabase updateDoc failed on ${docRef.table}/${docRef.id}. Updated locally only.`);
+  } catch (err: any) {
+    console.warn(`Supabase updateDoc failed on ${docRef.table}/${docRef.id}. Updated locally only. Error:`, err?.message || err);
   }
 }
 

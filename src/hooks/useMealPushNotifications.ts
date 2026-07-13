@@ -30,9 +30,13 @@ export function useMealPushNotifications(profile: UserProfile | null, addNotific
   const proactiveNotified = useRef(false);
 
   useEffect(() => {
-    // Request permission on mount
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    try {
+      // Request permission on mount
+      if ('Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Notification API not supported or blocked in this environment:', e);
     }
   }, []);
 
@@ -99,12 +103,16 @@ export function useMealPushNotifications(profile: UserProfile | null, addNotific
 }
 
 function sendPushNotification(title: string, body: string) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body,
-      icon: '/icon.png', // Fallback, assuming there might be an icon
-    });
-  } else {
-    console.log('Push notification (fallback):', title, body);
+  try {
+    if ('Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/icon.png', // Fallback, assuming there might be an icon
+      });
+    } else {
+      console.log('Push notification (fallback):', title, body);
+    }
+  } catch (e) {
+    console.log('Push notification (fallback - blocked):', title, body, e);
   }
 }

@@ -26,13 +26,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLocal, setIsLocal] = useState(false);
 
   useEffect(() => {
-    // Check if there is a local session first
+    let resolved = false;
+
+    // In iframe, sandboxed, or cookie-blocked environments, Firebase Auth initialization can hang.
+    // We set a 1.5-second fallback timeout to guarantee the application loads.
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        console.warn('Firebase Auth initialization timed out. Proceeding with fallback local guest check.');
+        
+        // Try to load any local user, else let the screen render (which will show the Login page)
+        const currentLocal = localStorage.getItem('nutri-local-session-user');
+        if (currentLocal) {
+          try {
+            setUser(JSON.parse(currentLocal));
+            setIsLocal(true);
+          } catch (e) {
+            setUser(null);
+            setIsLocal(false);
+          }
+        } else {
+          setUser(null);
+          setIsLocal(false);
+        }
+        setLoading(false);
+      }
+    }, 1500);
+
+    // Check if there is an active local session first (super fast)
     const localUserStr = localStorage.getItem('nutri-local-session-user');
     if (localUserStr) {
       try {
         const localUser = JSON.parse(localUserStr);
         setUser(localUser);
         setIsLocal(true);
+        resolved = true;
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       } catch (e) {
@@ -41,6 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      resolved = true;
+      clearTimeout(timeoutId);
+
       if (firebaseUser) {
         setUser(firebaseUser);
         setIsLocal(false);
@@ -63,9 +94,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       setLoading(false);
+    }, (error) => {
+      console.error('Firebase Auth initialization error:', error);
+      resolved = true;
+      clearTimeout(timeoutId);
+      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   const loginLocally = (name: string, email: string) => {
@@ -93,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, loading, loginLocally, logoutLocally, isLocal }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

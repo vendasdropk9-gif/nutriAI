@@ -17,15 +17,23 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
+    try {
+      if ('Notification' in window && typeof Notification !== 'undefined') {
+        setNotificationPermission(Notification.permission);
+      }
+    } catch (e) {
+      console.warn('Notification permission read blocked:', e);
     }
   }, []);
 
   const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
+    try {
+      if ('Notification' in window && typeof Notification !== 'undefined') {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+      }
+    } catch (e) {
+      console.warn('Notification permission request blocked:', e);
     }
   };
 
@@ -439,9 +447,15 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() => {
-                    new Notification('Teste de Notificação 🍲', {
-                      body: 'Tudo certo! Você será avisado na hora das suas refeições.',
-                    });
+                    try {
+                      if (typeof Notification !== 'undefined') {
+                        new Notification('Teste de Notificação 🍲', {
+                          body: 'Tudo certo! Você será avisado na hora das suas refeições.',
+                        });
+                      }
+                    } catch (e) {
+                      console.warn('Failed to display native test notification:', e);
+                    }
                   }}
                   className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-full font-medium text-sm transition-colors"
                 >

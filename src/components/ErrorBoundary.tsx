@@ -34,9 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto text-rose-500 font-bold text-xl">
             ⚠️
           </div>
-          <h3 className="font-serif text-2xl text-rose-800 dark:text-rose-400 font-medium">Ops! Algo deu errado.</h3>
+          <h3 className="font-serif text-2xl text-rose-800 dark:text-rose-400 font-medium">Algo deu errado.</h3>
           <p className="font-sans text-slate-600 dark:text-slate-300">
-            Ocorreu um erro ao carregar este componente. Nosso sistema já foi notificado.
+            Toque para tentar novamente.
           </p>
           {this.state.error && (
             <pre className="p-4 bg-black/40 text-rose-300 rounded-xl text-left text-xs font-mono overflow-auto max-h-40">
@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => window.location.reload()} 
             className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-500/20"
           >
-            Recarregar Página
+            Recarregar
           </button>
         </div>
       );

@@ -19,16 +19,16 @@ const getEnvVar = (name: string): string => {
 const supabaseUrl = getEnvVar('SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 
-// A valid Supabase anon key must be present, must NOT equal the URL, and must start with "eyJ" (standard JWT token)
+// A valid Supabase anon key must be present, must NOT equal the URL, and must start with "eyJ" (classic JWT) or "sb_" (new publishable key format)
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
   supabaseAnonKey &&
   !supabaseAnonKey.startsWith('http') &&
-  supabaseAnonKey.startsWith('eyJ')
+  (supabaseAnonKey.startsWith('eyJ') || supabaseAnonKey.startsWith('sb_'))
 );
 
 if (!isSupabaseConfigured) {
-  if (supabaseUrl && supabaseAnonKey && (supabaseAnonKey.startsWith('http') || !supabaseAnonKey.startsWith('eyJ'))) {
+  if (supabaseUrl && supabaseAnonKey && (supabaseAnonKey.startsWith('http') || (!supabaseAnonKey.startsWith('eyJ') && !supabaseAnonKey.startsWith('sb_')))) {
     console.error(
       'CRITICAL CONFIGURATION ERROR: The Supabase API key (SUPABASE_ANON_KEY) is INVALID.\n' +
       'It should start with "eyJ" (standard JWT) but is currently set to a URL or a placeholder.\n' +
