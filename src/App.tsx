@@ -64,12 +64,16 @@ export default function App() {
   const { user, loading: authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
+  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', true);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
   const [isLocked, setIsLocked] = useState(() => {
-    return localStorage.getItem('nutri-biometric-enabled') === 'true';
+    try {
+      return window.localStorage.getItem('nutri-biometric-enabled') === 'true';
+    } catch (e) {
+      return false;
+    }
   });
 
   // Wrapper for setProfile to also sync
@@ -118,15 +122,19 @@ export default function App() {
     const hasSleepToday = profile.sleepLogs?.some(log => log.date.startsWith(today));
     
     // Using sessionStorage so we only nudge once per day/session
-    if (!hasSleepToday && !sessionStorage.getItem('habits_nudge')) {
-      sessionStorage.setItem('habits_nudge', 'true');
-      setTimeout(() => {
-        addNotification({
-          title: 'Dica Inteligente',
-          message: 'Como você dormiu e se hidratou hoje? Registre seus hábitos para análises mais precisas da IA.',
-          type: 'info'
-        });
-      }, 6000);
+    try {
+      if (!hasSleepToday && !window.sessionStorage.getItem('habits_nudge')) {
+        window.sessionStorage.setItem('habits_nudge', 'true');
+        setTimeout(() => {
+          addNotification({
+            title: 'Dica Inteligente',
+            message: 'Como você dormiu e se hidratou hoje? Registre seus hábitos para análises mais precisas da IA.',
+            type: 'info'
+          });
+        }, 6000);
+      }
+    } catch(e) {
+      console.warn('Storage blocked:', e);
     }
   }, [profile?.sleepLogs]);
 
@@ -221,7 +229,7 @@ export default function App() {
   const renderContent = () => {
     if (authLoading) {
       return (
-        <div className="min-h-screen w-full bg-[#f4f9f6] dark:bg-[#0f172a] flex flex-col items-center justify-center">
+        <div className="w-full h-[100vh] bg-[#08111d] flex flex-col items-center justify-center box-border overflow-hidden">
           {!showSplash && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>}
         </div>
       );
@@ -243,7 +251,9 @@ export default function App() {
           onUnlock={() => setIsLocked(false)} 
           userEmail={user.email} 
           onDisableBiometric={() => {
-            localStorage.removeItem('nutri-biometric-enabled');
+            try {
+              window.localStorage.removeItem('nutri-biometric-enabled');
+            } catch(e) {}
             setIsLocked(false);
           }}
           isDarkMode={isDarkMode}
@@ -253,9 +263,9 @@ export default function App() {
     }
 
     return (
-      <div className="min-h-screen w-full overflow-x-hidden bg-[#f4f9f6] dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-700 dark:selection:text-emerald-400 flex flex-col transition-colors duration-500">
+      <div className="w-full h-[100vh] flex flex-col bg-[#08111d] overflow-hidden box-border text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-400 transition-colors duration-500">
         <motion.div 
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar"
           initial={{ opacity: 0 }}
           animate={{ opacity: showSplash ? 0 : 1 }}
           transition={{ duration: 1, ease: "easeOut" }}

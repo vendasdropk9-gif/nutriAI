@@ -284,7 +284,7 @@ export function PartnerBanner() {
           {/* Micro pill sound type switcher */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/60 rounded-full p-0.5">
             <button
-              onClick={() => setSoundType("cooking")}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("cooking"); }}
               className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-extrabold transition-all cursor-pointer ${
                 soundType === "cooking"
                   ? "bg-emerald-500 text-white shadow-sm"
@@ -296,7 +296,7 @@ export function PartnerBanner() {
               <span className="hidden lg:inline">Nutri-Ritmo</span>
             </button>
             <button
-              onClick={() => setSoundType("meditative")}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("meditative"); }}
               className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-extrabold transition-all cursor-pointer ${
                 soundType === "meditative"
                   ? "bg-teal-500 text-white shadow-sm"
@@ -317,7 +317,7 @@ export function PartnerBanner() {
               step="0.01"
               value={volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="w-12 sm:w-14 h-1 bg-emerald-500/30 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all opacity-80 hover:opacity-100"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="w-12 sm:w-14 h-1 bg-emerald-500/30 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all opacity-80 hover:opacity-100"
               title="Ajustar Volume"
             />
           )}
@@ -325,7 +325,7 @@ export function PartnerBanner() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={toggleMusic}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
             className={`p-1 py-1 rounded-full border transition-all duration-300 ${
               !isMuted
                 ? soundType === "cooking"

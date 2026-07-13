@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -100,8 +101,8 @@ export function FoodAllergyDetector() {
   useEffect(() => {
     if (!user) {
       // Local fallback
-      const localAllergies = localStorage.getItem('nutri_user_allergies');
-      const localSeverities = localStorage.getItem('nutri_user_severities');
+      const localAllergies = safeGet('nutri_user_allergies');
+      const localSeverities = safeGet('nutri_user_severities');
       if (localAllergies) {
         setUserAllergies(JSON.parse(localAllergies));
       } else {
@@ -189,8 +190,8 @@ export function FoodAllergyDetector() {
           allergySeverities: severityLevels
         }, { merge: true });
       } else {
-        localStorage.setItem('nutri_user_allergies', JSON.stringify(userAllergies));
-        localStorage.setItem('nutri_user_severities', JSON.stringify(severityLevels));
+        safeSet('nutri_user_allergies', JSON.stringify(userAllergies));
+        safeSet('nutri_user_severities', JSON.stringify(severityLevels));
       }
       setSettingsSuccess(true);
       setTimeout(() => setSettingsSuccess(false), 3000);

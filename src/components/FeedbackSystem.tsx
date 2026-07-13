@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Star, X, Send, Heart, CheckCircle2, User as UserIcon } from 'lucide-react';
@@ -82,7 +83,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       
       // Fallback: Save to LocalStorage so we don't block the user's positive experience!
       try {
-        const localFeedbacks = JSON.parse(localStorage.getItem('nutriAI-local-feedbacks') || '[]');
+        const localFeedbacks = JSON.parse(safeGet('nutriAI-local-feedbacks') || '[]');
         localFeedbacks.push({
           id: feedbackId,
           userName: finalUserName,
@@ -90,7 +91,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
           comment: comment.trim(),
           createdAt: new Date().toISOString()
         });
-        localStorage.setItem('nutriAI-local-feedbacks', JSON.stringify(localFeedbacks));
+        safeSet('nutriAI-local-feedbacks', JSON.stringify(localFeedbacks));
 
         playSfx('success');
         vibrate([100, 50, 100]);

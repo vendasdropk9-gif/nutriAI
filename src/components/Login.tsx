@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Mail, Lock, ScanFace, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2, Fingerprint, ShieldCheck, RefreshCw, Smartphone, Camera, X, Sparkles } from 'lucide-react';
@@ -366,9 +367,9 @@ export function Login() {
   };
 
   const proceedBiometricLogin = async () => {
-    const enabled = localStorage.getItem('nutri-biometric-enabled') === 'true';
-    const savedEmail = localStorage.getItem('nutri-biometric-email');
-    const savedPassword = localStorage.getItem('nutri-biometric-password');
+    const enabled = safeGet('nutri-biometric-enabled') === 'true';
+    const savedEmail = safeGet('nutri-biometric-email');
+    const savedPassword = safeGet('nutri-biometric-password');
 
     setLoading(true);
     setSuccess('');
@@ -383,7 +384,7 @@ export function Login() {
           playSfx('success');
         } catch (firebaseErr) {
           console.warn("Firebase Biometric Login failed, trying local fallback", firebaseErr);
-          loginLocally(localStorage.getItem('nutri-biometric-username') || 'Usuário', savedEmail);
+          loginLocally(safeGet('nutri-biometric-username') || 'Usuário', savedEmail);
           setSuccess('Autenticado com sucesso via Biometria Local Offline!');
           playSfx('success');
         }
@@ -412,11 +413,11 @@ export function Login() {
             });
 
             // Set biometric metadata for demo
-            localStorage.setItem('nutri-biometric-enabled', 'true');
-            localStorage.setItem('nutri-biometric-type', 'both');
-            localStorage.setItem('nutri-biometric-email', demoEmail);
-            localStorage.setItem('nutri-biometric-password', demoPassword);
-            localStorage.setItem('nutri-biometric-username', 'NutriAI Demo');
+            safeSet('nutri-biometric-enabled', 'true');
+            safeSet('nutri-biometric-type', 'both');
+            safeSet('nutri-biometric-email', demoEmail);
+            safeSet('nutri-biometric-password', demoPassword);
+            safeSet('nutri-biometric-username', 'NutriAI Demo');
 
             setSuccess('Conta de Demonstração criada e autenticada via Biometria de Segurança!');
             playSfx('success');
@@ -451,13 +452,13 @@ export function Login() {
       }, { merge: true });
 
       // Save credentials locally for background autologin support
-      localStorage.setItem('nutri-biometric-enabled', 'true');
-      localStorage.setItem('nutri-biometric-type', type);
-      localStorage.setItem('nutri-biometric-email', email || user.email || '');
+      safeSet('nutri-biometric-enabled', 'true');
+      safeSet('nutri-biometric-type', type);
+      safeSet('nutri-biometric-email', email || user.email || '');
       if (password) {
-        localStorage.setItem('nutri-biometric-password', password);
+        safeSet('nutri-biometric-password', password);
       }
-      localStorage.setItem('nutri-biometric-username', user.displayName || name || 'Usuário');
+      safeSet('nutri-biometric-username', user.displayName || name || 'Usuário');
 
       setSuccess(`Acesso por ${type === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} ativado com sucesso!`);
       playSfx('success');
@@ -475,7 +476,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#f4f9f6] dark:bg-slate-950 font-sans">
+    <div className="w-full h-[100vh] flex flex-col md:flex-row bg-[#08111d] overflow-hidden box-border font-sans text-slate-100">
       
       {/* Decorative Side - Desktop Only */}
       <div className="hidden md:flex md:w-1/2 bg-emerald-600 relative overflow-hidden items-center justify-center">

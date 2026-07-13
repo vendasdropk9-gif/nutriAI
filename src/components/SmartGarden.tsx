@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -192,7 +193,7 @@ export function SmartGarden() {
   useEffect(() => {
     if (!user) {
       setLoadingCrops(false);
-      const cached = localStorage.getItem('nutri_local_garden');
+      const cached = safeGet('nutri_local_garden');
       if (cached) {
         setCrops(JSON.parse(cached));
       }
@@ -221,7 +222,7 @@ export function SmartGarden() {
   // Fallback storage
   useEffect(() => {
     if (!user) {
-      localStorage.setItem('nutri_local_garden', JSON.stringify(crops));
+      safeSet('nutri_local_garden', JSON.stringify(crops));
     }
   }, [crops, user]);
 

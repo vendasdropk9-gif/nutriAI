@@ -20,6 +20,26 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const getLocalSession = () => {
+  try {
+    return window.localStorage.getItem('nutri-local-session-user');
+  } catch (e) {
+    return null;
+  }
+};
+
+const setLocalSession = (val: string) => {
+  try {
+    window.localStorage.setItem('nutri-local-session-user', val);
+  } catch (e) {}
+};
+
+const clearLocalSession = () => {
+  try {
+    window.localStorage.removeItem('nutri-local-session-user');
+  } catch (e) {}
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Firebase Auth initialization timed out. Proceeding with fallback local guest check.');
         
         // Try to load any local user, else let the screen render (which will show the Login page)
-        const currentLocal = localStorage.getItem('nutri-local-session-user');
+        const currentLocal = getLocalSession();
         if (currentLocal) {
           try {
             setUser(JSON.parse(currentLocal));
@@ -53,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 1500);
 
     // Check if there is an active local session first (super fast)
-    const localUserStr = localStorage.getItem('nutri-local-session-user');
+    const localUserStr = getLocalSession();
     if (localUserStr) {
       try {
         const localUser = JSON.parse(localUserStr);
@@ -64,22 +84,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
         return;
       } catch (e) {
-        localStorage.removeItem('nutri-local-session-user');
+        clearLocalSession();
       }
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       resolved = true;
       clearTimeout(timeoutId);
-
+      
       if (firebaseUser) {
         setUser(firebaseUser);
         setIsLocal(false);
         // Clear local session if we got a real Firebase user
-        localStorage.removeItem('nutri-local-session-user');
+        clearLocalSession();
       } else {
         // If they logged out from firebase, we should also log out locally
-        const currentLocal = localStorage.getItem('nutri-local-session-user');
+        const currentLocal = getLocalSession();
         if (currentLocal) {
           try {
             setUser(JSON.parse(currentLocal));
@@ -115,14 +135,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       emailVerified: true,
       providerData: [{ providerId: 'password', email, displayName: name, uid: 'local', phoneNumber: null, photoURL: null }]
     } as unknown as User;
-
-    localStorage.setItem('nutri-local-session-user', JSON.stringify(mockUser));
+    
+    setLocalSession(JSON.stringify(mockUser));
     setUser(mockUser);
     setIsLocal(true);
   };
 
   const logoutLocally = async () => {
-    localStorage.removeItem('nutri-local-session-user');
+    clearLocalSession();
     setUser(null);
     setIsLocal(false);
     try {

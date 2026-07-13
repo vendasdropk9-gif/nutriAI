@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserProfile } from '../types';
@@ -76,23 +77,23 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [promptSuccess, setPromptSuccess] = useState('');
 
   useEffect(() => {
-    const enabled = localStorage.getItem('nutri-biometric-enabled') === 'true';
-    const type = localStorage.getItem('nutri-biometric-type') as any;
+    const enabled = safeGet('nutri-biometric-enabled') === 'true';
+    const type = safeGet('nutri-biometric-type') as any;
     setBiometricEnabled(enabled);
     setBiometricType(type);
   }, []);
 
   const handleToggleBiometrics = (type: 'face' | 'fingerprint') => {
-    const active = localStorage.getItem('nutri-biometric-enabled') === 'true';
-    const currentType = localStorage.getItem('nutri-biometric-type');
+    const active = safeGet('nutri-biometric-enabled') === 'true';
+    const currentType = safeGet('nutri-biometric-type');
 
     if (active && (currentType === type || currentType === 'both')) {
       // Disable biometrics
-      localStorage.removeItem('nutri-biometric-enabled');
-      localStorage.removeItem('nutri-biometric-type');
-      localStorage.removeItem('nutri-biometric-password');
-      localStorage.removeItem('nutri-biometric-email');
-      localStorage.removeItem('nutri-biometric-username');
+      safeRemove('nutri-biometric-enabled');
+      safeRemove('nutri-biometric-type');
+      safeRemove('nutri-biometric-password');
+      safeRemove('nutri-biometric-email');
+      safeRemove('nutri-biometric-username');
       setBiometricEnabled(false);
       setBiometricType(null);
       playSfx('pop');
@@ -116,11 +117,11 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     }
     
     // Save credentials safely to device's secure local cache to allow instant background logins
-    localStorage.setItem('nutri-biometric-enabled', 'true');
-    localStorage.setItem('nutri-biometric-type', biometricPromptType || 'face');
-    localStorage.setItem('nutri-biometric-email', auth.currentUser?.email || '');
-    localStorage.setItem('nutri-biometric-password', promptPassword);
-    localStorage.setItem('nutri-biometric-username', auth.currentUser?.displayName || 'Usuário');
+    safeSet('nutri-biometric-enabled', 'true');
+    safeSet('nutri-biometric-type', biometricPromptType || 'face');
+    safeSet('nutri-biometric-email', auth.currentUser?.email || '');
+    safeSet('nutri-biometric-password', promptPassword);
+    safeSet('nutri-biometric-username', auth.currentUser?.displayName || 'Usuário');
 
     setBiometricEnabled(true);
     setBiometricType(biometricPromptType);

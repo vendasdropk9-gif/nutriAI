@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -118,7 +119,7 @@ export function SmartFridge() {
     if (!user) {
       setLoadingItems(false);
       // Load fallback from localStorage
-      const cached = localStorage.getItem('nutri_local_fridge');
+      const cached = safeGet('nutri_local_fridge');
       if (cached) {
         setFridgeItems(JSON.parse(cached));
       }
@@ -175,20 +176,20 @@ export function SmartFridge() {
   // Save fallback to localstorage
   useEffect(() => {
     if (!user) {
-      localStorage.setItem('nutri_local_fridge', JSON.stringify(fridgeItems));
+      safeSet('nutri_local_fridge', JSON.stringify(fridgeItems));
     }
   }, [fridgeItems, user]);
 
   // Load shopping list
   useEffect(() => {
-    const savedShopping = localStorage.getItem('nutri_fridge_shopping');
+    const savedShopping = safeGet('nutri_fridge_shopping');
     if (savedShopping) {
       setShoppingList(JSON.parse(savedShopping));
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nutri_fridge_shopping', JSON.stringify(shoppingList));
+    safeSet('nutri_fridge_shopping', JSON.stringify(shoppingList));
   }, [shoppingList]);
 
   // Clean up camera stream on unmount

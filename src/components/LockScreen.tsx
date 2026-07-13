@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Fingerprint, Utensils, LogOut, Sun, Moon } from 'lucide-react';
@@ -44,7 +45,7 @@ export function LockScreen({
       if (onDisableBiometric) {
         onDisableBiometric();
       } else {
-        localStorage.removeItem('nutri-biometric-enabled');
+        safeRemove('nutri-biometric-enabled');
         window.location.reload();
       }
     } catch (e) {
@@ -57,9 +58,9 @@ export function LockScreen({
     if (onToggleDarkMode) {
       onToggleDarkMode();
     } else {
-      const current = localStorage.getItem('nutri-dark-mode') === 'true';
+      const current = safeGet('nutri-dark-mode') === 'true';
       const newVal = !current;
-      localStorage.setItem('nutri-dark-mode', String(newVal));
+      safeSet('nutri-dark-mode', String(newVal));
       if (newVal) {
         document.documentElement.classList.add('dark');
       } else {
@@ -153,7 +154,7 @@ export function LockScreen({
                 if (onDisableBiometric) {
                   onDisableBiometric();
                 } else {
-                  localStorage.removeItem('nutri-biometric-enabled');
+                  safeRemove('nutri-biometric-enabled');
                   window.location.reload(); 
                 }
               }} 

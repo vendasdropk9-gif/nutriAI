@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -260,7 +261,7 @@ export function AcademyPortal() {
   
   // Academies List State
   const [academies, setAcademies] = useState<Academy[]>(() => {
-    const local = localStorage.getItem('nutri-academies');
+    const local = safeGet('nutri-academies');
     return local ? JSON.parse(local) : PRESET_ACADEMIAS;
   });
 
@@ -330,7 +331,7 @@ export function AcademyPortal() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('nutri-academies', JSON.stringify(academies));
+    safeSet('nutri-academies', JSON.stringify(academies));
   }, [academies]);
 
   // Explore Workspace States
@@ -348,7 +349,7 @@ export function AcademyPortal() {
   // Partner Registration State
   const [regStep, setRegStep] = useState<'welcome' | 'form' | 'submitted' | 'dashboard'>('welcome');
   const [myAcademyId, setMyAcademyId] = useState<string | null>(() => {
-    return localStorage.getItem('nutri-my-academy-id');
+    return safeGet('nutri-my-academy-id');
   });
 
   // Check if we already have registered an academy to skip to dashboard if partner clicked
@@ -358,7 +359,7 @@ export function AcademyPortal() {
       if (myAcademy) {
         setRegStep('dashboard');
       } else {
-        localStorage.removeItem('nutri-my-academy-id');
+        safeRemove('nutri-my-academy-id');
         setMyAcademyId(null);
         setRegStep('welcome');
       }
@@ -474,7 +475,7 @@ export function AcademyPortal() {
 
       if (data.success && data.academyId) {
         setMyAcademyId(data.academyId);
-        localStorage.setItem('nutri-my-academy-id', data.academyId);
+        safeSet('nutri-my-academy-id', data.academyId);
         
         // Populate display state
         setAcademies(prev => [...prev, { id: data.academyId, ...data.academy }]);
@@ -1371,7 +1372,7 @@ export function AcademyPortal() {
                         if (confirm('Deseja realmente simular uma nova empresa do zero? Isso remove a sua academia associada.')) {
                           setAcademies(prev => prev.filter(a => a.id !== myAcademyId));
                           setMyAcademyId(null);
-                          localStorage.removeItem('nutri-my-academy-id');
+                          safeRemove('nutri-my-academy-id');
                           setRegStep('welcome');
                           playSfx('tap');
                         }

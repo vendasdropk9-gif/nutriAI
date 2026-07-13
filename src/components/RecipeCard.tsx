@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { Recipe } from '../types';
 import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -36,7 +37,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [recipeImage, setRecipeImage] = useState<string | null>(() => {
     if (recipe.image) return recipe.image;
     try {
-      return localStorage.getItem(`recipe-image-${recipeId}`) || null;
+      return safeGet(`recipe-image-${recipeId}`) || null;
     } catch (e) {
       return null;
     }
@@ -56,7 +57,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       if (base64Image) {
         setRecipeImage(base64Image);
         try {
-          localStorage.setItem(`recipe-image-${recipeId}`, base64Image);
+          safeSet(`recipe-image-${recipeId}`, base64Image);
         } catch (e2) {
           console.warn("Could not save generated image to localStorage:", e2);
         }
@@ -130,7 +131,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         });
 
         const localSavedKey = `local-reviews-${recipeId}`;
-        const localSaved = localStorage.getItem(localSavedKey);
+        const localSaved = safeGet(localSavedKey);
         const localReviews = localSaved ? JSON.parse(localSaved) : [];
 
         const combined = [...fetchedList, ...localReviews];
@@ -142,7 +143,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       } catch (err) {
         console.warn('Erro ao buscar avaliações, usando locais:', err);
         const localSavedKey = `local-reviews-${recipeId}`;
-        const localSaved = localStorage.getItem(localSavedKey);
+        const localSaved = safeGet(localSavedKey);
         const localReviews = localSaved ? JSON.parse(localSaved) : [];
         setReviews(localReviews);
       } finally {
@@ -168,7 +169,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
     let finalProfileName = 'Usuário do App';
     try {
-      const profileStr = localStorage.getItem('nutri-profile');
+      const profileStr = safeGet('nutri-profile');
       if (profileStr) {
         const profileObj = JSON.parse(profileStr);
         if (profileObj && profileObj.name) {
@@ -188,11 +189,11 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
     try {
       const localSavedKey = `local-reviews-${recipeId}`;
-      const localSaved = localStorage.getItem(localSavedKey);
+      const localSaved = safeGet(localSavedKey);
       const localReviews = localSaved ? JSON.parse(localSaved) : [];
       const tempId = `local-review-${Date.now()}`;
       const newLocalReviewObj = { id: tempId, ...reviewPayload };
-      localStorage.setItem(localSavedKey, JSON.stringify([newLocalReviewObj, ...localReviews]));
+      safeSet(localSavedKey, JSON.stringify([newLocalReviewObj, ...localReviews]));
 
       if (auth.currentUser && !auth.currentUser.uid.startsWith('local-user-')) {
         const reviewsRef = collection(db, 'recipeReviews');

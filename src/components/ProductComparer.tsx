@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -161,7 +162,7 @@ export function ProductComparer() {
   useEffect(() => {
     if (!user) {
       // Local fallback
-      const localHistory = localStorage.getItem('nutri_comparer_history');
+      const localHistory = safeGet('nutri_comparer_history');
       if (localHistory) {
         setHistory(JSON.parse(localHistory));
       }
@@ -292,10 +293,10 @@ export function ProductComparer() {
       if (user) {
         await addDoc(collection(db, 'users', user.uid, 'productComparisons'), savedItem);
       } else {
-        const localHistory = localStorage.getItem('nutri_comparer_history');
+        const localHistory = safeGet('nutri_comparer_history');
         const list = localHistory ? JSON.parse(localHistory) : [];
         list.unshift(savedItem);
-        localStorage.setItem('nutri_comparer_history', JSON.stringify(list));
+        safeSet('nutri_comparer_history', JSON.stringify(list));
         setHistory(list);
       }
 
@@ -317,7 +318,7 @@ export function ProductComparer() {
     } else {
       const list = [...history];
       list.splice(idx, 1);
-      localStorage.setItem('nutri_comparer_history', JSON.stringify(list));
+      safeSet('nutri_comparer_history', JSON.stringify(list));
       setHistory(list);
     }
   };

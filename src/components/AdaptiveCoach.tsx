@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, Sparkles, TrendingUp, Zap, ChevronRight, Activity, Calendar, CheckCircle2, AlertCircle, Volume2, Plus, Target, PieChart as pieChartIcon, RefreshCw, Dumbbell, Utensils, Star, ActivitySquare, ArrowUpRight } from 'lucide-react';
@@ -32,7 +33,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
     const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
     if (isLocalUser) {
       // Load local insight if any exists from localStorage
-      const localInsightStr = localStorage.getItem(`nutri-local-adaptive-insight-${user.uid}`);
+      const localInsightStr = safeGet(`nutri-local-adaptive-insight-${user.uid}`);
       if (localInsightStr) {
         try {
           setAdaptiveInsight(JSON.parse(localInsightStr));
@@ -110,7 +111,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             status: 'pending',
             date: new Date().toISOString()
           } as any;
-          localStorage.setItem(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
+          safeSet(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
           setAdaptiveInsight(localInsightObj);
         } else {
           try {
@@ -348,7 +349,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                                         const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
                                         if (isLocalUser) {
                                           const localInsightObj = { ...adaptiveInsight, status: 'applied' };
-                                          localStorage.setItem(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
+                                          safeSet(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
                                         } else {
                                           try {
                                               const { doc, updateDoc } = await import('firebase/firestore');

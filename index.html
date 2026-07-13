@@ -6,9 +6,9 @@
     <title>NutriAI - Mapa de Frescor e Saúde</title>
     
     <!-- PWA & Mobile Optimization Meta Tags -->
-    <meta name="theme-color" content="#08111d" />
+    <meta name="theme-color" content="#10b981" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="NutriAI" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="NutriAI" />
@@ -20,92 +20,54 @@
     <link rel="manifest" href="/manifest.json" />
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100vh;
-        background-color: #08111d;
-        color: #ffffff;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        overflow: hidden;
-      }
-      #root {
-        width: 100%;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background-color: #08111d;
-        overflow: hidden;
-        box-sizing: border-box;
-      }
-      .initial-loading {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #08111d;
-        color: #10b981;
-      }
-      .spinner {
-        width: 48px;
-        height: 48px;
-        border: 4px solid rgba(16, 185, 129, 0.2);
-        border-top-color: #10b981;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 24px;
-      }
-      @keyframes spin { 
-        to { transform: rotate(360deg); } 
-      }
-      #error-log {
-        display: none;
-      }
-    </style>
   </head>
-  <body>
+  <body style="background-color: #08111d; color: #f8fafc; margin: 0; padding: 0;">
     <div id="root">
-      <div class="initial-loading">
-        <div class="spinner"></div>
-        <h2 style="margin:0; font-size: 1.5rem; font-weight: 600;">Carregando NutriAI...</h2>
-        <p style="margin-top: 8px; color: #94a3b8; font-size: 0.875rem;">Preparando sua experiência</p>
+      <div id="initial-loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #08111d; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="width: 60px; height: 60px; border: 4px solid rgba(16, 185, 129, 0.2); border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px;"></div>
+        <h1 style="font-size: 24px; font-weight: 700; color: #f8fafc; margin: 0 0 8px 0; letter-spacing: -0.5px;">NutriAI</h1>
+        <p style="font-size: 14px; color: #94a3b8; margin: 0;">Carregando NutriAI...</p>
+        <style>
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
       </div>
     </div>
-    
-    <script>
-      window.addEventListener("error", function(e) {
-        console.error("Global Error:", e);
-      });
-      window.addEventListener("unhandledrejection", function(e) {
-        console.error("Unhandled Promise Rejection:", e.reason);
-      });
-    </script>
-    
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Service Worker Registration -->
     <script type="module">
-      // Em desenvolvimento, desregistrar ativamente qualquer service worker e limpar o cache
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const registration of registrations) {
-            registration.unregister().then(() => {
-              console.log('Service Worker antigo desregistrado com sucesso em desenvolvimento.');
-            });
-          }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then((keys) => {
-          for (const key of keys) {
-            caches.delete(key).then(() => {
-              console.log('Cache limpo em desenvolvimento:', key);
-            });
-          }
-        });
+      if (import.meta.env.PROD) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then((reg) => {
+                console.log('NutriAI PWA Service Worker registrado com sucesso:', reg.scope);
+              })
+              .catch((err) => {
+                console.warn('Falha ao registrar o Service Worker do NutriAI PWA:', err);
+              });
+          });
+        }
+      } else {
+        // Em desenvolvimento, desregistrar ativamente qualquer service worker e limpar o cache
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const registration of registrations) {
+              registration.unregister().then(() => {
+                console.log('Service Worker antigo desregistrado com sucesso em desenvolvimento.');
+              });
+            }
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then((keys) => {
+            for (const key of keys) {
+              caches.delete(key).then(() => {
+                console.log('Cache limpo em desenvolvimento:', key);
+              });
+            }
+          });
+        }
       }
     </script>
   </body>

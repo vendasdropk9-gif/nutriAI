@@ -1,3 +1,4 @@
+import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -157,7 +158,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
   // Weekly spin history
   const [weeklyCompletedSpins, setWeeklyCompletedSpins] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('nutri_roulette_history_v3');
+      const saved = safeGet('nutri_roulette_history_v3');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -258,7 +259,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
   // Sync history to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('nutri_roulette_history_v3', JSON.stringify(weeklyCompletedSpins));
+      safeSet('nutri_roulette_history_v3', JSON.stringify(weeklyCompletedSpins));
     } catch (e) {
       console.warn("Storage syncing blocked:", e);
     }
@@ -491,7 +492,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
   const clearWeeklyHistory = () => {
     setWeeklyCompletedSpins([]);
     try {
-      localStorage.removeItem('nutri_roulette_history_v3');
+      safeRemove('nutri_roulette_history_v3');
     } catch {}
   };
 
