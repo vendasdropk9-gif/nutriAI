@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { MealPlan } from '../types';
 import { 
   CheckCircle2, 
@@ -21,12 +21,25 @@ import {
   ChevronDown, 
   ChevronUp, 
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  MapPin,
+  Navigation,
+  Compass,
+  Star,
+  ExternalLink,
+  ShieldCheck,
+  DollarSign,
+  Clock,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { motion, AnimatePresence } from 'motion/react';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface ShoppingListViewProps {
   mealPlan: MealPlan;
@@ -91,6 +104,156 @@ const PARTNER_PROMOTIONS = [
     voiceIntro: 'Facilite seu dia com o Kit Salada Prática no Hortifruti Premium, saindo por quinze e noventa. Já vem limpa!'
   }
 ];
+
+// Price Comparator Geolocation constants and helpers
+const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333]; // São Paulo Center
+
+const PRESET_LOCATIONS = [
+  { name: 'São Paulo (Centro/Paulista)', coords: [-23.5505, -46.6333] as [number, number] },
+  { name: 'Rio de Janeiro (Copacabana)', coords: [-22.9711, -43.1886] as [number, number] },
+  { name: 'Belo Horizonte (Savassi)', coords: [-19.9386, -43.9339] as [number, number] },
+  { name: 'Curitiba (Batel)', coords: [-25.4421, -49.2797] as [number, number] },
+  { name: 'Salvador (Barra)', coords: [-13.0038, -38.5323] as [number, number] }
+];
+
+const SUPERMARKETS_TEMPLATES = [
+  {
+    id: 'm-vv',
+    name: 'Sacolão Vida Verde',
+    priceIndex: 1.0,
+    rating: 4.8,
+    latOffset: 0.003,
+    lngOffset: -0.004,
+    deliveryTime: '15-25 min',
+    logo: '🥬',
+    color: '#10b981', // emerald
+    addressTemplate: 'Rua das Margaridas, 342'
+  },
+  {
+    id: 'm-hp',
+    name: 'Hortifruti Premium',
+    priceIndex: 1.2,
+    rating: 4.9,
+    latOffset: -0.005,
+    lngOffset: 0.006,
+    deliveryTime: '20-30 min',
+    logo: '🍊',
+    color: '#ec4899', // pink
+    addressTemplate: 'Alameda Lorena, 1150'
+  },
+  {
+    id: 'm-sa',
+    name: 'Supermercado Alvorada',
+    priceIndex: 0.92,
+    rating: 4.3,
+    latOffset: 0.007,
+    lngOffset: 0.002,
+    deliveryTime: '30-45 min',
+    logo: '🛒',
+    color: '#3b82f6', // blue
+    addressTemplate: 'Avenida Principal, 890'
+  },
+  {
+    id: 'm-mo',
+    name: 'Mercado Organique',
+    priceIndex: 1.4,
+    rating: 4.7,
+    latOffset: -0.002,
+    lngOffset: -0.006,
+    deliveryTime: '25-35 min',
+    logo: '🥑',
+    color: '#8b5cf6', // purple
+    addressTemplate: 'Rua Bela Cintra, 2040'
+  },
+  {
+    id: 'm-sep',
+    name: 'Sacolão Economia Popular',
+    priceIndex: 0.84,
+    rating: 4.1,
+    latOffset: -0.006,
+    lngOffset: -0.003,
+    deliveryTime: '35-50 min',
+    logo: '💰',
+    color: '#f59e0b', // amber
+    addressTemplate: 'Praça da República, 12'
+  }
+];
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // distance in km
+}
+
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  React.useEffect(() => {
+    map.setView(center, 15);
+  }, [center, map]);
+  return null;
+}
+
+function createMarketIcon(logo: string, color: string, isSelected: boolean) {
+  const size = isSelected ? 48 : 38;
+  const border = isSelected ? '4px solid #fff' : '2.2px solid #fff';
+  const shadow = isSelected ? 'box-shadow: 0 0 15px rgba(16, 185, 129, 0.7); z-index: 1000;' : 'box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+  
+  return L.divIcon({
+    className: 'custom-market-icon',
+    html: `<div style="background-color: ${color}; border: ${border}; border-radius: 50%; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; font-size: ${isSelected ? '22px' : '17px'}; ${shadow} transition: all 0.2s ease; cursor: pointer;">
+      ${logo}
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+  });
+}
+
+function getSupermarketItemPrice(itemName: string, marketPriceIndex: number, marketId: string): number {
+  const n = itemName.toLowerCase();
+  const presets: Record<string, { base: number }> = {
+    'morango': { base: 11.40 },
+    'banana': { base: 5.20 },
+    'brócolis': { base: 7.70 },
+    'abóbora': { base: 3.35 },
+    'kit salada': { base: 17.90 },
+    'salada': { base: 17.90 },
+    'frango': { base: 18.20 },
+    'peito de frango': { base: 18.20 },
+    'ovo': { base: 14.90 },
+    'ovos': { base: 14.90 },
+    'aveia': { base: 5.00 },
+    'iogurte': { base: 3.30 },
+    'espinafre': { base: 4.20 },
+    'alface': { base: 3.30 },
+    'cenoura': { base: 5.00 },
+    'tomate': { base: 7.40 },
+    'chia': { base: 10.15 },
+    'azeite': { base: 29.20 },
+  };
+
+  let basePrice = 4.20;
+  const matchedKey = Object.keys(presets).find(k => n.includes(k));
+  if (matchedKey) {
+    basePrice = presets[matchedKey].base;
+  } else {
+    for (let i = 0; i < itemName.length; i++) {
+      basePrice += (itemName.charCodeAt(i) % 8) * 0.55;
+    }
+    basePrice = Number((basePrice % 16 + 3.20).toFixed(2));
+  }
+
+  let finalPrice = basePrice * marketPriceIndex;
+  const variation = ((marketId.length + itemName.length) % 10 - 5) * 0.05;
+  finalPrice = Math.max(1.50, Number((finalPrice + variation).toFixed(2)));
+
+  return finalPrice;
+}
 
 // Helper to categorize ingredients
 function categorizeIngredient(name: string): string {
@@ -171,6 +334,18 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [speakingPromoId, setSpeakingPromoId] = useState<string | null>(null);
+
+  // Geolocation and suggested markets states
+  const [userCoords, setUserCoords] = useState<[number, number]>(DEFAULT_CENTER);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationSource, setLocationSource] = useState<'default' | 'gps' | 'preset'>('default');
+  const [locationName, setLocationName] = useState('São Paulo, SP (Padrão)');
+  const [selectedMarketId, setSelectedMarketId] = useState<string>('m-vv');
+
+  // Voice Recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Parse mealPlan ingredients
   const mealPlanIngredients = useMemo(() => {
@@ -296,6 +471,111 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
     setCustomItems([]);
   };
 
+  // Voice Recognition handlers
+  const startVoiceListening = () => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      alert("Reconhecimento de voz não é suportado pelo seu navegador.");
+      return;
+    }
+
+    vibrate(15);
+    playSfx('tap');
+    setVoiceError(null);
+
+    try {
+      const rec = new SpeechRecognitionAPI();
+      rec.lang = 'pt-BR';
+      rec.continuous = false;
+      rec.interimResults = false;
+
+      rec.onstart = () => {
+        setIsListening(true);
+      };
+
+      rec.onresult = (event: any) => {
+        const resultIndex = event.resultIndex;
+        const transcript = event.results[resultIndex][0].transcript;
+        if (transcript && transcript.trim()) {
+          processDictatedItems(transcript);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.error("Erro no reconhecimento de voz:", event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed') {
+          setVoiceError("Permissão de microfone negada.");
+          alert("Permissão de acesso ao microfone negada. Ative nas configurações do navegador.");
+        } else {
+          setVoiceError(`Erro: ${event.error}`);
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.error(err);
+      setIsListening(false);
+      setVoiceError("Falha ao iniciar microfone.");
+    }
+  };
+
+  const stopVoiceListening = () => {
+    vibrate(10);
+    playSfx('scratch');
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setIsListening(false);
+  };
+
+  const processDictatedItems = (text: string) => {
+    // Splits text into multiple items
+    // Replace " e " with a comma, " ou " with a comma, " e/ou " with a comma
+    let cleanedText = text
+      .replace(/\s+e\s+/gi, ',')
+      .replace(/\s+ou\s+/gi, ',')
+      .replace(/\s+e\/ou\s+/gi, ',');
+      
+    const items = cleanedText.split(',').map(item => item.trim()).filter(Boolean);
+    
+    if (items.length === 0) return;
+
+    vibrate(30);
+    playSfx('crystal');
+
+    const addedNames: string[] = [];
+    setCustomItems(prev => {
+      const updated = [...prev];
+      items.forEach(rawItem => {
+        const capitalized = rawItem.charAt(0).toUpperCase() + rawItem.slice(1);
+        const alreadyExists = allListItems.some(existing => existing.name.toLowerCase() === capitalized.toLowerCase()) ||
+                              updated.some(existing => existing.name.toLowerCase() === capitalized.toLowerCase());
+        
+        if (!alreadyExists) {
+          updated.push({ name: capitalized, checked: false });
+          addedNames.push(capitalized);
+        }
+      });
+      return updated;
+    });
+
+    if (addedNames.length > 0) {
+      alert(`Adicionado por voz: ${addedNames.join(', ')}`);
+    } else {
+      alert("Nenhum item novo detectado ou os itens já existem na lista.");
+    }
+  };
+
   // Dynamic suggestions block based on list content
   const smartRecommendation = useMemo(() => {
     const listLower = allListItems.map(i => i.name.toLowerCase());
@@ -373,6 +653,109 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       isVVCheaper
     };
   }, [allListItems]);
+
+  // Dynamic suggestedMarkets memo incorporating user geolocation
+  const suggestedMarkets = useMemo(() => {
+    const [userLat, userLng] = userCoords;
+    const computed = SUPERMARKETS_TEMPLATES.map(tpl => {
+      const marketLat = userLat + tpl.latOffset;
+      const marketLng = userLng + tpl.lngOffset;
+      const distanceNum = calculateDistance(userLat, userLng, marketLat, marketLng);
+      
+      let totalPrice = 0;
+      const items = allListItems.map(item => {
+        const price = getSupermarketItemPrice(item.name, tpl.priceIndex, tpl.id);
+        totalPrice += price;
+        return {
+          name: item.name,
+          price,
+          checked: item.checked
+        };
+      });
+
+      return {
+        ...tpl,
+        coordinates: { lat: marketLat, lng: marketLng },
+        distanceNum,
+        distance: distanceNum.toFixed(2),
+        totalPrice,
+        items,
+        address: tpl.addressTemplate
+      };
+    });
+
+    // Find winners
+    let cheapest = computed[0];
+    let closest = computed[0];
+    
+    computed.forEach(m => {
+      if (m.totalPrice < cheapest.totalPrice) cheapest = m;
+      if (m.distanceNum < closest.distanceNum) closest = m;
+    });
+
+    // Best value (balanced price vs distance score)
+    const avgPrice = computed.reduce((sum, m) => sum + m.totalPrice, 0) / computed.length;
+    const avgDist = computed.reduce((sum, m) => sum + m.distanceNum, 0) / computed.length;
+    
+    let bestValue = computed[0];
+    let bestScore = Infinity;
+    
+    computed.forEach(m => {
+      const priceScore = m.totalPrice / (avgPrice || 1);
+      const distScore = m.distanceNum / (avgDist || 1);
+      const score = priceScore * 0.65 + distScore * 0.35;
+      if (score < bestScore) {
+        bestScore = score;
+        bestValue = m;
+      }
+    });
+
+    return {
+      markets: computed,
+      cheapest,
+      closest,
+      bestValue
+    };
+  }, [userCoords, allListItems]);
+
+  const activeMarket = useMemo(() => {
+    return suggestedMarkets.markets.find(m => m.id === selectedMarketId) || suggestedMarkets.markets[0];
+  }, [suggestedMarkets, selectedMarketId]);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocalização não é suportada por este navegador.");
+      return;
+    }
+    setIsLocating(true);
+    vibrate(10);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserCoords([lat, lng]);
+        setLocationSource('gps');
+        setLocationName('Minha Localização (GPS)');
+        setIsLocating(false);
+        vibrate(30);
+        playSfx('success');
+      },
+      (err) => {
+        console.error(err);
+        setIsLocating(false);
+        alert("Não foi possível acessar seu GPS (pode estar bloqueado pelo navegador). Escolha uma das regiões predefinidas!");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const handleSelectPreset = (preset: typeof PRESET_LOCATIONS[0]) => {
+    vibrate(10);
+    playSfx('tap');
+    setUserCoords(preset.coords);
+    setLocationSource('preset');
+    setLocationName(preset.name);
+  };
 
   // Audio Promotion announcer
   const handleHearPromo = async (promo: typeof PARTNER_PROMOTIONS[0]) => {
@@ -512,8 +895,20 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   value={newCustomName}
                   onChange={(e) => setNewCustomName(e.target.value)}
                   placeholder="Ex: Peito de Frango, Banana, Aveia..."
-                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none"
+                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
+                <button
+                  type="button"
+                  onClick={isListening ? stopVoiceListening : startVoiceListening}
+                  className={`p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center shrink-0 border-none ${
+                    isListening 
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse' 
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400'
+                  }`}
+                  title="Ditar itens para a lista"
+                >
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
                 <button
                   type="submit"
                   className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1"
@@ -521,6 +916,18 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   <Plus className="w-4 h-4" /> Adicionar
                 </button>
               </form>
+              {isListening && (
+                <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2 justify-center font-bold animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" />
+                  Ouvindo... Dite um ou mais itens (Ex: "banana, maçã e aveia")
+                </div>
+              )}
+              {voiceError && (
+                <div className="mt-2 text-xs text-rose-500 flex items-center gap-1 justify-center font-bold">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {voiceError}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -560,12 +967,36 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   className="flex-1 min-w-0 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
+                  type="button"
+                  onClick={isListening ? stopVoiceListening : startVoiceListening}
+                  className={`p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center shrink-0 border-none ${
+                    isListening 
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse' 
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 dark:text-indigo-400'
+                  }`}
+                  title="Ditar itens para a lista"
+                >
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
+                <button
                   type="submit"
                   className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all outline-none border-none"
                 >
                   <Plus className="w-4 h-4" /> Adicionar
                 </button>
               </form>
+              {isListening && (
+                <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2 justify-center font-bold animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" />
+                  Ouvindo... Dite um ou mais itens (Ex: "ovos, abacate e couve")
+                </div>
+              )}
+              {voiceError && (
+                <div className="mt-2 text-xs text-rose-500 flex items-center gap-1 justify-center font-bold">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {voiceError}
+                </div>
+              )}
             </div>
 
             {/* Categorized Ingredients Folders */}
@@ -702,54 +1133,265 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
           </div>
         )}
 
-        {/* TAB 2: COMPARADOR DE ESTABELECIMENTOS */}
+        {/* TAB 2: COMPARADOR DE ESTABELECIMENTOS GEOLOCALIZADO */}
         {activeTab === 'compare' && totalCount > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             
-            {/* Dynamic Price Winner Banner */}
-            <div className="bg-white dark:bg-slate-900/60 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-1 text-center md:text-left">
-                <div className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded">
-                  🏆 Melhor Preço Encontrado
-                </div>
-                <h3 className="font-serif text-2xl font-black text-slate-800 dark:text-white leading-tight mt-1">
-                  {comparisonResults.winner}
-                </h3>
-                <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                  Comprando neste estabelecimento você economiza cerca de <strong className="text-emerald-500">R$ {comparisonResults.savings}</strong>!
-                </p>
-              </div>
-
-              {/* Total Summary Blocks */}
-              <div className="flex gap-4 w-full md:w-auto shrink-0 justify-center">
-                <div className={`p-4 rounded-2xl border text-center ${comparisonResults.isVVCheaper ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-200 dark:border-slate-800'}`}>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block leading-none">Sacolão Vida Verde</span>
-                  <span className={`text-lg font-black block mt-1.5 ${comparisonResults.isVVCheaper ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                    R$ {comparisonResults.vvTotal.toFixed(2)}
-                  </span>
-                  <span className="text-[8px] bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded mt-1.5 inline-block">
-                    {comparisonResults.isVVCheaper ? 'Mais Econômico' : 'Padrão'}
-                  </span>
+            {/* Geolocation Controls Card */}
+            <div className="bg-white dark:bg-slate-900/60 rounded-[28px] p-6 shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-emerald-500 animate-spin" style={{ animationDuration: '6s' }} />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sua Localização de Busca</span>
+                  </div>
+                  <h4 className="font-serif text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
+                    {locationName}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    Coordenadas: {userCoords[0].toFixed(4)}, {userCoords[1].toFixed(4)} • {locationSource === 'gps' ? 'Obtido via Satélite' : locationSource === 'preset' ? 'Região Selecionada' : 'Localização Padrão'}
+                  </p>
                 </div>
 
-                <div className={`p-4 rounded-2xl border text-center ${!comparisonResults.isVVCheaper ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-200 dark:border-slate-800'}`}>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block leading-none">Hortifruti Premium</span>
-                  <span className={`text-lg font-black block mt-1.5 ${!comparisonResults.isVVCheaper ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                    R$ {comparisonResults.hpTotal.toFixed(2)}
-                  </span>
-                  <span className="text-[8px] bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded mt-1.5 inline-block">
-                    {!comparisonResults.isVVCheaper ? 'Mais Econômico' : 'Padrão'}
-                  </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleGetCurrentLocation}
+                    disabled={isLocating}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all outline-none border-none cursor-pointer"
+                  >
+                    <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-bounce' : ''}`} />
+                    {isLocating ? 'Obtendo GPS...' : 'Usar Meu GPS'}
+                  </button>
+
+                  <div className="relative group">
+                    <select
+                      onChange={(e) => {
+                        const preset = PRESET_LOCATIONS.find(p => p.name === e.target.value);
+                        if (preset) handleSelectPreset(preset);
+                      }}
+                      value={locationName}
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs outline-none border-none cursor-pointer transition-all pr-8 appearance-none"
+                    >
+                      <option disabled value="">Alterar Região...</option>
+                      {PRESET_LOCATIONS.map(p => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-3.5 pointer-events-none" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* List side by side pricing table */}
+            {/* Price/Distance Recommendation Badges */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Cheapest */}
+              <div 
+                onClick={() => {
+                  vibrate(10);
+                  setSelectedMarketId(suggestedMarkets.cheapest.id);
+                }}
+                className={`p-5 rounded-[24px] border cursor-pointer transition-all hover:scale-[1.02] ${
+                  selectedMarketId === suggestedMarkets.cheapest.id 
+                    ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10' 
+                    : 'border-slate-100 dark:border-slate-800/80 bg-white/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">💰 Mais Econômico</span>
+                  <span className="text-xs">⭐ {suggestedMarkets.cheapest.rating}</span>
+                </div>
+                <h5 className="font-bold text-slate-800 dark:text-white text-sm truncate">{suggestedMarkets.cheapest.name}</h5>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">R$ {suggestedMarkets.cheapest.totalPrice.toFixed(2)}</span>
+                  <span className="text-[10px] text-slate-400 font-mono font-bold">{suggestedMarkets.cheapest.distance} km</span>
+                </div>
+              </div>
+
+              {/* Closest */}
+              <div 
+                onClick={() => {
+                  vibrate(10);
+                  setSelectedMarketId(suggestedMarkets.closest.id);
+                }}
+                className={`p-5 rounded-[24px] border cursor-pointer transition-all hover:scale-[1.02] ${
+                  selectedMarketId === suggestedMarkets.closest.id 
+                    ? 'border-blue-500 bg-blue-500/5 dark:bg-blue-500/10' 
+                    : 'border-slate-100 dark:border-slate-800/80 bg-white/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">📍 Mais Próximo</span>
+                  <span className="text-xs">⭐ {suggestedMarkets.closest.rating}</span>
+                </div>
+                <h5 className="font-bold text-slate-800 dark:text-white text-sm truncate">{suggestedMarkets.closest.name}</h5>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-lg font-black text-blue-600 dark:text-blue-400">R$ {suggestedMarkets.closest.totalPrice.toFixed(2)}</span>
+                  <span className="text-[10px] text-slate-400 font-mono font-bold">{suggestedMarkets.closest.distance} km</span>
+                </div>
+              </div>
+
+              {/* Best Value */}
+              <div 
+                onClick={() => {
+                  vibrate(10);
+                  setSelectedMarketId(suggestedMarkets.bestValue.id);
+                }}
+                className={`p-5 rounded-[24px] border cursor-pointer transition-all hover:scale-[1.02] ${
+                  selectedMarketId === suggestedMarkets.bestValue.id 
+                    ? 'border-purple-500 bg-purple-500/5 dark:bg-purple-500/10' 
+                    : 'border-slate-100 dark:border-slate-800/80 bg-white/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider">💎 Custo-Benefício</span>
+                  <span className="text-xs">⭐ {suggestedMarkets.bestValue.rating}</span>
+                </div>
+                <h5 className="font-bold text-slate-800 dark:text-white text-sm truncate">{suggestedMarkets.bestValue.name}</h5>
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-lg font-black text-purple-600 dark:text-purple-400">R$ {suggestedMarkets.bestValue.totalPrice.toFixed(2)}</span>
+                  <span className="text-[10px] text-slate-400 font-mono font-bold">{suggestedMarkets.bestValue.distance} km</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Map and Active Market Detail Column Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              
+              {/* Interactive Leaflet Map Box */}
+              <div className="lg:col-span-7 bg-white dark:bg-slate-900/60 rounded-[32px] p-4 shadow-sm border border-slate-100 dark:border-slate-800/80 overflow-hidden flex flex-col min-h-[380px] lg:min-h-[460px] relative z-0">
+                <div className="flex items-center justify-between mb-3 px-2">
+                  <div className="space-y-0.5">
+                    <h5 className="font-bold text-slate-800 dark:text-white text-sm">Mapa de Mercados Próximos</h5>
+                    <p className="text-[10px] text-slate-400 font-medium">Preços de sacolão geolocalizados em tempo real</p>
+                  </div>
+                  <Compass className="w-4 h-4 text-slate-400 shrink-0" />
+                </div>
+                
+                <div className="flex-1 rounded-[24px] overflow-hidden relative border border-slate-100 dark:border-slate-800/80 h-[300px] lg:h-auto">
+                  <MapContainer 
+                    center={userCoords} 
+                    zoom={15} 
+                    zoomControl={true}
+                    className="w-full h-full"
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <ChangeView center={userCoords} />
+                    
+                    {suggestedMarkets.markets.map((store) => (
+                      <Marker 
+                        key={store.id}
+                        position={[store.coordinates.lat, store.coordinates.lng]}
+                        icon={createMarketIcon(store.logo, store.color, selectedMarketId === store.id)}
+                        eventHandlers={{
+                          click: () => {
+                            vibrate(10);
+                            setSelectedMarketId(store.id);
+                          },
+                        }}
+                      />
+                    ))}
+                    
+                    {/* User Location Pulsing Point */}
+                    <Marker 
+                      position={userCoords} 
+                      icon={L.divIcon({
+                        className: 'user-pulse-icon',
+                        html: '<div style="background-color: #3b82f6; width: 15px; height: 15px; border: 3.5px solid white; border-radius: 50%; box-shadow: 0 0 12px #3b82f6;"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10],
+                      })}
+                    />
+                  </MapContainer>
+                </div>
+              </div>
+
+              {/* Markets comparison sidebar */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                <div className="bg-white dark:bg-slate-900/60 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-800/80 flex-1 flex flex-col justify-between">
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-inner" style={{ backgroundColor: `${activeMarket.color}20` }}>
+                          {activeMarket.logo}
+                        </div>
+                        <div>
+                          <h4 className="font-serif text-lg font-black text-slate-800 dark:text-white">{activeMarket.name}</h4>
+                          <p className="text-[10px] text-slate-400 font-semibold">{activeMarket.address}</p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                        {activeMarket.deliveryTime}
+                      </span>
+                    </div>
+
+                    <div className="py-4 border-y border-slate-100 dark:border-slate-800/60 grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Preço da Cesta</span>
+                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                          R$ {activeMarket.totalPrice.toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Distância</span>
+                        <p className="text-xl font-black text-slate-700 dark:text-slate-300 mt-1">
+                          {activeMarket.distance} km
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Avaliação & Informações</span>
+                      <div className="flex items-center gap-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span>{activeMarket.rating}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Parceiro Verificado</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 space-y-2">
+                    <button
+                      onClick={() => {
+                        vibrate(15);
+                        playSfx('crystal');
+                        const marketTabBtn = document.getElementById('dashboard-tab-market') || document.querySelector('[data-id="market"]');
+                        if (marketTabBtn instanceof HTMLElement) {
+                          marketTabBtn.click();
+                        }
+                      }}
+                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center gap-2 outline-none border-none cursor-pointer"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      Pedir pelo NutriMarket
+                    </button>
+                    <p className="text-[9px] text-center text-slate-400 font-semibold italic">
+                      Economize combustível! Compre direto de casa com frete grátis via cupom "FITNESS".
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            {/* List side by side pricing table with Selected Market highlighted */}
             <div className="bg-white dark:bg-slate-900/40 rounded-[32px] border border-slate-100 dark:border-slate-800/80 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
-                  <h4 className="font-serif text-lg font-black text-slate-800 dark:text-white">Lista de Preços Cruzada</h4>
-                  <p className="text-[10px] text-slate-400">Valores unitários estimados de acordo com a cotação diária do sacolão.</p>
+                  <h4 className="font-serif text-lg font-black text-slate-800 dark:text-white">Lista de Preços Detalhada: {activeMarket.name}</h4>
+                  <p className="text-[10px] text-slate-400">Valores unitários simulados com base no índice regional e distância do GPS.</p>
                 </div>
                 <Info className="w-5 h-5 text-slate-400" />
               </div>
@@ -759,33 +1401,39 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   <thead className="bg-slate-50 dark:bg-slate-850 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
                     <tr>
                       <th className="px-6 py-4">Ingrediente</th>
-                      <th className="px-6 py-4 text-center">Sacolão Vida Verde</th>
-                      <th className="px-6 py-4 text-center">Hortifruti Premium</th>
-                      <th className="px-6 py-4 text-center">Diferença</th>
+                      <th className="px-6 py-4 text-center">Categoria</th>
+                      <th className="px-6 py-4 text-center">Preço Estimado</th>
+                      <th className="px-6 py-4 text-center">Cesta Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
-                    {comparisonResults.itemsPriceList.map((item, i) => {
-                      const diff = Math.abs(item.priceVV - item.priceHP);
-                      const isVVCheaper = item.priceVV < item.priceHP;
-                      const isHPCheaper = item.priceHP < item.priceVV;
+                    {activeMarket.items.map((item, i) => {
+                      const avgOther = suggestedMarkets.markets
+                        .filter(m => m.id !== activeMarket.id)
+                        .reduce((sum, m) => sum + m.items[i].price, 0) / (suggestedMarkets.markets.length - 1);
+                      const isCheaper = item.price < avgOther;
 
                       return (
                         <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors">
                           <td className="px-6 py-4">
-                            <span className="font-bold text-slate-700 dark:text-slate-300 block">{item.name}</span>
-                            <span className="text-[9px] text-slate-400 capitalize">{categorizeIngredient(item.name)}</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-200 block">{item.name}</span>
                           </td>
-                          <td className={`px-6 py-4 text-center ${isVVCheaper ? 'bg-emerald-50/10 text-emerald-600 font-extrabold' : 'text-slate-500 font-semibold'}`}>
-                            R$ {item.priceVV.toFixed(2)}
-                            {isVVCheaper && <span className="text-[8px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded-full ml-1.5 font-bold">✓</span>}
+                          <td className="px-6 py-4 text-center">
+                            <span className="text-[10px] font-bold text-slate-400 capitalize px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                              {categorizeIngredient(item.name)}
+                            </span>
                           </td>
-                          <td className={`px-6 py-4 text-center ${isHPCheaper ? 'bg-emerald-50/10 text-emerald-600 font-extrabold' : 'text-slate-500 font-semibold'}`}>
-                            R$ {item.priceHP.toFixed(2)}
-                            {isHPCheaper && <span className="text-[8px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded-full ml-1.5 font-bold">✓</span>}
+                          <td className="px-6 py-4 text-center font-bold text-slate-600 dark:text-slate-300">
+                            R$ {item.price.toFixed(2)}
                           </td>
-                          <td className="px-6 py-4 text-center font-mono text-xs font-bold text-slate-400">
-                            {diff === 0 ? '-' : `R$ ${diff.toFixed(2)}`}
+                          <td className="px-6 py-4 text-center">
+                            {isCheaper ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                                ✓ Economia de R$ {(avgOther - item.price).toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 font-semibold">Preço Padrão</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -793,29 +1441,6 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            {/* Marketplace Shortcut Advice */}
-            <div className="bg-slate-100 dark:bg-slate-850 border border-slate-200/50 dark:border-slate-800 p-6 rounded-[32px] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Store className="w-5 h-5 text-emerald-500" />
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
-                  Gostaria de fechar o pedido de sacolão agora? Vá ao NutriMarket e preencha seu carrinho!
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  vibrate(10);
-                  playSfx('crystal');
-                  const marketTabBtn = document.getElementById('dashboard-tab-market') || document.querySelector('[data-id="market"]');
-                  if (marketTabBtn instanceof HTMLElement) {
-                    marketTabBtn.click();
-                  }
-                }}
-                className="px-5 py-3 bg-slate-900 text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-md inline-flex items-center gap-1.5 border-none"
-              >
-                <ShoppingCart className="w-3.5 h-3.5" /> Ir ao NutriMarket
-              </button>
             </div>
 
           </div>

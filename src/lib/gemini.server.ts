@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -3729,6 +3729,66 @@ Sua missão é dar respostas precisas, científicas, acolhedoras e em português
     throw err;
   }
 };
+
+export const generateRecipePreparationTips = async (
+  recipeName: string,
+  ingredients: string[]
+): Promise<RecipePreparationTips | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  const prompt = `Gere dicas de preparo profissionais e criativas para a seguinte receita:
+Receita: ${recipeName}
+Ingredientes principais: ${ingredients.join(", ")}
+
+Forneça dicas práticas e em português do Brasil sobre como melhorar a textura e o sabor desta refeição específica.
+Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      textureTips: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "Dicas de como obter a textura perfeita, cremosidade, crocância ou cozimento ideal."
+      },
+      flavorTips: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "Dicas de como realçar os sabores usando ervas, especiarias, técnicas de cozimento ou acidez."
+      },
+      chefSecret: {
+        type: Type.STRING,
+        description: "Um segredo ou truque rápido de chef para transformar essa receita comum em algo especial."
+      }
+    },
+    required: ["textureTips", "flavorTips", "chefSecret"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "Você é um Chef de Cozinha profissional e especialista em gastronomia funcional saudável para o NutriAI. Suas dicas devem ser rápidas, acionáveis, saudáveis e realistas para cozinheiros domésticos.",
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.6,
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error: any) {
+    console.error("Erro ao gerar dicas de preparo via Gemini:", error);
+    return {
+      textureTips: ["Ajuste o tempo de cozimento para manter a umidade e a textura ideais."],
+      flavorTips: ["Utilize ervas frescas como alecrim ou manjericão para destacar o aroma natural."],
+      chefSecret: "Um fio de azeite extravirgem adicionado no final do prato realça todos os sabores!"
+    };
+  }
+};
+
 
 ;
 

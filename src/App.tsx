@@ -64,6 +64,32 @@ import { GlobalSearch } from './components/GlobalSearch';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
+const TAB_ORDER = [
+  'assistant360', 'coach', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
+  'habits', 'notes', 'bloodpressure', 'barcode', 'allergy', 'comparer', 
+  'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'evolution', 
+  'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
+  'academies', 'gamification', 'prediction', 'profile', 'pricing', 'partner', 'delivery'
+];
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? '30%' : direction < 0 ? '-30%' : 0,
+    opacity: 0,
+    filter: 'blur(8px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: 'blur(0px)',
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? '-30%' : direction < 0 ? '30%' : 0,
+    opacity: 0,
+    filter: 'blur(8px)',
+  }),
+};
+
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { i18n } = useTranslation();
@@ -118,6 +144,17 @@ export default function App() {
   };
 
   const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'assistant360'>('assistant360');
+  const [prevTab, setPrevTab] = useState<string>('assistant360');
+  const [direction, setDirection] = useState<number>(0);
+
+  if (activeTab !== prevTab) {
+    const prevIndex = TAB_ORDER.indexOf(prevTab);
+    const currIndex = TAB_ORDER.indexOf(activeTab);
+    const dir = currIndex > prevIndex ? 1 : -1;
+    setDirection(dir);
+    setPrevTab(activeTab);
+  }
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -141,7 +178,84 @@ export default function App() {
       }
     };
     window.addEventListener('app:navigate', handleNavigate);
-    return () => window.removeEventListener('app:navigate', handleNavigate);
+
+    const handleNotification = (e: any) => {
+      if (e.detail?.title && e.detail?.message) {
+        addNotification({
+          title: e.detail.title,
+          message: e.detail.message,
+          type: e.detail.type || 'info'
+        });
+      }
+    };
+    window.addEventListener('app:notification', handleNotification);
+
+    // Checker for scheduled recipe preparation reminders
+    const checkRemindersInterval = setInterval(() => {
+      try {
+        const stored = window.localStorage.getItem('nutri-prep-reminders');
+        if (!stored) return;
+        
+        const reminders = JSON.parse(stored);
+        if (!Array.isArray(reminders) || reminders.length === 0) return;
+        
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        let updated = false;
+        const remainingReminders = reminders.filter(reminder => {
+          if (reminder.notified) return false;
+          
+          const [startHour, startMin] = reminder.startTime.split(':').map(Number);
+          
+          // Check if it matches the scheduled date and time has come
+          const isToday = reminder.dateStr === dateStr;
+          const hasTimeCome = currentHour > startHour || (currentHour === startHour && currentMinute >= startMin);
+          
+          if (isToday && hasTimeCome) {
+            // Trigger notification
+            addNotification({
+              title: `Hora de cozinhar! 🍳`,
+              message: `Inicie o preparo de "${reminder.recipeName}". Tempo estimado: ${reminder.prepTime}. Horário planejado para servir: ${reminder.targetTime}.`,
+              type: 'info'
+            });
+            
+            // Try to trigger standard browser notification
+            try {
+              if ('Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                new Notification(`Hora de cozinhar! 🍳`, {
+                  body: `Inicie o preparo de "${reminder.recipeName}" para comer às ${reminder.targetTime}.`,
+                  icon: '/icon.png'
+                });
+              }
+            } catch (err) {
+              console.warn("Could not trigger system push notification:", err);
+            }
+            
+            updated = true;
+            return false; // remove from list since it has fired
+          }
+          
+          return true; // keep in list
+        });
+        
+        if (updated) {
+          window.localStorage.setItem('nutri-prep-reminders', JSON.stringify(remainingReminders));
+          // Dispatch custom event to notify components that reminders changed
+          window.dispatchEvent(new CustomEvent('app:prep-reminders-updated'));
+        }
+      } catch (err) {
+        console.warn("Error checking prep reminders:", err);
+      }
+    }, 10000); // Check every 10 seconds for precise triggers
+
+    return () => {
+      window.removeEventListener('app:navigate', handleNavigate);
+      window.removeEventListener('app:notification', handleNotification);
+      clearInterval(checkRemindersInterval);
+    };
   }, []);
 
   useMealPushNotifications(profile, addNotification);
@@ -295,7 +409,7 @@ export default function App() {
     return (
       <div className="w-full h-[100vh] flex flex-col bg-[#f4f9f6] dark:bg-[#08111d] overflow-hidden box-border text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-400 transition-colors duration-500">
         <motion.div 
-          className="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar"
+          className="flex-1 flex flex-col h-full overflow-y-auto overflow-x-hidden no-scrollbar"
           initial={{ opacity: 0 }}
           animate={{ opacity: showSplash ? 0 : 1 }}
           transition={{ duration: 1, ease: "easeOut" }}
@@ -395,13 +509,15 @@ export default function App() {
         ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
       }`}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, scale: 0.98, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.02, filter: 'blur(4px)' }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="w-full flex-1 flex flex-col min-h-[400px]"
           >
             <ErrorBoundary>

@@ -407,3 +407,9 @@ export interface Note {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
 }
+
+export interface RecipePreparationTips {
+  textureTips: string[];
+  flavorTips: string[];
+  chefSecret: string;
+}

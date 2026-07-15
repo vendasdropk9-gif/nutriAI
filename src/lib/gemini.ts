@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips } from "../types";
 
 const callGeminiEndpoint = async (functionName: string, args: any[]) => {
   try {
@@ -355,6 +355,14 @@ export const getWaterQualityAdvice = async (
 ): Promise<string> => {
   return callGeminiEndpoint('getWaterQualityAdvice', [queryText]);
 };
+
+export const generateRecipePreparationTips = async (
+  recipeName: string,
+  ingredients: string[]
+): Promise<RecipePreparationTips | null> => {
+  return callGeminiEndpoint('generateRecipePreparationTips', [recipeName, ingredients]);
+};
+
 
 
 

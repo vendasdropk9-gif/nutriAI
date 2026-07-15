@@ -521,7 +521,7 @@ export function MedicinalHerbs() {
                           <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1">
                             📍 {herb.biome}
                           </span>
-                          {herb.properties.slice(0, 2).map((prop, idx) => (
+                          {(herb.properties || []).slice(0, 2).map((prop, idx) => (
                             <span key={idx} className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-semibold">
                               ✨ {prop}
                             </span>
@@ -786,7 +786,7 @@ export function MedicinalHerbs() {
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block">Outros Nomes</span>
                         <span className="text-xs text-gray-800 dark:text-gray-200 font-medium">
-                          {selectedHerb.otherNames.join(', ') || 'Não documentados'}
+                          {(selectedHerb.otherNames || []).join(', ') || 'Não documentados'}
                         </span>
                       </div>
                       <div>
@@ -803,7 +803,7 @@ export function MedicinalHerbs() {
                       <div>
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block">Estados (SUS)</span>
                         <span className="text-xs text-gray-800 dark:text-gray-200 font-medium">
-                          {selectedHerb.states.join(', ')}
+                          {(selectedHerb.states || []).join(', ')}
                         </span>
                       </div>
                       <div>
@@ -826,7 +826,7 @@ export function MedicinalHerbs() {
                           Galeria de Identificação Botânica
                         </h5>
                         <div className="flex gap-3">
-                          {selectedHerb.gallery.map((imgUrl, i) => (
+                          {(selectedHerb.gallery || []).map((imgUrl, i) => (
                             <div
                               key={i}
                               onClick={() => setZoomImage(imgUrl)}
@@ -955,7 +955,7 @@ export function MedicinalHerbs() {
                         </h4>
                       </div>
                       <ul className="list-disc pl-5 space-y-1 text-xs text-red-900/80 dark:text-red-300 leading-relaxed">
-                        {selectedHerb.contraindications.warnings.map((warn, i) => (
+                        {(selectedHerb.contraindications?.warnings || []).map((warn, i) => (
                           <li key={i}>{warn}</li>
                         ))}
                       </ul>
@@ -965,7 +965,7 @@ export function MedicinalHerbs() {
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block mb-1.5">Fitoquímica (Principais Ativos)</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedHerb.compounds.map((comp, idx) => (
+                        {(selectedHerb.compounds || []).map((comp, idx) => (
                           <span key={idx} className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold px-2.5 py-1 rounded-full">
                             🧪 {comp}
                           </span>
@@ -1001,7 +1001,7 @@ export function MedicinalHerbs() {
                       <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block mb-1">História & Curiosidades</span>
                         <ul className="list-disc pl-5 space-y-1.5 text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic">
-                          {selectedHerb.curiosities.map((curio, i) => (
+                          {(selectedHerb.curiosities || []).map((curio, i) => (
                             <li key={i}>{curio}</li>
                           ))}
                         </ul>
@@ -1012,7 +1012,7 @@ export function MedicinalHerbs() {
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block mb-1.5">Fontes e Referências Científicas</span>
                       <div className="space-y-1">
-                        {selectedHerb.sources.map((src, i) => (
+                        {(selectedHerb.sources || []).map((src, i) => (
                           <div key={i} className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Info className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                             {src}

@@ -1,11 +1,51 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
-import { Recipe } from '../types';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Recipe, RecipePreparationTips } from '../types';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech } from '../lib/speech';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+
+function parsePrepTime(prepTime: string): number {
+  if (!prepTime) return 30;
+  const hourMatch = prepTime.match(/(\d+)\s*(?:hora|horas|h)/i);
+  const minMatch = prepTime.match(/(\d+)\s*(?:min|minutos|m)/i);
+  
+  let totalMinutes = 0;
+  if (hourMatch) {
+    totalMinutes += parseInt(hourMatch[1], 10) * 60;
+  }
+  if (minMatch) {
+    totalMinutes += parseInt(minMatch[1], 10);
+  } else if (!hourMatch) {
+    const justNum = prepTime.match(/(\d+)/);
+    if (justNum) {
+      totalMinutes = parseInt(justNum[1], 10);
+    }
+  }
+  return totalMinutes || 30;
+}
+
+function calculateStartTime(targetTimeStr: string, prepMinutes: number): string {
+  if (!targetTimeStr) return "";
+  const [hour, min] = targetTimeStr.split(":").map(Number);
+  let totalMin = hour * 60 + min;
+  totalMin -= prepMinutes;
+  
+  if (totalMin < 0) {
+    totalMin += 24 * 60;
+  }
+  
+  const targetHour = Math.floor(totalMin / 60) % 24;
+  const targetMin = totalMin % 60;
+  
+  const paddedHour = String(targetHour).padStart(2, '0');
+  const paddedMin = String(targetMin).padStart(2, '0');
+  
+  return `${paddedHour}:${paddedMin}`;
+}
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -13,6 +53,9 @@ interface RecipeCardProps {
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const [isNutritionExpanded, setIsNutritionExpanded] = useState(false);
+  const [prepTips, setPrepTips] = useState<RecipePreparationTips | null>(null);
+  const [loadingPrepTips, setLoadingPrepTips] = useState(false);
+  const [prepTipsError, setPrepTipsError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -32,6 +75,113 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
   const { nutrition } = recipe;
 
+  // Pre-calculate default target meal time (1 hour from now + preparation time)
+  const [isSchedulingOpen, setIsSchedulingOpen] = useState(false);
+  const [targetEatTime, setTargetEatTime] = useState(() => {
+    const now = new Date();
+    const prepMinutes = parsePrepTime(recipe.prepTime);
+    now.setMinutes(now.getMinutes() + 60 + prepMinutes);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  });
+  const [scheduledReminder, setScheduledReminder] = useState<any | null>(null);
+
+  const checkScheduledReminder = () => {
+    try {
+      const stored = window.localStorage.getItem('nutri-prep-reminders');
+      if (stored) {
+        const reminders = JSON.parse(stored);
+        if (Array.isArray(reminders)) {
+          const found = reminders.find((r: any) => r.recipeId === recipe.id && !r.notified);
+          setScheduledReminder(found || null);
+          return;
+        }
+      }
+      setScheduledReminder(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    checkScheduledReminder();
+    window.addEventListener('app:prep-reminders-updated', checkScheduledReminder);
+    return () => {
+      window.removeEventListener('app:prep-reminders-updated', checkScheduledReminder);
+    };
+  }, [recipe.id]);
+
+  const handleSchedulePrep = () => {
+    try {
+      const prepMinutes = parsePrepTime(recipe.prepTime);
+      const startTimeStr = calculateStartTime(targetEatTime, prepMinutes);
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+
+      const newReminder = {
+        id: crypto.randomUUID(),
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        targetTime: targetEatTime,
+        startTime: startTimeStr,
+        prepTime: recipe.prepTime,
+        dateStr,
+        notified: false
+      };
+
+      const stored = window.localStorage.getItem('nutri-prep-reminders');
+      let reminders = [];
+      if (stored) {
+        reminders = JSON.parse(stored);
+        if (!Array.isArray(reminders)) reminders = [];
+      }
+
+      // Remove existing active reminders for this recipe
+      reminders = reminders.filter((r: any) => r.recipeId !== recipe.id);
+      reminders.push(newReminder);
+      
+      window.localStorage.setItem('nutri-prep-reminders', JSON.stringify(reminders));
+      setScheduledReminder(newReminder);
+      
+      window.dispatchEvent(new CustomEvent('app:prep-reminders-updated'));
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Preparo Agendado! 📅",
+          message: `Lembrete definido para iniciar às ${startTimeStr} (servir às ${targetEatTime}).`,
+          type: "info"
+        }
+      }));
+      setIsSchedulingOpen(false);
+    } catch (err) {
+      console.error("Error scheduling prep:", err);
+    }
+  };
+
+  const handleCancelReminder = () => {
+    try {
+      const stored = window.localStorage.getItem('nutri-prep-reminders');
+      if (stored) {
+        let reminders = JSON.parse(stored);
+        if (Array.isArray(reminders)) {
+          reminders = reminders.filter((r: any) => r.recipeId !== recipe.id);
+          window.localStorage.setItem('nutri-prep-reminders', JSON.stringify(reminders));
+        }
+      }
+      setScheduledReminder(null);
+      window.dispatchEvent(new CustomEvent('app:prep-reminders-updated'));
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Agendamento Cancelado",
+          message: `O lembrete de preparo para "${recipe.name}" foi removido.`,
+          type: "info"
+        }
+      }));
+    } catch (err) {
+      console.error("Error cancelling reminder:", err);
+    }
+  };
+
   const recipeId = recipe.id || recipe.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
   
   const [recipeImage, setRecipeImage] = useState<string | null>(() => {
@@ -44,6 +194,73 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   });
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExportingCard, setIsExportingCard] = useState(false);
+  const [isTextCopied, setIsTextCopied] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleExportCard = async () => {
+    if (!shareCardRef.current) return;
+    setIsExportingCard(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shareCardRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        scale: 2,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `receita-${recipeId}-card.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Card Salvo! 📸",
+          message: "O card da sua receita foi exportado como imagem.",
+          type: "success"
+        }
+      }));
+    } catch (err) {
+      console.error("Erro ao gerar imagem do card:", err);
+      alert("Não foi possível exportar como imagem diretamente. Você pode tirar uma captura de tela!");
+    } finally {
+      setIsExportingCard(false);
+    }
+  };
+
+  const handleCopyText = () => {
+    const text = `🍽️ *${recipe.name}* no NutriPlate!
+
+📝 *Descrição:* ${recipe.description}
+⏱️ *Tempo:* ${recipe.prepTime}
+🔥 *Calorias:* ${recipe.nutrition.calories} kcal
+
+*Nutrientes:*
+• Proteínas: ${recipe.nutrition.protein}g
+• Carboidratos: ${recipe.nutrition.carbs}g
+• Gorduras: ${recipe.nutrition.fat}g
+
+*Ingredientes:*
+${recipe.ingredients.map(i => `• ${i}`).join('\n')}
+
+_Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
+
+    navigator.clipboard.writeText(text);
+    setIsTextCopied(true);
+    setTimeout(() => setIsTextCopied(false), 2000);
+    
+    window.dispatchEvent(new CustomEvent('app:notification', {
+      detail: {
+        title: "Texto Copiado! 📋",
+        message: "O resumo da receita foi copiado para sua área de transferência.",
+        type: "info"
+      }
+    }));
+  };
 
   const handleGenerateImage = async () => {
     setIsGeneratingImage(true);
@@ -158,6 +375,30 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       active = false;
     };
   }, [recipeId]);
+
+  useEffect(() => {
+    if (isNutritionExpanded && !prepTips && !loadingPrepTips) {
+      const fetchPrepTips = async () => {
+        setLoadingPrepTips(true);
+        setPrepTipsError(null);
+        try {
+          const { generateRecipePreparationTips } = await import('../lib/gemini');
+          const tips = await generateRecipePreparationTips(recipe.name, recipe.ingredients);
+          if (tips) {
+            setPrepTips(tips);
+          } else {
+            setPrepTipsError("Não foi possível carregar as dicas de preparo.");
+          }
+        } catch (err) {
+          console.error("Error fetching prep tips:", err);
+          setPrepTipsError("Erro ao carregar as dicas de preparo com a IA.");
+        } finally {
+          setLoadingPrepTips(false);
+        }
+      };
+      fetchPrepTips();
+    }
+  }, [isNutritionExpanded, recipe.name, recipe.ingredients, prepTips, loadingPrepTips]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -553,6 +794,104 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
             P: {recipe.nutrition.protein}g • C: {recipe.nutrition.carbs}g • G: {recipe.nutrition.fat}g
           </div>
         </div>
+
+        {/* Actions Row */}
+        <div className="flex flex-wrap items-center gap-3 mt-6">
+          {scheduledReminder ? (
+            <div className="w-full p-4 bg-emerald-500/5 dark:bg-emerald-400/5 border border-emerald-500/25 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Bell className="w-5 h-5 animate-bounce" />
+                </span>
+                <div>
+                  <h5 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Preparo Agendado!</h5>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">
+                    Lembrete definido para iniciar às <span className="font-bold text-slate-900 dark:text-white font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded">{scheduledReminder.startTime}</span> (Refeição pronta às {scheduledReminder.targetTime})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCancelReminder}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-450 dark:hover:text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 px-3 py-1.5 rounded-xl border border-rose-500/20 hover:border-rose-500/30 transition-all active:scale-95 cursor-pointer"
+                title="Cancelar lembrete agendado"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Cancelar Lembrete
+              </button>
+            </div>
+          ) : isSchedulingOpen ? (
+            <div className="w-full p-4 bg-emerald-50/40 dark:bg-emerald-950/10 border border-emerald-500/20 rounded-2xl space-y-4 shadow-sm animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2.5">
+                <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">
+                  <Calendar className="w-4 h-4 text-emerald-500" />
+                  Configurar Lembrete de Preparo
+                </span>
+                <button
+                  onClick={() => setIsSchedulingOpen(false)}
+                  className="text-xs font-bold text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
+                >
+                  Voltar
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                    Que horas deseja que a refeição esteja pronta?
+                  </label>
+                  <input
+                    type="time"
+                    value={targetEatTime}
+                    onChange={(e) => setTargetEatTime(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                
+                <div className="flex flex-col justify-center bg-white/40 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    Duração média: <span className="font-bold text-slate-700 dark:text-slate-200">{recipe.prepTime}</span>
+                  </div>
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-1 leading-relaxed">
+                    Horário ideal para começar a cozinhar: <span className="text-sm bg-emerald-500/10 px-1.5 py-0.5 rounded ml-1 font-mono">{calculateStartTime(targetEatTime, parsePrepTime(recipe.prepTime))}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 border-t border-emerald-500/10 pt-3">
+                <button
+                  onClick={() => setIsSchedulingOpen(false)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-350 border-none bg-transparent cursor-pointer"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={handleSchedulePrep}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md shadow-emerald-500/10 active:scale-95 transition-all border-none cursor-pointer"
+                >
+                  Confirmar Agendamento
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsSchedulingOpen(true)}
+              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/35 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+            >
+              <Calendar className="w-4 h-4 text-emerald-500" />
+              Agendar Preparo
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex items-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/35 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 text-indigo-500" />
+              Compartilhar Receita
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-8 md:p-12 grid grid-cols-1 md:grid-cols-3 gap-12 bg-white/20 dark:bg-slate-900/20">
@@ -583,12 +922,12 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                 }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 border ${
                   isVoiceModeActive
-                    ? 'bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600 shadow-md shadow-indigo-500/20'
-                    : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20'
+                    ? 'bg-amber-500 border-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-500/20'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                 }`}
               >
-                {isVoiceModeActive ? <Mic className="w-3.5 h-3.5 text-white animate-pulse" /> : <MicOff className="w-3.5 h-3.5" />}
-                {isVoiceModeActive ? 'Modo Voz Ativo' : '🎙️ Coleta por Voz (Mãos Livres)'}
+                {isVoiceModeActive ? <Mic className="w-3.5 h-3.5 text-white animate-pulse" /> : <ChefHat className="w-3.5 h-3.5" />}
+                {isVoiceModeActive ? 'Modo Cozinha Ativo' : 'Modo Cozinha (Voz)'}
               </button>
 
               <button
@@ -649,7 +988,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                           stopSpeech();
                         }}
                         className="p-1 hover:bg-rose-500/20 rounded-lg transition-all text-slate-400 hover:text-rose-500"
-                        title="Sair do modo de voz"
+                        title="Sair do modo cozinha"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -659,7 +998,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                   {/* Visual representation of last speech heard */}
                   <div className="bg-white/70 dark:bg-slate-900/50 rounded-xl p-3.5 border border-indigo-500/10 min-h-[52px] flex items-center justify-between gap-4 shadow-sm">
                     <div className="flex-1">
-                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block uppercase tracking-wide mb-1">Feedback de Voz</span>
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block uppercase tracking-wide mb-1">Feedback do Modo Cozinha</span>
                       <p className="text-sm font-sans font-medium text-slate-700 dark:text-slate-200 leading-relaxed italic">
                         "{voiceTranscript || 'Inicie a fala ou diga \"Próximo\" para avançar...'}"
                       </p>
@@ -795,67 +1134,366 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               {isNutritionExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
                   {isNutritionExpanded && (
-              <div className="mt-6 bg-white/40 dark:bg-slate-800/40 border border-white/60 dark:border-slate-700/50 rounded-2xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="relative overflow-hidden mt-6 bg-white/40 dark:bg-slate-800/40 border border-white/60 dark:border-slate-700/50 rounded-2xl p-6 shadow-sm space-y-6"
+              >
+                {/* Shimmer Ambient Glow Sheen */}
+                <motion.div
+                  initial={{ x: '-150%' }}
+                  animate={{ x: '150%' }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    repeatDelay: 4.5, 
+                    duration: 1.8, 
+                    ease: "easeInOut" 
+                  }}
+                  className="absolute top-0 bottom-0 left-0 w-[40%] bg-gradient-to-r from-transparent via-emerald-500/[0.08] dark:via-emerald-400/[0.12] to-transparent -skew-x-12 pointer-events-none z-10"
+                />
+                <motion.div
+                  initial={{ x: '-150%' }}
+                  animate={{ x: '150%' }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    repeatDelay: 4.5, 
+                    duration: 1.8, 
+                    ease: "easeInOut",
+                    delay: 0.15
+                  }}
+                  className="absolute top-0 bottom-0 left-0 w-[20%] bg-gradient-to-r from-transparent via-white/20 dark:via-white/5 to-transparent -skew-x-12 pointer-events-none z-10"
+                />
                 <div>
-                  <h5 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-3">Macronutrientes (Distribuição Energética)</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Protein */}
-                    <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 rounded-xl p-3 flex flex-col justify-between">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Proteínas</span>
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {Math.round((nutrition.protein * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold font-serif text-emerald-900 dark:text-emerald-100 mb-2">
-                        {nutrition.protein}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.protein * 4} kcal)</span>
-                      </div>
-                      <div className="w-full bg-emerald-500/20 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-emerald-500 h-full rounded-full" 
-                          style={{ width: `${Math.min(100, Math.round(((nutrition.protein * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
-                        />
-                      </div>
-                    </div>
+                  <h5 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-4">Macronutrientes (Distribuição Energética)</h5>
+                  
+                  {(() => {
+                    const totalGrams = (nutrition.protein || 0) + (nutrition.carbs || 0) + (nutrition.fat || 0);
+                    const macroData = [
+                      { name: 'Proteínas', value: nutrition.protein || 0, color: '#10b981', calories: (nutrition.protein || 0) * 4 },
+                      { name: 'Carboidratos', value: nutrition.carbs || 0, color: '#f59e0b', calories: (nutrition.carbs || 0) * 4 },
+                      { name: 'Gorduras', value: nutrition.fat || 0, color: '#f43f5e', calories: (nutrition.fat || 0) * 9 }
+                    ];
+                    const hasMacroData = totalGrams > 0;
 
-                    {/* Carbs */}
-                    <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 rounded-xl p-3 flex flex-col justify-between">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-amber-800 dark:text-amber-400">Carboidratos</span>
-                        <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
-                          {Math.round((nutrition.carbs * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold font-serif text-amber-900 dark:text-amber-100 mb-2">
-                        {nutrition.carbs}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.carbs * 4} kcal)</span>
-                      </div>
-                      <div className="w-full bg-amber-500/20 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-amber-500 h-full rounded-full" 
-                          style={{ width: `${Math.min(100, Math.round(((nutrition.carbs * 4) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
-                        />
-                      </div>
-                    </div>
+                    return hasMacroData ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        {/* Donut Chart (5 columns) */}
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                          className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/30 rounded-2xl p-4 border border-slate-150/40 dark:border-slate-800/40 h-[240px] relative"
+                        >
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={macroData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={65}
+                                outerRadius={85}
+                                paddingAngle={4}
+                                dataKey="value"
+                                isAnimationActive={true}
+                                animationBegin={200}
+                                animationDuration={1200}
+                                animationEasing="ease-out"
+                              >
+                                {macroData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} className="outline-none" />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any, name: any, props: any) => [
+                                  `${value}g (${props.payload.calories} kcal)`,
+                                  name
+                                ]}
+                                contentStyle={{
+                                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  borderRadius: '12px',
+                                  color: '#fff',
+                                  fontSize: '12px',
+                                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          
+                          {/* Center Absolute Badge */}
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4, duration: 0.4 }}
+                            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                          >
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Energia</span>
+                            <span className="text-2xl font-black font-serif text-slate-800 dark:text-slate-100 leading-none my-0.5">{nutrition.calories}</span>
+                            <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold font-mono">kcal</span>
+                          </motion.div>
+                        </motion.div>
 
-                    {/* Fats */}
-                    <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/10 rounded-xl p-3 flex flex-col justify-between">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-rose-800 dark:text-rose-400">Gorduras</span>
-                        <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                          {Math.round((nutrition.fat * 9) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1) * 100)}%
-                        </span>
+                        {/* Detailed Cards (7 columns) */}
+                        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 w-full">
+                          {/* Protein */}
+                          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 rounded-xl p-3 flex flex-col justify-between">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                Proteínas
+                              </span>
+                              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                {Math.round(((nutrition.protein || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                              </span>
+                            </div>
+                            <div className="text-2xl font-bold font-serif text-emerald-900 dark:text-emerald-100 mb-2">
+                              {nutrition.protein || 0}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({(nutrition.protein || 0) * 4} kcal)</span>
+                            </div>
+                            <div className="w-full bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="bg-emerald-500 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-400 to-emerald-500" 
+                                style={{ width: `${Math.min(100, Math.round((((nutrition.protein || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1)) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Carbs */}
+                          <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 rounded-xl p-3 flex flex-col justify-between">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-semibold text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                Carboidratos
+                              </span>
+                              <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                                {Math.round(((nutrition.carbs || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                              </span>
+                            </div>
+                            <div className="text-2xl font-bold font-serif text-amber-900 dark:text-amber-100 mb-2">
+                              {nutrition.carbs || 0}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({(nutrition.carbs || 0) * 4} kcal)</span>
+                            </div>
+                            <div className="w-full bg-amber-500/10 dark:bg-amber-500/20 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="bg-amber-500 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500" 
+                                style={{ width: `${Math.min(100, Math.round((((nutrition.carbs || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1)) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Fats */}
+                          <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/10 rounded-xl p-3 flex flex-col justify-between">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-semibold text-rose-800 dark:text-rose-400 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                Gorduras
+                              </span>
+                              <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                                {Math.round(((nutrition.fat || 0) * 9) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                              </span>
+                            </div>
+                            <div className="text-2xl font-bold font-serif text-rose-900 dark:text-rose-100 mb-2">
+                              {nutrition.fat || 0}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({(nutrition.fat || 0) * 9} kcal)</span>
+                            </div>
+                            <div className="w-full bg-rose-500/10 dark:bg-rose-500/20 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="bg-rose-500 h-full rounded-full transition-all duration-500 bg-gradient-to-r from-rose-400 to-rose-500" 
+                                style={{ width: `${Math.min(100, Math.round((((nutrition.fat || 0) * 9) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1)) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Summary Table */}
+                        <div className="lg:col-span-12 mt-2 bg-white/30 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-150/40 dark:border-slate-800/40">
+                          <h6 className="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-2.5">Consulta Rápida de Nutrientes</h6>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-slate-200/60 dark:border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
+                                  <th className="pb-2 font-semibold">Macro</th>
+                                  <th className="pb-2 font-semibold text-center">Proporção</th>
+                                  <th className="pb-2 font-semibold text-right">Peso (g)</th>
+                                  <th className="pb-2 font-semibold text-right">Energia</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/50">
+                                <tr className="text-slate-700 dark:text-slate-200 font-sans">
+                                  <td className="py-2.5 flex items-center gap-2 font-medium">
+                                    <span className="p-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                      <Beef className="w-3.5 h-3.5" />
+                                    </span>
+                                    Proteínas
+                                  </td>
+                                  <td className="py-2.5 text-center font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                                    {Math.round(((nutrition.protein || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono font-medium">
+                                    {nutrition.protein || 0}g
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono text-slate-500 dark:text-slate-400">
+                                    {(nutrition.protein || 0) * 4} kcal
+                                  </td>
+                                </tr>
+                                <tr className="text-slate-700 dark:text-slate-200 font-sans">
+                                  <td className="py-2.5 flex items-center gap-2 font-medium">
+                                    <span className="p-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                      <Wheat className="w-3.5 h-3.5" />
+                                    </span>
+                                    Carboidratos
+                                  </td>
+                                  <td className="py-2.5 text-center font-bold font-mono text-amber-600 dark:text-amber-400">
+                                    {Math.round(((nutrition.carbs || 0) * 4) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono font-medium">
+                                    {nutrition.carbs || 0}g
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono text-slate-500 dark:text-slate-400">
+                                    {(nutrition.carbs || 0) * 4} kcal
+                                  </td>
+                                </tr>
+                                <tr className="text-slate-700 dark:text-slate-200 font-sans">
+                                  <td className="py-2.5 flex items-center gap-2 font-medium">
+                                    <span className="p-1 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                      <Droplet className="w-3.5 h-3.5" />
+                                    </span>
+                                    Gorduras
+                                  </td>
+                                  <td className="py-2.5 text-center font-bold font-mono text-rose-600 dark:text-rose-400">
+                                    {Math.round(((nutrition.fat || 0) * 9) / (((nutrition.protein || 0) * 4) + ((nutrition.carbs || 0) * 4) + ((nutrition.fat || 0) * 9) || 1) * 100)}%
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono font-medium">
+                                    {nutrition.fat || 0}g
+                                  </td>
+                                  <td className="py-2.5 text-right font-mono text-slate-500 dark:text-slate-400">
+                                    {(nutrition.fat || 0) * 9} kcal
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Dicas de Preparo Section */}
+                        <div className="lg:col-span-12 mt-4 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-500/15 rounded-xl p-4">
+                          <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2.5 mb-3">
+                            <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">
+                              <ChefHat className="w-4 h-4" />
+                              Dicas de Preparo da Chef Malu
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-400 font-bold font-sans uppercase tracking-wider px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <Sparkles className="w-2.5 h-2.5" />
+                              Inteligência Artificial
+                            </span>
+                          </div>
+
+                          {loadingPrepTips ? (
+                            <div className="space-y-3 py-1">
+                              <div className="h-4 bg-slate-200/50 dark:bg-slate-800/50 rounded animate-pulse w-[75%]" />
+                              <div className="h-4 bg-slate-200/50 dark:bg-slate-800/50 rounded animate-pulse w-[60%]" />
+                              <div className="h-4 bg-slate-200/50 dark:bg-slate-800/50 rounded animate-pulse w-[85%]" />
+                            </div>
+                          ) : prepTipsError ? (
+                            <div className="flex flex-col items-center justify-center py-4 text-center">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{prepTipsError}</p>
+                              <button
+                                onClick={async () => {
+                                  setLoadingPrepTips(true);
+                                  setPrepTipsError(null);
+                                  try {
+                                    const { generateRecipePreparationTips } = await import('../lib/gemini');
+                                    const tips = await generateRecipePreparationTips(recipe.name, recipe.ingredients);
+                                    if (tips) setPrepTips(tips);
+                                    else setPrepTipsError("Não foi possível carregar as dicas de preparo.");
+                                  } catch (err) {
+                                    setPrepTipsError("Erro ao carregar as dicas de preparo com a IA.");
+                                  } finally {
+                                    setLoadingPrepTips(false);
+                                  }
+                                }}
+                                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                              >
+                                Tentar novamente
+                              </button>
+                            </div>
+                          ) : prepTips ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                {/* Texture Tips */}
+                                <div className="bg-white/40 dark:bg-slate-900/40 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
+                                  <h6 className="text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-bold mb-2 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    Como melhorar a Textura
+                                  </h6>
+                                  <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-1.5 leading-relaxed font-medium">
+                                    {prepTips.textureTips.map((tip, i) => (
+                                      <li key={i} className="flex gap-1.5">
+                                        <span className="text-emerald-500 flex-shrink-0">•</span>
+                                        <span>{tip}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                {/* Flavor Tips */}
+                                <div className="bg-white/40 dark:bg-slate-900/40 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
+                                  <h6 className="text-[11px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-bold mb-2 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    Como realçar o Sabor
+                                  </h6>
+                                  <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-1.5 leading-relaxed font-medium">
+                                    {prepTips.flavorTips.map((tip, i) => (
+                                      <li key={i} className="flex gap-1.5">
+                                        <span className="text-amber-500 flex-shrink-0">•</span>
+                                        <span>{tip}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+
+                              {/* Chef Secret */}
+                              <div className="bg-indigo-500/[0.04] dark:bg-indigo-400/[0.03] border border-indigo-500/15 rounded-lg p-3 flex gap-3 items-start">
+                                <span className="p-1.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5">
+                                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                </span>
+                                <div>
+                                  <h6 className="text-[11px] uppercase tracking-wider text-indigo-700 dark:text-indigo-400 font-bold mb-0.5">O Segredo do Chef</h6>
+                                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-medium">{prepTips.chefSecret}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="py-2 flex items-center justify-center">
+                              <button
+                                onClick={async () => {
+                                  setLoadingPrepTips(true);
+                                  setPrepTipsError(null);
+                                  try {
+                                    const { generateRecipePreparationTips } = await import('../lib/gemini');
+                                    const tips = await generateRecipePreparationTips(recipe.name, recipe.ingredients);
+                                    if (tips) setPrepTips(tips);
+                                    else setPrepTipsError("Não foi possível carregar as dicas de preparo.");
+                                  } catch (err) {
+                                    setPrepTipsError("Erro ao carregar as dicas de preparo com a IA.");
+                                  } finally {
+                                    setLoadingPrepTips(false);
+                                  }
+                                }}
+                                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Carregar Dicas de Preparo da Chef Malu
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold font-serif text-rose-900 dark:text-rose-100 mb-2">
-                        {nutrition.fat}g <span className="text-xs text-slate-400 dark:text-slate-500 font-sans font-normal">({nutrition.fat * 9} kcal)</span>
+                    ) : (
+                      <div className="bg-slate-500/5 dark:bg-slate-500/10 border border-slate-500/10 rounded-xl p-4 text-center text-sm text-slate-400">
+                        Nenhum macronutriente disponível para exibição gráfica.
                       </div>
-                      <div className="w-full bg-rose-500/20 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-rose-500 h-full rounded-full" 
-                          style={{ width: `${Math.min(100, Math.round(((nutrition.fat * 9) / ((nutrition.protein * 4) + (nutrition.carbs * 4) + (nutrition.fat * 9) || 1)) * 100))}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="border-t border-white/40 dark:border-slate-700/50 pt-4">
@@ -902,7 +1540,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                     )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
@@ -1088,6 +1726,171 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
 
       </div>
+
+      {/* Modal de Compartilhamento de Receita */}
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl relative border border-slate-200 dark:border-slate-800"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-indigo-500" />
+                    Compartilhar Receita
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Gere um card elegante pronto para postar no Instagram, WhatsApp ou Facebook.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Viewport Card wrapper to download */}
+              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden">
+                <div 
+                  ref={shareCardRef}
+                  id="recipe-social-share-card"
+                  className="w-[350px] min-h-[480px] bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 rounded-[24px] relative overflow-hidden flex flex-col justify-between text-white shadow-2xl"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  {/* Glowing background highlights */}
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Header Branding */}
+                  <div className="flex items-center justify-between relative z-10 border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-lg">🥗</span>
+                      <span className="font-serif text-sm font-black tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
+                        NutriPlate
+                      </span>
+                    </div>
+                    <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                      Receita do Dia
+                    </span>
+                  </div>
+
+                  {/* Recipe Image & Overlay details */}
+                  <div className="my-4 relative h-40 rounded-[18px] overflow-hidden shadow-inner border border-white/5">
+                    {recipeImage ? (
+                      <img 
+                        src={recipeImage} 
+                        alt={recipe.name} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-center p-4">
+                        <span className="text-3xl mb-1">🍽️</span>
+                        <span className="text-xs text-slate-400 font-bold font-mono">Foto do Prato</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/10 pointer-events-none" />
+                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-white bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-emerald-400" />
+                        {recipe.prepTime}
+                      </span>
+                      <span className="text-[10px] font-black text-amber-300 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <Flame className="w-3 h-3" />
+                        {recipe.nutrition.calories} kcal
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Title & Description */}
+                  <div className="relative z-10 space-y-1 text-left">
+                    <h4 className="font-serif text-xl font-bold tracking-tight text-white line-clamp-1">
+                      {recipe.name}
+                    </h4>
+                    <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2 italic">
+                      {recipe.description}
+                    </p>
+                  </div>
+
+                  {/* Macro Nutrients Grid */}
+                  <div className="grid grid-cols-3 gap-2 my-4 relative z-10">
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-center">
+                      <span className="text-[8px] font-bold uppercase text-blue-400 block tracking-widest">Proteínas</span>
+                      <span className="text-sm font-black text-blue-300">{recipe.nutrition.protein}g</span>
+                    </div>
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-center">
+                      <span className="text-[8px] font-bold uppercase text-amber-400 block tracking-widest">Carboidratos</span>
+                      <span className="text-sm font-black text-amber-300">{recipe.nutrition.carbs}g</span>
+                    </div>
+                    <div className="bg-pink-500/10 border border-pink-500/20 p-2.5 rounded-xl text-center">
+                      <span className="text-[8px] font-bold uppercase text-pink-400 block tracking-widest">Gorduras</span>
+                      <span className="text-sm font-black text-pink-300">{recipe.nutrition.fat}g</span>
+                    </div>
+                  </div>
+
+                  {/* Footer Brand Info */}
+                  <div className="flex items-center justify-between border-t border-white/10 pt-3 mt-1 text-[9px] text-slate-400 font-mono relative z-10">
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      @nutriplate_app
+                    </span>
+                    <span>Alimentação Consciente</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <button
+                  onClick={handleCopyText}
+                  className="flex items-center justify-center gap-2 px-4 py-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-2xl transition-all active:scale-[0.98] cursor-pointer border-none"
+                >
+                  {isTextCopied ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copiar Texto
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleExportCard}
+                  disabled={isExportingCard}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-2xl shadow-md hover:shadow-indigo-500/10 transition-all active:scale-[0.98] cursor-pointer border-none"
+                >
+                  {isExportingCard ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Exportando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Salvar Card (PNG)
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

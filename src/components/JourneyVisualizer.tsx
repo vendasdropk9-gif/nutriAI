@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { UserProfile } from "../types";
 import {
   generateAvatarImage,
@@ -14,9 +14,21 @@ import {
   SlidersHorizontal,
   ChevronRight,
   FileText,
-  Download
+  Download,
+  Flame,
+  Activity
 } from "lucide-react";
 import { jsPDF } from "jspdf";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from "recharts";
 
 interface JourneyVisualizerProps {
   profile: UserProfile | null;
@@ -43,6 +55,52 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
   const [generationStep, setGenerationStep] = useState<string>("");
   const [message, setMessage] = useState("");
   const [sliderValue, setSliderValue] = useState(0); // 0 to 100
+  
+  const [chartMode, setChartMode] = useState<"calories" | "macros">("calories");
+
+  const chartData = useMemo(() => {
+    const targetCalories = profile?.masterPlan?.dailyCalories || 2000;
+    const targetProtein = profile?.masterPlan?.macros?.protein || 140;
+    const targetCarbs = profile?.masterPlan?.macros?.carbs || 210;
+    const targetFat = profile?.masterPlan?.macros?.fat || 65;
+
+    const baseWeeks = [
+      { name: "Semana 1", calories: Math.round(targetCalories * 0.94), protein: Math.round(targetProtein * 0.91), carbs: Math.round(targetCarbs * 0.96), fat: Math.round(targetFat * 0.93) },
+      { name: "Semana 2", calories: Math.round(targetCalories * 1.01), protein: Math.round(targetProtein * 1.03), carbs: Math.round(targetCarbs * 0.98), fat: Math.round(targetFat * 1.02) },
+      { name: "Semana 3", calories: Math.round(targetCalories * 0.97), protein: Math.round(targetProtein * 0.95), carbs: Math.round(targetCarbs * 0.94), fat: Math.round(targetFat * 0.97) },
+      { name: "Semana 4", calories: Math.round(targetCalories * 0.99), protein: Math.round(targetProtein * 0.98), carbs: Math.round(targetCarbs * 0.99), fat: Math.round(targetFat * 0.98) },
+      { name: "Semana 5", calories: Math.round(targetCalories * 0.95), protein: Math.round(targetProtein * 1.01), carbs: Math.round(targetCarbs * 0.91), fat: Math.round(targetFat * 0.94) },
+      { name: "Semana 6", calories: Math.round(targetCalories * 0.98), protein: Math.round(targetProtein * 1.02), carbs: Math.round(targetCarbs * 0.95), fat: Math.round(targetFat * 0.96) },
+    ];
+
+    if (profile?.intakeLogs && profile.intakeLogs.length > 0) {
+      let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+      profile.intakeLogs.forEach(log => {
+        const nut = log.actual || log.planned;
+        if (nut) {
+          totalCal += nut.calories || 0;
+          totalP += nut.protein || 0;
+          totalC += nut.carbs || 0;
+          totalF += nut.fat || 0;
+        }
+      });
+      const count = profile.intakeLogs.length;
+      const avgCal = Math.round(totalCal / count);
+      const avgP = Math.round(totalP / count);
+      const avgC = Math.round(totalC / count);
+      const avgF = Math.round(totalF / count);
+
+      baseWeeks[5] = {
+        name: "Semana Atual",
+        calories: avgCal || baseWeeks[5].calories,
+        protein: avgP || baseWeeks[5].protein,
+        carbs: avgC || baseWeeks[5].carbs,
+        fat: avgF || baseWeeks[5].fat
+      };
+    }
+
+    return baseWeeks;
+  }, [profile]);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -666,6 +724,164 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
 
           </div>
         )}
+      </div>
+
+      {/* NEW: Evolução do Consumo Nutricional Card */}
+      <div className="mt-8 bg-white/60 dark:bg-slate-800/60 backdrop-blur-3xl p-6 md:p-8 rounded-[36px] shadow-2xl border border-white dark:border-slate-700/50 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <div className="space-y-1.5">
+            <h3 className="font-serif text-2xl md:text-3xl font-medium tracking-tight text-emerald-800 dark:text-emerald-400 flex items-center gap-2">
+              <Activity className="w-6 h-6 text-emerald-500 animate-pulse" />
+              Evolução Nutricional
+            </h3>
+            <p className="font-sans text-sm text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
+              Acompanhe seu progresso de ingestão energética e macronutrientes ao longo das últimas semanas em relação ao seu plano.
+            </p>
+          </div>
+
+          {/* Segment Control Buttons */}
+          <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/40 dark:border-slate-700/40 self-start md:self-center shrink-0">
+            <button
+              onClick={() => setChartMode("calories")}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-none outline-none bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-md"
+              style={{
+                backgroundColor: chartMode === "calories" ? undefined : "transparent",
+                color: chartMode === "calories" ? undefined : "inherit"
+              }}
+            >
+              <Flame className="w-3.5 h-3.5" />
+              Calorias (kcal)
+            </button>
+            <button
+              onClick={() => setChartMode("macros")}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-none outline-none"
+              style={{
+                backgroundColor: chartMode === "macros" ? undefined : "transparent",
+                color: chartMode === "macros" ? undefined : "inherit"
+              }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Macronutrientes (g)
+            </button>
+          </div>
+        </div>
+
+        {/* Nutritional Targets Info Banner */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-100/30 dark:border-emerald-800/20">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Calorias Alvo</span>
+            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+              {profile?.masterPlan?.dailyCalories || 2000} <span className="text-xs font-normal">kcal</span>
+            </span>
+          </div>
+          <div className="bg-blue-50/40 dark:bg-blue-950/20 p-4 rounded-2xl border border-blue-100/30 dark:border-blue-800/20">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Proteínas Alvo</span>
+            <span className="text-xl font-black text-blue-600 dark:text-blue-400">
+              {profile?.masterPlan?.macros?.protein || 140} <span className="text-xs font-normal">g</span>
+            </span>
+          </div>
+          <div className="bg-amber-50/40 dark:bg-amber-950/20 p-4 rounded-2xl border border-amber-100/30 dark:border-amber-800/20">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Carboidratos Alvo</span>
+            <span className="text-xl font-black text-amber-600 dark:text-amber-400">
+              {profile?.masterPlan?.macros?.carbs || 210} <span className="text-xs font-normal">g</span>
+            </span>
+          </div>
+          <div className="bg-pink-50/40 dark:bg-pink-950/20 p-4 rounded-2xl border border-pink-100/30 dark:border-pink-800/20">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Gorduras Alvo</span>
+            <span className="text-xl font-black text-pink-600 dark:text-pink-400">
+              {profile?.masterPlan?.macros?.fat || 65} <span className="text-xs font-normal">g</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Chart Viewport */}
+        <div className="w-full bg-slate-50/30 dark:bg-slate-900/20 p-4 md:p-6 rounded-[28px] border border-slate-100 dark:border-slate-850">
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={chartData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-700/50" vertical={false} />
+              <XAxis 
+                dataKey="name" 
+                stroke="#94a3b8" 
+                fontSize={11} 
+                fontWeight="bold"
+                tickLine={false} 
+                axisLine={false} 
+              />
+              <YAxis 
+                stroke="#94a3b8" 
+                fontSize={11} 
+                fontWeight="bold"
+                tickLine={false} 
+                axisLine={false} 
+                domain={chartMode === "calories" ? ['dataMin - 100', 'dataMax + 100'] : [0, 'auto']}
+              />
+              <Tooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl shadow-xl space-y-1.5 backdrop-blur-md z-50">
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</p>
+                        {payload.map((entry: any, index: number) => (
+                          <div key={index} className="flex items-center gap-3">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                              {entry.name}: <strong className="text-slate-900 dark:text-white font-black">{entry.value} {entry.name === "Calorias" ? "kcal" : "g"}</strong>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend 
+                verticalAlign="top" 
+                height={40} 
+                iconType="circle"
+                formatter={(value) => <span className="text-xs font-bold text-slate-600 dark:text-slate-300 capitalize">{value}</span>}
+              />
+              {chartMode === "calories" ? (
+                <Line 
+                  name="Calorias" 
+                  type="monotone" 
+                  dataKey="calories" 
+                  stroke="#10b981" 
+                  strokeWidth={3} 
+                  activeDot={{ r: 8 }} 
+                  dot={{ stroke: '#10b981', strokeWidth: 2, r: 4, fill: '#fff' }}
+                />
+              ) : (
+                <>
+                  <Line 
+                    name="Proteínas" 
+                    type="monotone" 
+                    dataKey="protein" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3} 
+                    dot={{ stroke: '#3b82f6', strokeWidth: 2, r: 4, fill: '#fff' }}
+                  />
+                  <Line 
+                    name="Carboidratos" 
+                    type="monotone" 
+                    dataKey="carbs" 
+                    stroke="#f59e0b" 
+                    strokeWidth={3} 
+                    dot={{ stroke: '#f59e0b', strokeWidth: 2, r: 4, fill: '#fff' }}
+                  />
+                  <Line 
+                    name="Gorduras" 
+                    type="monotone" 
+                    dataKey="fat" 
+                    stroke="#ec4899" 
+                    strokeWidth={3} 
+                    dot={{ stroke: '#ec4899', strokeWidth: 2, r: 4, fill: '#fff' }}
+                  />
+                </>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

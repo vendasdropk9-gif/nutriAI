@@ -85,30 +85,46 @@ function HumanoidModel({ activeMuscles, animation = 'idle', playbackSpeed = 1 }:
 }
 
 export function Avatar3D({ activeMuscles, animation, view = 'front', playbackSpeed = 1 }: Avatar3DProps) {
-  const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null);
+  const [webglAvailable, setWebglAvailable] = useState<boolean>(() => {
+    if (typeof document === 'undefined') return false;
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      
+      if (!gl) return false;
+      
+      const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        const renderer = (gl as WebGLRenderingContext).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        if (renderer && renderer.includes('Software')) return false;
+      }
+      
+      return true;
+    } catch (e) {
+      return false;
+    }
+  });
 
   useEffect(() => {
-    const checkWebGL = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        
-        if (!gl) return false;
-        
-        // Extended check: some environments return a context that is immediately lost
-        const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
-        if (debugInfo) {
-          const renderer = (gl as WebGLRenderingContext).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-          if (renderer && renderer.includes('Software')) return false; // Fail on software renderers
-        }
-        
-        return true;
-      } catch (e) {
-        return false;
-      }
+    const handleContextLoss = (e: any) => {
+      e.preventDefault();
+      setWebglAvailable(false);
     };
     
-    setWebglAvailable(checkWebGL());
+    // Catch unhandled WebGL errors that pop up in the console/window
+    const handleWindowError = (e: ErrorEvent) => {
+      if (e.message && e.message.includes('WebGL context')) {
+        setWebglAvailable(false);
+      }
+    };
+
+    window.addEventListener('webglcontextlost', handleContextLoss);
+    window.addEventListener('error', handleWindowError);
+    
+    return () => {
+      window.removeEventListener('webglcontextlost', handleContextLoss);
+      window.removeEventListener('error', handleWindowError);
+    };
   }, []);
 
   const cameraPos = useMemo(() => {
@@ -175,8 +191,18 @@ export function Avatar3D({ activeMuscles, animation, view = 'front', playbackSpe
   return (
     <div className="w-full h-[400px] md:h-[600px] relative rounded-[40px] clay-card overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
       <ErrorBoundary fallback={Fallback2D}>
-        {webglAvailable !== false ? (
-          <Canvas shadows gl={{ failIfMajorPerformanceCaveat: false }}>
+        {webglAvailable ? (
+          <Canvas 
+            shadows 
+            gl={{ failIfMajorPerformanceCaveat: false }} 
+            fallback={Fallback2D}
+            onCreated={({ gl }) => {
+              gl.domElement.addEventListener('webglcontextlost', (e) => {
+                e.preventDefault();
+                setWebglAvailable(false);
+              });
+            }}
+          >
             <PerspectiveCamera makeDefault position={cameraPos} fov={40} />
             <OrbitControls enablePan={false} minDistance={2} maxDistance={7} minPolarAngle={Math.PI / 6} maxPolarAngle={Math.PI / 1.5} />
             

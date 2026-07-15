@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
+import { SmartWellnessDashboard } from './SmartWellnessDashboard';
+import { SleepActivityAdvisor } from './SleepActivityAdvisor';
 
 type ActivityType = 'breathing' | 'stretching' | 'meditation' | 'sleep';
 
@@ -199,6 +201,9 @@ export function WellnessHub() {
               </p>
             </div>
           </div>
+
+          <SmartWellnessDashboard />
+          <SleepActivityAdvisor />
 
           <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
             {[

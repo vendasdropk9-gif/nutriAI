@@ -877,10 +877,10 @@ export function AcademyPortal() {
           {/* Welcome Dashboard Step Selector */}
           {regStep === 'welcome' && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200/55 dark:border-slate-800 rounded-[32px] overflow-hidden shadow-xl flex flex-col md:flex-row">
-              <div className="md:w-1/2 p-8 md:p-12 space-y-6 flex flex-col justify-center">
+              <div className="w-full md:w-1/2 p-8 md:p-12 space-y-6 flex flex-col justify-center">
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-widest rounded-full border border-emerald-500/10">
                   <Dumbbell className="w-3.5 h-3.5" />
-                  NutriAI Gym Connection
+                  Parceria NutriAI Gym
                 </span>
                 <h3 className="font-serif text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight font-medium">
                   Cadastre sua Academia no <span className="text-emerald-600">NutriAI</span>
