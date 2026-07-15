@@ -319,26 +319,26 @@ export default function App() {
               </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
-                     <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <motion.button 
-                whileHover={{ scale: 1.05, y: -0.5 }} 
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.04, y: -0.5 }} 
+                whileTap={{ scale: 0.96 }}
                 onClick={() => {
                   playSfx('tap');
                   setIsFeedbackOpen(true);
                 }}
-                className="relative p-[1.5px] rounded-full overflow-hidden shrink-0 shadow-[0_0_15px_rgba(93,255,0,0.45)] dark:shadow-[0_0_20px_rgba(255,255,255,0.18)] focus:outline-none active:scale-95 cursor-pointer group"
+                className="relative p-[1.5px] rounded-full overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none active:scale-95 cursor-pointer group flex items-center justify-center"
                 title="Deixe seu feedback"
                 id="header-feedback-trigger-btn"
               >
-                {/* Rotating neon light trail - custom green in light mode, white in dark mode */}
-                <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_40%,rgba(93,255,0,0.15)_60%,#5dff00_90%,rgba(93,255,0,0.15)_100%)] dark:bg-[conic-gradient(from_0deg,transparent_40%,rgba(255,255,255,0.15)_60%,#ffffff_90%,rgba(255,255,255,0.15)_100%)] animate-[spin_2.5s_linear_infinite]" />
+                {/* Sleek pulsing and shimmering ambient border */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 dark:from-emerald-500 dark:via-teal-400 dark:to-emerald-500 animate-pulse" />
                 
-                {/* Inner button mask */}
-                <div className="relative flex items-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 border border-transparent text-emerald-600 dark:text-emerald-400 font-medium text-xs md:text-sm hover:bg-slate-50 dark:hover:bg-slate-800/90 transition-colors">
-                  <div className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {/* Perfectly centered inner button mask */}
+                <div className="relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-medium hover:bg-slate-50/90 dark:hover:bg-slate-800/90 transition-all duration-300 w-full h-full">
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <MessageSquare className="w-4 h-4 text-emerald-500 relative z-10 shrink-0" />
-                  <span className="inline-block text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200">
+                  <span className="text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200 leading-none tracking-wide">
                     Feedback
                   </span>
                 </div>
@@ -350,7 +350,7 @@ export default function App() {
                   vibrate(10);
                   setIsLanguageOpen(true);
                 }}
-                className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
                 title="Mudar idioma / Change language"
                 id="header-language-trigger-btn"
               >
@@ -359,10 +359,20 @@ export default function App() {
 
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2.5 rounded-full text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0"
+                className="p-2.5 rounded-full text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center"
                 title={isDarkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
               >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5 text-indigo-400" />}
+                {isDarkMode ? (
+                  <Sun 
+                    className="w-5 h-5" 
+                    style={{ marginRight: '0px', paddingBottom: '0px', marginBottom: '0px', paddingLeft: '0px', marginLeft: '-19px', color: '#3dff00' }} 
+                  />
+                ) : (
+                  <Moon 
+                    className="w-5 h-5" 
+                    style={{ marginRight: '0px', paddingBottom: '0px', marginBottom: '0px', paddingLeft: '0px', marginLeft: '-19px', color: '#3dff00' }} 
+                  />
+                )}
               </motion.button>
             </div>
           </div>
