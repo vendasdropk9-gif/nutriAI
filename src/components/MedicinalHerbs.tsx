@@ -136,6 +136,22 @@ export function MedicinalHerbs() {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, chatLoading]);
 
+  // Listen to global search selection for herbs
+  useEffect(() => {
+    const handleSelectHerb = (e: any) => {
+      const herbId = e.detail?.herbId;
+      if (herbId && herbs.length > 0) {
+        const found = herbs.find(h => h.id === herbId);
+        if (found) {
+          setSelectedHerb(found);
+          setActiveSubTab('encyclopedia');
+        }
+      }
+    };
+    window.addEventListener('app:selectHerb', handleSelectHerb);
+    return () => window.removeEventListener('app:selectHerb', handleSelectHerb);
+  }, [herbs]);
+
   // Toggle favorite
   const toggleFavorite = async (herbId: string, e: React.MouseEvent) => {
     e.stopPropagation();

@@ -84,6 +84,21 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
     };
   }, []);
 
+  // Listen to global search recipe selection or ingredient search
+  useEffect(() => {
+    const handleSearchRecipe = (e: any) => {
+      const { ingredients: searchIngredients, preferences: searchPref } = e.detail || {};
+      if (searchIngredients) {
+        setIngredients(searchIngredients);
+      }
+      if (searchPref) {
+        setPreferences(searchPref);
+      }
+    };
+    window.addEventListener('app:searchRecipeOrIngredient', handleSearchRecipe);
+    return () => window.removeEventListener('app:searchRecipeOrIngredient', handleSearchRecipe);
+  }, []);
+
   const toggleListening = () => {
     if (!recognitionRef.current) return;
     if (isListening) {

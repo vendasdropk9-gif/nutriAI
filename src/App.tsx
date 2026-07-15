@@ -60,6 +60,7 @@ import { changeLanguage as changeAppLanguage } from './i18n';
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 import { LanguageModal } from './components/LanguageModal';
 import { AutoTranslator } from './components/AutoTranslator';
+import { GlobalSearch } from './components/GlobalSearch';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
@@ -319,6 +320,10 @@ export default function App() {
               </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
             </div>
+            
+            {/* Global Search Bar */}
+            <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+
             <div className="flex items-center gap-2 sm:gap-3">
               <motion.button 
                 whileHover={{ scale: 1.04, y: -0.5 }} 
@@ -335,10 +340,10 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 dark:from-emerald-500 dark:via-teal-400 dark:to-emerald-500 animate-pulse" />
                 
                 {/* Perfectly centered inner button mask */}
-                <div className="relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-medium hover:bg-slate-50/90 dark:hover:bg-slate-800/90 transition-all duration-300 w-full h-full">
+                <div className="relative flex items-center justify-center gap-1.5 p-2 sm:px-3.5 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-medium hover:bg-slate-50/90 dark:hover:bg-slate-800/90 transition-all duration-300 w-full h-full">
                   <div className="absolute inset-0 rounded-full bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <MessageSquare className="w-4 h-4 text-emerald-500 relative z-10 shrink-0" />
-                  <span className="text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200 leading-none tracking-wide">
+                  <span className="hidden sm:inline-block text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200 leading-none tracking-wide">
                     Feedback
                   </span>
                 </div>
@@ -365,12 +370,10 @@ export default function App() {
                 {isDarkMode ? (
                   <Sun 
                     className="w-5 h-5" 
-                    style={{ marginRight: '0px', paddingBottom: '0px', marginBottom: '0px', paddingLeft: '0px', marginLeft: '-19px', color: '#3dff00' }} 
                   />
                 ) : (
                   <Moon 
                     className="w-5 h-5" 
-                    style={{ marginRight: '0px', paddingBottom: '0px', marginBottom: '0px', paddingLeft: '0px', marginLeft: '-19px', color: '#3dff00' }} 
                   />
                 )}
               </motion.button>

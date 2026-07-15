@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan } from "../types";
 
 const callGeminiEndpoint = async (functionName: string, args: any[]) => {
   try {
@@ -40,6 +40,12 @@ export const generateWorkout = async (
   profile: UserProfile | null
 ): Promise<WorkoutSession | null> => {
   return callGeminiEndpoint('generateWorkout', [profile]);
+};
+
+export const generateWeeklyWorkoutPlan = async (
+  profile: UserProfile | null
+): Promise<WeeklyWorkoutPlan | null> => {
+  return callGeminiEndpoint('generateWeeklyWorkoutPlan', [profile]);
 };
 
 export const generateRecipe = async (

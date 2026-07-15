@@ -109,6 +109,7 @@ export interface UserProfile {
   badges?: string[];
   prediction?: GoalPrediction;
   currentWorkout?: WorkoutSession;
+  weeklyWorkoutPlan?: WeeklyWorkoutPlan;
   cart?: CartItem[];
   favorites?: string[]; // Array of product IDs
   intakeLogs?: IntakeLog[];
@@ -246,6 +247,30 @@ export interface GoalPrediction {
   estimatedDate: string;
   confidenceScore: number;
   motivationalMessage: string;
+}
+
+export interface WeeklyWorkoutDay {
+  dayName: string;
+  dayKey: string;
+  workoutTitle: string;
+  workoutFocus: string;
+  targetMuscles: string[];
+  intensity: 'Iniciante' | 'Intermediário' | 'Avançado';
+  nutritionContext: string;
+  exercises: {
+    id: string;
+    name: string;
+    reps?: number;
+    duration?: number;
+    muscleGroups: string[];
+  }[];
+}
+
+export interface WeeklyWorkoutPlan {
+  id: string;
+  title: string;
+  description: string;
+  days: WeeklyWorkoutDay[];
 }
 
 export interface PointsEntry {

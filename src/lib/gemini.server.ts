@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -307,6 +307,199 @@ Regras:
           ],
           commonErrors: [
             { error: "Joelhos para dentro", fix: "Empurre os joelhos para a linha dos pés" }
+          ]
+        }
+      ]
+    };
+  }
+};
+
+export const generateWeeklyWorkoutPlan = async (
+  profile: UserProfile | null
+): Promise<WeeklyWorkoutPlan | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  let profileContext = `
+- Objetivo: ${profile?.goals || 'Emagrecimento'}
+- Nível: ${profile?.activityLevel || 'Sedentário'}
+- Limitações: ${profile?.restrictions?.join(", ") || 'Nenhuma informada'}
+`;
+  if (profile?.masterPlan) {
+    profileContext += `- Foco Estratégico (IA): ${profile.masterPlan.workoutFocus}
+- Biotipo: ${profile.bodyType}
+- Rotina Diária: ${profile.routine}`;
+  }
+
+  const prompt = `Gere um Plano Semanal de Exercícios de Calistenia (Segunda a Domingo) personalizado.
+O plano DEVE estar estritamente sincronizado com os objetivos de nutrição do usuário (${profile?.goals || 'Emagrecimento'}) e seu nível de condicionamento físico (${profile?.activityLevel || 'Iniciante'}).
+
+Perfil do Usuário:
+${profileContext}
+
+Regras:
+1. Crie uma programação de 7 dias (Segunda a Domingo).
+2. Para cada dia, defina o título do treino (workoutTitle), o foco do treino (workoutFocus), a intensidade recomendada (Iniciante, Intermediário ou Avançado), os músculos alvo (targetMuscles) e um contexto nutricional sincronizado (nutritionContext) que informe qual apoio nutricional é ideal para aquele dia (ex: "Consumir mais carboidratos complexos hoje para suporte energético", "Foco em proteínas pós-treino", etc.).
+3. Inclua de 3 a 5 exercícios rápidos por dia de treino.
+4. Dias de descanso ativo ou repouso total também devem ser representados com foco em flexibilidade, alongamento ou regeneração.
+5. Use nomes em português para os exercícios e termos.
+6. Responda APENAS com JSON validando o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      id: { type: Type.STRING },
+      title: { type: Type.STRING },
+      description: { type: Type.STRING },
+      days: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            dayName: { type: Type.STRING },
+            dayKey: { type: Type.STRING },
+            workoutTitle: { type: Type.STRING },
+            workoutFocus: { type: Type.STRING },
+            targetMuscles: { type: Type.ARRAY, items: { type: Type.STRING } },
+            intensity: { type: Type.STRING },
+            nutritionContext: { type: Type.STRING },
+            exercises: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  name: { type: Type.STRING },
+                  reps: { type: Type.NUMBER },
+                  duration: { type: Type.NUMBER },
+                  muscleGroups: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["id", "name", "muscleGroups"]
+              }
+            }
+          },
+          required: ["dayName", "dayKey", "workoutTitle", "workoutFocus", "targetMuscles", "intensity", "nutritionContext", "exercises"]
+        }
+      }
+    },
+    required: ["id", "title", "description", "days"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error: any) {
+    console.info("Fallback triggered for generateWeeklyWorkoutPlan", error);
+    // Standard high quality fallback
+    return {
+      id: "weekly-plan-fallback",
+      title: "Plano Semanal de Fortalecimento e Saúde",
+      description: `Programação sincronizada para seu objetivo de ${profile?.goals || "Bem-estar"}.`,
+      days: [
+        {
+          dayName: "Segunda-feira",
+          dayKey: "monday",
+          workoutTitle: "Força Superior & Peitoral",
+          workoutFocus: "Foco no desenvolvimento do peito, tríceps e estabilização",
+          targetMuscles: ["Peito", "Tríceps", "Ombros"],
+          intensity: "Iniciante",
+          nutritionContext: "Priorize proteínas magras pós-treino para regeneração.",
+          exercises: [
+            { id: "ex-ps-1", name: "Flexões de Braço", reps: 15, muscleGroups: ["Peito", "Tríceps"] },
+            { id: "ex-ps-2", name: "Flexões Inclinadas", reps: 12, muscleGroups: ["Peito", "Ombros"] },
+            { id: "ex-ps-3", name: "Prancha Abdominal", duration: 40, muscleGroups: ["Abdômen", "Core"] }
+          ]
+        },
+        {
+          dayName: "Terça-feira",
+          dayKey: "tuesday",
+          workoutTitle: "Cardio de Alta Intensidade",
+          workoutFocus: "Estímulo cardiovascular e queima calórica",
+          targetMuscles: ["Cardio", "Pernas", "Core"],
+          intensity: "Iniciante",
+          nutritionContext: "Mantenha uma boa hidratação com eletrólitos e carboidratos de fácil digestão.",
+          exercises: [
+            { id: "ex-ps-4", name: "Polichinelos", duration: 45, muscleGroups: ["Cardio"] },
+            { id: "ex-ps-5", name: "Corrida Estacionária", duration: 60, muscleGroups: ["Cardio", "Pernas"] },
+            { id: "ex-ps-6", name: "Abdominais Remador", reps: 20, muscleGroups: ["Abdômen"] }
+          ]
+        },
+        {
+          dayName: "Quarta-feira",
+          dayKey: "wednesday",
+          workoutTitle: "Descanso Ativo & Mobilidade",
+          workoutFocus: "Recuperação muscular e amplitude de movimento",
+          targetMuscles: ["Flexibilidade", "Regeneração"],
+          intensity: "Iniciante",
+          nutritionContext: "Dia de aporte equilibrado com gorduras saudáveis e antioxidantes.",
+          exercises: [
+            { id: "ex-ps-7", name: "Alongamento Geral", duration: 180, muscleGroups: ["Corpo Inteiro"] },
+            { id: "ex-ps-8", name: "Rotação de Quadril", reps: 10, muscleGroups: ["Quadril"] }
+          ]
+        },
+        {
+          dayName: "Quinta-feira",
+          dayKey: "thursday",
+          workoutTitle: "Fortalecimento Inferior",
+          workoutFocus: "Foco em coxas, glúteos e panturrilhas",
+          targetMuscles: ["Pernas", "Glúteos"],
+          intensity: "Iniciante",
+          nutritionContext: "Excelente momento para carboidratos complexos apoiarem o esforço das pernas.",
+          exercises: [
+            { id: "ex-ps-9", name: "Agachamentos Livres", reps: 20, muscleGroups: ["Quadríceps", "Glúteos"] },
+            { id: "ex-ps-10", name: "Afundos Alternados", reps: 12, muscleGroups: ["Pernas", "Glúteos"] },
+            { id: "ex-ps-11", name: "Elevação de Gêmeos", reps: 25, muscleGroups: ["Panturrilhas"] }
+          ]
+        },
+        {
+          dayName: "Sexta-feira",
+          dayKey: "friday",
+          workoutTitle: "Costas e Core",
+          workoutFocus: "Trabalho postural e fortalecimento de lombar/abdômen",
+          targetMuscles: ["Costas", "Core"],
+          intensity: "Iniciante",
+          nutritionContext: "Apoie a síntese de proteínas com um bom lanche proteico à tarde.",
+          exercises: [
+            { id: "ex-ps-12", name: "Super-homem (Lombar)", reps: 15, muscleGroups: ["Lombar", "Costas"] },
+            { id: "ex-ps-13", name: "Prancha Lateral", duration: 30, muscleGroups: ["Oblíquos", "Core"] },
+            { id: "ex-ps-14", name: "Abdominais Bicicleta", reps: 20, muscleGroups: ["Abdômen"] }
+          ]
+        },
+        {
+          dayName: "Sábado",
+          dayKey: "saturday",
+          workoutTitle: "Treino Full Body (Corpo Inteiro)",
+          workoutFocus: "Ativação global dos principais grupos musculares",
+          targetMuscles: ["Corpo Inteiro"],
+          intensity: "Iniciante",
+          nutritionContext: "Mantenha a ingestão calórica adequada ao gasto maior do dia.",
+          exercises: [
+            { id: "ex-ps-15", name: "Burpees", reps: 10, muscleGroups: ["Cardio", "Corpo Inteiro"] },
+            { id: "ex-ps-16", name: "Agachamento com Salto", reps: 12, muscleGroups: ["Pernas"] },
+            { id: "ex-ps-17", name: "Flexões", reps: 12, muscleGroups: ["Peito", "Tríceps"] }
+          ]
+        },
+        {
+          dayName: "Domingo",
+          dayKey: "sunday",
+          workoutTitle: "Recuperação e Meditação",
+          workoutFocus: "Descanso muscular e reequilíbrio mental",
+          targetMuscles: ["Mente", "Recuperação"],
+          intensity: "Iniciante",
+          nutritionContext: "Hidratação abundante e refeições leves ricas em micronutrientes.",
+          exercises: [
+            { id: "ex-ps-18", name: "Meditação Guiada", duration: 300, muscleGroups: ["Mente"] },
+            { id: "ex-ps-19", name: "Respiração Profunda", duration: 120, muscleGroups: ["Mente", "Pulmões"] }
           ]
         }
       ]
