@@ -197,28 +197,34 @@ export function MedicinalHerbs() {
   const allBiomes = Array.from(new Set(herbs.map(h => h.biome).filter(Boolean)));
   const allPurposes = Array.from(
     new Set(
-      herbs.flatMap(h => h.indications?.map(ind => ind.name) || [])
+      herbs.flatMap(h => (Array.isArray(h.indications) ? h.indications.map(ind => ind?.name) : []).filter(Boolean))
     )
   );
 
   // Filter logic
   const filteredHerbs = herbs.filter(herb => {
     const queryLower = searchQuery.toLowerCase();
+    
+    const indicationsSafe = Array.isArray(herb.indications) ? herb.indications : [];
+    const otherNamesSafe = Array.isArray(herb.otherNames) ? herb.otherNames : [];
+    const propertiesSafe = Array.isArray(herb.properties) ? herb.properties : [];
+
     const matchesSearch = 
-      herb.popularName.toLowerCase().includes(queryLower) ||
-      herb.scientificName.toLowerCase().includes(queryLower) ||
-      herb.botanicalFamily.toLowerCase().includes(queryLower) ||
-      herb.description.toLowerCase().includes(queryLower) ||
-      herb.otherNames.some(name => name.toLowerCase().includes(queryLower)) ||
-      herb.properties.some(prop => prop.toLowerCase().includes(queryLower)) ||
-      herb.indications.some(ind => ind.name.toLowerCase().includes(queryLower));
+      (herb.popularName || '').toLowerCase().includes(queryLower) ||
+      (herb.scientificName || '').toLowerCase().includes(queryLower) ||
+      (herb.botanicalFamily || '').toLowerCase().includes(queryLower) ||
+      (herb.description || '').toLowerCase().includes(queryLower) ||
+      otherNamesSafe.some(name => (name || '').toLowerCase().includes(queryLower)) ||
+      propertiesSafe.some(prop => (prop || '').toLowerCase().includes(queryLower)) ||
+      indicationsSafe.some(ind => ind?.name && ind.name.toLowerCase().includes(queryLower));
 
     const matchesBiome = selectedBiome === 'all' || herb.biome === selectedBiome;
-    const matchesPurpose = selectedPurpose === 'all' || herb.indications.some(ind => ind.name === selectedPurpose);
+    const matchesPurpose = selectedPurpose === 'all' || indicationsSafe.some(ind => ind?.name === selectedPurpose);
     
     let matchesEvidence = true;
     if (selectedEvidence !== 'all') {
-      matchesEvidence = herb.indications.some(ind => {
+      matchesEvidence = indicationsSafe.some(ind => {
+        if (!ind) return false;
         if (selectedEvidence === 'strong') return ind.evidence === 'Forte evidência científica';
         if (selectedEvidence === 'moderate') return ind.evidence === 'Evidência moderada';
         if (selectedEvidence === 'traditional') return ind.evidence === 'Uso tradicional';
@@ -832,14 +838,14 @@ export function MedicinalHerbs() {
                         Indicações Clínicas & Alvos Terapêuticos
                       </h4>
                       <div className="space-y-2">
-                        {selectedHerb.indications.map((ind, idx) => {
-                          const isStrong = ind.evidence === 'Forte evidência científica';
-                          const isModerate = ind.evidence === 'Evidência moderada';
-                          const isTrad = ind.evidence === 'Uso tradicional';
+                        {Array.isArray(selectedHerb.indications) ? selectedHerb.indications.map((ind, idx) => {
+                          const isStrong = ind?.evidence === 'Forte evidência científica';
+                          const isModerate = ind?.evidence === 'Evidência moderada';
+                          const isTrad = ind?.evidence === 'Uso tradicional';
                           return (
                             <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 rounded-xl">
                               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                {ind.name}
+                                {ind?.name}
                               </span>
                               <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                                 isStrong 
@@ -848,11 +854,11 @@ export function MedicinalHerbs() {
                                     ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-600 dark:text-amber-400'
                                     : 'bg-orange-50 dark:bg-orange-950/40 border-orange-400 text-orange-600 dark:text-orange-400'
                               }`}>
-                                {ind.badge}
+                                {ind?.badge}
                               </span>
                             </div>
                           );
-                        })}
+                        }) : null}
                       </div>
                     </div>
 
@@ -860,11 +866,11 @@ export function MedicinalHerbs() {
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase block mb-1.5">Propriedades</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedHerb.properties.map((prop, idx) => (
+                        {Array.isArray(selectedHerb.properties) ? selectedHerb.properties.map((prop, idx) => (
                           <span key={idx} className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full">
                             ✨ {prop}
                           </span>
-                        ))}
+                        )) : null}
                       </div>
                     </div>
 

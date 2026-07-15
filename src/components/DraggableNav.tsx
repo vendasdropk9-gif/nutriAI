@@ -6,7 +6,8 @@ import {
   Sparkles, GlassWater, Barcode, Brain, Trophy, Droplet, 
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
   Map as MapIcon, Zap, Activity, Building2, Heart, BookOpen, Leaf,
-  ShieldAlert, Scale, Apple, Sprout, Image as ImageIcon
+  ShieldAlert, Scale, Apple, Sprout, Image as ImageIcon,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -64,6 +65,24 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const getLabel = (item: any): string => {
+    switch (item.id) {
+      case 'assistant360': return t('assistant_ai', item.label) as string;
+      case 'generator': return t('recipes', item.label) as string;
+      case 'fridge': return t('smart_fridge', item.label) as string;
+      case 'herbs': return t('herbs', item.label) as string;
+      case 'juice': return t('juices', item.label) as string;
+      case 'habits': return t('habits', item.label) as string;
+      case 'analyzer': return t('plate_analysis', item.label) as string;
+      case 'plan': return t('meal_planning', item.label) as string;
+      case 'shopping': return t('shopping_list', item.label) as string;
+      case 'market': return t('market', item.label) as string;
+      case 'profile': return t('profile', item.label) as string;
+      case 'pricing': return t('premium_plan', item.label) as string;
+      default: return t(item.id, item.label) as string;
+    }
+  };
+
   // Adaptive Navigation Logic
   const NAV_ITEMS = useMemo(() => {
     const hour = new Date().getHours();
@@ -110,6 +129,11 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   }, []);
 
   const [resizeTrigger, setResizeTrigger] = useState(0);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [scrollDirection, setScrollDirection] = useState<'right' | 'left'>('right');
+  const lastInteractionTime = useRef<number>(Date.now());
 
   useEffect(() => {
     const handleResize = () => {
@@ -118,6 +142,75 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const checkArrows = () => {
+    const container = containerRef.current;
+    if (container) {
+      setShowLeftArrow(container.scrollLeft > 10);
+      setShowRightArrow(container.scrollLeft < container.scrollWidth - container.clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkArrows);
+      checkArrows();
+      const timer = setTimeout(checkArrows, 500);
+      return () => {
+        container.removeEventListener('scroll', checkArrows);
+        clearTimeout(timer);
+      };
+    }
+  }, [resizeTrigger, activeTab]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let animationId: number;
+    const scrollSpeed = 0.4; // smooth slow speed
+
+    const step = () => {
+      const isIdle = Date.now() - lastInteractionTime.current > 3000;
+      if (isIdle && !isInteracting) {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll > 0) {
+          if (scrollDirection === 'right') {
+            container.scrollLeft += scrollSpeed;
+            if (container.scrollLeft >= maxScroll - 1) {
+              setScrollDirection('left');
+            }
+          } else {
+            container.scrollLeft -= scrollSpeed;
+            if (container.scrollLeft <= 1) {
+              setScrollDirection('right');
+            }
+          }
+        }
+      }
+      animationId = requestAnimationFrame(step);
+    };
+
+    animationId = requestAnimationFrame(step);
+
+    const handleUserInteraction = () => {
+      lastInteractionTime.current = Date.now();
+    };
+
+    container.addEventListener('scroll', handleUserInteraction, { passive: true });
+    container.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    container.addEventListener('mousedown', handleUserInteraction, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      if (container) {
+        container.removeEventListener('scroll', handleUserInteraction);
+        container.removeEventListener('touchstart', handleUserInteraction);
+        container.removeEventListener('mousedown', handleUserInteraction);
+      }
+    };
+  }, [scrollDirection, isInteracting]);
 
   useEffect(() => {
     const scrollToActive = () => {
@@ -138,6 +231,19 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
     const timer = setTimeout(scrollToActive, 100);
     return () => clearTimeout(timer);
   }, [activeTab, resizeTrigger]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const container = containerRef.current;
+    if (container) {
+      lastInteractionTime.current = Date.now();
+      const scrollAmount = 240;
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      setScrollDirection(direction);
+    }
+  };
 
   return (
     <div className="w-full relative h-14 md:h-16 flex items-center bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-md shrink-0 transition-all duration-500">
@@ -179,7 +285,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
             <span className={`transition-transform duration-500 ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>
               {item.icon}
             </span>
-            <span>{t(`nav.${item.id}`, item.label)}</span>
+            <span>{getLabel(item)}</span>
             
             {activeTab === item.id && (
               <motion.div

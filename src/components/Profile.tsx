@@ -1,6 +1,7 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { SecuritySuite } from './SecuritySuite';
 import { UserProfile } from '../types';
 import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -538,7 +539,9 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             </div>
           </div>
 
-          <LanguageSwitcher />
+          <SecuritySuite />
+
+          <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />
 
           <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <button

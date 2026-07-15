@@ -184,48 +184,18 @@ export function Login() {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    const demoEmail = 'nutriai-demo@example.com';
-    const demoPassword = 'NutriAI123!';
-    try {
-      await signInWithEmailAndPassword(auth, demoEmail, demoPassword);
-      setSuccess('Conectado com sucesso na conta de demonstração!');
-      playSfx('success');
-    } catch (demoErr) {
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
-        await updateProfile(userCredential.user, { displayName: 'NutriAI Demo' });
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          name: 'NutriAI Demo',
-          email: demoEmail,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          biometricsEnabled: false
-        });
-        setSuccess('Conta de Demonstração criada e conectada com sucesso!');
-        playSfx('success');
-      } catch (createErr: any) {
-        console.warn("Firebase Demo Login failed, falling back to local login", createErr);
-        loginLocally('NutriAI Demo', demoEmail);
-        setSuccess('Conectado com sucesso na conta de demonstração local!');
-        playSfx('success');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
     try {
       await signInWithGoogle();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed", err);
-      setError('Falha ao autenticar com o Google. Tente novamente.');
+      if (window !== window.parent) {
+        setError('O login com Google pode ser bloqueado dentro do preview. Por favor, abra o aplicativo em uma nova aba.');
+      } else {
+        setError('Falha ao autenticar com o Google. Tente novamente.');
+      }
       setLoading(false);
     }
   };
@@ -777,17 +747,7 @@ export function Login() {
                       )}
                     </button>
 
-                    {view === 'login' && (
-                      <button
-                        type="button"
-                        onClick={handleDemoLogin}
-                        disabled={loading}
-                        className="w-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm py-3.5 rounded-2xl hover:bg-slate-250 dark:hover:bg-slate-705 active:scale-95 transition-all flex justify-center items-center gap-2 mt-2 outline-none border border-slate-200 dark:border-slate-700 shadow-sm"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                        Acesso de Teste Rápido (Sem Cadastro)
-                      </button>
-                    )}
+
                   </form>
                 )}
 

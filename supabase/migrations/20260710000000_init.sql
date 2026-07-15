@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     name TEXT NOT NULL,
     email TEXT,
     photo_url TEXT,
+    language TEXT DEFAULT 'pt',
     preferences TEXT DEFAULT 'Sem preferências gravadas',
     restrictions TEXT[] DEFAULT '{}',
     allergies TEXT[] DEFAULT '{}',
@@ -41,9 +42,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- RLS for profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow individual read" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Allow individual update" ON public.profiles FOR UPDATE USING (true);
-CREATE POLICY "Allow individual insert" ON public.profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow individual read" ON public.profiles FOR SELECT USING (id = auth.uid()::text);
+CREATE POLICY "Allow individual update" ON public.profiles FOR UPDATE USING (id = auth.uid()::text) WITH CHECK (id = auth.uid()::text);
+CREATE POLICY "Allow individual insert" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid()::text);
+CREATE POLICY "Allow individual delete" ON public.profiles FOR DELETE USING (id = auth.uid()::text);
 
 -- 2. INTAKE LOGS Table
 CREATE TABLE IF NOT EXISTS public.intake_logs (
@@ -65,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public.intake_logs (
 );
 
 ALTER TABLE public.intake_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations intake_logs" ON public.intake_logs FOR ALL USING (true);
+CREATE POLICY "User operations intake_logs" ON public.intake_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 3. PROGRESS LOGS Table
 CREATE TABLE IF NOT EXISTS public.progress_logs (
@@ -79,7 +81,7 @@ CREATE TABLE IF NOT EXISTS public.progress_logs (
 );
 
 ALTER TABLE public.progress_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations progress_logs" ON public.progress_logs FOR ALL USING (true);
+CREATE POLICY "User operations progress_logs" ON public.progress_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 4. HYDRATION LOGS Table
 CREATE TABLE IF NOT EXISTS public.hydration_logs (
@@ -92,7 +94,7 @@ CREATE TABLE IF NOT EXISTS public.hydration_logs (
 );
 
 ALTER TABLE public.hydration_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations hydration_logs" ON public.hydration_logs FOR ALL USING (true);
+CREATE POLICY "User operations hydration_logs" ON public.hydration_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 5. WORKOUT LOGS Table
 CREATE TABLE IF NOT EXISTS public.workout_logs (
@@ -106,7 +108,7 @@ CREATE TABLE IF NOT EXISTS public.workout_logs (
 );
 
 ALTER TABLE public.workout_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations workout_logs" ON public.workout_logs FOR ALL USING (true);
+CREATE POLICY "User operations workout_logs" ON public.workout_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 6. SLEEP LOGS Table
 CREATE TABLE IF NOT EXISTS public.sleep_logs (
@@ -119,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.sleep_logs (
 );
 
 ALTER TABLE public.sleep_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations sleep_logs" ON public.sleep_logs FOR ALL USING (true);
+CREATE POLICY "User operations sleep_logs" ON public.sleep_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 7. EMOTIONAL LOGS Table
 CREATE TABLE IF NOT EXISTS public.emotional_logs (
@@ -133,7 +135,7 @@ CREATE TABLE IF NOT EXISTS public.emotional_logs (
 );
 
 ALTER TABLE public.emotional_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations emotional_logs" ON public.emotional_logs FOR ALL USING (true);
+CREATE POLICY "User operations emotional_logs" ON public.emotional_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 8. FASTING LOGS Table
 CREATE TABLE IF NOT EXISTS public.fasting_logs (
@@ -145,7 +147,7 @@ CREATE TABLE IF NOT EXISTS public.fasting_logs (
 );
 
 ALTER TABLE public.fasting_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations fasting_logs" ON public.fasting_logs FOR ALL USING (true);
+CREATE POLICY "User operations fasting_logs" ON public.fasting_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 9. BLOOD PRESSURE LOGS Table
 CREATE TABLE IF NOT EXISTS public.blood_pressure_logs (
@@ -160,7 +162,7 @@ CREATE TABLE IF NOT EXISTS public.blood_pressure_logs (
 );
 
 ALTER TABLE public.blood_pressure_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations blood_pressure_logs" ON public.blood_pressure_logs FOR ALL USING (true);
+CREATE POLICY "User operations blood_pressure_logs" ON public.blood_pressure_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 10. BODY MONITOR LOGS Table
 CREATE TABLE IF NOT EXISTS public.body_monitor_logs (
@@ -179,7 +181,7 @@ CREATE TABLE IF NOT EXISTS public.body_monitor_logs (
 );
 
 ALTER TABLE public.body_monitor_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations body_monitor_logs" ON public.body_monitor_logs FOR ALL USING (true);
+CREATE POLICY "User operations body_monitor_logs" ON public.body_monitor_logs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 11. NOTES Table
 CREATE TABLE IF NOT EXISTS public.notes (
@@ -194,7 +196,7 @@ CREATE TABLE IF NOT EXISTS public.notes (
 );
 
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations notes" ON public.notes FOR ALL USING (true);
+CREATE POLICY "User operations notes" ON public.notes FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 12. FRIDGE ITEMS Table
 CREATE TABLE IF NOT EXISTS public.fridge_items (
@@ -209,7 +211,7 @@ CREATE TABLE IF NOT EXISTS public.fridge_items (
 );
 
 ALTER TABLE public.fridge_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations fridge_items" ON public.fridge_items FOR ALL USING (true);
+CREATE POLICY "User operations fridge_items" ON public.fridge_items FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 13. PLANT IDENTIFICATIONS Table
 CREATE TABLE IF NOT EXISTS public.plant_identifications (
@@ -225,7 +227,7 @@ CREATE TABLE IF NOT EXISTS public.plant_identifications (
 );
 
 ALTER TABLE public.plant_identifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations plant_identifications" ON public.plant_identifications FOR ALL USING (true);
+CREATE POLICY "User operations plant_identifications" ON public.plant_identifications FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 14. GARDEN ITEMS Table
 CREATE TABLE IF NOT EXISTS public.garden_items (
@@ -239,7 +241,7 @@ CREATE TABLE IF NOT EXISTS public.garden_items (
 );
 
 ALTER TABLE public.garden_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations garden_items" ON public.garden_items FOR ALL USING (true);
+CREATE POLICY "User operations garden_items" ON public.garden_items FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 15. ALLERGY SCANS Table
 CREATE TABLE IF NOT EXISTS public.allergy_scans (
@@ -254,7 +256,7 @@ CREATE TABLE IF NOT EXISTS public.allergy_scans (
 );
 
 ALTER TABLE public.allergy_scans ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations allergy_scans" ON public.allergy_scans FOR ALL USING (true);
+CREATE POLICY "User operations allergy_scans" ON public.allergy_scans FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 16. RECIPE REVIEWS Table (Global with reference to user)
 CREATE TABLE IF NOT EXISTS public.recipe_reviews (
@@ -268,7 +270,8 @@ CREATE TABLE IF NOT EXISTS public.recipe_reviews (
 );
 
 ALTER TABLE public.recipe_reviews ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Global recipe_reviews access" ON public.recipe_reviews FOR ALL USING (true);
+CREATE POLICY "Allow read for all users" ON public.recipe_reviews FOR SELECT USING (true);
+CREATE POLICY "User operations recipe_reviews" ON public.recipe_reviews FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 17. FAVORITE HERBS Table
 CREATE TABLE IF NOT EXISTS public.favorite_herbs (
@@ -279,7 +282,7 @@ CREATE TABLE IF NOT EXISTS public.favorite_herbs (
 );
 
 ALTER TABLE public.favorite_herbs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations favorite_herbs" ON public.favorite_herbs FOR ALL USING (true);
+CREATE POLICY "User operations favorite_herbs" ON public.favorite_herbs FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 18. DELIVERIES Table
 CREATE TABLE IF NOT EXISTS public.deliveries (
@@ -296,7 +299,8 @@ CREATE TABLE IF NOT EXISTS public.deliveries (
 );
 
 ALTER TABLE public.deliveries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Global deliveries access" ON public.deliveries FOR ALL USING (true);
+CREATE POLICY "Global deliveries access" ON public.deliveries FOR SELECT USING (true);
+CREATE POLICY "Admin/Partner deliveries operations" ON public.deliveries FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 19. ORDERS Table
 CREATE TABLE IF NOT EXISTS public.orders (
@@ -311,7 +315,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations orders" ON public.orders FOR ALL USING (true);
+CREATE POLICY "User operations orders" ON public.orders FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 20. PRODUCT COMPARISONS Table
 CREATE TABLE IF NOT EXISTS public.product_comparisons (
@@ -323,7 +327,7 @@ CREATE TABLE IF NOT EXISTS public.product_comparisons (
 );
 
 ALTER TABLE public.product_comparisons ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations product_comparisons" ON public.product_comparisons FOR ALL USING (true);
+CREATE POLICY "User operations product_comparisons" ON public.product_comparisons FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 21. ADAPTIVE INSIGHTS Table
 CREATE TABLE IF NOT EXISTS public.adaptive_insights (
@@ -339,7 +343,7 @@ CREATE TABLE IF NOT EXISTS public.adaptive_insights (
 );
 
 ALTER TABLE public.adaptive_insights ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations adaptive_insights" ON public.adaptive_insights FOR ALL USING (true);
+CREATE POLICY "User operations adaptive_insights" ON public.adaptive_insights FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 22. MUSHROOM IDENTIFICATIONS Table
 CREATE TABLE IF NOT EXISTS public.mushroom_identifications (
@@ -356,7 +360,7 @@ CREATE TABLE IF NOT EXISTS public.mushroom_identifications (
 );
 
 ALTER TABLE public.mushroom_identifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "User operations mushroom_identifications" ON public.mushroom_identifications FOR ALL USING (true);
+CREATE POLICY "User operations mushroom_identifications" ON public.mushroom_identifications FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 23. FEEDBACKS Table (Global)
 CREATE TABLE IF NOT EXISTS public.feedbacks (
@@ -370,7 +374,7 @@ CREATE TABLE IF NOT EXISTS public.feedbacks (
 );
 
 ALTER TABLE public.feedbacks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Global feedbacks access" ON public.feedbacks FOR ALL USING (true);
+CREATE POLICY "User operations feedbacks" ON public.feedbacks FOR ALL USING (user_id = auth.uid()::text) WITH CHECK (user_id = auth.uid()::text);
 
 -- 24. COURIERS Table
 CREATE TABLE IF NOT EXISTS public.couriers (
@@ -391,7 +395,8 @@ CREATE TABLE IF NOT EXISTS public.couriers (
 );
 
 ALTER TABLE public.couriers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Global couriers access" ON public.couriers FOR ALL USING (true);
+CREATE POLICY "Allow read couriers" ON public.couriers FOR SELECT USING (true);
+CREATE POLICY "Manage couriers" ON public.couriers FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 25. MEDICINAL HERBS Table
 CREATE TABLE IF NOT EXISTS public.medicinal_herbs (
@@ -415,7 +420,8 @@ CREATE TABLE IF NOT EXISTS public.medicinal_herbs (
 );
 
 ALTER TABLE public.medicinal_herbs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Global medicinal_herbs access" ON public.medicinal_herbs FOR ALL USING (true);
+CREATE POLICY "Allow read medicinal_herbs" ON public.medicinal_herbs FOR SELECT USING (true);
+CREATE POLICY "Manage medicinal_herbs" ON public.medicinal_herbs FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Auto-update updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -441,3 +447,22 @@ CREATE OR REPLACE TRIGGER update_deliveries_updated_at
     BEFORE UPDATE ON public.deliveries
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- 26. SECURITY LOGS Table
+CREATE TABLE IF NOT EXISTS public.security_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    test_id TEXT NOT NULL,
+    test_name TEXT NOT NULL,
+    target_table TEXT NOT NULL,
+    action TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    details TEXT,
+    error_message TEXT,
+    user_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anyone to insert security logs" ON public.security_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated to view security logs" ON public.security_logs FOR SELECT USING (auth.uid() IS NOT NULL);
+

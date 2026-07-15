@@ -76,10 +76,14 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
     // We only trigger this if they have some logs to avoid constant spam
     const hasEnoughLogs = (profile.intakeLogs?.length || 0) > 3 || (profile.workoutLogs?.length || 0) > 1;
     if (hasEnoughLogs) {
-      const intervention = await generateBehavioralIntervention(profile);
-      if (intervention) {
-        setBehavioralIntervention(intervention);
-        setInsight(intervention.voiceMessage);
+      try {
+        const intervention = await generateBehavioralIntervention(profile);
+        if (intervention) {
+          setBehavioralIntervention(intervention);
+          setInsight(intervention.voiceMessage);
+        }
+      } catch (err) {
+        console.warn("Failing to generate behavioral intervention:", err);
       }
     }
   };
@@ -88,48 +92,60 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
     if (!profile) return;
     setLoading(true);
     setInsight("Pode deixar comigo, vou montar tudo do seu jeito 💚");
-    const strategy = await generateMasterStrategy(profile);
-    if (strategy) {
-      onUpdateProfile({ ...profile, masterPlan: strategy });
+    try {
+      const strategy = await generateMasterStrategy(profile);
+      if (strategy) {
+        onUpdateProfile({ ...profile, masterPlan: strategy });
+      }
+    } catch (err) {
+      console.warn("Failing to generate master strategy:", err);
+      setInsight("Tive um probleminha ao sincronizar o seu plano de metas, mas já estou analisando o que podemos melhorar hoje!");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadInsight = async () => {
     if (!profile) return;
     setLoading(true);
-    const data = await generateAdaptiveInsight(profile, profile.intakeLogs || [], profile.workoutLogs || []);
-    if (data) {
-      setInsight(data.recommendation);
-      // Save to Firestore if it's high confidence/significant
-      if (user) {
-        const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
-        if (isLocalUser) {
-          const localInsightObj = {
-            id: crypto.randomUUID(),
-            ...data,
-            status: 'pending',
-            date: new Date().toISOString()
-          } as any;
-          safeSet(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
-          setAdaptiveInsight(localInsightObj);
-        } else {
-          try {
-            const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
-            await addDoc(insightsRef, {
+    try {
+      const data = await generateAdaptiveInsight(profile, profile.intakeLogs || [], profile.workoutLogs || []);
+      if (data) {
+        setInsight(data.recommendation);
+        // Save to Firestore if it's high confidence/significant
+        if (user) {
+          const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
+          if (isLocalUser) {
+            const localInsightObj = {
+              id: crypto.randomUUID(),
               ...data,
               status: 'pending',
-              date: new Date().toISOString(),
-              userId: user.uid,
-              createdAt: serverTimestamp()
-            });
-          } catch (error) {
-            try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+              date: new Date().toISOString()
+            } as any;
+            safeSet(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
+            setAdaptiveInsight(localInsightObj);
+          } else {
+            try {
+              const insightsRef = collection(db, `users/${user.uid}/adaptiveInsights`);
+              await addDoc(insightsRef, {
+                ...data,
+                status: 'pending',
+                date: new Date().toISOString(),
+                userId: user.uid,
+                createdAt: serverTimestamp()
+              });
+            } catch (error) {
+              try { handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/adaptiveInsights`); } catch(e) {}
+            }
           }
         }
       }
+    } catch (err) {
+      console.warn("Failing to generate adaptive insight:", err);
+      setInsight("Notei que você está no caminho certo! Continue registrando suas atividades diárias para podermos traçar novas estratégias de alta performance.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSpeak = async () => {

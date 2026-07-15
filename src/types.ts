@@ -75,6 +75,7 @@ export interface UserProfile {
   updatedAt?: string;
   photoURL?: string;
   id?: string;
+  language?: string;
   address?: string;
   preferences?: string;
   restrictions: string[];

@@ -54,19 +54,48 @@ import { FeedbackSystem } from './components/FeedbackSystem';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage as changeAppLanguage } from './i18n';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 import { LanguageModal } from './components/LanguageModal';
+import { AutoTranslator } from './components/AutoTranslator';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
+  const { i18n } = useTranslation();
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', true);
+  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
+
+  // Auto-detect language on first execution and keep in sync with Profile/Supabase/LocalStorage
+  useEffect(() => {
+    const detectedLng = window.localStorage.getItem('language') || window.localStorage.getItem('i18nextLng') || navigator.language?.split('-')[0] || 'pt-BR';
+    const targetLng = detectedLng.startsWith('pt') ? 'pt-BR' : detectedLng;
+    
+    if (profile) {
+      if (!profile.language) {
+        const updated = { ...profile, language: targetLng };
+        setProfile(updated);
+        if (user) {
+          syncToFirestore(updated);
+        }
+        if (i18n.language !== targetLng) {
+          changeAppLanguage(targetLng);
+        }
+      } else if (profile.language && i18n.language !== profile.language) {
+        changeAppLanguage(profile.language);
+      }
+    } else {
+      if (i18n.language !== targetLng) {
+        changeAppLanguage(targetLng);
+      }
+    }
+  }, [profile?.language, user?.uid]);
 
   const [isLocked, setIsLocked] = useState(() => {
     try {
@@ -229,7 +258,7 @@ export default function App() {
   const renderContent = () => {
     if (authLoading) {
       return (
-        <div className="w-full h-[100vh] bg-[#08111d] flex flex-col items-center justify-center box-border overflow-hidden">
+        <div className="w-full h-[100vh] bg-[#f4f9f6] dark:bg-[#08111d] flex flex-col items-center justify-center box-border overflow-hidden">
           {!showSplash && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>}
         </div>
       );
@@ -263,7 +292,7 @@ export default function App() {
     }
 
     return (
-      <div className="w-full h-[100vh] flex flex-col bg-[#08111d] overflow-hidden box-border text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-400 transition-colors duration-500">
+      <div className="w-full h-[100vh] flex flex-col bg-[#f4f9f6] dark:bg-[#08111d] overflow-hidden box-border text-slate-800 dark:text-slate-100 font-sans relative selection:bg-emerald-500/20 selection:text-emerald-400 transition-colors duration-500">
         <motion.div 
           className="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar"
           initial={{ opacity: 0 }}
@@ -552,6 +581,8 @@ export default function App() {
       <LanguageModal
         isOpen={isLanguageOpen}
         onClose={() => setIsLanguageOpen(false)}
+        profile={profile}
+        onUpdateProfile={updateProfile}
       />
       
       <NotificationSystem 
@@ -565,6 +596,7 @@ export default function App() {
 
   return (
     <>
+      <AutoTranslator />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </>
