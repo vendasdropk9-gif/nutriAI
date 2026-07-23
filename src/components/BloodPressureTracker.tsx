@@ -222,7 +222,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
         playSfx('success');
       }
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     } finally {
       setIsAnalyzing(false);
     }

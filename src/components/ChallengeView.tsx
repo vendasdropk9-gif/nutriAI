@@ -83,7 +83,7 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

@@ -31,7 +31,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(e => console.error(e));
+        scannerRef.current.clear().catch(e => console.warn(e));
       }
       if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
@@ -74,7 +74,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         }
       }, 100);
     } catch (err: any) {
-      console.error("Accessing camera failed:", err);
+      console.warn("Accessing camera failed:", err.message);
       let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
       if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
         userFriendlyMsg = "Câmera de vídeo física não encontrada ou não instalada neste dispositivo. Por favor, digite o código de barras manualmente ou faça upload de uma foto nítida do código do produto abaixo.";
@@ -112,7 +112,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         analyzeCapturedBase64(base64Data, 'image/jpeg');
       }
     } catch (err) {
-      console.error("Failed to capture picture from stream:", err);
+      console.warn("Failed to capture picture from stream:", err);
       alert("Erro ao capturar imagem da câmera.");
     }
   };
@@ -139,7 +139,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         setError("Não foi possível analisar o produto. Tente tirar uma foto mais nítida.");
       }
     } catch (err: any) {
-      console.error(err);
+      console.warn(err);
       setError("Erro ao analisar imagem: " + (err.message || err));
     } finally {
       setIsAnalyzing(false);
@@ -169,7 +169,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setError("Erro ao carregar imagem selecionada.");
       setIsAnalyzing(false);
     }
@@ -244,7 +244,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
         setError("Produto não encontrado no banco de dados OFF. Tente tirar uma foto direta dele.");
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setError("Erro ao buscar informações do produto.");
     } finally {
       setIsAnalyzing(false);
@@ -510,7 +510,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
             <div id="barcode-reader" className="overflow-hidden rounded-2xl border-2 border-emerald-500/30"></div>
             <button
               onClick={() => {
-                if (scannerRef.current) scannerRef.current.clear().catch(e => console.error(e));
+                if (scannerRef.current) scannerRef.current.clear().catch(e => console.warn(e));
                 setIsScanning(false);
               }}
               className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-250 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-2xl font-medium flex items-center justify-center gap-2 transition-colors active:scale-95"

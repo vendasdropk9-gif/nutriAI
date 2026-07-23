@@ -495,7 +495,7 @@ export function AcademyPortal() {
       }
     })
     .catch(err => {
-      console.error(err);
+      console.warn(err);
       setValidationErrors(['Falha na conexão com o servidor. Tente novamente.']);
     });
   };
@@ -587,7 +587,7 @@ export function AcademyPortal() {
         }, 4000);
       }
     })
-    .catch(err => console.error(err));
+    .catch(err => console.warn(err));
   };
 
   const handleContactClick = (academy: Academy) => {
@@ -1531,7 +1531,7 @@ export function AcademyPortal() {
                       playSfx('success');
                     }
                   })
-                  .catch(err => console.error(err));
+                  .catch(err => console.warn(err));
                 };
 
                 return (

@@ -56,7 +56,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };
@@ -85,7 +85,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
         }
       }, 100);
     } catch (err: any) {
-      console.error("Accessing camera failed:", err);
+      console.warn("Accessing camera failed:", err);
       let userFriendlyMsg = "Não foi possível acessar a câmera frontal do dispositivo. Verifique se deu permissão de acesso.";
       if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
         userFriendlyMsg = "Câmera de vídeo física não encontrada neste dispositivo. Por favor, faça upload de uma foto sua utilizando a seleção de arquivo abaixo.";
@@ -123,7 +123,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
         analyzeCapturedBase64(base64Data, 'image/jpeg');
       }
     } catch (err) {
-      console.error("Failed to capture picture from stream:", err);
+      console.warn("Failed to capture picture from stream:", err);
       alert("Erro ao capturar imagem da câmera.");
     }
   };
@@ -142,7 +142,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
       }
       setIsScanning(false);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao processar a imagem do corpo.');
       setIsScanning(false);
     }
@@ -172,7 +172,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao carregar imagem.');
       setIsScanning(false);
     }

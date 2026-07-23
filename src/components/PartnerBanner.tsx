@@ -231,10 +231,11 @@ export function PartnerBanner() {
   };
 
   return (
-    <div className="w-full py-3 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 transition-colors duration-500">
+    <div className="w-full py-2 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 transition-colors duration-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 1. Imagem do Banner de Frutas (limpo e livre de textos/controles por cima) */}
-        <div className="relative w-full h-24 sm:h-28 rounded-2xl overflow-hidden shadow-inner border border-slate-200/60 dark:border-slate-800/50">
+        {/* Banner Principal Unificado com Altura Completa */}
+        <div className="relative w-full h-44 sm:h-48 md:h-52 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-slate-200/80 dark:border-slate-800/80 group transition-all duration-300">
+          {/* Imagem de Fundo (Preenche todo o tamanho do banner) */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             <AnimatePresence mode="sync">
               <motion.img
@@ -244,109 +245,115 @@ export function PartnerBanner() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 1.0, ease: "easeInOut" }}
-                className="absolute inset-0 w-full h-full object-cover object-center filter saturate-125 contrast-105 brightness-95 dark:brightness-90"
+                className="absolute inset-0 w-full h-full object-cover object-center filter saturate-125 contrast-105 brightness-95 dark:brightness-85 transition-transform duration-1000 group-hover:scale-105"
                 referrerPolicy="no-referrer"
               />
             </AnimatePresence>
           </div>
-          {/* Sombreado interno moderno */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-black/15 pointer-events-none" />
-        </div>
 
-        {/* 2. Barra de Informações e Controle de Música (Totalmente fora da frente do banner e diminuída) */}
-        <div className="mt-3 w-full flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
-          {/* Parceiro e Nome Rotativo (Letreiro Diminuído e Empilhado no Mobile para evitar estourar) */}
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto min-w-0">
-            <div className="flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-mono text-[9px] tracking-widest uppercase font-extrabold shadow-sm shrink-0">
-              <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span>{t('fidelity_partner', 'Fidelidade Parceira')}</span>
-            </div>
+          {/* Gradiente de sobreposição para leitura perfeita */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-slate-950/20 pointer-events-none z-0" />
 
-            <div className="flex-1 sm:flex-initial h-6 overflow-hidden relative w-full sm:w-auto min-w-0 flex items-center justify-center sm:justify-start">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 8, filter: "blur(2px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
-                  transition={{
-                    duration: 0.6,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="w-full text-center sm:text-left"
+          {/* Conteúdo sobreposto e integrado */}
+          <div className="relative z-10 w-full h-full p-3 sm:p-4 flex flex-col justify-between">
+            {/* Topo do Banner: Badge Fidelidade e Controles de Áudio */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full font-mono text-[10px] sm:text-xs tracking-wider uppercase font-extrabold shadow-md shrink-0">
+                <Store className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{t('fidelity_partner', 'Fidelidade Parceira')}</span>
+              </div>
+
+              {/* Controles de Áudio em Pilula de Vidro */}
+              <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-md shrink-0">
+                <div className="flex items-center gap-0.5 bg-slate-950/70 rounded-full p-0.5">
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("cooking"); }}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
+                      soundType === "cooking"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-slate-300 hover:text-white"
+                    }`}
+                    title="Música saudável & alegre de culinária (Acústico)"
+                  >
+                    <Utensils className="w-3 h-3" />
+                    <span className="hidden sm:inline">Nutri-Ritmo</span>
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("meditative"); }}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
+                      soundType === "meditative"
+                        ? "bg-teal-500 text-white shadow-sm"
+                        : "text-slate-300 hover:text-white"
+                    }`}
+                    title="Frequências zen de meditação e foco"
+                  >
+                    <Compass className="w-3 h-3" />
+                    <span className="hidden sm:inline">Meditar</span>
+                  </button>
+                </div>
+
+                {!isMuted && (
+                  <input
+                    type="range"
+                    min="0.01"
+                    max="0.2"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="w-10 sm:w-14 h-1 bg-emerald-500/40 rounded-lg appearance-none cursor-pointer accent-emerald-400 transition-all opacity-80 hover:opacity-100"
+                    title="Ajustar Volume"
+                  />
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
+                  className={`p-1.5 rounded-full border transition-all duration-300 cursor-pointer ${
+                    !isMuted
+                      ? soundType === "cooking"
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "bg-teal-500/20 border-teal-500/50 text-teal-400"
+                      : "bg-transparent border-transparent text-slate-400 hover:text-white"
+                  }`}
+                  title={isMuted ? "Tocar trilha sonora" : "Pausar música"}
+                  id="toggle-ambient-music-btn"
                 >
-                  <span className="font-sans text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-wide block truncate">
-                    {PARTNERS[index]}
-                  </span>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Controladores de Música Compactados (Diminuído) */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 p-1 rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm shrink-0">
-            {/* Micro pill sound type switcher */}
-            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-950/60 rounded-full p-0.5">
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("cooking"); }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold transition-all cursor-pointer ${
-                  soundType === "cooking"
-                    ? "bg-emerald-500 text-white shadow-sm"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Música saudável & alegre de culinária (Acústico)"
-              >
-                <Utensils className="w-3 h-3" />
-                <span className="hidden sm:inline">Nutri-Ritmo</span>
-              </button>
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("meditative"); }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold transition-all cursor-pointer ${
-                  soundType === "meditative"
-                    ? "bg-teal-500 text-white shadow-sm"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-                title="Frequências zen de meditação e foco"
-              >
-                <Compass className="w-3 h-3" />
-                <span className="hidden sm:inline">Meditar</span>
-              </button>
+                  {isMuted ? (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
+                </motion.button>
+              </div>
             </div>
 
-            {!isMuted && (
-              <input
-                type="range"
-                min="0.01"
-                max="0.2"
-                step="0.01"
-                value={volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                className="w-10 sm:w-12 h-0.5 bg-emerald-500/30 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all opacity-80 hover:opacity-100"
-                title="Ajustar Volume"
-              />
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
-              className={`p-1 rounded-full border transition-all duration-300 ${
-                !isMuted
-                  ? soundType === "cooking"
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                    : "bg-teal-500/10 border-teal-500/30 text-teal-600 dark:text-teal-400"
-                  : "bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400"
-              }`}
-              title={isMuted ? "Tocar trilha sonora" : "Pausar música"}
-              id="toggle-ambient-music-btn"
-            >
-              {isMuted ? (
-                <VolumeX className="w-3 h-3" />
-              ) : (
-                <Volume2 className="w-3 h-3" />
-              )}
-            </motion.button>
+            {/* Rodapé do Banner: Nome e Oferta do Parceiro */}
+            <div className="w-full bg-slate-900/75 backdrop-blur-md rounded-xl p-2.5 sm:p-3 border border-white/10 shadow-lg">
+              <div className="h-6 overflow-hidden relative w-full flex items-center">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 8, filter: "blur(2px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="w-full flex items-center justify-between gap-2"
+                  >
+                    <span className="font-sans text-xs sm:text-sm font-bold text-white tracking-wide block truncate">
+                      {PARTNERS[index]}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 shrink-0 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      Desconto NutriAI
+                    </span>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
         </div>
       </div>

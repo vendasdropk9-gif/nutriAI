@@ -213,7 +213,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
       setWaterAnswer(advice);
       playSfx('success');
     } catch (e) {
-      console.error(e);
+      console.warn(e);
       setWaterAnswer("Não foi possível carregar as informações no momento. Tente novamente.");
     } finally {
       setIsAnalyzingWater(false);
@@ -253,7 +253,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
       setInsight(msg);
       playTTS(msg);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     } finally {
       setIsProcessing(false);
     }
@@ -272,7 +272,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

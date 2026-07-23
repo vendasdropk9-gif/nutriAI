@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Sparkles, Leaf, ChefHat, BookOpen, X, ChevronRight, Apple, Globe } from 'lucide-react';
+import { Search, Sparkles, Leaf, ChefHat, BookOpen, X, ChevronRight, Apple, Globe, Mic, MicOff } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
 interface GlobalSearchProps {
@@ -358,11 +358,113 @@ const healthyRecipesAndIngredients = [
   }
 ];
 
+// Helper component for real-time speech waveform feedback animation
+const VoiceWaveform = ({ barCount = 5, className = "" }: { barCount?: number; className?: string }) => {
+  return (
+    <div className={`flex items-center gap-0.5 h-4 px-0.5 ${className}`}>
+      {Array.from({ length: barCount }).map((_, idx) => (
+        <motion.span
+          key={idx}
+          className="w-0.5 bg-gradient-to-t from-emerald-500 via-teal-400 to-emerald-300 dark:from-emerald-400 dark:via-teal-300 dark:to-emerald-200 rounded-full"
+          animate={{
+            height: ['20%', '100%', '40%', '85%', '25%'],
+            opacity: [0.6, 1, 0.7, 1, 0.6],
+          }}
+          transition={{
+            repeat: Infinity,
+            repeatType: 'reverse',
+            duration: 0.5 + (idx % 4) * 0.12,
+            ease: "easeInOut",
+            delay: idx * 0.07,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearchProps) {
   const [queryText, setQueryText] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [isListening, setIsListening] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Speech Recognition handler
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert('Seu navegador não possui suporte ao microfone. Tente utilizar o Google Chrome, Microsoft Edge ou Safari.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.lang = 'pt-BR';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setIsOpen(true);
+        playSfx('tap');
+        vibrate(25);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          setQueryText(transcript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsListening(false);
+        vibrate([40, 40, 40]);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -394,27 +496,31 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
     }
 
     const q = queryText.toLowerCase().trim();
+    const qStem = (q.length > 3 && q.endsWith('s')) ? q.slice(0, -1) : q;
+    
+    const textMatch = (str: string) => str.toLowerCase().includes(q) || str.toLowerCase().includes(qStem);
+    const tagMatch = (tags: string[]) => tags.some(tag => tag.includes(q) || tag.includes(qStem));
 
     // 1. Filter Features
     const matchedFeatures = appFeatures.filter(f => 
-      f.name.toLowerCase().includes(q) ||
-      f.description.toLowerCase().includes(q) ||
-      f.tags.some(tag => tag.includes(q))
+      textMatch(f.name) ||
+      textMatch(f.description) ||
+      tagMatch(f.tags)
     ).slice(0, 4);
 
     // 2. Filter Herbs
     const matchedHerbs = medicinalHerbs.filter(h => 
-      h.name.toLowerCase().includes(q) ||
-      h.scientific.toLowerCase().includes(q) ||
-      h.description.toLowerCase().includes(q) ||
-      h.tags.some(tag => tag.includes(q))
+      textMatch(h.name) ||
+      textMatch(h.scientific) ||
+      textMatch(h.description) ||
+      tagMatch(h.tags)
     ).slice(0, 3);
 
     // 3. Filter Recipes/Ingredients
     const matchedRecipes = healthyRecipesAndIngredients.filter(r => 
-      r.name.toLowerCase().includes(q) ||
-      r.description.toLowerCase().includes(q) ||
-      r.tags.some(tag => tag.includes(q))
+      textMatch(r.name) ||
+      textMatch(r.description) ||
+      tagMatch(r.tags)
     ).slice(0, 3);
 
     setResults([
@@ -424,6 +530,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
     ]);
   }, [queryText]);
 
+  console.log("GlobalSearch render state:", {isOpen, queryText, resultsLength: results.length});
   const handleResultClick = (item: any) => {
     playSfx('tap');
     vibrate(12);
@@ -452,12 +559,22 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && results.length > 0) {
+      handleResultClick(results[0]);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef} id="global-search-container">
       {/* Desktop Search Input */}
-      <div className="hidden md:flex items-center w-[280px] lg:w-[350px] relative">
-        <div className="absolute left-3.5 text-slate-400 pointer-events-none">
-          <Search className="w-4 h-4" />
+      <div className="hidden md:flex items-center w-[280px] lg:w-[360px] relative group">
+        <div className="absolute left-3.5 text-slate-400 pointer-events-none flex items-center">
+          {isListening ? (
+            <VoiceWaveform barCount={5} />
+          ) : (
+            <Search className="w-4 h-4" />
+          )}
         </div>
         <input
           type="text"
@@ -467,24 +584,65 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="Busque receitas, chás, recursos..."
-          className="w-full pl-10 pr-9 py-2 rounded-full border border-slate-200 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/60 backdrop-blur-md text-sm font-medium placeholder-slate-400 focus:outline-none focus:border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white dark:focus:bg-slate-900 transition-all duration-300 shadow-inner"
+          onKeyDown={handleKeyDown}
+          placeholder={isListening ? "Ouvindo... Fale agora!" : "Busque receitas, chás, recursos..."}
+          className={`w-full pl-10 pr-16 py-2 rounded-full border bg-white/75 dark:bg-slate-900/60 backdrop-blur-md text-sm font-medium placeholder-slate-400 focus:outline-none transition-all duration-300 shadow-inner ${
+            isListening
+              ? 'border-emerald-500 ring-2 ring-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold'
+              : 'border-slate-200 dark:border-slate-800/80 focus:border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/20'
+          }`}
         />
-        {queryText && (
+        
+        {/* Right side buttons: Clear & Mic & Waveform */}
+        <div className="absolute right-2.5 flex items-center gap-1.5">
+          {isListening && (
+            <VoiceWaveform barCount={4} className="hidden lg:flex" />
+          )}
+
+          {queryText && (
+            <button
+              onClick={() => {
+                playSfx('tap');
+                setQueryText('');
+              }}
+              className="p-1 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+              title="Limpar busca"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
-            onClick={() => {
-              playSfx('tap');
-              setQueryText('');
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleListening();
             }}
-            className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+            className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+              isListening
+                ? 'bg-emerald-500 text-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)] scale-110'
+                : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-800/80'
+            }`}
+            title={isListening ? "Parar de ouvir" : "Ditar busca por voz (Receitas/Ingredientes)"}
+            type="button"
           >
-            <X className="w-3.5 h-3.5" />
+            {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
           </button>
+        </div>
+        
+        {/* Tooltip Descritivo */}
+        {!isOpen && !queryText && !isListening && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-64 p-2.5 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 delay-300 pointer-events-none z-50">
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 dark:bg-slate-700 rotate-45 rounded-sm"></div>
+            <p className="relative z-10 text-center font-medium leading-relaxed">
+              Busque ou dite receitas, ingredientes e dicas de saúde por voz.
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Mobile Search Icon Button */}
-      <div className="flex md:hidden">
+      {/* Mobile Search Icon & Mic Trigger Buttons */}
+      <div className="flex md:hidden items-center gap-1">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -494,7 +652,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
             setIsOpen(true);
           }}
           className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center"
-          title="Pesquisar no NutriAI"
+          title="Busque receitas, ingredientes ou dicas de saúde no NutriAI."
           id="mobile-search-trigger-btn"
         >
           <Search className="w-5 h-5 text-emerald-500" />
@@ -518,13 +676,24 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
                 <span className="text-[10px] font-normal text-slate-400 lowercase italic">Esc para fechar</span>
               </div>
 
+              {/* Indicator if active listening */}
+              {isListening && (
+                <div className="mb-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-2.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-4 h-4 text-emerald-500 shrink-0 animate-bounce" />
+                    <span>Ouvindo... Dite seus ingredientes ou receita agora!</span>
+                  </div>
+                  <VoiceWaveform barCount={6} />
+                </div>
+              )}
+
               {!queryText.trim() ? (
                 <div className="py-6 text-center text-slate-400 dark:text-slate-500 text-sm flex flex-col items-center justify-center gap-2">
                   <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <p className="font-semibold text-slate-500 dark:text-slate-300">O que você está procurando?</p>
-                  <p className="text-xs px-4 max-w-xs">Tente digitar "alecrim", "sucos detox", "receitas low carb", "analisador" ou "dieta semanal".</p>
+                  <p className="text-xs px-4 max-w-xs">Tente digitar ou ditar "alecrim", "sucos detox", "receitas low carb" ou ingredientes da sua geladeira.</p>
                 </div>
               ) : results.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-sm flex flex-col items-center justify-center gap-1">
@@ -593,16 +762,52 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
               className="md:hidden fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md z-50 flex flex-col"
             >
               {/* Top input zone */}
-              <div className="p-4 border-b border-slate-200/10 bg-white/10 dark:bg-slate-900/10 backdrop-blur-lg flex items-center gap-3">
-                <Search className="w-5 h-5 text-slate-300 shrink-0" />
+              <div className="p-4 border-b border-slate-200/10 bg-white/10 dark:bg-slate-900/10 backdrop-blur-lg flex items-center gap-2">
+                {isListening ? (
+                  <VoiceWaveform barCount={5} className="shrink-0" />
+                ) : (
+                  <Search className="w-5 h-5 text-slate-300 shrink-0" />
+                )}
                 <input
                   type="text"
                   autoFocus
                   value={queryText}
                   onChange={(e) => setQueryText(e.target.value)}
-                  placeholder="Pesquise chás, receitas, recursos..."
+                  onKeyDown={handleKeyDown}
+                  placeholder={isListening ? "Ouvindo... Fale agora!" : "Pesquise chás, receitas, recursos..."}
                   className="flex-1 bg-transparent border-none text-white focus:outline-none focus:ring-0 text-base placeholder-slate-400"
                 />
+                
+                {queryText && (
+                  <button
+                    onClick={() => {
+                      playSfx('tap');
+                      setQueryText('');
+                    }}
+                    className="p-1.5 rounded-full text-slate-300 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Voice Search Button Mobile */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleListening();
+                  }}
+                  className={`p-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    isListening
+                      ? 'bg-emerald-500 text-white animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.6)]'
+                      : 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/30'
+                  }`}
+                  title={isListening ? "Parar de ouvir" : "Ditar voz"}
+                  type="button"
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+
                 <button
                   onClick={() => {
                     playSfx('tap');

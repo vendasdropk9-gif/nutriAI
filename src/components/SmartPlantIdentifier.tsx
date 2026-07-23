@@ -124,7 +124,7 @@ export function SmartPlantIdentifier() {
       setHistory(items);
       setHistoryLoading(false);
     }, (err) => {
-      console.error("Error reading scan history:", err);
+      console.warn("Error reading scan history:", err);
       setHistoryLoading(false);
     });
     
@@ -265,7 +265,7 @@ export function SmartPlantIdentifier() {
         ]);
       }
     } catch (err: any) {
-      console.error("Error analyzing plant:", err);
+      console.warn("Error analyzing plant:", err);
       setError("Falha ao analisar a imagem. Verifique a iluminação e a nitidez da foto e tente novamente.");
     } finally {
       setIsAnalyzing(false);
@@ -299,7 +299,7 @@ export function SmartPlantIdentifier() {
         setChatHistory(prev => [...prev, { role: 'model', text: "Erro ao consultar a IA botânica. Tente novamente." }]);
       }
     } catch (err) {
-      console.error("Identified chat error:", err);
+      console.warn("Identified chat error:", err);
       setChatHistory(prev => [...prev, { role: 'model', text: "Erro de conexão com o servidor botânico do NutriAI." }]);
     } finally {
       setChatLoading(false);
@@ -313,7 +313,7 @@ export function SmartPlantIdentifier() {
     try {
       await updateDoc(docRef, { isFavorite: !currentFav });
     } catch (err) {
-      console.error("Error toggling favorite scan:", err);
+      console.warn("Error toggling favorite scan:", err);
     }
   };
 
@@ -324,7 +324,7 @@ export function SmartPlantIdentifier() {
     try {
       await deleteDoc(docRef);
     } catch (err) {
-      console.error("Error deleting scan:", err);
+      console.warn("Error deleting scan:", err);
     }
   };
 

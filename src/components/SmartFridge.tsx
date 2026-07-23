@@ -111,7 +111,7 @@ export function SmartFridge() {
       operationType,
       path
     };
-    console.error('Firestore Error in SmartFridge:', JSON.stringify(errInfo));
+    console.warn('Firestore Error in SmartFridge:', JSON.stringify(errInfo));
   };
 
   // Subscribe to Firestore fridge items
@@ -215,7 +215,7 @@ export function SmartFridge() {
         videoRef.current.srcObject = stream;
       }
     } catch (err: any) {
-      console.error("Camera access failed:", err);
+      console.warn("Camera access failed:", err);
       setCameraError("Não foi possível acessar a câmera do dispositivo. Selecione uma foto ou preset abaixo.");
     }
   };
@@ -267,7 +267,7 @@ export function SmartFridge() {
       playSfx('success');
       vibrate([40, 40]);
     } catch (err) {
-      console.error("Analysis failed:", err);
+      console.warn("Analysis failed:", err);
       alert("Falha ao analisar imagem. Por favor, tente novamente com uma foto mais nítida ou use dados textuais.");
     } finally {
       setIsScanning(false);

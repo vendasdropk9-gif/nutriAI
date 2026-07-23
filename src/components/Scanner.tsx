@@ -46,7 +46,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
         }
       }, 100);
     } catch (err: any) {
-      console.error("Accessing camera failed:", err);
+      console.warn("Accessing camera failed:", err.message);
       let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
       if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
         userFriendlyMsg = "Câmera de vídeo física não encontrada ou não está conectada a este dispositivo. Por favor, conecte uma câmera ou utilize a opção de carregar imagem do rolo da câmera / arquivo abaixo.";
@@ -84,7 +84,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
         analyzeCapturedBase64(base64Data, 'image/jpeg');
       }
     } catch (err) {
-      console.error("Failed to capture picture from stream:", err);
+      console.warn("Failed to capture picture from stream:", err);
       alert("Erro ao capturar imagem da câmera.");
     }
   };
@@ -100,7 +100,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
       }
       setIsScanning(false);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao escanear a imagem.');
       setIsScanning(false);
     }
@@ -130,7 +130,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao carregar imagem.');
       setIsScanning(false);
     }

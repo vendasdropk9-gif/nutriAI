@@ -63,7 +63,7 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
         }
       }, 100);
     } catch (err: any) {
-      console.error("Camera access failed:", err);
+      console.warn("Camera access failed:", err);
       setIsCapturing(false);
       setCameraError("Câmera não encontrada. Por favor, faça upload de uma foto usando o botão abaixo.");
     }
@@ -136,7 +136,7 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
       if (onAwardPoints) onAwardPoints(15, 'Nova foto de evolução registrada');
 
     } catch (e) {
-      console.error(e);
+      console.warn(e);
       alert('Erro ao processar imagem.');
     } finally {
       setIsProcessing(false);

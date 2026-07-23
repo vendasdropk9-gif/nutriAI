@@ -49,7 +49,7 @@ export function LockScreen({
         window.location.reload();
       }
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
   };
 

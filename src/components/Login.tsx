@@ -45,7 +45,7 @@ export function Login() {
           // Success! auth context will handle it
         }
       } catch (err: any) {
-        console.error("Redirect error", err);
+        console.warn("Redirect error", err);
         setError('Erro na autenticação com Google. Verifique sua conexão ou configuração do Firebase.');
       } finally {
         setLoading(false);
@@ -172,7 +172,7 @@ export function Login() {
         }
       }
     } catch (err: any) {
-      console.error("Auth error", err);
+      console.warn("Auth error", err);
       if (err.code === 'auth/email-already-in-use') setError('Este e-mail já está cadastrado.');
       else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') setError('E-mail ou senha incorretos.');
       else if (err.code === 'auth/invalid-email') setError('Formato de e-mail inválido.');
@@ -190,11 +190,15 @@ export function Login() {
     try {
       await signInWithGoogle();
     } catch (err: any) {
-      console.error("Login failed", err);
-      if (window !== window.parent) {
+      console.warn("Login failed", err);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('Erro: Domínio não autorizado. Acesse o console do Firebase (Authentication > Settings > Authorized Domains) e adicione o domínio deste app.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Login cancelado: O popup foi fechado antes de concluir.');
+      } else if (window !== window.parent) {
         setError('O login com Google pode ser bloqueado dentro do preview. Por favor, abra o aplicativo em uma nova aba.');
       } else {
-        setError('Falha ao autenticar com o Google. Tente novamente.');
+        setError(`Falha ao autenticar com o Google (${err.code || err.message}). Tente novamente.`);
       }
       setLoading(false);
     }
@@ -400,7 +404,7 @@ export function Login() {
         }
       }
     } catch (err: any) {
-      console.error("Biometric auth error", err);
+      console.warn("Biometric auth error", err);
       setError('Falha na autenticação biométrica: Credenciais expiradas. Faça login com e-mail e senha para renovar.');
       playSfx('scratch');
     } finally {
@@ -437,7 +441,7 @@ export function Login() {
         window.location.reload(); 
       }, 1500);
     } catch (err) {
-      console.error("Biometric setup error", err);
+      console.warn("Biometric setup error", err);
       setError('Erro ao configurar biometria. Tente novamente.');
       playSfx('scratch');
     } finally {
@@ -446,64 +450,60 @@ export function Login() {
   };
 
   return (
-    <div className="w-full h-[100vh] flex flex-col md:flex-row bg-[#08111d] overflow-hidden box-border font-sans text-slate-100">
+    <div className="w-full h-[100vh] flex items-center justify-center bg-gradient-to-br from-[#0B0F14] via-[#151B23] to-[#0B0F14] overflow-hidden box-border font-sans text-slate-100 relative p-4 sm:p-6">
       
-      {/* Decorative Side - Desktop Only */}
-      <div className="hidden md:flex md:w-1/2 bg-emerald-600 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-900 opacity-90" />
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white opacity-5 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-300 opacity-10 rounded-full blur-[80px] -translate-x-1/4 translate-y-1/4" />
-        
-        <div className="relative z-10 p-12 text-center text-white max-w-lg">
-          <div className="mb-8 inline-flex p-5 bg-white/10 rounded-[2rem] backdrop-blur-xl border border-white/20 shadow-2xl">
-            <Utensils className="w-16 h-16 text-white drop-shadow-md" />
-          </div>
-          <h1 className="text-6xl font-serif font-bold mb-6 tracking-tight">NutriAI</h1>
-          <p className="text-emerald-50 text-xl leading-relaxed font-light">
-            Sua jornada de saúde potencializada por Inteligência Artificial. 
-            Mais inteligente. Mais saudável. 100% focado em você.
-          </p>
-        </div>
-      </div>
+      {/* Soft Ambient Radial Lights */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#D8B14A]/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Auth Form Side */}
-      <div className="flex-1 flex flex-col justify-center p-6 md:p-12 xl:p-24 relative overflow-y-auto no-scrollbar">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full mx-auto"
-        >
-          {/* Mobile Header */}
-          <div className="md:hidden flex flex-col items-center mb-10 mt-6">
-            <div className="p-4 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl shadow-lg shadow-emerald-500/30 mb-4">
-              <Utensils className="w-10 h-10 text-white" />
+      {/* Luxury Glassmorphism Form Container */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md bg-[#151B23]/90 backdrop-blur-2xl border border-[#232C39] rounded-[32px] p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative z-10 my-auto"
+      >
+        {/* Central Brand Logo */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <motion.div 
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#10B981] via-[#16C784] to-[#34D399] p-0.5 shadow-[0_0_30px_rgba(22,199,132,0.3)] mb-3 flex items-center justify-center cursor-pointer"
+          >
+            <div className="w-full h-full bg-[#0B0F14] rounded-[14px] flex items-center justify-center">
+              <Utensils className="w-8 h-8 text-[#16C784]" />
             </div>
-            <h1 className="text-3xl font-serif font-bold text-slate-800 dark:text-white">NutriAI</h1>
-          </div>
+          </motion.div>
+          
+          <h1 className="text-3xl font-display font-extrabold text-white tracking-tight">
+            Nutri<span className="text-[#16C784]">AI</span>
+          </h1>
+          <span className="text-xs font-semibold text-[#B5BDC9] uppercase tracking-widest mt-1">
+            Inteligência de Saúde Exclusiva
+          </span>
+        </div>
 
-          <AnimatePresence mode="wait">
-              <motion.div 
-                key={view} 
-                initial={{ opacity: 0, x: 10 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                
-                <div className="mb-8 text-center md:text-left">
-                  <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                    {view === 'login' ? 'Bem-vindo de volta' : 
-                     view === 'register' ? 'Crie sua conta' : 
-                     view === 'forgot' ? 'Recuperar senha' :
-                     view === 'setup-biometrics' ? 'Segurança Avançada' : 'Confirmação'}
-                  </h2>
-                  <p className="text-slate-500 dark:text-slate-400">
-                    {view === 'login' ? 'Acesse para continuar sua evolução.' : 
-                     view === 'register' ? 'Dê o primeiro passo para sua melhor versão.' : 
-                     view === 'forgot' ? 'Informe seu e-mail para receber as instruções.' :
-                     view === 'setup-biometrics' ? 'Deseja ativar o acesso por biometria facial ou digital?' : ''}
-                  </p>
-                </div>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={view} 
+            initial={{ opacity: 0, x: 10 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="mb-6 text-center">
+              <h2 className="text-xl font-display font-bold text-white mb-1">
+                {view === 'login' ? 'Bem-vindo de volta' : 
+                 view === 'register' ? 'Crie sua conta' : 
+                 view === 'forgot' ? 'Recuperar senha' :
+                 view === 'setup-biometrics' ? 'Acesso Biométrico' : 'Confirmação'}
+              </h2>
+              <p className="text-xs text-[#B5BDC9]">
+                {view === 'login' ? 'Entre para acessar seu ecossistema de saúde.' : 
+                 view === 'register' ? 'Inicie sua jornada personalizada com NutriAI.' : 
+                 view === 'forgot' ? 'Instruções serão enviadas para seu e-mail.' :
+                 view === 'setup-biometrics' ? 'Deseja ativar o acesso rápido por biometria?' : ''}
+              </p>
+            </div>
 
                 <AnimatePresence>
                   {error && (
@@ -841,9 +841,7 @@ export function Login() {
 
               </motion.div>
           </AnimatePresence>
-        </motion.div>
-      </div>
-
+      </motion.div>
     </div>
   );
 }

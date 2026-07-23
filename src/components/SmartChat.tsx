@@ -53,7 +53,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                  setMessages(d.messages);
               }
            }
-        } catch(e) { console.error('Error loading chat', e); }
+        } catch(e) { console.warn('Error loading chat', e); }
      };
      loadChat();
   }, []);
@@ -69,7 +69,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
            } else {
               await setDoc(chatRef, { messages, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
            }
-        } catch(e) { console.error('Error saving chat', e); }
+        } catch(e) { console.warn('Error saving chat', e); }
      };
      // Debounce slightly if needed, but for chat messages, saving immediately is fine
      const timer = setTimeout(saveChat, 1000);
@@ -129,7 +129,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        console.warn('Speech recognition error', event.error);
         setIsListening(false);
       };
     }
@@ -172,7 +172,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
         onEnded: () => setIsSpeaking(false)
       });
     } catch (e) {
-      console.error(e);
+      console.warn(e);
       setIsSpeaking(false);
     }
   };
@@ -225,7 +225,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
         playAssistantVoice(response.text);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       const errText = 'Tá tudo bem… tive um errinho de conexão. Quer tentar de novo? 💚';
       setMessages(prev => [...prev, {
         id: crypto.randomUUID(),

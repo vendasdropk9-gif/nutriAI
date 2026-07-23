@@ -103,7 +103,7 @@ export function SmartMushroomIdentifier() {
       setHistory(items);
       setHistoryLoading(false);
     }, (err) => {
-      console.error("Error reading mushroom scan history:", err);
+      console.warn("Error reading mushroom scan history:", err);
       setHistoryLoading(false);
     });
     
@@ -243,7 +243,7 @@ Estou pronto para responder dúvidas adicionais sobre habitat, toxicidade ou cur
         ]);
       }
     } catch (err: any) {
-      console.error("Mushroom analysis error:", err);
+      console.warn("Mushroom analysis error:", err);
       setError("Não foi possível analisar a imagem. Tente tirar uma foto mais nítida mostrando o chapéu e o caule do cogumelo.");
     } finally {
       setIsAnalyzing(false);
@@ -275,7 +275,7 @@ Estou pronto para responder dúvidas adicionais sobre habitat, toxicidade ou cur
         setChatHistory(prev => [...prev, { role: 'model', text: "Ocorreu um erro ao consultar o micologista." }]);
       }
     } catch (err) {
-      console.error("Chat error:", err);
+      console.warn("Chat error:", err);
       setChatHistory(prev => [...prev, { role: 'model', text: "Erro de rede ao conectar com o serviço botânico." }]);
     } finally {
       setChatLoading(false);
@@ -288,7 +288,7 @@ Estou pronto para responder dúvidas adicionais sobre habitat, toxicidade ou cur
       const ref = doc(db, 'users', user.uid, 'mushroomIdentifications', id);
       await updateDoc(ref, { isFavorite: !current });
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 
@@ -298,7 +298,7 @@ Estou pronto para responder dúvidas adicionais sobre habitat, toxicidade ou cur
       const ref = doc(db, 'users', user.uid, 'mushroomIdentifications', id);
       await deleteDoc(ref);
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 

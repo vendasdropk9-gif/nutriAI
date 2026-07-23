@@ -356,7 +356,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         }
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
     } finally {
       setIsGenerating(false);
     }
@@ -375,7 +375,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

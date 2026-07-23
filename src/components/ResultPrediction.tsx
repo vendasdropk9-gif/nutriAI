@@ -29,7 +29,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
         onUpdatePrediction(result);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
     } finally {
       setIsCalculating(false);
     }
@@ -54,7 +54,7 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

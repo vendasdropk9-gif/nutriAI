@@ -23,12 +23,26 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
   const isPlayingRef = useRef(false);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
 
+  const isConnectedRef = useRef(false);
+  const isConnectingRef = useRef(false);
+  const startLiveRef = useRef<() => void>(() => {});
+
   useEffect(() => {
-    const handleOpen = () => setIsOpen(true);
+    isConnectedRef.current = isConnected;
+    isConnectingRef.current = isConnecting;
+    startLiveRef.current = startLive;
+  }, [isConnected, isConnecting, startLive]);
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setIsOpen(true);
+      if (!isConnectedRef.current && !isConnectingRef.current) {
+        startLiveRef.current();
+      }
+    };
     window.addEventListener('app:openLiveAssistant', handleOpen);
     return () => {
       window.removeEventListener('app:openLiveAssistant', handleOpen);
-      stopLive();
     };
   }, []);
 
@@ -75,7 +89,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
         playNextAudio();
       }
     } catch (e) {
-      console.error("Audio decode error:", e);
+      console.warn("Audio decode error:", e);
     }
   };
 
@@ -102,7 +116,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
     setIsConnecting(false);
   };
 
-  const startLive = async () => {
+  async function startLive() {
     setIsConnecting(true);
     setError(null);
     try {
@@ -149,12 +163,12 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
             isPlayingRef.current = false;
           }
         } catch(e) {
-          console.error("Error parsing WS message:", e);
+          console.warn("Error parsing WS message:", e);
         }
       };
 
       ws.onerror = (err) => {
-        console.error(err);
+        console.warn(err);
         setError("Erro na conexão com o servidor Live");
         stopLive();
       };
@@ -191,7 +205,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       processor.connect(audioContextRef.current.destination);
 
     } catch (e: any) {
-      console.error(e);
+      console.warn("Microphone access issue:", e.message);
       let userFriendlyMsg = "Permissão de microfone negada ou erro ao conectar.";
       if (e.name === 'NotFoundError' || e.message?.toLowerCase().includes('device not found') || e.message?.toLowerCase().includes('requested device')) {
         userFriendlyMsg = "Microfone físico não encontrado ou indisponível neste dispositivo. Conecte um fone de ouvido ou microfone se desejar usar o Assistente de Voz.";

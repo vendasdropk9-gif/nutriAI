@@ -145,7 +145,7 @@ export function FoodAllergyDetector() {
           setSeverityLevels(severities);
         }
       }
-    }).catch(err => console.error("Error loading allergies profile:", err));
+    }).catch(err => console.warn("Error loading allergies profile:", err));
 
     // 2. Stream Scan History
     const scansRef = collection(db, 'users', user.uid, 'allergyScans');
@@ -159,7 +159,7 @@ export function FoodAllergyDetector() {
       setScans(items);
       setScansLoading(false);
     }, (err) => {
-      console.error("Error reading allergy scan history:", err);
+      console.warn("Error reading allergy scan history:", err);
       setScansLoading(false);
     });
 
@@ -196,7 +196,7 @@ export function FoodAllergyDetector() {
       setSettingsSuccess(true);
       setTimeout(() => setSettingsSuccess(false), 3000);
     } catch (err) {
-      console.error("Failed to save allergies:", err);
+      console.warn("Failed to save allergies:", err);
     } finally {
       setIsSavingAllergies(false);
     }
@@ -354,7 +354,7 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
         setError("Não foi possível identificar o rótulo de ingredientes ou o alimento com clareza. Certifique-se de tirar uma foto nítida e iluminada da área de ingredientes.");
       }
     } catch (err: any) {
-      console.error("Allergies scan error:", err);
+      console.warn("Allergies scan error:", err);
       setError("Falha técnica ao analisar alérgenos. Verifique a imagem ou tente novamente.");
     } finally {
       setIsAnalyzing(false);
@@ -391,7 +391,7 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
         setChatHistory(prev => [...prev, { role: 'model', text: "Ocorreu um erro ao consultar o alergologista." }]);
       }
     } catch (err) {
-      console.error("Chat error:", err);
+      console.warn("Chat error:", err);
       setChatHistory(prev => [...prev, { role: 'model', text: "Erro ao conectar com a IA do Alergologista." }]);
     } finally {
       setChatLoading(false);
@@ -404,7 +404,7 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
       const ref = doc(db, 'users', user.uid, 'allergyScans', id);
       await updateDoc(ref, { isFavorite: !current });
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 
@@ -414,7 +414,7 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
       const ref = doc(db, 'users', user.uid, 'allergyScans', id);
       await deleteDoc(ref);
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 

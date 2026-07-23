@@ -62,7 +62,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
         setIsPlayingAudio(false);
       }
     } catch(e) {
-      console.error(e);
+      console.warn(e);
       setIsPlayingAudio(false);
     }
   };

@@ -59,7 +59,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       };
 
       rec.onerror = (event: any) => {
-        console.error('Speech recognition error', event);
+        console.warn('Speech recognition error', event);
         if (event.error === 'not-allowed') {
           setRecordingError('Permissão do microfone negada. Dê acesso no navegador (tente abrir em nova aba).');
         } else if (event.error === 'no-speech') {
@@ -76,7 +76,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
       recognitionRef.current = rec;
     } catch (err) {
-      console.error('Failed to initialize speech recognition:', err);
+      console.warn('Failed to initialize speech recognition:', err);
       setIsSupported(false);
     }
 
@@ -95,7 +95,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       try {
         recognitionRef.current.stop();
       } catch (err) {
-        console.error('Failed to stop recognition:', err);
+        console.warn('Failed to stop recognition:', err);
       }
       return;
     }
@@ -111,7 +111,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       
       recognitionRef.current.start();
     } catch (err: any) {
-      console.error('Failed to start recognition or get media devices:', err);
+      console.warn('Failed to start recognition or get media devices:', err);
       if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
         setRecordingError('Permissão do microfone negada. Dê acesso no navegador (pode ser necessário abrir em nova aba).');
       }
@@ -131,7 +131,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       setAnalysis(result);
       if (onAwardPoints) onAwardPoints(40, 'Consulta de prato de restaurante');
     } catch (error) {
-      console.error(error);
+      console.warn(error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -156,7 +156,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

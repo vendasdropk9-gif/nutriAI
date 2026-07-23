@@ -38,7 +38,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
         try {
           setAdaptiveInsight(JSON.parse(localInsightStr));
         } catch (e) {
-          console.error(e);
+          console.warn(e);
         }
       }
       return;
@@ -370,7 +370,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                                           try {
                                               const { doc, updateDoc } = await import('firebase/firestore');
                                               await updateDoc(doc(db, `users/${user.uid}/adaptiveInsights`, adaptiveInsight.id), { status: 'applied' });
-                                          } catch (e) { console.error(e); }
+                                          } catch (e) { console.warn(e); }
                                         }
                                       }
                                       setAdaptiveInsight(null);

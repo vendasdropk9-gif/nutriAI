@@ -108,7 +108,7 @@ export function EmotionalTracker({
         }
       }, 100);
     } catch (err: any) {
-      console.error("Accessing face camera failed:", err);
+      console.warn("Accessing face camera failed:", err);
       let userFriendlyMsg =
         "Não foi possível acessar a câmera frontal de seu dispositivo. Verifique se o NutriAI tem permissão para usar a câmera.";
       if (
@@ -152,7 +152,7 @@ export function EmotionalTracker({
         analyzeFaceBase64(base64Data, "image/jpeg");
       }
     } catch (err) {
-      console.error("Failed to capture facial photo:", err);
+      console.warn("Failed to capture facial photo:", err);
       alert("Erro ao capturar foto.");
     }
   };
@@ -197,7 +197,7 @@ export function EmotionalTracker({
       }
       setIsFaceAnalyzing(false);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert("Erro ao processar imagem facial.");
       setIsFaceAnalyzing(false);
     }
@@ -224,7 +224,7 @@ export function EmotionalTracker({
         setIsFacePlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsFacePlaying(false);
     }
   };
@@ -267,7 +267,7 @@ export function EmotionalTracker({
       const result = await analyzeEmotionalPatterns(logs, profile);
       setAnalysis(result);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     } finally {
       setIsAnalyzing(false);
     }
@@ -292,7 +292,7 @@ export function EmotionalTracker({
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

@@ -61,7 +61,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
       };
 
       rec.onerror = (event: any) => {
-        console.error('Speech recognition error in Generator:', event.error);
+        console.warn('Speech recognition error in Generator:', event.error);
         setIsListening(false);
         if (event.error !== 'aborted') {
           playSfx('scratch');
@@ -109,7 +109,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
       try {
         recognitionRef.current.start();
       } catch (err) {
-        console.error('Failed to start speech recognition:', err);
+        console.warn('Failed to start speech recognition:', err);
       }
     }
   };
@@ -131,7 +131,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
         alert("Não foi possível gerar a receita. Tente novamente.");
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       alert("Erro ao gerar a receita.");
     } finally {
       setIsGenerating(false);

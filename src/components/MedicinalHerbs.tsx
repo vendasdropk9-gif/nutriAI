@@ -94,19 +94,68 @@ export function MedicinalHerbs() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Load herbs
+  // Load herbs with safety sanitization for nested JSON/string objects
   useEffect(() => {
+    const sanitizeHerb = (h: any): Herb => {
+      if (!h) return h;
+      let indications = h.indications;
+      let preparation = h.preparation;
+      let dosage = h.dosage;
+      let contraindications = h.contraindications;
+      let cultivation = h.cultivation;
+      let otherNames = h.otherNames;
+      let properties = h.properties;
+      let compounds = h.compounds;
+      let curiosities = h.curiosities;
+      let sources = h.sources;
+      let gallery = h.gallery;
+
+      try { if (typeof indications === 'string') indications = JSON.parse(indications); } catch (e) { indications = []; }
+      try { if (typeof preparation === 'string') preparation = JSON.parse(preparation); } catch (e) { preparation = null; }
+      try { if (typeof dosage === 'string') dosage = JSON.parse(dosage); } catch (e) { dosage = null; }
+      try { if (typeof contraindications === 'string') contraindications = JSON.parse(contraindications); } catch (e) { contraindications = null; }
+      try { if (typeof cultivation === 'string') cultivation = JSON.parse(cultivation); } catch (e) { cultivation = null; }
+      try { if (typeof otherNames === 'string') otherNames = JSON.parse(otherNames); } catch (e) { otherNames = []; }
+      try { if (typeof properties === 'string') properties = JSON.parse(properties); } catch (e) { properties = []; }
+      try { if (typeof compounds === 'string') compounds = JSON.parse(compounds); } catch (e) { compounds = []; }
+      try { if (typeof curiosities === 'string') curiosities = JSON.parse(curiosities); } catch (e) { curiosities = []; }
+      try { if (typeof sources === 'string') sources = JSON.parse(sources); } catch (e) { sources = []; }
+      try { if (typeof gallery === 'string') gallery = JSON.parse(gallery); } catch (e) { gallery = []; }
+
+      return {
+        ...h,
+        otherNames: Array.isArray(otherNames) ? otherNames : [],
+        properties: Array.isArray(properties) ? properties : [],
+        indications: Array.isArray(indications) ? indications : [],
+        compounds: Array.isArray(compounds) ? compounds : [],
+        curiosities: Array.isArray(curiosities) ? curiosities : [],
+        sources: Array.isArray(sources) ? sources : [],
+        gallery: Array.isArray(gallery) ? gallery : [],
+        preparation: preparation || { amount: '', water: '', temperature: '', time: '', strain: '', dosage: '' },
+        dosage: dosage || { traditional: '', limit: '', maxDuration: '' },
+        contraindications: contraindications || { warnings: [] },
+        cultivation: cultivation || { soil: '', luminosity: '', watering: '', climate: '' },
+      };
+    };
+
     async function fetchHerbs() {
       try {
         const response = await fetch('/api/herbs');
         if (response.ok) {
           const data = await response.json();
-          setHerbs(data);
+          if (Array.isArray(data)) {
+            setHerbs(data.map(sanitizeHerb));
+          } else {
+            console.error("Data is not an array:", data);
+            setHerbs([]);
+          }
         } else {
           console.error("Failed to load herbs from REST endpoint.");
+          setHerbs([]);
         }
       } catch (err) {
         console.error("Error fetching herbs:", err);
+        setHerbs([]);
       } finally {
         setLoading(false);
       }

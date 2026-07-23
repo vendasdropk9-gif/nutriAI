@@ -252,7 +252,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
             setCameraError('Incapaz de processar bio-sinais com a IA do servidor. Tente novamente.');
           }
         } catch (err: any) {
-          console.error("AI Analysis failed:", err);
+          console.warn("AI Analysis failed:", err);
           setCameraError('Erro de processamento da IA: ' + err.message);
         } finally {
           setIsAiAnalyzing(false);
@@ -261,7 +261,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
       }, 15000);
 
     } catch (err: any) {
-      console.error("Camera access failed", err);
+      console.warn("Camera access failed", err);
       setIsScanning(false);
       setCameraActive(false);
       let userFriendlyMsg = 'Acesso à câmera negado ou indisponível. Confirme se autorizou o uso pelo navegador.';

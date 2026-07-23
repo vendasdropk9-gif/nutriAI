@@ -29,7 +29,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
       setSwap(result);
       if (onAwardPoints) onAwardPoints(30, `Troca inteligente para: ${foodItem}`);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
     } finally {
       setIsGenerating(false);
     }
@@ -54,7 +54,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

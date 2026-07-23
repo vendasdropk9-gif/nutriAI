@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain, Share2, X } from 'lucide-react';
 import { analyzePlate } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { PlateAnalysisResult, UserProfile } from '../types';
@@ -17,6 +18,10 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExportingCard, setIsExportingCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,6 +58,44 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
     }
   };
 
+  const handleExportCard = async () => {
+    if (!shareCardRef.current) return;
+    setIsExportingCard(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shareCardRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        scale: 2,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `plate-analysis-card.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Card Salvo! 📸",
+          message: "O card da sua análise foi exportado como imagem.",
+          type: "success"
+        }
+      }));
+    } catch (err) {
+      console.warn("Erro ao gerar imagem do card:", err);
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Erro ao Salvar",
+          message: "Não foi possível gerar a imagem no momento.",
+          type: "error"
+        }
+      }));
+    } finally {
+      setIsExportingCard(false);
+    }
+  };
+
   const startCamera = async () => {
     setCameraError(null);
     setIsCameraActive(true);
@@ -77,7 +120,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
         }
       }, 100);
     } catch (err: any) {
-      console.error("Accessing camera failed:", err);
+      console.warn("Accessing camera failed:", err.message);
       let userFriendlyMsg = "Não foi possível acessar a câmera do dispositivo. Verifique se deu permissão de acesso.";
       if (err.name === 'NotFoundError' || err.message?.toLowerCase().includes('device not found') || err.message?.toLowerCase().includes('requested device')) {
         userFriendlyMsg = "Câmera de vídeo física não encontrada ou indisponível neste dispositivo. Por favor, faça upload de uma foto do seu prato utilizando a opção manual abaixo.";
@@ -115,7 +158,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
         analyzeCapturedBase64(base64Data, 'image/jpeg');
       }
     } catch (err) {
-      console.error("Failed to capture picture from stream:", err);
+      console.warn("Failed to capture picture from stream:", err);
       alert("Erro ao capturar imagem da câmera.");
     }
   };
@@ -137,7 +180,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
       }
       setIsScanning(false);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao analisar a imagem.');
       setIsScanning(false);
     }
@@ -166,7 +209,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       alert('Erro ao carregar imagem.');
       setIsScanning(false);
     }
@@ -370,6 +413,13 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
               </div>
               <div className="shrink-0 flex flex-col md:flex-row gap-3 w-full md:w-auto">
                  <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-full font-medium transition-all shadow-md flex items-center justify-center gap-2 text-sm w-full md:w-auto"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Compartilhar
+                </button>
+                 <button
                   onClick={resetScanner}
                   className="bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 px-6 py-3 rounded-full font-medium transition-all shadow-sm flex items-center justify-center gap-2 text-sm w-full md:w-auto"
                 >
@@ -473,8 +523,126 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
             
           </div>
         )}
-      </div>
+  
+      {/* Modal de Compartilhamento */}
+      <AnimatePresence>
+        {isShareModalOpen && analysisResult && previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl relative border border-slate-200 dark:border-slate-800"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-indigo-500" />
+                    Compartilhar Prato
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Gere um card elegante pronto para postar nas suas redes.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
+              {/* Viewport Card wrapper to download */}
+              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden">
+                <div 
+                  ref={shareCardRef}
+                  id="plate-social-share-card"
+                  className="w-[350px] min-h-[480px] bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 rounded-[24px] relative overflow-hidden flex flex-col justify-between text-white shadow-2xl"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  {/* Glowing background highlights */}
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Header Branding */}
+                  <div className="flex items-center justify-between relative z-10 border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-lg">📸</span>
+                      <span className="font-serif text-sm font-black tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
+                        NutriAI
+                      </span>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-white/50 bg-white/5 px-2 py-1 rounded-full border border-white/10">
+                      Análise de Prato
+                    </span>
+                  </div>
+
+                  {/* Main Content */}
+                  <div className="flex-1 flex flex-col items-center justify-center py-6 relative z-10 gap-4">
+                     <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-white/20 shadow-lg shrink-0">
+                       <img src={previewImage} alt="Prato" className="w-full h-full object-cover" />
+                     </div>
+                     <div className="text-center w-full">
+                       <div className="inline-block px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-emerald-300 border border-white/10 mb-2">
+                         NutriScore
+                       </div>
+                       <h2 className="text-5xl font-black font-serif tracking-tight text-white drop-shadow-md">
+                         {analysisResult.nutriScore}<span className="text-2xl text-white/60">/100</span>
+                       </h2>
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
+                           <p className="text-[10px] text-white/60 uppercase tracking-widest font-bold mb-0.5">Calorias</p>
+                           <p className="text-sm font-bold text-orange-300">{analysisResult.nutrition.calories} kcal</p>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
+                           <p className="text-[10px] text-white/60 uppercase tracking-widest font-bold mb-0.5">Proteína</p>
+                           <p className="text-sm font-bold text-red-300">{analysisResult.nutrition.protein} g</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="pt-4 border-t border-white/10 relative z-10 flex flex-col gap-2">
+                    <p className="text-[11px] text-center text-white/70 italic leading-relaxed font-medium">
+                      "{analysisResult.assistantMessage}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full font-bold text-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleExportCard}
+                  disabled={isExportingCard}
+                  className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isExportingCard ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                  ) : (
+                    <><Upload className="w-4 h-4" /> Baixar Imagem</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  </div>
   );
 }

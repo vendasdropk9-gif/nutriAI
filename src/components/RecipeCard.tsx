@@ -1,6 +1,7 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { Recipe, RecipePreparationTips } from '../types';
+import { RecipeStepTimer } from './RecipeStepTimer';
 import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech } from '../lib/speech';
@@ -100,7 +101,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       }
       setScheduledReminder(null);
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
   };
 
@@ -154,7 +155,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       }));
       setIsSchedulingOpen(false);
     } catch (err) {
-      console.error("Error scheduling prep:", err);
+      console.warn("Error scheduling prep:", err);
     }
   };
 
@@ -178,7 +179,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         }
       }));
     } catch (err) {
-      console.error("Error cancelling reminder:", err);
+      console.warn("Error cancelling reminder:", err);
     }
   };
 
@@ -225,7 +226,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         }
       }));
     } catch (err) {
-      console.error("Erro ao gerar imagem do card:", err);
+      console.warn("Erro ao gerar imagem do card:", err);
       alert("Não foi possível exportar como imagem diretamente. Você pode tirar uma captura de tela!");
     } finally {
       setIsExportingCard(false);
@@ -282,7 +283,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         setImageError("A IA não retornou uma imagem para esta receita. Tente novamente.");
       }
     } catch (err: any) {
-      console.error("Error generating recipe image:", err);
+      console.warn("Error generating recipe image:", err);
       setImageError("Não foi possível gerar a imagem. Verifique suas configurações ou tente novamente.");
     } finally {
       setIsGeneratingImage(false);
@@ -390,7 +391,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             setPrepTipsError("Não foi possível carregar as dicas de preparo.");
           }
         } catch (err) {
-          console.error("Error fetching prep tips:", err);
+          console.warn("Error fetching prep tips:", err);
           setPrepTipsError("Erro ao carregar as dicas de preparo com a IA.");
         } finally {
           setLoadingPrepTips(false);
@@ -637,7 +638,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         };
 
         recognition.onerror = (errEvent: any) => {
-          console.error("Speech Recognition Error:", errEvent);
+          console.warn("Speech Recognition Error:", errEvent);
           if (errEvent.error === 'not-allowed') {
             setVoiceError("Acesso ao microfone foi negado ou indisponível. Fórmulas de visualização de segurança (iframe) podem limitar o uso direto da captura de áudio. Sinta-se à vontade para utilizar e testar as ricas funcionalidades utilizando o simulador interativo abaixo.");
             setIsListening(false);
@@ -666,7 +667,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         recognitionRef.current = recognition;
         recognition.start();
       } catch (err: any) {
-        console.error("Failed to start SpeechRecognition:", err);
+        console.warn("Failed to start SpeechRecognition:", err);
         setVoiceError("Erro ao iniciar captura de áudio. Experimente utilizar os botões de simulação abaixo.");
       }
     };
@@ -1114,11 +1115,14 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   >
                     {isActive ? <Volume2 className="w-4 h-4 text-white animate-pulse" /> : idx + 1}
                   </button>
-                  <p className={`text-slate-600 dark:text-slate-300 leading-relaxed pt-1 flex-1 transition-all ${
-                    isActive ? 'text-slate-800 dark:text-slate-100 font-medium' : ''
-                  }`}>
-                    {step}
-                  </p>
+                  <div className="flex-1">
+                    <p className={`text-slate-600 dark:text-slate-300 leading-relaxed pt-1 transition-all ${
+                      isActive ? 'text-slate-800 dark:text-slate-100 font-medium' : ''
+                    }`}>
+                      {step}
+                    </p>
+                    <RecipeStepTimer stepText={step} stepIndex={idx} recipeName={recipe.name} />
+                  </div>
                 </div>
               );
             })}

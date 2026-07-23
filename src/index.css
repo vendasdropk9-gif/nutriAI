@@ -1,30 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --animate-shimmer: shimmer 2s infinite linear;
-  --font-serif: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-stone-50: #f5f5f0;
-  --color-olive-500: #5A5A40;
-  --color-olive-600: #4a4a34;
-  --color-cream: #fafaf7;
+  --font-serif: "Poppins", system-ui, sans-serif;
+  --font-display: "Poppins", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  --color-emerald-500: #10B981;
+  --color-emerald-400: #16C784;
+  --color-gold-500: #D4AF37;
+  --color-gold-400: #D8B14A;
 }
 
 html, body {
   max-width: 100vw;
   overflow-x: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+h1, h2, h3, h4, .font-serif, .font-display {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
 }
 
 body {
-  background-color: #f4f9f6;
-  color: #1e293b;
+  background-color: #FAFBFC;
+  color: #1E293B;
+  -webkit-font-smoothing: antialiased;
 }
 .dark body {
-  background-color: #08111d;
-  color: #f8fafc;
+  background-color: #0B0F14;
+  color: #FFFFFF;
 }
 
 @keyframes scan {
@@ -38,64 +46,137 @@ body {
   100% { transform: translateX(100%); }
 }
 
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes idleBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.animate-idle-breathe {
+  animation: idleBreathe 4s ease-in-out infinite;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(90, 90, 64, 0.2);
-  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 99px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(90, 90, 64, 0.4);
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(35, 44, 57, 0.8);
+  border-radius: 99px;
 }
 
-/* Claymorphism Utilities */
+/* Luxury Card & Button Utilities */
+@utility card-premium {
+  background: #FFFFFF;
+  border-radius: 28px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .card-premium {
+  background: #151B23;
+  border: 1px solid #232C39;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+}
+
+@utility btn-emerald {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  border-radius: 9999px;
+  color: #FFFFFF;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+}
+
+.dark .btn-emerald {
+  background: linear-gradient(135deg, #16C784 0%, #0D9488 100%);
+  box-shadow: 0 4px 20px rgba(22, 199, 132, 0.35);
+}
+
+@utility btn-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  border-radius: 9999px;
+  color: #FFFFFF;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.5);
+    transform: translateY(-1px);
+  }
+}
+
+.dark .btn-gold {
+  background: linear-gradient(135deg, #D8B14A 0%, #9A7B1C 100%);
+  box-shadow: 0 4px 20px rgba(216, 177, 74, 0.4);
+}
+
+@utility gold-badge {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 134, 11, 0.1) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #B8860B;
+}
+
+.dark .gold-badge {
+  background: linear-gradient(135deg, rgba(216, 177, 74, 0.2) 0%, rgba(154, 123, 28, 0.15) 100%);
+  border: 1px solid rgba(216, 177, 74, 0.4);
+  color: #D8B14A;
+}
+
+/* Claymorphism backward compatibility with high-end refinement */
 @utility clay-card {
-  background: #ffffff;
-  border-radius: 32px;
-  border: 1px solid rgba(16, 185, 129, 0.03);
-  box-shadow: 
-    10px 10px 20px rgba(16, 185, 129, 0.04), 
-    -10px -10px 20px rgba(255, 255, 255, 0.35),
-    inset 2px 2px 4px rgba(255, 255, 255, 1), 
-    inset -2px -2px 4px rgba(16, 185, 129, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #FFFFFF;
+  border-radius: 28px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Specific overrides for clay-card styled on dark or translucent/glow-sensitive containers */
-.bg-slate-900.clay-card,
-.bg-emerald-950.clay-card,
-.bg-slate-950.clay-card,
-.bg-emerald-900.clay-card,
-.bg-slate-900 .clay-card,
-.bg-emerald-950 .clay-card,
-.bg-slate-950 .clay-card,
-.bg-emerald-900 .clay-card,
-.bg-white\/5.clay-card,
-.bg-white\/10.clay-card {
-  box-shadow: 
-    10px 10px 20px rgba(0, 0, 0, 0.25), 
-    -10px -10px 20px rgba(255, 255, 255, 0.03),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.05), 
-    inset -2px -2px 4px rgba(0, 0, 0, 0.2);
+.dark .clay-card {
+  background: #151B23;
+  border: 1px solid #232C39;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
 }
 
 @utility clay-panel {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 
-    6px 6px 16px rgba(16, 185, 129, 0.03), 
-    -6px -6px 16px rgba(255, 255, 255, 0.8),
-    inset 1px 1px 2px rgba(255, 255, 255, 1), 
-    inset -1px -1px 2px rgba(16, 185, 129, 0.02);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.03);
+}
+
+.dark .clay-panel {
+  background: rgba(21, 27, 35, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  border: 1px solid #232C39;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.4);
 }
 
 @utility clay-btn {

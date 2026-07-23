@@ -502,7 +502,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       };
 
       rec.onerror = (event: any) => {
-        console.error("Erro no reconhecimento de voz:", event.error);
+        console.warn("Erro no reconhecimento de voz:", event.error);
         setIsListening(false);
         if (event.error === 'not-allowed') {
           setVoiceError("Permissão de microfone negada.");
@@ -519,7 +519,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       recognitionRef.current = rec;
       rec.start();
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setIsListening(false);
       setVoiceError("Falha ao iniciar microfone.");
     }
@@ -532,7 +532,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       try {
         recognitionRef.current.stop();
       } catch (e) {
-        console.error(e);
+        console.warn(e);
       }
     }
     setIsListening(false);
@@ -741,7 +741,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
         playSfx('success');
       },
       (err) => {
-        console.error(err);
+        console.warn(err);
         setIsLocating(false);
         alert("Não foi possível acessar seu GPS (pode estar bloqueado pelo navegador). Escolha uma das regiões predefinidas!");
       },
@@ -895,7 +895,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                   value={newCustomName}
                   onChange={(e) => setNewCustomName(e.target.value)}
                   placeholder="Ex: Peito de Frango, Banana, Aveia..."
-                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -911,9 +911,10 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1"
+                  className="px-4 py-3 sm:px-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all outline-none"
                 >
-                  <Plus className="w-4 h-4" /> Adicionar
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Adicionar</span>
                 </button>
               </form>
               {isListening && (
@@ -980,9 +981,10 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all outline-none border-none"
+                  className="px-4 py-3 sm:px-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all outline-none border-none"
                 >
-                  <Plus className="w-4 h-4" /> Adicionar
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Adicionar</span>
                 </button>
               </form>
               {isListening && (

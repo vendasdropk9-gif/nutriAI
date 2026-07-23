@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
-import { Plus, X, Wand2, Loader2, Info, PieChart, Activity } from 'lucide-react';
+import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Upload } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { generateMealSuggestions } from '../lib/gemini';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface MealPlanProps {
   mealPlan: MealPlan;
@@ -36,6 +37,48 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExportingCard, setIsExportingCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleExportCard = async () => {
+    if (!shareCardRef.current) return;
+    setIsExportingCard(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shareCardRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        scale: 2,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `mealplan-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Plano Salvo! 📸",
+          message: `O plano alimentar de ${selectedDay} foi exportado como imagem.`,
+          type: "success"
+        }
+      }));
+    } catch (err) {
+      console.warn("Erro ao gerar imagem do plano:", err);
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Erro ao Salvar",
+          message: "Não foi possível gerar a imagem no momento.",
+          type: "error"
+        }
+      }));
+    } finally {
+      setIsExportingCard(false);
+    }
+  };
 
   // States for calorie/nutrient tracker and quick log
   const [activeTrackerTab, setActiveTrackerTab] = useState<'planned' | 'actual'>('planned');
@@ -253,17 +296,20 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
     if (onGeneratingChange) onGeneratingChange(true);
     try {
       const suggestions = await generateMealSuggestions(profile, selectedDay);
-      if (suggestions && suggestions.length === 3) {
-        // Assign to breakfast, lunch, dinner
-        const ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()];
-        onUpdatePlan(selectedDay, 'breakfast', ids[0], { ...suggestions[0], id: ids[0] });
-        onUpdatePlan(selectedDay, 'lunch', ids[1], { ...suggestions[1], id: ids[1] });
-        onUpdatePlan(selectedDay, 'dinner', ids[2], { ...suggestions[2], id: ids[2] });
+      if (suggestions && suggestions.length > 0) {
+        const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
+        suggestions.forEach((recipe, idx) => {
+          if (idx < mealTypes.length) {
+            const mealType = mealTypes[idx];
+            const recipeId = crypto.randomUUID();
+            onUpdatePlan(selectedDay, mealType, recipeId, { ...recipe, id: recipeId } as any);
+          }
+        });
       } else {
         alert("Não foi possível gerar sugestões suficientes. Tente novamente.");
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       alert("Erro ao gerar plano.");
     } finally {
       setIsGenerating(false);
@@ -305,15 +351,25 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">{selectedDay}</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Planeje suas 3 principais refeições.</p>
             </div>
-            <button
-              onClick={handleGenerateDay}
-              disabled={isGenerating}
-              className="bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
-            >
-              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              Auto-Completar Dia com IA
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                Compartilhar
+              </button>
+              <button
+                onClick={handleGenerateDay}
+                disabled={isGenerating}
+                className="bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+              >
+                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Auto-Completar
+              </button>
+            </div>
           </div>
+
 
           {/* NOVO: Acompanhamento de Calorias e Nutrientes */}
           <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6">
@@ -691,6 +747,133 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
           </div>
         </div>
       )}
+
+      {/* Modal de Compartilhamento */}
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl relative border border-slate-200 dark:border-slate-800"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Share2 className="w-5 h-5 text-indigo-500" />
+                    Compartilhar Plano
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Gere um card elegante do seu cardápio de {selectedDay}.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Viewport Card wrapper to download */}
+              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden">
+                <div 
+                  ref={shareCardRef}
+                  id="mealplan-social-share-card"
+                  className="w-[350px] min-h-[480px] bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 rounded-[24px] relative overflow-hidden flex flex-col text-white shadow-2xl"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  {/* Glowing background highlights */}
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Header Branding */}
+                  <div className="flex items-center justify-between relative z-10 border-b border-white/10 pb-3 mb-6">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-lg">📅</span>
+                      <span className="font-serif text-sm font-black tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
+                        NutriAI
+                      </span>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-white/50 bg-white/5 px-2 py-1 rounded-full border border-white/10">
+                      Plano Alimentar
+                    </span>
+                  </div>
+
+                  {/* Main Content */}
+                  <div className="flex-1 relative z-10 flex flex-col gap-4">
+                     <h2 className="text-3xl font-black font-serif tracking-tight text-white mb-2">
+                       {selectedDay}
+                     </h2>
+                     
+                     <div className="space-y-3">
+                        {['Café da Manhã', 'Almoço', 'Jantar'].map((mealType) => {
+                          const mealKey = mealType === 'Café da Manhã' ? 'breakfast' : mealType === 'Almoço' ? 'lunch' : 'dinner';
+                           const mealItem = mealPlan[selectedDay]?.meals?.[mealKey as 'breakfast' | 'lunch' | 'dinner'];
+                          return (
+                            <div key={mealType} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                               <p className="text-[10px] text-emerald-400 uppercase tracking-widest font-bold mb-1">{mealType}</p>
+                               {mealItem ? (
+                                 <p className="text-sm font-medium text-white/90 leading-tight">
+                                   {mealItem.name}
+                                 </p>
+                               ) : (
+                                 <p className="text-sm text-white/40 italic">Não planejado</p>
+                               )}
+                            </div>
+                          );
+                        })}
+                     </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="pt-4 mt-6 border-t border-white/10 relative z-10 flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-white/60">
+                       <span>Total</span>
+                       <span className="text-emerald-400">
+                         {Math.round(
+                           Object.values(dayPlan).reduce((acc: number, curr: any) => acc + (curr?.nutrition?.calories || 0), 0) + 
+                           0 + 
+                           0 +
+                           0
+                         )} kcal
+                       </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full font-bold text-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleExportCard}
+                  disabled={isExportingCard}
+                  className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isExportingCard ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                  ) : (
+                    <><Upload className="w-4 h-4" /> Baixar Imagem</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

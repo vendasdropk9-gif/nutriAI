@@ -33,7 +33,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
         alert("Não foi possível gerar a receita de suco. Tente novamente.");
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       alert("Erro ao gerar a receita de suco.");
     } finally {
       setIsGenerating(false);
@@ -59,7 +59,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
         setIsPlaying(false);
       }
     } catch (error) {
-      console.error(error);
+      console.warn(error);
       setIsPlaying(false);
     }
   };

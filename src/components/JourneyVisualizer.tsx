@@ -199,7 +199,7 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
         return imgBase64;
       }
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
     return null;
   };
