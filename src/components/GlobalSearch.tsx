@@ -358,24 +358,24 @@ const healthyRecipesAndIngredients = [
   }
 ];
 
-// Helper component for real-time speech waveform feedback animation
+// Helper component for real-time speech waveform feedback animation with emerald + gold gradient
 const VoiceWaveform = ({ barCount = 5, className = "" }: { barCount?: number; className?: string }) => {
   return (
-    <div className={`flex items-center gap-0.5 h-4 px-0.5 ${className}`}>
+    <div className={`flex items-center gap-1 h-4 px-1 ${className}`}>
       {Array.from({ length: barCount }).map((_, idx) => (
         <motion.span
           key={idx}
-          className="w-0.5 bg-gradient-to-t from-emerald-500 via-teal-400 to-emerald-300 dark:from-emerald-400 dark:via-teal-300 dark:to-emerald-200 rounded-full"
+          className="w-1 bg-gradient-to-t from-[#10B981] via-[#16C784] to-[#D8B14A] rounded-full shadow-[0_0_8px_rgba(216,177,74,0.25)]"
           animate={{
-            height: ['20%', '100%', '40%', '85%', '25%'],
-            opacity: [0.6, 1, 0.7, 1, 0.6],
+            height: ['20%', '100%', '35%', '85%', '25%'],
+            opacity: [0.7, 1, 0.8, 1, 0.7],
           }}
           transition={{
             repeat: Infinity,
             repeatType: 'reverse',
-            duration: 0.5 + (idx % 4) * 0.12,
+            duration: 0.45 + (idx % 3) * 0.14,
             ease: "easeInOut",
-            delay: idx * 0.07,
+            delay: idx * 0.08,
           }}
         />
       ))}
@@ -620,8 +620,8 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
             }}
             className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${
               isListening
-                ? 'bg-emerald-500 text-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)] scale-110'
-                : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-800/80'
+                ? 'bg-gradient-to-r from-[#16C784] to-[#D8B14A] text-slate-950 shadow-[0_0_12px_rgba(216,177,74,0.4)] scale-110'
+                : 'text-slate-400 hover:text-[#16C784] hover:bg-emerald-50 dark:hover:bg-slate-800/80'
             }`}
             title={isListening ? "Parar de ouvir" : "Ditar busca por voz (Receitas/Ingredientes)"}
             type="button"
@@ -799,8 +799,8 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
                   }}
                   className={`p-2 rounded-full transition-all duration-300 cursor-pointer ${
                     isListening
-                      ? 'bg-emerald-500 text-white animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.6)]'
-                      : 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/30'
+                      ? 'bg-gradient-to-r from-[#16C784] to-[#D8B14A] text-slate-950 shadow-[0_0_15px_rgba(216,177,74,0.5)]'
+                      : 'text-[#16C784] bg-emerald-500/10 border border-[#16C784]/30'
                   }`}
                   title={isListening ? "Parar de ouvir" : "Ditar voz"}
                   type="button"

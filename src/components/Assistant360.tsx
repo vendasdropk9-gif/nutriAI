@@ -30,21 +30,21 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
     return () => clearInterval(interval);
   }, []);
 
-  const isPremium = profile?.isPremium ?? false;
+  const isPremium = (profile as any)?.isPremium ?? false;
 
   // Compute daily metrics safely
   const today = new Date().toISOString().split('T')[0];
   
   // Water
-  const waterLogs = profile?.intakeLogs?.filter(l => l.type === 'water' && l.date.startsWith(today)) || [];
+  const waterLogs = profile?.hydrationLogs?.filter(l => l.date.startsWith(today)) || [];
   const waterCurrent = waterLogs.reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const waterTarget = profile?.waterGoal || 2500;
   const waterPercent = Math.min(100, Math.round((waterCurrent / waterTarget) * 100));
 
   // Calories
-  const calorieLogs = profile?.intakeLogs?.filter(l => l.type === 'food' && l.date.startsWith(today)) || [];
-  const caloriesCurrent = calorieLogs.reduce((acc, curr) => acc + (curr.calories || 0), 0);
-  const caloriesTarget = profile?.calorieGoal || 2000;
+  const intakeLogs = profile?.intakeLogs?.filter(l => l.date.startsWith(today)) || [];
+  const caloriesCurrent = intakeLogs.reduce((acc, curr) => acc + (curr.actual?.calories || curr.planned?.calories || 0), 0);
+  const caloriesTarget = profile?.masterPlan?.dailyCalories || 2000;
   const caloriesPercent = Math.min(100, Math.round((caloriesCurrent / caloriesTarget) * 100));
 
   // Weight & BMI
@@ -60,10 +60,10 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
 
   // Sleep
   const sleepLogs = profile?.sleepLogs?.filter(s => s.date.startsWith(today)) || [];
-  const sleepHours = sleepLogs.length > 0 ? sleepLogs[sleepLogs.length - 1].hours : 7.5;
+  const sleepHours = sleepLogs.length > 0 ? sleepLogs[sleepLogs.length - 1].durationHours : 7.5;
 
   // Mood
-  const moodLogs = profile?.moodLogs?.filter(m => m.date.startsWith(today)) || [];
+  const moodLogs = profile?.emotionalLogs?.filter(m => m.date.startsWith(today)) || [];
   const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : 'Ótimo';
 
   const features = [
