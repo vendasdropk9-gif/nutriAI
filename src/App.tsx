@@ -41,6 +41,7 @@ import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
 import { AcademyPortal } from './components/AcademyPortal';
 import { BloodPressureTracker } from './components/BloodPressureTracker';
+import { GlucoseTracker } from './components/GlucoseTracker';
 import { Notebook } from './components/Notebook';
 import { MedicinalHerbs } from './components/MedicinalHerbs';
 import { SmartFridge } from './components/SmartFridge';
@@ -66,7 +67,7 @@ import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 const TAB_ORDER = [
   'assistant360', 'coach', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
-  'habits', 'notes', 'bloodpressure', 'barcode', 'allergy', 'comparer', 
+  'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
   'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'evolution', 
   'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
   'academies', 'gamification', 'prediction', 'profile', 'pricing', 'partner', 'delivery'
@@ -143,7 +144,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'assistant360'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'assistant360'>('assistant360');
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
@@ -571,6 +572,9 @@ export default function App() {
                 onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
                 onAwardPoints={awardPoints}
               />
+            )}
+            {activeTab === 'glucose' && (
+              <GlucoseTracker />
             )}
             {activeTab === 'barcode' && (
               <BarcodeScanner profile={profile} />

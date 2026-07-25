@@ -27,6 +27,10 @@ export const signInWithGoogle = async () => {
   }
 };
 
+export const signInWithApple = async () => {
+  throw new Error("Apple Sign-In not configured");
+};
+
 // --- FIRESTORE TO SUPABASE BRIDGE LAYER ---
 
 // Map Firestore collection names to Supabase tables
@@ -171,7 +175,7 @@ function deserializeRow(table: string, row: any) {
   return converted;
 }
 
-export const db = { isDb: true };
+export const db: any = { isDb: true };
 
 export function initializeFirestore(app: any, config: any, dbId?: string) {
   return db;
@@ -272,17 +276,19 @@ const listeners: Array<{
   onNext: (snap: any) => void;
 }> = [];
 
+import { safeGet, safeSet } from './storage';
+
 function getLocalTable(table: string): Record<string, any> {
   if (!localDB[table]) {
     localDB[table] = {};
     if (isBrowser) {
       try {
-        const stored = localStorage.getItem(`local_db_${table}`);
+        const stored = safeGet(`local_db_${table}`);
         if (stored) {
           localDB[table] = JSON.parse(stored);
         }
       } catch (e) {
-        console.error('Failed to load table from localStorage', e);
+        // Silently handle json parse errors
       }
     }
   }
@@ -292,9 +298,9 @@ function getLocalTable(table: string): Record<string, any> {
 function saveLocalTable(table: string) {
   if (isBrowser) {
     try {
-      localStorage.setItem(`local_db_${table}`, JSON.stringify(localDB[table] || {}));
+      safeSet(`local_db_${table}`, JSON.stringify(localDB[table] || {}));
     } catch (e) {
-      console.error('Failed to save table to localStorage', e);
+      // Silently handled by safeSet
     }
   }
 }

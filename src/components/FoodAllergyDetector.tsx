@@ -2,8 +2,7 @@ import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, doc, addDoc, deleteDoc, updateDoc, getDoc, setDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db, collection, doc, addDoc, deleteDoc, updateDoc, getDoc, setDoc, query, orderBy, onSnapshot } from '../lib/firebase';
 import { 
   Camera, Upload, Sparkles, AlertTriangle, Heart, Trash2, 
   Settings, Info, ShieldAlert, CheckCircle2, ShieldCheck,

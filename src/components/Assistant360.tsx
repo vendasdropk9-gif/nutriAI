@@ -67,14 +67,14 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
   const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : 'Ótimo';
 
   const features = [
-    { id: 'generator', label: 'Receitas com IA', icon: <Utensils className="w-6 h-6 text-emerald-500" />, desc: 'Geradas sob medida' },
-    { id: 'coach', label: 'NutriCoach IA', icon: <Zap className="w-6 h-6 text-emerald-400" />, desc: 'Análise de dieta 24/7' },
-    { id: 'analyzer', label: 'Scanner de Prato', icon: <Camera className="w-6 h-6 text-emerald-500" />, desc: 'Fotografe e analise' },
-    { id: 'trainer', label: 'Treino Personalizado', icon: <Dumbbell className="w-6 h-6 text-emerald-500" />, desc: 'Exercícios guiados' },
-    { id: 'fridge', label: 'Geladeira Inteligente', icon: <Sparkles className="w-6 h-6 text-emerald-400" />, desc: 'Aproveitamento 100%' },
-    { id: 'habits', label: 'Hábitos & Sono', icon: <Moon className="w-6 h-6 text-indigo-400" />, desc: 'Ritmo circadiano' },
-    { id: 'herbs', label: 'Ervas & Fitoterapia', icon: <Leaf className="w-6 h-6 text-emerald-500" />, desc: 'Infusões e remédios' },
-    { id: 'market', label: 'Marketplace Orgânico', icon: <ShoppingBag className="w-6 h-6 text-amber-500" />, desc: 'Insumos selecionados' },
+    { id: 'generator', label: 'Receitas com IA', icon: <Utensils className="w-5 h-5 text-emerald-500" />, desc: 'Geradas sob medida' },
+    { id: 'coach', label: 'NutriCoach IA', icon: <Zap className="w-5 h-5 text-emerald-400" />, desc: 'Análise de dieta 24/7' },
+    { id: 'analyzer', label: 'Scanner de Prato', icon: <Camera className="w-5 h-5 text-emerald-500" />, desc: 'Fotografe e analise' },
+    { id: 'trainer', label: 'Treino Personalizado', icon: <Dumbbell className="w-5 h-5 text-emerald-500" />, desc: 'Exercícios guiados' },
+    { id: 'fridge', label: 'Geladeira Inteligente', icon: <Sparkles className="w-5 h-5 text-emerald-400" />, desc: 'Aproveitamento 100%' },
+    { id: 'habits', label: 'Hábitos & Sono', icon: <Moon className="w-5 h-5 text-indigo-400" />, desc: 'Ritmo circadiano' },
+    { id: 'herbs', label: 'Ervas & Fitoterapia', icon: <Leaf className="w-5 h-5 text-emerald-500" />, desc: 'Infusões e remédios' },
+    { id: 'market', label: 'Marketplace Orgânico', icon: <ShoppingBag className="w-5 h-5 text-amber-500" />, desc: 'Insumos selecionados' },
   ];
 
   return (
@@ -312,30 +312,30 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
           {features.map((item) => (
             <motion.button
               key={item.id}
-              whileHover={{ y: -3, scale: 1.02 }}
+              whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
                 playSfx('tap');
                 vibrate(10);
                 onNavigate(item.id);
               }}
-              className="card-premium p-6 flex flex-col items-start justify-between text-left group cursor-pointer h-40 relative overflow-hidden"
+              className="card-premium p-4 sm:p-5 flex flex-col items-start justify-between text-left group cursor-pointer h-32 sm:h-36 relative overflow-hidden"
             >
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#151B23] border border-slate-100 dark:border-[#232C39] group-hover:scale-110 transition-transform">
+              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#151B23] border border-slate-100 dark:border-[#232C39] group-hover:scale-105 transition-transform">
                 {item.icon}
               </div>
 
               <div>
-                <h4 className="font-display font-bold text-sm text-slate-900 dark:text-white leading-tight mb-1 group-hover:text-[#16C784] transition-colors">
+                <h4 className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight mb-0.5 group-hover:text-[#16C784] transition-colors">
                   {item.label}
                 </h4>
-                <p className="text-[11px] font-medium text-slate-400 dark:text-[#B5BDC9]">
+                <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 dark:text-[#B5BDC9]">
                   {item.desc}
                 </p>
               </div>
 
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowUpRight className="w-4 h-4 text-[#16C784]" />
+              <div className="absolute top-3.5 right-3.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#16C784]" />
               </div>
             </motion.button>
           ))}

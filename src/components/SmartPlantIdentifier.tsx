@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, doc, addDoc, getDocs, deleteDoc, updateDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db, collection, doc, addDoc, getDocs, deleteDoc, updateDoc, query, orderBy, onSnapshot } from '../lib/firebase';
 import { 
   Camera, Upload, Sparkles, AlertTriangle, ShieldAlert, Heart, Trash2, 
   MapPin, Clock, MessageSquare, Send, CheckCircle2, AlertOctagon, 

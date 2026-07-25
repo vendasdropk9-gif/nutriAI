@@ -68,11 +68,13 @@ export const generateMealSuggestions = async (
   return callGeminiEndpoint('generateMealSuggestions', [profile, day]);
 };
 
+import { safeGet, safeSet } from './storage';
+
 export const textToSpeech = async (text: string): Promise<string | null> => {
   const cacheKey = `tts_v2_${text.substring(0, 50)}`;
   
   try {
-    const cached = localStorage.getItem(cacheKey);
+    const cached = safeGet(cacheKey);
     if (cached) return cached;
   } catch (e) {
     // ignore local storage errors
@@ -81,11 +83,7 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
   try {
     const base64Audio = await callGeminiEndpoint('textToSpeech', [text]);
     if (base64Audio) {
-      try {
-        localStorage.setItem(cacheKey, base64Audio);
-      } catch (e) {
-        // storage might be full
-      }
+      safeSet(cacheKey, base64Audio);
       return base64Audio;
     }
   } catch (error) {

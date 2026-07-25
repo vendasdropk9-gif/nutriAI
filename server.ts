@@ -6,17 +6,12 @@ import { WebSocketServer } from "ws";
 import * as geminiServer from "./src/lib/gemini.server";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile as updateAuthProfile } from "firebase/auth";
-import { initializeFirestore, setLogLevel, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
 import firebaseConfig from "./firebase-applet-config.json";
-
-// Reduce noise in server logs
-setLogLevel('error');
 
 async function startServer() {
   const firebaseApp = initializeApp(firebaseConfig);
-  const db = initializeFirestore(firebaseApp, {
-    experimentalForceLongPolling: true,
-  }, firebaseConfig.firestoreDatabaseId);
+  const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
   const auth = getAuth(firebaseApp);
 
   // Seed default couriers if none exist

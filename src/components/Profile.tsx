@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SecuritySuite } from './SecuritySuite';
 import { UserProfile } from '../types';
-import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock } from 'lucide-react';
+import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock, Trash2 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
-import { auth } from '../lib/firebase';
+import { auth, db, doc, deleteDoc } from '../lib/firebase';
+import { deleteUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -551,6 +552,38 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             >
               <LogOut className="w-4 h-4" />
               Sair da Conta
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                if (!window.confirm('TEM CERTEZA ABSOLUTA? Esta ação apaga permanentemente sua conta, histórico nutricional, dietas e receitas personalizadas. Não será possível desfazer.')) {
+                  return;
+                }
+                try {
+                  playSfx('scratch');
+                  const currentUser = auth.currentUser;
+                  if (currentUser) {
+                    try {
+                      await deleteDoc(doc(db, 'users', currentUser.uid));
+                    } catch (e) {}
+                    await deleteUser(currentUser);
+                  }
+                  await logoutLocally();
+                  window.location.reload();
+                } catch (err: any) {
+                  if (err.code === 'auth/requires-recent-login') {
+                    alert('Por motivos de segurança, você precisa fazer login novamente antes de excluir sua conta.');
+                    await logoutLocally();
+                  } else {
+                    alert('Não foi possível excluir a conta: ' + (err.message || err));
+                  }
+                }
+              }}
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-4 rounded-full border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition-colors font-bold text-xs tracking-wide cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir Minha Conta
             </button>
 
             <div className="flex items-center gap-4 w-full md:w-auto">

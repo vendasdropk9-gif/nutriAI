@@ -1,318 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { db, doc, getDoc, setDoc, updateDoc, collection, getDocs, onSnapshot, serverTimestamp } from './firebase';
 import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
-
-// Serialization helpers to translate between PostgreSQL snake_case and TypeScript camelCase
-
-function mapProfileToDb(profile: any, userId: string) {
-  return {
-    id: userId,
-    name: profile.name || 'Novo Usuário',
-    email: profile.email || '',
-    photo_url: profile.photoURL || null,
-    language: profile.language || 'pt',
-    preferences: profile.preferences || 'Sem preferências gravadas',
-    restrictions: profile.restrictions || [],
-    allergies: profile.allergies || [],
-    goals: profile.goals || 'Me alimentar melhor',
-    equipment: profile.equipment || [],
-    weight: profile.weight !== undefined ? Number(profile.weight) : null,
-    height: profile.height !== undefined ? Number(profile.height) : null,
-    age: profile.age !== undefined ? Number(profile.age) : null,
-    activity_level: profile.activityLevel || null,
-    gender: profile.gender || null,
-    target_weight: profile.targetWeight !== undefined ? Number(profile.targetWeight) : null,
-    skin_tone: profile.skinTone || null,
-    hair_color: profile.hairColor || null,
-    body_type: profile.bodyType || null,
-    metabolism: profile.metabolism || null,
-    routine: profile.routine || null,
-    water_goal: profile.waterGoal !== undefined ? Number(profile.waterGoal) : 2000,
-    water_reminder_enabled: profile.waterReminderEnabled !== undefined ? profile.waterReminderEnabled : true,
-    water_reminder_interval_minutes: profile.waterReminderIntervalMinutes !== undefined ? Number(profile.waterReminderIntervalMinutes) : 60,
-    water_reminder_start_hour: profile.waterReminderStartHour !== undefined ? Number(profile.waterReminderStartHour) : 8,
-    water_reminder_end_hour: profile.waterReminderEndHour !== undefined ? Number(profile.waterReminderEndHour) : 22,
-    points: profile.points !== undefined ? Number(profile.points) : 0,
-    streak: profile.streak !== undefined ? Number(profile.streak) : 0,
-    last_active_date: profile.lastActiveDate || null,
-    badges: profile.badges || [],
-  };
-}
-
-function mapDbToProfile(dbRow: any): Partial<UserProfile> {
-  return {
-    id: dbRow.id,
-    name: dbRow.name,
-    email: dbRow.email,
-    photoURL: dbRow.photo_url,
-    language: dbRow.language || 'pt',
-    preferences: dbRow.preferences,
-    restrictions: dbRow.restrictions || [],
-    allergies: dbRow.allergies || [],
-    goals: dbRow.goals,
-    equipment: dbRow.equipment || [],
-    weight: dbRow.weight ? Number(dbRow.weight) : undefined,
-    height: dbRow.height ? Number(dbRow.height) : undefined,
-    age: dbRow.age ? Number(dbRow.age) : undefined,
-    activityLevel: dbRow.activity_level,
-    gender: dbRow.gender,
-    targetWeight: dbRow.target_weight ? Number(dbRow.target_weight) : undefined,
-    skinTone: dbRow.skin_tone,
-    hairColor: dbRow.hair_color,
-    bodyType: dbRow.body_type,
-    metabolism: dbRow.metabolism,
-    routine: dbRow.routine,
-    waterGoal: dbRow.water_goal ? Number(dbRow.water_goal) : undefined,
-    waterReminderEnabled: dbRow.water_reminder_enabled,
-    waterReminderIntervalMinutes: dbRow.water_reminder_interval_minutes,
-    waterReminderStartHour: dbRow.water_reminder_start_hour,
-    waterReminderEndHour: dbRow.water_reminder_end_hour,
-    points: dbRow.points ? Number(dbRow.points) : 0,
-    streak: dbRow.streak ? Number(dbRow.streak) : 0,
-    lastActiveDate: dbRow.last_active_date,
-    badges: dbRow.badges || [],
-  };
-}
-
-function mapIntakeLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    meal_id: log.mealId || '',
-    recipe_name: log.recipeName || '',
-    planned_calories: log.planned?.calories || 0,
-    planned_protein: log.planned?.protein || 0,
-    planned_carbs: log.planned?.carbs || 0,
-    planned_fat: log.planned?.fat || 0,
-    actual_calories: log.actual?.calories || 0,
-    actual_protein: log.actual?.protein || 0,
-    actual_carbs: log.actual?.carbs || 0,
-    actual_fat: log.actual?.fat || 0,
-    adjusted: log.adjusted || false,
-  };
-}
-
-function mapDbToIntakeLog(row: any): IntakeLog {
-  return {
-    id: row.id,
-    date: row.date,
-    mealId: row.meal_id,
-    recipeName: row.recipe_name,
-    planned: {
-      calories: Number(row.planned_calories),
-      protein: Number(row.planned_protein),
-      carbs: Number(row.planned_carbs),
-      fat: Number(row.planned_fat),
-    },
-    actual: {
-      calories: Number(row.actual_calories),
-      protein: Number(row.actual_protein),
-      carbs: Number(row.actual_carbs),
-      fat: Number(row.actual_fat),
-    },
-    adjusted: row.adjusted,
-  };
-}
-
-function mapProgressLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    weight: Number(log.weight),
-    body_fat: log.bodyFat !== undefined ? Number(log.bodyFat) : null,
-    notes: log.notes || null,
-  };
-}
-
-function mapDbToProgressLog(row: any): ProgressLog {
-  return {
-    id: row.id,
-    date: row.date,
-    weight: Number(row.weight),
-    bodyFat: row.body_fat ? Number(row.body_fat) : undefined,
-    notes: row.notes,
-  };
-}
-
-function mapHydrationLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    amount: Number(log.amount),
-    source: log.source || 'Filtrada',
-  };
-}
-
-function mapDbToHydrationLog(row: any): HydrationLog {
-  return {
-    id: row.id,
-    date: row.date,
-    amount: Number(row.amount),
-    source: row.source,
-  };
-}
-
-function mapWorkoutLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    completed: log.completed || false,
-    duration_minutes: Number(log.durationMinutes),
-    intensity: log.intensity || 'Moderado',
-  };
-}
-
-function mapDbToWorkoutLog(row: any): WorkoutLog {
-  return {
-    id: row.id,
-    date: row.date,
-    completed: row.completed,
-    durationMinutes: Number(row.duration_minutes),
-    intensity: row.intensity as any,
-  };
-}
-
-function mapSleepLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    duration_hours: Number(log.durationHours),
-    quality: log.quality || 'Bom',
-  };
-}
-
-function mapDbToSleepLog(row: any): SleepLog {
-  return {
-    id: row.id,
-    date: row.date,
-    durationHours: Number(row.duration_hours),
-    quality: row.quality as any,
-  };
-}
-
-function mapEmotionalLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    mood: log.mood,
-    trigger: log.trigger || null,
-    meal_type: log.mealType || null,
-  };
-}
-
-function mapDbToEmotionalLog(row: any): EmotionalLog {
-  return {
-    id: row.id,
-    date: row.date,
-    mood: row.mood,
-    trigger: row.trigger,
-    mealType: row.meal_type,
-  };
-}
-
-function mapFastingLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    duration_hours: Number(log.durationHours),
-  };
-}
-
-function mapDbToFastingLog(row: any): FastingLog {
-  return {
-    id: row.id,
-    date: row.date,
-    durationHours: Number(row.duration_hours),
-  };
-}
-
-function mapBloodPressureLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    systolic: Number(log.systolic),
-    diastolic: Number(log.diastolic),
-    bpm: Number(log.bpm),
-    notes: log.notes || null,
-  };
-}
-
-function mapDbToBloodPressureLog(row: any): BloodPressureLog {
-  return {
-    id: row.id,
-    date: row.date,
-    systolic: Number(row.systolic),
-    diastolic: Number(row.diastolic),
-    bpm: Number(row.bpm),
-    notes: row.notes,
-    userId: row.user_id,
-  };
-}
-
-function mapBodyMonitorLogToDb(log: any, userId: string) {
-  return {
-    id: log.id || crypto.randomUUID(),
-    user_id: userId,
-    date: log.date,
-    heart_rate: Number(log.heartRate),
-    stress_level: Number(log.stressLevel),
-    fatigue_level: Number(log.fatigueLevel),
-    anxiety_level: Number(log.anxietyLevel),
-    notes: log.notes || null,
-    facial_scan_consent: log.facialScanConsent || false,
-    finger_scan_consent: log.fingerScanConsent || false,
-    status: log.status || 'normal',
-  };
-}
-
-function mapDbToBodyMonitorLog(row: any): BodyMonitorLog {
-  return {
-    id: row.id,
-    date: row.date,
-    heartRate: Number(row.heart_rate),
-    stressLevel: Number(row.stress_level),
-    fatigueLevel: Number(row.fatigue_level),
-    anxietyLevel: Number(row.anxiety_level),
-    notes: row.notes,
-    facialScanConsent: row.facial_scan_consent,
-    fingerScanConsent: row.finger_scan_consent,
-    status: row.status as any,
-    userId: row.user_id,
-  };
-}
-
-function mapNoteToDb(note: any, userId: string) {
-  return {
-    id: note.id || crypto.randomUUID(),
-    user_id: userId,
-    title: note.title,
-    content: note.content,
-    category: note.category || null,
-    tags: note.tags || [],
-  };
-}
-
-function mapDbToNote(row: any): Note {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    title: row.title,
-    content: row.content,
-    category: row.category,
-    tags: row.tags || [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
 
 export function useProfileSync(
   user: User | null,
@@ -321,96 +10,163 @@ export function useProfileSync(
 ) {
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Load from Supabase on mount/user change
+  // Load from Firestore on mount/user change
   useEffect(() => {
-    if (!user || !isSupabaseConfigured) return;
+    if (!user) return;
 
     // Check if it is a local simulated user
     const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
-    if (isLocalUser) {
-      return;
-    }
+    if (isLocalUser) return;
+
+    let unsubscribeSnapshot: (() => void) | null = null;
 
     const fetchProfileAndLogs = async () => {
       try {
         setIsSyncing(true);
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.uid)
-          .maybeSingle();
+        const userDocRef = doc(db, 'users', user.uid);
+        
+        // Listen to live profile updates
+        unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            // Fetch subcollections from Firestore
+            const fetchSubcollection = async (subName: string) => {
+              try {
+                const subRef = collection(db, 'users', user.uid, subName);
+                const querySnap = await getDocs(subRef);
+                return querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+              } catch (e) {
+                console.warn(`Could not load subcollection ${subName}:`, e);
+                return [];
+              }
+            };
 
-        if (profileError) {
-          console.error('Error fetching Supabase profile:', profileError.message);
-          return;
-        }
+            const [
+              intakeLogs,
+              progressLogs,
+              hydrationLogs,
+              workoutLogs,
+              sleepLogs,
+              emotionalLogs,
+              fastingLogs,
+              bloodPressureLogs,
+              bodyMonitorLogs,
+              notes
+            ] = await Promise.all([
+              fetchSubcollection('intakeLogs'),
+              fetchSubcollection('progressLogs'),
+              fetchSubcollection('hydrationLogs'),
+              fetchSubcollection('workoutLogs'),
+              fetchSubcollection('sleepLogs'),
+              fetchSubcollection('emotionalLogs'),
+              fetchSubcollection('fastingLogs'),
+              fetchSubcollection('bloodPressureLogs'),
+              fetchSubcollection('bodyMonitorLogs'),
+              fetchSubcollection('notes')
+            ]);
 
-        if (profileData) {
-          const currentProfile = mapDbToProfile(profileData) as UserProfile;
-
-          // Fetch all sub-collections in parallel using Supabase
-          const [
-            intakeLogsRes,
-            progressLogsRes,
-            hydrationLogsRes,
-            workoutLogsRes,
-            sleepLogsRes,
-            emotionalLogsRes,
-            fastingLogsRes,
-            bloodPressureLogsRes,
-            bodyMonitorLogsRes,
-            notesRes,
-          ] = await Promise.all([
-            supabase.from('intake_logs').select('*').eq('user_id', user.uid),
-            supabase.from('progress_logs').select('*').eq('user_id', user.uid),
-            supabase.from('hydration_logs').select('*').eq('user_id', user.uid),
-            supabase.from('workout_logs').select('*').eq('user_id', user.uid),
-            supabase.from('sleep_logs').select('*').eq('user_id', user.uid),
-            supabase.from('emotional_logs').select('*').eq('user_id', user.uid),
-            supabase.from('fasting_logs').select('*').eq('user_id', user.uid),
-            supabase.from('blood_pressure_logs').select('*').eq('user_id', user.uid),
-            supabase.from('body_monitor_logs').select('*').eq('user_id', user.uid),
-            supabase.from('notes').select('*').eq('user_id', user.uid),
-          ]);
-
-          currentProfile.intakeLogs = (intakeLogsRes.data || []).map(mapDbToIntakeLog);
-          currentProfile.progressLogs = (progressLogsRes.data || []).map(mapDbToProgressLog);
-          currentProfile.hydrationLogs = (hydrationLogsRes.data || []).map(mapDbToHydrationLog);
-          currentProfile.workoutLogs = (workoutLogsRes.data || []).map(mapDbToWorkoutLog);
-          currentProfile.sleepLogs = (sleepLogsRes.data || []).map(mapDbToSleepLog);
-          currentProfile.emotionalLogs = (emotionalLogsRes.data || []).map(mapDbToEmotionalLog);
-          currentProfile.fastingLogs = (fastingLogsRes.data || []).map(mapDbToFastingLog);
-          currentProfile.bloodPressureLogs = (bloodPressureLogsRes.data || []).map(mapDbToBloodPressureLog);
-          currentProfile.bodyMonitorLogs = (bodyMonitorLogsRes.data || []).map(mapDbToBodyMonitorLog);
-          currentProfile.notes = (notesRes.data || []).map(mapDbToNote);
-
-          setLocalProfile(currentProfile);
-        } else {
-          // Profile does not exist yet, create it
-          const initialProfile: UserProfile = {
-            name: user.displayName || localProfile?.name || 'Novo Usuário',
-            email: user.email || '',
-            goals: localProfile?.goals || 'Me alimentar melhor',
-            preferences: 'Sem preferências gravadas',
-            restrictions: localProfile?.restrictions || [],
-            allergies: localProfile?.allergies || [],
-            equipment: localProfile?.equipment || [],
-            points: localProfile?.points || 0,
-            streak: 0,
-          };
-
-          const dbProfile = mapProfileToDb(initialProfile, user.uid);
-          const { error: insertError } = await supabase.from('profiles').insert(dbProfile);
-
-          if (insertError) {
-            console.error('Error creating profile in Supabase:', insertError.message);
-          } else {
-            setLocalProfile({
-              ...initialProfile,
+            const remoteProfile: UserProfile = {
               id: user.uid,
+              name: data.displayName || data.name || user.displayName || 'Usuário NutriAI',
+              firstName: data.firstName || '',
+              lastName: data.lastName || '',
+              email: data.email || user.email || '',
+              phone: data.phone || '',
+              photoURL: data.photoURL || user.photoURL || null,
+              birthDate: data.birthDate || '',
+              gender: data.gender || 'Não informado',
+              weight: data.weight ? Number(data.weight) : undefined,
+              height: data.height ? Number(data.height) : undefined,
+              goals: data.goals || data.objective || 'Me alimentar melhor',
+              plan: data.plan || 'Free',
+              isPremium: data.plan === 'Premium' || data.isPremium === true,
+              subscriptionStatus: data.subscriptionStatus || 'active',
+              language: data.language || 'pt-BR',
+              country: data.country || 'Brasil',
+              biometricsEnabled: data.biometricsEnabled || false,
+              biometricType: data.biometricType || null,
+              createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              lastAccessAt: new Date().toISOString(),
+              preferences: data.preferences || 'Sem preferências gravadas',
+              restrictions: data.restrictions || [],
+              allergies: data.allergies || [],
+              equipment: data.equipment || [],
+              points: data.points ? Number(data.points) : 0,
+              streak: data.streak ? Number(data.streak) : 0,
+              intakeLogs: intakeLogs as IntakeLog[],
+              progressLogs: progressLogs as ProgressLog[],
+              hydrationLogs: hydrationLogs as HydrationLog[],
+              workoutLogs: workoutLogs as WorkoutLog[],
+              sleepLogs: sleepLogs as SleepLog[],
+              emotionalLogs: emotionalLogs as EmotionalLog[],
+              fastingLogs: fastingLogs as FastingLog[],
+              bloodPressureLogs: bloodPressureLogs as BloodPressureLog[],
+              bodyMonitorLogs: bodyMonitorLogs as BodyMonitorLog[],
+              notes: notes as Note[]
+            };
+
+            setLocalProfile(remoteProfile);
+          } else {
+            // Profile does not exist in Firestore yet, create it!
+            const names = (user.displayName || '').split(' ');
+            const firstName = names[0] || 'Usuário';
+            const lastName = names.slice(1).join(' ') || '';
+
+            const initialData = {
+              uid: user.uid,
+              name: user.displayName || 'Usuário NutriAI',
+              firstName,
+              lastName,
+              displayName: user.displayName || 'Usuário NutriAI',
+              email: user.email || '',
+              phone: '',
+              photoURL: user.photoURL || null,
+              birthDate: '',
+              gender: 'Não informado',
+              weight: localProfile?.weight || null,
+              height: localProfile?.height || null,
+              goals: localProfile?.goals || 'Alimentação saudável e longevidade',
+              plan: 'Free',
+              isPremium: false,
+              subscriptionStatus: 'active',
+              language: 'pt-BR',
+              country: 'Brasil',
+              biometricsEnabled: false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              lastAccessAt: serverTimestamp(),
+              preferences: 'Sem preferências gravadas',
+              restrictions: localProfile?.restrictions || [],
+              allergies: localProfile?.allergies || [],
+              equipment: localProfile?.equipment || [],
+              points: 100,
+              streak: 1
+            };
+
+            await setDoc(userDocRef, initialData);
+
+            setLocalProfile({
+              id: user.uid,
+              name: initialData.name,
+              firstName: initialData.firstName,
+              lastName: initialData.lastName,
+              email: initialData.email,
+              photoURL: initialData.photoURL,
+              goals: initialData.goals,
+              restrictions: initialData.restrictions || [],
+              allergies: initialData.allergies || [],
+              equipment: initialData.equipment || [],
+              plan: 'Free',
+              isPremium: false,
+              subscriptionStatus: 'active',
+              language: 'pt-BR',
+              country: 'Brasil',
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
+              points: 100,
+              streak: 1,
               intakeLogs: [],
               progressLogs: [],
               hydrationLogs: [],
@@ -420,67 +176,99 @@ export function useProfileSync(
               fastingLogs: [],
               bloodPressureLogs: [],
               bodyMonitorLogs: [],
-              notes: [],
+              notes: []
             });
           }
-        }
+          setIsSyncing(false);
+        }, (err) => {
+          console.error("Firestore onSnapshot error:", err);
+          setIsSyncing(false);
+        });
+
       } catch (err) {
-        console.error('Supabase fetching/syncing catch error:', err);
-      } finally {
+        console.error('Firestore profile sync fetch error:', err);
         setIsSyncing(false);
       }
     };
 
     fetchProfileAndLogs();
+
+    return () => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
   }, [user]);
 
-  // Sync to Supabase when profile updates
+  // Sync profile changes back to Firestore
   const syncToFirestore = async (newProfile: UserProfile) => {
-    if (!user || !isSupabaseConfigured) return;
+    if (!user) return;
     const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
     if (isLocalUser) return;
 
     setIsSyncing(true);
     try {
-      // 1. Update/Upsert the profiles row
-      const dbProfile = mapProfileToDb(newProfile, user.uid);
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(dbProfile);
+      const userDocRef = doc(db, 'users', user.uid);
+      const names = (newProfile.name || '').split(' ');
+      
+      const payload = {
+        uid: user.uid,
+        name: newProfile.name || 'Usuário NutriAI',
+        firstName: newProfile.firstName || names[0] || '',
+        lastName: newProfile.lastName || names.slice(1).join(' ') || '',
+        displayName: newProfile.name || 'Usuário NutriAI',
+        email: newProfile.email || user.email || '',
+        phone: newProfile.phone || '',
+        photoURL: newProfile.photoURL || user.photoURL || null,
+        birthDate: newProfile.birthDate || '',
+        gender: newProfile.gender || 'Não informado',
+        weight: newProfile.weight !== undefined ? Number(newProfile.weight) : null,
+        height: newProfile.height !== undefined ? Number(newProfile.height) : null,
+        goals: newProfile.goals || 'Alimentação saudável e longevidade',
+        plan: newProfile.plan || (newProfile.isPremium ? 'Premium' : 'Free'),
+        isPremium: newProfile.plan === 'Premium' || newProfile.isPremium === true,
+        subscriptionStatus: newProfile.subscriptionStatus || 'active',
+        language: newProfile.language || 'pt-BR',
+        country: newProfile.country || 'Brasil',
+        biometricsEnabled: newProfile.biometricsEnabled || false,
+        biometricType: newProfile.biometricType || null,
+        updatedAt: serverTimestamp(),
+        lastAccessAt: serverTimestamp(),
+        preferences: newProfile.preferences || 'Sem preferências gravadas',
+        restrictions: newProfile.restrictions || [],
+        allergies: newProfile.allergies || [],
+        equipment: newProfile.equipment || [],
+        points: newProfile.points || 0,
+        streak: newProfile.streak || 0
+      };
 
-      if (upsertError) {
-        console.error('Error upserting Supabase profile:', upsertError.message);
-      }
+      await setDoc(userDocRef, payload, { merge: true });
 
-      // 2. Upsert sub-collections
-      const syncSub = async (items: any[], tableName: string, mapper: (item: any, userId: string) => any) => {
+      // Save subcollections to Firestore subcollections
+      const saveSubcollection = async (subName: string, items: any[]) => {
         if (!items || items.length === 0) return;
-        const dbRows = items.map(item => mapper(item, user.uid));
-        
-        // Execute upsert in chunks or fully
-        const { error: subError } = await supabase
-          .from(tableName)
-          .upsert(dbRows);
-
-        if (subError) {
-          console.error(`Error upserting ${tableName} in Supabase:`, subError.message);
+        for (const item of items) {
+          const itemId = item.id || crypto.randomUUID();
+          const itemRef = doc(db, 'users', user.uid, subName, itemId);
+          await setDoc(itemRef, { ...item, id: itemId, userId: user.uid, updatedAt: serverTimestamp() }, { merge: true });
         }
       };
 
       await Promise.all([
-        syncSub(newProfile.intakeLogs || [], 'intake_logs', mapIntakeLogToDb),
-        syncSub(newProfile.progressLogs || [], 'progress_logs', mapProgressLogToDb),
-        syncSub(newProfile.hydrationLogs || [], 'hydration_logs', mapHydrationLogToDb),
-        syncSub(newProfile.workoutLogs || [], 'workout_logs', mapWorkoutLogToDb),
-        syncSub(newProfile.sleepLogs || [], 'sleep_logs', mapSleepLogToDb),
-        syncSub(newProfile.emotionalLogs || [], 'emotional_logs', mapEmotionalLogToDb),
-        syncSub(newProfile.fastingLogs || [], 'fasting_logs', mapFastingLogToDb),
-        syncSub(newProfile.bloodPressureLogs || [], 'blood_pressure_logs', mapBloodPressureLogToDb),
-        syncSub(newProfile.bodyMonitorLogs || [], 'body_monitor_logs', mapBodyMonitorLogToDb),
-        syncSub(newProfile.notes || [], 'notes', mapNoteToDb),
+        saveSubcollection('intakeLogs', newProfile.intakeLogs || []),
+        saveSubcollection('progressLogs', newProfile.progressLogs || []),
+        saveSubcollection('hydrationLogs', newProfile.hydrationLogs || []),
+        saveSubcollection('workoutLogs', newProfile.workoutLogs || []),
+        saveSubcollection('sleepLogs', newProfile.sleepLogs || []),
+        saveSubcollection('emotionalLogs', newProfile.emotionalLogs || []),
+        saveSubcollection('fastingLogs', newProfile.fastingLogs || []),
+        saveSubcollection('bloodPressureLogs', newProfile.bloodPressureLogs || []),
+        saveSubcollection('bodyMonitorLogs', newProfile.bodyMonitorLogs || []),
+        saveSubcollection('notes', newProfile.notes || [])
       ]);
+
     } catch (err) {
-      console.error('Failed to sync to Supabase:', err);
+      console.error('Failed to sync profile to Firestore:', err);
     } finally {
       setIsSyncing(false);
     }

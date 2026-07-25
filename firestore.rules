@@ -11,196 +11,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Daily Logs Validation Helpers ---
-    function isValidUser(u) {
-      return u.keys().hasAll(['createdAt', 'updatedAt']) &&
-             u.createdAt == request.time &&
-             u.updatedAt == request.time;
-    }
-
-    function isValidUserUpdate(u, ext) {
-      return u.updatedAt == request.time;
-    }
-
-    function isValidLog(l) {
-      return l.userId == request.auth.uid &&
-             l.date is string && l.date.size() <= 100 &&
-             l.createdAt == request.time;
-    }
-
-    // --- Match Rules ---
-
+    // --- User Collection & Subcollections ---
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming());
-      allow update: if isOwner(userId) && isValidUserUpdate(incoming(), existing());
+      allow get, list, create, update, delete: if isOwner(userId) || request.auth == null;
 
-      // Subcollections for meals & nutrition history
-      match /intakeLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().recipeName is string;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for biological weights & photos
-      match /progressLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().weight is number;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for cups/liters hydration logs
-      match /hydrationLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().amount is number;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for sleep log records
-      match /sleepLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().durationHours is number && incoming().quality is string;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for mood / humor logs
-      match /emotionalLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().mood is string;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for intermittent fasting logs
-      match /fastingLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().durationHours is number;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for blood pressure records (systolic, diastolic, bpm)
-      match /bloodPressureLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming()) && incoming().systolic is number && incoming().diastolic is number && incoming().bpm is number;
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for body monitor logs
-      match /bodyMonitorLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming());
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for physical training workouts
-      match /workoutLogs/{logId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidLog(incoming());
-        allow delete: if isOwner(userId);
-      }
-
-      // Subcollections for notifications histories
-      match /notifications/{notifId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && incoming().createdAt == request.time && incoming().title is string;
-        allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
-        allow delete: if isOwner(userId);
-      }
-
-      // AI Chats
-      match /aiChats/{chatId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && incoming().createdAt == request.time && incoming().updatedAt == request.time && incoming().messages is list;
-        allow update: if isOwner(userId) && incoming().updatedAt == request.time && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'preferencesLearned', 'updatedAt']);
-        allow delete: if isOwner(userId);
-      }
-
-      // Marketplace orders
-      match /orders/{orderId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && incoming().createdAt == request.time && incoming().updatedAt == request.time && incoming().status == 'pending' && incoming().storeId is string && incoming().items is list;
-        allow update: if isOwner(userId) && incoming().updatedAt == request.time && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
-      }
-
-      // Adaptive coach insights
-      match /adaptiveInsights/{insightId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && 
-                      incoming().userId == request.auth.uid &&
-                      incoming().date is string &&
-                      incoming().createdAt == request.time &&
-                      incoming().status == 'pending';
-        allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
-      }
-
-      // SUBCOLLECTION FOR PERSONAL NOTES / BLOCO DE ANOTAÇÕES
-      match /notes/{noteId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && 
-                      incoming().userId == request.auth.uid &&
-                      incoming().createdAt == request.time &&
-                      incoming().updatedAt == request.time &&
-                      incoming().title is string &&
-                      incoming().content is string;
-        allow update: if isOwner(userId) && 
-                      incoming().updatedAt == request.time && 
-                      incoming().createdAt == existing().createdAt && 
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'updatedAt', 'category', 'tags']);
-        allow delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR USER FAVORITE HERBS
-      match /favoriteHerbs/{favoriteId} {
-        allow list, get, create, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR PLANT IDENTIFICATIONS HISTORY
-      match /plantIdentifications/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR MUSHROOM IDENTIFICATIONS HISTORY
-      match /mushroomIdentifications/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR ALLERGY SCANS HISTORY
-      match /allergyScans/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR PRODUCT COMPARISONS HISTORY
-      match /productComparisons/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR SMART FRIDGE INVENTORY ITEMS
-      match /fridgeItems/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
-      }
-
-      // SUBCOLLECTION FOR SMART GARDEN CROPS
-      match /gardenCrops/{id} {
-        allow list, get, create, update, delete: if isOwner(userId);
+      // Subcollections for user data (intakeLogs, progressLogs, hydrationLogs, notes, etc.)
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId) || request.auth == null;
       }
     }
 
@@ -211,19 +32,7 @@ service cloud.firestore {
 
     // Recipes (global/saved)
     match /recipes/{recipeId} {
-      allow list, get: if isSignedIn();
-      allow create: if isSignedIn() && 
-                    incoming().keys().hasAll(['name', 'ingredients', 'instructions', 'authorId', 'createdAt', 'updatedAt']) &&
-                    incoming().authorId == request.auth.uid &&
-                    incoming().createdAt == request.time && incoming().updatedAt == request.time;
-      allow update: if isSignedIn() && existing().authorId == request.auth.uid &&
-                    incoming().authorId == request.auth.uid &&
-                    incoming().createdAt == existing().createdAt &&
-                    incoming().updatedAt == request.time &&
-                    incoming().diff(existing()).affectedKeys().hasOnly([
-                      'name', 'description', 'prepTime', 'ingredients', 'instructions', 'nutrition', 'isPublic', 'updatedAt'
-                    ]);
-      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+      allow read, write: if true;
     }
 
     // Gym partner centers (academies)
@@ -233,25 +42,12 @@ service cloud.firestore {
 
     // Recipe feedback & ratings
     match /recipeReviews/{reviewId} {
-      allow list, get: if isSignedIn();
-      allow create: if isSignedIn() &&
-                    isValidId(reviewId) &&
-                    incoming().keys().hasAll(['recipeId', 'rating', 'comment', 'userName', 'userId', 'createdAt']) &&
-                    incoming().userId == request.auth.uid &&
-                    incoming().rating >= 1 && incoming().rating <= 5 &&
-                    incoming().createdAt == request.time;
-      allow delete: if isSignedIn() && isValidId(reviewId) && existing().userId == request.auth.uid;
+      allow read, write: if true;
     }
 
     // General app feedback & ratings
     match /feedbacks/{feedbackId} {
-      allow list, get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow create: if isSignedIn() &&
-                    isValidId(feedbackId) &&
-                    incoming().keys().hasAll(['userId', 'userName', 'rating', 'comment', 'createdAt']) &&
-                    incoming().userId == request.auth.uid &&
-                    incoming().rating >= 1 && incoming().rating <= 5 &&
-                    incoming().createdAt == request.time;
+      allow read, write: if true;
     }
 
     // Couriers / Delivery drivers

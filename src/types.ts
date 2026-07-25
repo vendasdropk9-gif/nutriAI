@@ -70,7 +70,16 @@ export interface WeeklyChallenge {
 
 export interface UserProfile {
   name: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
+  phone?: string;
+  birthDate?: string;
+  plan?: 'Free' | 'Premium';
+  isPremium?: boolean;
+  subscriptionStatus?: 'active' | 'inactive' | 'trial';
+  country?: string;
+  lastAccessAt?: string;
   createdAt?: string;
   updatedAt?: string;
   photoURL?: string;
@@ -93,6 +102,8 @@ export interface UserProfile {
   bodyType?: BodyType;
   metabolism?: MetabolismSpeed;
   routine?: string;
+  biometricsEnabled?: boolean;
+  biometricType?: 'face' | 'fingerprint' | 'both' | null;
   emotionalLogs?: EmotionalLog[];
   currentChallenge?: Challenge;
   weeklyChallenges?: WeeklyChallenge[];

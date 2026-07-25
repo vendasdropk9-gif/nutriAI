@@ -36,6 +36,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'habits', label: 'Hábitos', icon: <Activity className="w-5 h-5" /> },
   { id: 'notes', label: 'Notas', icon: <BookOpen className="w-5 h-5" />, color: 'from-amber-400 to-yellow-600' },
   { id: 'bloodpressure', label: 'Pressão', icon: <Heart className="w-5 h-5 text-rose-500 animate-pulse" />, color: 'from-rose-500 to-red-600' },
+  { id: 'glucose', label: 'Glicemia', icon: <Activity className="w-5 h-5 text-[#16C784]" />, color: 'from-emerald-500 to-teal-600' },
   { id: 'barcode', label: 'Scanner', icon: <Barcode className="w-5 h-5" /> },
   { id: 'allergy', label: 'Alergias', icon: <ShieldAlert className="w-5 h-5 text-rose-500" />, color: 'from-rose-500 to-red-600' },
   { id: 'comparer', label: 'Comparar', icon: <Scale className="w-5 h-5 text-emerald-500" />, color: 'from-emerald-500 to-teal-600' },

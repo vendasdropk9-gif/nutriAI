@@ -103,12 +103,39 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
     reader.readAsDataURL(file);
   };
 
-  const processNewImage = async (base64Image: string) => {
+  const compressImageBase64 = (base64: string, maxWidth = 600, quality = 0.65): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(base64);
+        }
+      };
+      img.onerror = () => resolve(base64);
+      img.src = base64;
+    });
+  };
+
+  const processNewImage = async (base64ImageRaw: string) => {
     setIsCapturing(false);
     setIsProcessing(true);
     vibrate([20, 50, 20]);
     
     try {
+      const base64Image = await compressImageBase64(base64ImageRaw);
       // Create prompt comparing with the latest entry if exists
       const latestEntry = entries.length > 0 ? entries[entries.length - 1] : null;
       let prompt = `Analise esta foto corporal focando estritamente em aspectos de fitness e forma física. ${latestEntry ? 'Esta é uma nova foto em uma linha do tempo de evolução.' : 'Esta é a primeira foto da evolução corporal.'} Faça uma estimativa POSITIVA e ENCORAJADORA do progresso. Cite coisas como "possível redução de inchaço", "melhora na postura", ou "definição aparente". Responda em um parágrafo curto, sem mencionar que é uma IA. Se não puder analisar o corpo, diga que a iluminação está ótima e elogie o foco.`;
@@ -129,7 +156,8 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
         analysis: analysisResult
       };
 
-      setEntries(prev => [...prev, newEntry].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      // Keep up to 20 most recent photo entries to avoid exceeding localStorage quota
+      setEntries(prev => [...prev, newEntry].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 20));
       
       playSfx('success');
       vibrate([50, 100, 50]);
