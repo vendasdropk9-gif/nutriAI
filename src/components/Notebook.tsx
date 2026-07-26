@@ -7,7 +7,7 @@ import {
 import { Note, UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { db, auth } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, serverTimestamp } from '../lib/firebase';
 
 interface NotebookProps {
   profile: UserProfile | null;

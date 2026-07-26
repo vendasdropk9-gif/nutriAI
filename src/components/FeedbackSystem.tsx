@@ -2,7 +2,7 @@ import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Star, X, Send, Heart, CheckCircle2, User as UserIcon } from 'lucide-react';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from '../lib/firebase';
 import { auth, db } from '../lib/firebase';
 import { playSfx, vibrate } from '../lib/sensory';
 import { UserProfile } from '../types';

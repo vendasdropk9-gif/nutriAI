@@ -109,7 +109,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     if (showOrders) {
        const loadOrders = async () => {
           try {
-             const { collection, getDocs } = await import('firebase/firestore');
+             const { collection, getDocs } = await import('../lib/firebase');
              const { db, auth } = await import('../lib/firebase');
              if (auth.currentUser) {
                 const snap = await getDocs(collection(db, 'users', auth.currentUser.uid, 'orders'));
@@ -659,7 +659,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                     const newId = crypto.randomUUID();
                     try {
                       // Guardar pedido básico no Firestore se logado
-                      const { collection, setDoc, doc, serverTimestamp } = await import('firebase/firestore');
+                      const { collection, setDoc, doc, serverTimestamp } = await import('../lib/firebase');
                       const { db, auth } = await import('../lib/firebase');
                       if (auth.currentUser) {
                          await setDoc(doc(collection(db, 'users', auth.currentUser.uid, 'orders'), newId), {

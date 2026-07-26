@@ -7,7 +7,7 @@ import { adjustMealPlan, generateAdaptiveInsight, generateMasterStrategy, genera
 import { speak } from '../lib/speech';
 import { PersonalizationWizard } from './PersonalizationWizard';
 import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, limit, getDocs, onSnapshot, serverTimestamp } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -368,7 +368,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                                           safeSet(`nutri-local-adaptive-insight-${user.uid}`, JSON.stringify(localInsightObj));
                                         } else {
                                           try {
-                                              const { doc, updateDoc } = await import('firebase/firestore');
+                                              const { doc, updateDoc } = await import('../lib/firebase');
                                               await updateDoc(doc(db, `users/${user.uid}/adaptiveInsights`, adaptiveInsight.id), { status: 'applied' });
                                           } catch (e) { console.warn(e); }
                                         }

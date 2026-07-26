@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from '../lib/firebase';
 import { 
   Search, Filter, Heart, Leaf, BookOpen, AlertTriangle, MessageSquare, 
   Compass, ShieldAlert, Sparkles, X, Check, Droplet, Sun, Sprout, 

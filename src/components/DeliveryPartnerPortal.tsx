@@ -74,7 +74,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
   const fetchMyDeliveries = async () => {
     if (!courier) return;
     try {
-      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const { collection, getDocs, query, where } = await import('../lib/firebase');
       const { db } = await import('../lib/firebase');
       
       // Fetch all deliveries where courierId matches

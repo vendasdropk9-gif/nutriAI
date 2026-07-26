@@ -17,7 +17,7 @@ import {
   getRedirectResult, 
   sendEmailVerification 
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from '../lib/firebase';
 
 export function Login() {
   const { loginLocally } = useAuth();

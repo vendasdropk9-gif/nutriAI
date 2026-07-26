@@ -6,7 +6,7 @@ import { chatWithAssistant } from '../lib/gemini';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { speak, stopSpeech } from '../lib/speech';
 
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from '../lib/firebase';
 import { db, auth } from '../lib/firebase';
 
 export interface ChatMessage {

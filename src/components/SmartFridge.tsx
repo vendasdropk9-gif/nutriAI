@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, doc, setDoc, deleteDoc, query, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, query, onSnapshot, getDocs } from '../lib/firebase';
 import { 
   Camera, Upload, Sparkles, Trash2, Edit2, Plus, Search, Calendar, 
   AlertTriangle, ShieldCheck, CheckSquare, Square, ShoppingBag, 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from '../lib/firebase';
 import { 
   Scale, Camera, Upload, Sparkles, CheckCircle2, AlertTriangle, 
   Trash2, Flame, Droplets, ShieldAlert, Zap, ArrowLeftRight,
