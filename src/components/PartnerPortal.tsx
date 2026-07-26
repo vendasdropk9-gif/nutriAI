@@ -369,7 +369,7 @@ export function PartnerPortal() {
               playSfx('tap');
               setStep('onboarding');
             }}
-            className="w-full py-4 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 rounded-2xl font-bold text-sm transition-all cursor-pointer"
+            className="w-full py-4 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-2xl font-bold text-sm transition-all cursor-pointer"
           >
             Sair do Painel
           </button>
@@ -542,7 +542,7 @@ export function PartnerPortal() {
                   >
                     <span>{tab.label}</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      orderFilter === tab.value ? 'bg-emerald-500 text-white' : tab.color || 'bg-slate-150 text-slate-600 dark:bg-slate-800'
+                      orderFilter === tab.value ? 'bg-emerald-500 text-white' : tab.color || 'bg-slate-200 text-slate-600 dark:bg-slate-800'
                     }`}>
                       {tab.badge}
                     </span>
@@ -661,7 +661,7 @@ export function PartnerPortal() {
               {/* Product Grid */}
               {filteredProducts.length === 0 ? (
                 <div className="clay-card p-12 text-center space-y-3 shadow-none">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-850 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mx-auto">
                     <ShoppingBasket className="w-8 h-8" />
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">Nenhum produto cadastrado que atenda a busca.</p>
@@ -673,7 +673,7 @@ export function PartnerPortal() {
                       key={p.id}
                       className="clay-card overflow-hidden group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 border border-slate-100 dark:border-slate-800/80 p-0 flex flex-col"
                     >
-                      <div className="relative aspect-video bg-slate-100 dark:bg-slate-850 overflow-hidden">
+                      <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
                         {p.image ? (
                           <img 
                             src={p.image} 
@@ -712,7 +712,7 @@ export function PartnerPortal() {
                                 vibrate(10);
                                 playSfx('tap');
                               }}
-                              className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm cursor-pointer border border-slate-150/50 dark:border-slate-705"
+                              className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500 hover:text-white rounded-xl transition-all shadow-sm cursor-pointer border border-slate-200/50 dark:border-slate-700"
                               title="Editar Produto"
                             >
                               <Edit className="w-4 h-4" />
@@ -723,7 +723,7 @@ export function PartnerPortal() {
                                 vibrate(15);
                                 setForm(prev => ({ ...prev, products: prev.products.filter(item => item.id !== p.id) }));
                               }}
-                              className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm cursor-pointer border border-slate-150/50 dark:border-slate-705"
+                              className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm cursor-pointer border border-slate-200/50 dark:border-slate-700"
                               title="Excluir Produto"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -773,9 +773,9 @@ export function PartnerPortal() {
                   <div className="flex-1 flex gap-4 items-stretch justify-between relative">
                     {/* Background Grid Lines */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none select-none opacity-40">
-                      <div className="border-b border-dashed border-slate-150 dark:border-slate-800" />
-                      <div className="border-b border-dashed border-slate-150 dark:border-slate-800" />
-                      <div className="border-b border-dashed border-slate-150 dark:border-slate-800" />
+                      <div className="border-b border-dashed border-slate-200 dark:border-slate-800" />
+                      <div className="border-b border-dashed border-slate-200 dark:border-slate-800" />
+                      <div className="border-b border-dashed border-slate-200 dark:border-slate-800" />
                     </div>
 
                     {[
@@ -847,7 +847,7 @@ export function PartnerPortal() {
                       value={form.businessName}
                       onChange={(e) => setForm({ ...form, businessName: e.target.value })}
                       placeholder="Sacolão do Bairro..."
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
 
@@ -857,7 +857,7 @@ export function PartnerPortal() {
                       value={form.responsible}
                       onChange={(e) => setForm({ ...form, responsible: e.target.value })}
                       placeholder="Pedro Souza..."
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
 
@@ -868,7 +868,7 @@ export function PartnerPortal() {
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       placeholder="(11) 98765-4321"
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
 
@@ -879,7 +879,7 @@ export function PartnerPortal() {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       placeholder="sacolao@email.com"
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
 
@@ -890,7 +890,7 @@ export function PartnerPortal() {
                       value={form.fee}
                       onChange={(e) => setForm({ ...form, fee: e.target.value })}
                       placeholder="5.00"
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
 
@@ -900,7 +900,7 @@ export function PartnerPortal() {
                       value={form.time}
                       onChange={(e) => setForm({ ...form, time: e.target.value })}
                       placeholder="30-45 min"
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                     />
                   </div>
                 </div>
@@ -911,7 +911,7 @@ export function PartnerPortal() {
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                     placeholder="Av. Paulista, 1000 - Bela Vista"
-                    className="w-full p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl ring-1 ring-slate-150 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm dark:text-white"
                   />
                 </div>
 

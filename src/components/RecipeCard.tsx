@@ -861,7 +861,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               <div className="flex justify-end gap-2 border-t border-emerald-500/10 pt-3">
                 <button
                   onClick={() => setIsSchedulingOpen(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-350 border-none bg-transparent cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
                 >
                   Fechar
                 </button>
@@ -1187,7 +1187,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                           initial={{ opacity: 0, scale: 0.92, y: 10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                          className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/30 rounded-2xl p-4 border border-slate-150/40 dark:border-slate-800/40 h-[240px] relative"
+                          className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/30 rounded-2xl p-4 border border-slate-200/40 dark:border-slate-800/40 h-[240px] relative"
                         >
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -1308,7 +1308,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         </div>
 
                         {/* Quick Summary Table */}
-                        <div className="lg:col-span-12 mt-2 bg-white/30 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-150/40 dark:border-slate-800/40">
+                        <div className="lg:col-span-12 mt-2 bg-white/30 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-200/40 dark:border-slate-800/40">
                           <h6 className="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-2.5">Consulta Rápida de Nutrientes</h6>
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
@@ -1428,7 +1428,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     Como melhorar a Textura
                                   </h6>
-                                  <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-1.5 leading-relaxed font-medium">
+                                  <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 leading-relaxed font-medium">
                                     {prepTips.textureTips.map((tip, i) => (
                                       <li key={i} className="flex gap-1.5">
                                         <span className="text-emerald-500 flex-shrink-0">•</span>
@@ -1444,7 +1444,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                     Como realçar o Sabor
                                   </h6>
-                                  <ul className="text-xs text-slate-600 dark:text-slate-350 space-y-1.5 leading-relaxed font-medium">
+                                  <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 leading-relaxed font-medium">
                                     {prepTips.flavorTips.map((tip, i) => (
                                       <li key={i} className="flex gap-1.5">
                                         <span className="text-amber-500 flex-shrink-0">•</span>
@@ -1462,7 +1462,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                                 </span>
                                 <div>
                                   <h6 className="text-[11px] uppercase tracking-wider text-indigo-700 dark:text-indigo-400 font-bold mb-0.5">O Segredo do Chef</h6>
-                                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-medium">{prepTips.chefSecret}</p>
+                                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{prepTips.chefSecret}</p>
                                 </div>
                               </div>
                             </div>
@@ -1568,7 +1568,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 <span className="font-serif text-3xl font-extrabold text-slate-800 dark:text-slate-100 block leading-none">
                   {getAverageRating()}
                 </span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-350 font-bold">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-300 font-bold">
                   Média
                 </span>
               </div>
@@ -1626,7 +1626,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                           className={`w-7 h-7 cursor-pointer transition-all duration-200 ${
                             star <= newRating
                               ? 'text-amber-400 fill-amber-400 drop-shadow-[0_2px_4px_rgba(251,191,36,0.15)]'
-                              : 'text-slate-300 dark:text-slate-650'
+                              : 'text-slate-300 dark:text-slate-600'
                           }`}
                         />
                       </button>
@@ -1719,7 +1719,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       ))}
                     </div>
 
-                    <p className="font-sans text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                    <p className="font-sans text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                       {rev.comment}
                     </p>
                   </div>

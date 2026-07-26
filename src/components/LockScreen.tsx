@@ -103,7 +103,7 @@ export function LockScreen({
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="clay-card p-8 md:p-10 text-center space-y-8 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/60 dark:border-slate-850/60 shadow-2xl rounded-[36px]"
+          className="clay-card p-8 md:p-10 text-center space-y-8 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/60 dark:border-slate-800/60 shadow-2xl rounded-[36px]"
         >
           <div className="flex justify-center">
             <div className="p-4 bg-emerald-500 rounded-[20px] shadow-lg shadow-emerald-500/20 text-white relative">

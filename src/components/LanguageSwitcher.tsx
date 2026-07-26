@@ -83,7 +83,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
         <div className={`shrink-0 w-3.5 h-3.5 rounded-full border-2 ${
           isSelected
             ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
-            : 'border-slate-350 dark:border-slate-600'
+            : 'border-slate-300 dark:border-slate-600'
         }`} />
       </motion.button>
     );

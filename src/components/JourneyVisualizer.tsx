@@ -795,7 +795,7 @@ export function JourneyVisualizer({ profile }: JourneyVisualizerProps) {
         </div>
 
         {/* Chart Viewport */}
-        <div className="w-full bg-slate-50/30 dark:bg-slate-900/20 p-4 md:p-6 rounded-[28px] border border-slate-100 dark:border-slate-850">
+        <div className="w-full bg-slate-50/30 dark:bg-slate-900/20 p-4 md:p-6 rounded-[28px] border border-slate-100 dark:border-slate-800">
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={chartData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-700/50" vertical={false} />

@@ -879,7 +879,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 1. Device block */}
-                <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-150 dark:border-slate-800 flex flex-col justify-between space-y-4">
+                <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500">
                       <Smartphone className="w-6 h-6" />
@@ -904,7 +904,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
                 </div>
 
                 {/* 2. Device block (OMRON) */}
-                <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-150 dark:border-slate-800 flex flex-col justify-between space-y-4">
+                <div className="p-5 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="p-3 bg-sky-500/10 rounded-xl text-sky-500">
                       <Bluetooth className="w-6 h-6" />

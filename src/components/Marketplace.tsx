@@ -600,7 +600,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
               <div className="pt-8 space-y-6 border-t dark:border-slate-800 mt-auto">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-slate-850 dark:text-slate-150 uppercase tracking-widest text-xs">Forma de Envio / Retirada</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-xs">Forma de Envio / Retirada</p>
                     {deliveryMethod === 'bicicleta' && (
                       <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                         <Leaf className="w-3 h-3" /> Pegada Neutra
@@ -648,7 +648,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                       {deliveryMethod === 'retirada' ? 'Grátis' : `R$ ${deliveryFee.toFixed(2)}`}
                     </span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold border-t dark:border-slate-800 pt-2 text-slate-800 dark:text-slate-150">
+                  <div className="flex justify-between text-lg font-bold border-t dark:border-slate-800 pt-2 text-slate-800 dark:text-slate-200">
                     <span>Total a Pagar</span>
                     <span>R$ {finalTotal.toFixed(2)}</span>
                   </div>

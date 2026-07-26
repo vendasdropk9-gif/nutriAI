@@ -511,7 +511,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
             setResult(ALL_FRUITS[2]); // Back to morango
             setGlowWinner(false);
           }}
-          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850 transition-all active:scale-95 flex items-center justify-center shrink-0 shadow-sm"
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center shrink-0 shadow-sm"
           title="Redefinir visualização"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -533,7 +533,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
         {/* History Action Trigger */}
         <button
           onClick={() => setShowHistoryDrawer(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-850 transition-all active:scale-95 shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-all active:scale-95 shrink-0"
         >
           <Clock className="w-4 h-4 text-purple-400" />
           <span className="hidden sm:inline">Histórico</span>
@@ -744,7 +744,7 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
                   <h3 className="font-sans font-extrabold text-lg sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-500 to-purple-400 uppercase tracking-wide">
                     {result.emoji} {result.name} sorteado!
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-350 font-normal leading-relaxed mt-1">
+                  <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed mt-1">
                     {result.benefits}
                   </p>
                 </div>
@@ -842,13 +842,13 @@ export function FitnessRoulette({ profile }: { profile: UserProfile | null }) {
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
                 {weeklyCompletedSpins.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                    <Sparkles className="w-8 h-8 text-slate-650 mb-2 animate-bounce" />
+                    <Sparkles className="w-8 h-8 text-slate-600 mb-2 animate-bounce" />
                     <p className="text-xs">Nenhum giro registrado.</p>
                     <p className="text-[10px] text-slate-600 mt-1">Gire a roleta e monte seu menu de vantagens!</p>
                   </div>
                 ) : (
                   weeklyCompletedSpins.map((spin, k) => (
-                    <div key={k} className="p-3 rounded-xl bg-slate-900 border border-slate-850 flex items-center justify-between text-xs text-white">
+                    <div key={k} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs text-white">
                       <span className="font-semibold">{spin}</span>
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-2" />
                     </div>

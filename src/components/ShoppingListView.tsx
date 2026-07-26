@@ -1173,7 +1173,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                         if (preset) handleSelectPreset(preset);
                       }}
                       value={locationName}
-                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs outline-none border-none cursor-pointer transition-all pr-8 appearance-none"
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs outline-none border-none cursor-pointer transition-all pr-8 appearance-none"
                     >
                       <option disabled value="">Alterar Região...</option>
                       {PRESET_LOCATIONS.map(p => (
@@ -1400,7 +1400,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-850 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
                     <tr>
                       <th className="px-6 py-4">Ingrediente</th>
                       <th className="px-6 py-4 text-center">Categoria</th>
@@ -1504,7 +1504,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleHearPromo(promo)}
-                            className={`p-2.5 rounded-xl border border-slate-150 dark:border-slate-800 flex items-center justify-center transition-all cursor-pointer ${
+                            className={`p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center transition-all cursor-pointer ${
                               isSpeaking 
                                 ? 'bg-amber-100 border-amber-300 text-amber-600 dark:bg-amber-950/20' 
                                 : 'bg-slate-50 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/30'

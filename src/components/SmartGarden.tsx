@@ -477,7 +477,7 @@ export function SmartGarden() {
           <Sprout className="w-3.5 h-3.5 md:w-4 md:h-4 animate-bounce shrink-0" />
           <span className="truncate">Minha Horta Inteligente</span>
         </div>
-        <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-850 dark:text-slate-100">
+        <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
           Horta Caseira Inteligente
         </h1>
         <p className="font-sans text-slate-500 dark:text-slate-400 text-lg leading-relaxed max-w-2xl mx-auto">
@@ -492,7 +492,7 @@ export function SmartGarden() {
           className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all ${
             activeTab === 'catalog' 
               ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm' 
-              : 'text-slate-600 dark:text-slate-350 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
           }`}
         >
           Guia de Plantio
@@ -502,7 +502,7 @@ export function SmartGarden() {
           className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
             activeTab === 'mygarden' 
               ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm' 
-              : 'text-slate-600 dark:text-slate-350 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
           }`}
         >
           Minha Horta
@@ -517,7 +517,7 @@ export function SmartGarden() {
           className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
             activeTab === 'diagnosis' 
               ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm' 
-              : 'text-slate-600 dark:text-slate-350 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/40 dark:hover:bg-slate-700/20'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
@@ -558,7 +558,7 @@ export function SmartGarden() {
 
                     <div className="p-5 space-y-3">
                       <div>
-                        <h3 className="font-serif text-2xl font-bold text-slate-850 dark:text-slate-100">{item.name}</h3>
+                        <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100">{item.name}</h3>
                         <p className="font-sans text-xs italic text-slate-400 dark:text-slate-500">{item.scientificName}</p>
                       </div>
 
@@ -660,7 +660,7 @@ export function SmartGarden() {
                       {/* Header details */}
                       <div className="space-y-4">
                         <div className="space-y-1">
-                          <h4 className="font-serif text-2xl font-bold text-slate-850 dark:text-slate-100">
+                          <h4 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100">
                             {crop.varietyName}
                           </h4>
                           <p className="font-sans text-xs text-slate-400">
@@ -815,14 +815,14 @@ export function SmartGarden() {
                   onChange={(e) => setSymptomDescription(e.target.value)}
                   placeholder="Exemplo: As folhas de baixo do meu manjericão estão com manchas amarelas e murchas, e há pequenos teias de aranha finas no caule."
                   rows={4}
-                  className="w-full p-4 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-650 font-sans text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-slate-400"
+                  className="w-full p-4 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 font-sans text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-slate-400"
                 />
 
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors"
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors"
                     >
                       <Camera className="w-3.5 h-3.5 text-teal-600" />
                       Anexar foto da folha/problema
@@ -925,7 +925,7 @@ export function SmartGarden() {
                       </h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {diagnoseResult.organicSolutions.map((sol, i) => (
-                          <div key={i} className="bg-emerald-50/20 dark:bg-emerald-950/20 border border-emerald-100/30 p-3.5 rounded-xl text-xs font-sans text-slate-700 dark:text-slate-350 leading-relaxed">
+                          <div key={i} className="bg-emerald-50/20 dark:bg-emerald-950/20 border border-emerald-100/30 p-3.5 rounded-xl text-xs font-sans text-slate-700 dark:text-slate-300 leading-relaxed">
                             {sol}
                           </div>
                         ))}
@@ -951,7 +951,7 @@ export function SmartGarden() {
       {/* PLANTING INSTRUCTIONS / GUIDE DETAIL MODAL */}
       {selectedCatalogItem && !isPlantingModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white dark:bg-slate-850 rounded-[32px] w-full max-w-xl max-h-[85vh] overflow-y-auto border border-slate-200 dark:border-slate-800 p-6 space-y-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-xl max-h-[85vh] overflow-y-auto border border-slate-200 dark:border-slate-800 p-6 space-y-6 shadow-2xl relative">
             <button
               onClick={() => setSelectedCatalogItem(null)}
               className="absolute top-5 right-5 p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 rounded-full transition-colors"
@@ -970,7 +970,7 @@ export function SmartGarden() {
             </div>
 
             <div className="space-y-4">
-              <div className="bg-teal-50/50 dark:bg-teal-950/10 border border-teal-100/40 p-4 rounded-2xl text-xs font-sans text-slate-600 dark:text-slate-350 leading-relaxed">
+              <div className="bg-teal-50/50 dark:bg-teal-950/10 border border-teal-100/40 p-4 rounded-2xl text-xs font-sans text-slate-600 dark:text-slate-300 leading-relaxed">
                 <p className="font-semibold text-teal-700 dark:text-teal-300 mb-1">Dificuldade: {selectedCatalogItem.difficulty}</p>
                 {selectedCatalogItem.benefits}
               </div>
@@ -1026,7 +1026,7 @@ export function SmartGarden() {
       {/* SETUP / START PLANTING MODAL */}
       {isPlantingModalOpen && selectedCatalogItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white dark:bg-slate-850 rounded-[32px] w-full max-w-md border border-slate-200 dark:border-slate-800 p-6 space-y-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-md border border-slate-200 dark:border-slate-800 p-6 space-y-6 shadow-2xl relative">
             <button
               onClick={() => { setIsPlantingModalOpen(false); setSelectedCatalogItem(null); }}
               className="absolute top-5 right-5 p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 rounded-full transition-colors"
@@ -1106,7 +1106,7 @@ export function SmartGarden() {
             <div className="pt-2 flex gap-3">
               <button
                 onClick={() => { setIsPlantingModalOpen(false); setSelectedCatalogItem(null); }}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-350 text-sm font-semibold rounded-2xl transition-all"
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-2xl transition-all"
               >
                 Cancelar
               </button>

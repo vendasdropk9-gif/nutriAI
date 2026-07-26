@@ -508,7 +508,7 @@ export function SmartFridge() {
           <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 animate-pulse shrink-0" />
           <span className="truncate">Nutrição Sem Desperdício</span>
         </div>
-        <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-850 dark:text-slate-100">
+        <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
           Geladeira Inteligente
         </h1>
         <p className="font-sans text-slate-500 dark:text-slate-400 text-lg leading-relaxed max-w-2xl mx-auto">
@@ -614,7 +614,7 @@ export function SmartFridge() {
                   placeholder="Buscar alimento..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-650 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -623,28 +623,28 @@ export function SmartFridge() {
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-650 font-sans text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-150"
+                  className="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 font-sans text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
                 >
                   <option value="Todas">Todas Categorias</option>
                   {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
 
-                <div className="flex rounded-2xl border border-slate-200/80 dark:border-slate-650 bg-white dark:bg-slate-700 overflow-hidden">
+                <div className="flex rounded-2xl border border-slate-200/80 dark:border-slate-600 bg-white dark:bg-slate-700 overflow-hidden">
                   <button
                     onClick={() => setSelectedStatus('todos')}
-                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-650 transition-colors ${selectedStatus === 'todos' ? 'bg-emerald-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-600 transition-colors ${selectedStatus === 'todos' ? 'bg-emerald-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
                   >
                     Todos
                   </button>
                   <button
                     onClick={() => setSelectedStatus('fresco')}
-                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-650 transition-colors ${selectedStatus === 'fresco' ? 'bg-emerald-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-600 transition-colors ${selectedStatus === 'fresco' ? 'bg-emerald-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
                   >
                     Frescos
                   </button>
                   <button
                     onClick={() => setSelectedStatus('perto_vencimento')}
-                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-650 transition-colors ${selectedStatus === 'perto_vencimento' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
+                    className={`px-3 py-1 text-xs font-medium border-r border-slate-200 dark:border-slate-600 transition-colors ${selectedStatus === 'perto_vencimento' ? 'bg-amber-500 text-white' : 'text-slate-600 dark:text-slate-300'}`}
                   >
                     Próx. Vencimento
                   </button>
@@ -701,7 +701,7 @@ export function SmartFridge() {
                 {filteredItems.map((item) => (
                   <div 
                     key={item.id}
-                    className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-150 dark:border-slate-700/50 rounded-[24px] p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                    className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-[24px] p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex justify-between items-start mb-3">
@@ -803,7 +803,7 @@ export function SmartFridge() {
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 px-5 py-2.5 rounded-2xl font-sans text-sm font-medium flex items-center gap-2 transition-all"
+                        className="bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 px-5 py-2.5 rounded-2xl font-sans text-sm font-medium flex items-center gap-2 transition-all"
                       >
                         <Upload className="w-4 h-4 text-slate-500" />
                         Fazer upload
@@ -826,7 +826,7 @@ export function SmartFridge() {
                         <div 
                           key={idx}
                           onClick={() => handleUsePreset(preset.url)}
-                          className="flex items-center gap-4 bg-slate-50 dark:bg-slate-850 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border border-slate-200 dark:border-slate-850 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all group"
+                          className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all group"
                         >
                           <img 
                             src={preset.url} 
@@ -868,7 +868,7 @@ export function SmartFridge() {
                     </button>
                     <button
                       onClick={stopCamera}
-                      className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 px-6 py-2.5 rounded-2xl font-sans text-sm font-medium"
+                      className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-6 py-2.5 rounded-2xl font-sans text-sm font-medium"
                     >
                       Cancelar
                     </button>
@@ -904,7 +904,7 @@ export function SmartFridge() {
                   {/* Summary of Detected Items */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                      <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-150 flex items-center gap-2">
+                      <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                         <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                         Alimentos Identificados pela IA ({analysisResult.identifiedItems.length})
                       </h3>
@@ -918,7 +918,7 @@ export function SmartFridge() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                       {analysisResult.identifiedItems.map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 dark:bg-slate-850/60 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-800 flex justify-between items-center">
                           <div>
                             <p className="font-sans font-semibold text-sm text-slate-800 dark:text-slate-200">{item.name}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">Qtd: {item.quantity || "1"}</p>
@@ -946,7 +946,7 @@ export function SmartFridge() {
 
                   {/* AI Recipe Suggestions */}
                   <div className="space-y-4">
-                    <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-150 flex items-center gap-2">
+                    <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <Utensils className="w-6 h-6 text-emerald-500" />
                       Sugestões de Receitas Saudáveis
                     </h3>
@@ -954,7 +954,7 @@ export function SmartFridge() {
                       {analysisResult.suggestedRecipes.map((recipe, idx) => (
                         <div 
                           key={idx}
-                          className="bg-white dark:bg-slate-850 p-5 rounded-[24px] border border-slate-200/50 dark:border-slate-800 shadow-sm flex flex-col justify-between"
+                          className="bg-white dark:bg-slate-800 p-5 rounded-[24px] border border-slate-200/50 dark:border-slate-800 shadow-sm flex flex-col justify-between"
                         >
                           <div>
                             <div className="flex justify-between items-center mb-2">
@@ -965,12 +965,12 @@ export function SmartFridge() {
                                 {recipe.difficulty}
                               </span>
                             </div>
-                            <h4 className="font-serif text-lg font-bold text-slate-850 dark:text-slate-100 mb-1">{recipe.title}</h4>
+                            <h4 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">{recipe.title}</h4>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{recipe.description}</p>
                             
                             {/* Used / Missing summary */}
                             <div className="space-y-2 mb-4">
-                              <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-350">Ingredientes de casa:</p>
+                              <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-300">Ingredientes de casa:</p>
                               <div className="flex flex-wrap gap-1">
                                 {recipe.usedIngredients.map((u, i) => (
                                   <span key={i} className="text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40">{u}</span>
@@ -978,7 +978,7 @@ export function SmartFridge() {
                               </div>
                               {recipe.missingIngredients && recipe.missingIngredients.length > 0 && (
                                 <>
-                                  <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-350 mt-2">Faltando/Substituir:</p>
+                                  <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-300 mt-2">Faltando/Substituir:</p>
                                   <div className="flex flex-wrap gap-1">
                                     {recipe.missingIngredients.map((m, i) => (
                                       <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-100 dark:border-rose-900/40">{m}</span>
@@ -991,7 +991,7 @@ export function SmartFridge() {
 
                           <button
                             onClick={() => { setSelectedRecipe(recipe); playSfx('tap'); }}
-                            className="w-full mt-4 flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-emerald-950/40 text-slate-700 hover:text-emerald-700 dark:text-slate-350 dark:hover:text-emerald-300 transition-colors rounded-xl text-xs font-semibold border border-transparent hover:border-emerald-200 dark:hover:border-emerald-900"
+                            className="w-full mt-4 flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-emerald-950/40 text-slate-700 hover:text-emerald-700 dark:text-slate-300 dark:hover:text-emerald-300 transition-colors rounded-xl text-xs font-semibold border border-transparent hover:border-emerald-200 dark:hover:border-emerald-900"
                           >
                             <BookOpen className="w-3.5 h-3.5" />
                             Ver Instruções
@@ -1005,7 +1005,7 @@ export function SmartFridge() {
                   {analysisResult.suggestedShoppingList && (
                     <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700/60">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-150 flex items-center gap-2">
+                        <h3 className="font-serif text-2xl font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                           <ShoppingBag className="w-6 h-6 text-emerald-500" />
                           Sugestão Automática de Compras
                         </h3>
@@ -1037,7 +1037,7 @@ export function SmartFridge() {
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={() => { setImagePreview(null); setAnalysisResult(null); stopCamera(); }}
-                      className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-350 flex items-center gap-2 text-sm font-sans font-semibold"
+                      className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex items-center gap-2 text-sm font-sans font-semibold"
                     >
                       <RefreshCw className="w-4 h-4" />
                       Escanear Outra Foto
@@ -1076,7 +1076,7 @@ export function SmartFridge() {
                   {analysisResult.suggestedRecipes.map((recipe, idx) => (
                     <div 
                       key={idx}
-                      className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-150 dark:border-slate-700/50 rounded-[28px] p-6 shadow-sm flex flex-col justify-between"
+                      className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-[28px] p-6 shadow-sm flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex justify-between items-center mb-3">
@@ -1091,7 +1091,7 @@ export function SmartFridge() {
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{recipe.description}</p>
                         
                         <div className="space-y-2 mb-4">
-                          <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-350">Ingredientes usados:</p>
+                          <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-300">Ingredientes usados:</p>
                           <div className="flex flex-wrap gap-1">
                             {recipe.usedIngredients.map((u, i) => (
                               <span key={i} className="text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">{u}</span>
@@ -1145,7 +1145,7 @@ export function SmartFridge() {
                 type="text"
                 name="manualItem"
                 placeholder="Ex: 1L Leite de Coco, 500g Tapioca..."
-                className="flex-grow min-w-0 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-650 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
+                className="flex-grow min-w-0 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
               />
               <button
                 type="submit"
@@ -1179,7 +1179,7 @@ export function SmartFridge() {
                       className={`flex justify-between items-center p-4 rounded-2xl border transition-all ${
                         item.checked 
                           ? 'bg-slate-100/50 dark:bg-slate-800/40 border-slate-200/50 text-slate-400 line-through' 
-                          : 'bg-white dark:bg-slate-800 border-slate-150 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
                       }`}
                     >
                       <button
@@ -1223,10 +1223,10 @@ export function SmartFridge() {
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-md w-full p-6 shadow-2xl border border-slate-150 dark:border-slate-700"
+            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"
           >
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-150">Adicionar Alimento</h3>
+              <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-200">Adicionar Alimento</h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
             </div>
 
@@ -1296,10 +1296,10 @@ export function SmartFridge() {
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-md w-full p-6 shadow-2xl border border-slate-150 dark:border-slate-700"
+            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"
           >
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-150">Editar Alimento</h3>
+              <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-200">Editar Alimento</h3>
               <button onClick={() => { setIsEditModalOpen(false); setEditingItem(null); }} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
             </div>
 
@@ -1367,14 +1367,14 @@ export function SmartFridge() {
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-xl w-full p-6 shadow-2xl border border-slate-150 dark:border-slate-700 max-h-[85vh] overflow-y-auto"
+            className="bg-white dark:bg-slate-800 rounded-[32px] max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[85vh] overflow-y-auto"
           >
             <div className="flex justify-between items-start mb-4">
               <div>
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                   {selectedRecipe.prepTime} • {selectedRecipe.difficulty}
                 </span>
-                <h3 className="font-serif text-2xl font-bold text-slate-850 dark:text-slate-100 mt-1">
+                <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">
                   {selectedRecipe.title}
                 </h3>
               </div>
@@ -1421,7 +1421,7 @@ export function SmartFridge() {
                 <h4 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Modo de Preparo</h4>
                 <ol className="space-y-3">
                   {selectedRecipe.instructions.map((step: string, idx: number) => (
-                    <li key={idx} className="flex gap-3 text-sm font-sans text-slate-600 dark:text-slate-305">
+                    <li key={idx} className="flex gap-3 text-sm font-sans text-slate-600 dark:text-slate-300">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
                         {idx + 1}
                       </span>

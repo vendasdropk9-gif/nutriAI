@@ -411,7 +411,7 @@ export function EmotionalTracker({
           !facePreviewImage &&
           !isFaceAnalyzing &&
           !faceAnalysisResult && (
-            <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-105 dark:border-slate-800/80 p-4 sm:p-5 rounded-2xl">
+            <div className="space-y-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 p-4 sm:p-5 rounded-2xl">
               <div className="flex gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/40 dark:border-emerald-900/30 p-3 sm:p-4 rounded-xl items-start">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
                 <div className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-400 leading-relaxed min-w-0 flex-1">
@@ -471,7 +471,7 @@ export function EmotionalTracker({
         {/* State 2: Camera view with Live Stream Feed */}
         {isFaceCameraActive && !facePreviewImage && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="relative w-full aspect-[4/3] max-w-lg mx-auto rounded-[24px] overflow-hidden bg-slate-950 border border-slate-850 flex items-center justify-center shadow-lg">
+            <div className="relative w-full aspect-[4/3] max-w-lg mx-auto rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-lg">
               {!faceCameraError && (
                 <video
                   ref={faceVideoRef}
@@ -518,7 +518,7 @@ export function EmotionalTracker({
                 <button
                   type="button"
                   onClick={stopFaceCamera}
-                  className="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs sm:text-sm transition-colors active:scale-95"
+                  className="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs sm:text-sm transition-colors active:scale-95"
                 >
                   Desativar Câmera
                 </button>
@@ -551,7 +551,7 @@ export function EmotionalTracker({
           <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row gap-6 items-start bg-emerald-500/5 dark:bg-emerald-900/15 border border-emerald-100 dark:border-emerald-800/40 p-6 rounded-[24px]">
               {facePreviewImage && (
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-md border-4 border-white dark:border-slate-805 shrink-0 relative mx-auto md:mx-0">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-md border-4 border-white dark:border-slate-800 shrink-0 relative mx-auto md:mx-0">
                   <img
                     src={facePreviewImage}
                     alt="Expressão Analisada"
@@ -587,7 +587,7 @@ export function EmotionalTracker({
                 </div>
 
                 <div className="space-y-1">
-                  <h4 className="font-serif text-lg text-slate-850 dark:text-slate-100 font-bold">
+                  <h4 className="font-serif text-lg text-slate-800 dark:text-slate-100 font-bold">
                     Feedback da NutriAI:
                   </h4>
                   <p className="font-sans text-slate-600 dark:text-slate-300 text-sm leading-relaxed italic pr-2">
@@ -605,7 +605,7 @@ export function EmotionalTracker({
                   <Coffee className="w-4 h-4 shrink-0" />
                   🍵 Chás de Conforto
                 </div>
-                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   {faceAnalysisResult.recommendations?.teas?.map(
                     (tea: string, idx: number) => (
                       <li key={idx} className="flex gap-1.5 items-start">
@@ -627,7 +627,7 @@ export function EmotionalTracker({
                   <Utensils className="w-4 h-4 shrink-0" />
                   🍽️ Jantar & Snacks
                 </div>
-                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   {faceAnalysisResult.recommendations?.meals?.map(
                     (meal: string, idx: number) => (
                       <li key={idx} className="flex gap-1.5 items-start">
@@ -649,7 +649,7 @@ export function EmotionalTracker({
                   <Wind className="w-4 h-4 shrink-0" />
                   🌬️ Prática Relaxante
                 </div>
-                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-350 leading-relaxed">
+                <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   {faceAnalysisResult.recommendations?.relaxingPractices?.map(
                     (practice: string, idx: number) => (
                       <li key={idx} className="flex gap-1.5 items-start">
@@ -680,10 +680,10 @@ export function EmotionalTracker({
 
       <div className="grid md:grid-cols-2 gap-8 px-2 sm:px-0">
         {/* Pattern Analysis */}
-        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-[32px] border border-slate-105 dark:border-slate-800/80 text-slate-800 dark:text-white shadow-xl flex flex-col justify-between transition-colors duration-300 min-w-0">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-[32px] border border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-white shadow-xl flex flex-col justify-between transition-colors duration-300 min-w-0">
           <div className="space-y-4 min-w-0">
             <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center shrink-0">
-              <Brain className="w-6 h-6 text-slate-850 dark:text-slate-200" />
+              <Brain className="w-6 h-6 text-slate-800 dark:text-slate-200" />
             </div>
             <h3 className="font-serif text-2xl sm:text-3xl font-medium text-slate-900 dark:text-white truncate">
               Análise de Padrões

@@ -211,7 +211,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 px-2 sm:px-4">
       
       {/* Premium sub-tab top navigation controls */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8 pb-6 border-b border-slate-150 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div className="text-center md:text-left">
           <span className="font-mono text-[10px] text-emerald-500 font-bold uppercase tracking-widest block">Portal Clínico Corporal</span>
           <h3 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm">Selecione a abordagem corporal por sensoriamento eletrônico</h3>

@@ -219,7 +219,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
                     setStep('dashboard');
                     setStatus('available');
                   }}
-                  className="px-6 py-4 bg-slate-150 dark:bg-slate-200 text-slate-700 dark:text-slate-800 font-bold rounded-2xl hover:bg-slate-200/60 transition-all text-sm"
+                  className="px-6 py-4 bg-slate-200 dark:bg-slate-200 text-slate-700 dark:text-slate-800 font-bold rounded-2xl hover:bg-slate-200/60 transition-all text-sm"
                 >
                   Entrar como Carlos S. (Demo)
                 </button>

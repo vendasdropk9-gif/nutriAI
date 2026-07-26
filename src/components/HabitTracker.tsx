@@ -736,9 +736,9 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                         <th className="py-2.5 text-right">Ação</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-slate-850 text-xs text-slate-600 dark:text-slate-300">
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
                       {[...todayHydration].reverse().map(log => (
-                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors">
+                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                           <td className="py-3 font-semibold">
                             {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>

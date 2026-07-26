@@ -285,7 +285,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
         </div>
 
         {/* Live Delivery Progress Feed */}
-        <div className="space-y-3 bg-slate-50/70 dark:bg-slate-850/50 p-4 rounded-2xl border border-slate-100/50 dark:border-slate-800/40">
+        <div className="space-y-3 bg-slate-50/70 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100/50 dark:border-slate-800/40">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Avisos do Trajeto em Tempo Real</p>
           {delivery?.notifications && delivery.notifications.length > 0 ? (
             <div className="space-y-2 max-h-[110px] overflow-y-auto">
@@ -293,7 +293,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
                 <div key={notif.id} className="flex gap-2 text-xs border-b border-dashed border-slate-100 dark:border-slate-800/30 pb-2 last:border-0 last:pb-0">
                   <span className="text-emerald-500 font-bold">•</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-slate-850 dark:text-slate-200">{notif.title}</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">{notif.title}</p>
                     <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-tight mt-0.5">{notif.message}</p>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
               <div className="flex gap-1.5">
                 <a 
                   href={`tel:${delivery?.courierPhone || "11987654321"}`}
-                  className="w-9 h-9 bg-white dark:bg-slate-850 rounded-full flex items-center justify-center shadow hover:bg-slate-50 active:scale-90 transition-all text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800"
+                  className="w-9 h-9 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow hover:bg-slate-50 active:scale-90 transition-all text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800"
                 >
                   <Phone className="w-4 h-4" />
                 </a>
@@ -355,12 +355,12 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
               className="p-1"
             >
               {!hasRated ? (
-                <div className="bg-emerald-50/50 dark:bg-slate-850/50 p-5 rounded-2xl border border-emerald-500/20 space-y-4">
+                <div className="bg-emerald-50/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-emerald-500/20 space-y-4">
                   <div className="flex flex-col items-center text-center space-y-1">
                     <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-1">
                       <Star className="w-6 h-6 fill-current" />
                     </div>
-                    <h4 className="font-bold text-slate-850 dark:text-slate-100 text-sm">Avaliar Entregador</h4>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Avaliar Entregador</h4>
                     <p className="text-[11px] text-slate-400">Como foi a entrega sustentável com {delivery?.courierName || "Carlos Santos"}?</p>
                   </div>
 
@@ -386,7 +386,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
                     value={ratingComment}
                     onChange={(e) => setRatingComment(e.target.value)}
                     placeholder="Escreva um comentário opcional (ajuda no bem-estar)..."
-                    className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-150 outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-colors"
                     rows={2}
                   />
 

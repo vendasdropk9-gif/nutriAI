@@ -508,7 +508,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   <div className={`w-3.5 h-3.5 rounded-full border-2 ${
                     biometricEnabled && (biometricType === 'face' || biometricType === 'both')
                       ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
-                      : 'border-slate-350'
+                      : 'border-slate-300'
                   }`} />
                 </button>
 
@@ -533,7 +533,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   <div className={`w-3.5 h-3.5 rounded-full border-2 ${
                     biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both')
                       ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
-                      : 'border-slate-350'
+                      : 'border-slate-300'
                   }`} />
                 </button>
               </div>

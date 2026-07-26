@@ -890,15 +890,15 @@ export function AcademyPortal() {
                 </p>
 
                 <div className="space-y-3.5 pt-2">
-                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-405 leading-relaxed">
+                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                     Permita adesões e captação de clientes 100% direta, sem comissões.
                   </div>
-                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-405 leading-relaxed">
+                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                     Consulte estatísticas e editores de grade de horários a qualquer hora.
                   </div>
-                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-405 leading-relaxed">
+                  <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                     Status de aprovação de cadastro seguro e com validação contra spam.
                   </div>
@@ -1488,15 +1488,15 @@ export function AcademyPortal() {
 
           {/* Mini Stats Grid */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
               <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-slate-400 truncate">Total</span>
               <strong className="text-lg sm:text-2xl text-slate-800 dark:text-white font-serif">{adminAcademies.length}</strong>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
               <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-amber-500 truncate">Pendentes</span>
               <strong className="text-lg sm:text-2xl text-amber-500 font-serif">{adminAcademies.filter(a => a.status === 'PENDENTE').length}</strong>
             </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 sm:p-4 rounded-2xl shadow-xs text-center">
               <span className="block text-[8px] sm:text-[10px] uppercase font-bold text-emerald-500 truncate">Ativas</span>
               <strong className="text-lg sm:text-2xl text-emerald-500 font-serif">{adminAcademies.filter(a => a.status === 'ATIVO').length}</strong>
             </div>
@@ -1535,7 +1535,7 @@ export function AcademyPortal() {
                 };
 
                 return (
-                  <div key={ac.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-5 rounded-3xl space-y-4 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-700">
+                  <div key={ac.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-4 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-700">
                     {/* Header: Image & Info */}
                     <div className="flex gap-4 items-start">
                       <AcademyImage src={ac.image} alt={ac.name} name={ac.name} className="w-16 h-16 rounded-2xl shrink-0" />
@@ -1566,7 +1566,7 @@ export function AcademyPortal() {
                         <div className="flex flex-wrap gap-1">
                           {ac.modalities && ac.modalities.length > 0 ? (
                             ac.modalities.map(m => (
-                              <span key={m} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-md text-[10px] font-semibold">
+                              <span key={m} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded-md text-[10px] font-semibold">
                                 {m}
                               </span>
                             ))
@@ -1576,7 +1576,7 @@ export function AcademyPortal() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-150 dark:border-slate-800/50 mt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/50 mt-1">
                         <p className="flex items-center gap-1.5 text-[11px]">
                           <span className="text-slate-400">📞 WhatsApp:</span>
                           <span className="font-medium text-slate-700 dark:text-slate-200">{ac.phone}</span>

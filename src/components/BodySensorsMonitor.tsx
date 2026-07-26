@@ -639,7 +639,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
                     </h5>
 
                     {/* SVG Human Vector */}
-                    <div className="relative w-full max-w-[200px] aspect-[1/2] bg-slate-50 dark:bg-slate-950/40 rounded-3xl border border-slate-100 dark:border-slate-850 p-4 transition-all flex items-center justify-center">
+                    <div className="relative w-full max-w-[200px] aspect-[1/2] bg-slate-50 dark:bg-slate-950/40 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 transition-all flex items-center justify-center">
                       
                       <svg viewBox="0 0 100 200" className="w-full h-full text-slate-300 dark:text-slate-700">
                         {/* Generalized human outline */}
@@ -796,7 +796,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
                     </div>
 
                     {/* Report Box under Highlight click */}
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-850">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800">
                       <h6 className="font-bold text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">
                         Mapeamento Ativo:{' '}
                         {selectedHighlight === 'heart' ? 'Coração & Circulação' : selectedHighlight === 'brain' ? 'Ansiedade & Neuroemissões' : selectedHighlight === 'stress' ? 'Nervos & Estresse' : 'Física/Fadiga Muscular'}
