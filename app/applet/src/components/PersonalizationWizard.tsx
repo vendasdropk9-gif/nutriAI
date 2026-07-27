@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserProfile } from "../types";
-import { Brain, CheckCircle2, Activity, Clock, Heart, Sparkles, ChevronLeft, Zap } from 'lucide-react';
+import { Brain, CheckCircle2, Activity, Clock, Heart, Sparkles, ChevronLeft, Zap, Utensils, MessageSquare } from 'lucide-react';
 
 interface PersonalizationWizardProps {
   profile: UserProfile | null;
@@ -35,17 +35,25 @@ export function PersonalizationWizard({ profile, onComplete }: PersonalizationWi
   };
 
   return (
-    <div className="w-full min-h-[75vh] flex flex-col items-center justify-center px-4 py-8 md:py-12 bg-white dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800 rounded-[40px] my-8 relative z-20">
-      <div className="w-full max-w-lg mb-10 flex flex-col items-center justify-center gap-4 text-center mt-8">
-        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm">
-          <Brain className="w-10 h-10" />
+    <div className="w-full min-h-[75vh] flex flex-col items-center justify-center px-4 py-8 md:py-12 bg-slate-50 dark:bg-slate-950/50 rounded-3xl my-4">
+      <div className="w-full max-w-lg mb-6 text-center flex flex-col items-center justify-center space-y-1.5">
+        <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm mb-1">
+          <Brain className="w-5 h-5" />
         </div>
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-2">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
           Seu plano personalizado
         </h1>
-        <p className="text-base text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
-          A Inteligência Artificial precisa entender seu corpo para calibrar sua nutrição 360.
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto">
+          A IA precisa entender seu corpo para calibrar sua nutrição 360.
         </p>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <button className="p-2 rounded-full bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-all border border-amber-500/20 shadow-sm">
+            <Utensils className="w-4 h-4" />
+          </button>
+          <button className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-all border border-emerald-500/20 shadow-sm">
+            <MessageSquare className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="w-full max-w-lg relative">
