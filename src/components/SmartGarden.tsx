@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { diagnosePlantHealth, PlantDiagnosisResult } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
+import basilImg from '../assets/images/basil_growing_garden_1786677988228.jpg';
+import rosemaryImg from '../assets/images/rosemary_growing_garden_1786678004949.jpg';
 
 interface GardenCrop {
   id: string;
@@ -40,7 +42,7 @@ const CROP_CATALOG = {
     fertilizingDays: 15,
     germinationDays: '4 a 7 dias',
     benefits: 'Calmante natural, rica em fibras, vitamina A e K.',
-    image: 'https://images.unsplash.com/photo-1622206194165-d27372d73927?auto=format&fit=crop&q=80&w=400&h=300',
+    image: 'https://images.unsplash.com/photo-1556801712-76c8eb07bbc9?auto=format&fit=crop&q=80&w=600&h=400',
     steps: [
       'Prepare um vaso com boa drenagem (furos embaixo + camada de argila expandida ou brita).',
       'Use substrato leve, fofo e rico em matéria orgânica (húmus de minhoca).',
@@ -62,7 +64,7 @@ const CROP_CATALOG = {
     fertilizingDays: 15,
     germinationDays: '5 a 10 dias',
     benefits: 'Excelente antioxidante, rico em licopeno e vitamina C.',
-    image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&q=80&w=400&h=300',
+    image: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&q=80&w=600&h=400',
     steps: [
       'Semeie em sementeiras. Transplante para vaso definitivo grande (+20 litros) quando atingir 10-15cm.',
       'Coloque uma estaca de madeira ou tutor para apoiar o caule durante o crescimento.',
@@ -84,7 +86,7 @@ const CROP_CATALOG = {
     fertilizingDays: 30,
     germinationDays: '6 a 12 dias',
     benefits: 'Auxilia na digestão, rica em vitaminas A, C e minerais.',
-    image: 'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?auto=format&fit=crop&q=80&w=400&h=300',
+    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=600&h=400',
     steps: [
       'Semeie diretamente em vaso de pelo menos 15cm de profundidade ou plante bulbos/raiz de feira.',
       'Mantenha o solo úmido, mas nunca encharcado. Gosta de solo bem drenado.',
@@ -106,7 +108,7 @@ const CROP_CATALOG = {
     fertilizingDays: 30,
     germinationDays: '7 a 14 dias',
     benefits: 'Digestivo potente, alivia cólicas, excelente refrescante aromático.',
-    image: 'https://images.unsplash.com/photo-1534080564583-6be75777b70a?auto=format&fit=crop&q=80&w=400&h=300',
+    image: 'https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?auto=format&fit=crop&q=80&w=600&h=400',
     steps: [
       'Plante em um vaso EXCLUSIVO. A hortelã possui raízes invasivas que sufocam outras plantas vizinhas.',
       'Use um vaso largo e raso, pois ela se espalha horizontalmente na superfície.',
@@ -128,7 +130,7 @@ const CROP_CATALOG = {
     fertilizingDays: 15,
     germinationDays: '5 a 10 dias',
     benefits: 'Antisséptico natural, combate estresse, rico em antioxidantes.',
-    image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=400&h=300',
+    image: basilImg,
     steps: [
       'Escolha um local que receba muito sol direto. O manjericão precisa de calor para desenvolver o sabor.',
       'Evite encharcar a terra, mas não o deixe passar sede absoluta.',
@@ -150,7 +152,7 @@ const CROP_CATALOG = {
     fertilizingDays: 90,
     germinationDays: '15 a 25 dias',
     benefits: 'Melhora o foco, memória, circulação e possui ação anti-inflamatória.',
-    image: 'https://images.unsplash.com/photo-1515519315610-d87b1c3fa1df?auto=format&fit=crop&q=80&w=400&h=300',
+    image: rosemaryImg,
     steps: [
       'Garante drenagem excelente: misture 1 parte de areia de construção para 2 partes de terra vegetal.',
       'O alecrim odeia raízes encharcadas, excesso de água causa apodrecimento imediato.',
