@@ -1,19 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Safe environment variable getter to support both Vite client-side (import.meta.env)
-// and Node server-side (process.env) without triggering ESBuild warnings
+// and Node server-side (process.env)
 const getEnvVar = (name: string): string => {
-  if (typeof process !== 'undefined' && process.env && process.env[name]) {
-    return process.env[name] as string;
-  }
+  let val = '';
   try {
-    // String-based access avoids bundle parsing issues
-    const metaEnv = (import.meta as any).env;
-    if (metaEnv && metaEnv[`VITE_${name}`]) {
-      return metaEnv[`VITE_${name}`] as string;
+    if (name === 'SUPABASE_URL') {
+      val = import.meta.env.VITE_SUPABASE_URL || (import.meta.env as any).SUPABASE_URL || '';
+    } else if (name === 'SUPABASE_ANON_KEY') {
+      val = import.meta.env.VITE_SUPABASE_ANON_KEY || (import.meta.env as any).SUPABASE_ANON_KEY || '';
     }
   } catch (e) {}
-  return '';
+
+  if (!val && typeof process !== 'undefined' && process.env) {
+    val = (process.env[`VITE_${name}`] || process.env[name] || '') as string;
+  }
+  return (val || '').trim().replace(/^["']|["']$/g, '');
 };
 
 const supabaseUrl = getEnvVar('SUPABASE_URL');
