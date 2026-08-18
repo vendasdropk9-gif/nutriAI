@@ -1,8 +1,47 @@
+// Audio Context Singleton that safely resumes only after a user gesture
+let sharedAudioCtx: AudioContext | null = null;
+let userHasInteracted = false;
+
+if (typeof window !== 'undefined') {
+  const markInteraction = () => {
+    userHasInteracted = true;
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    window.removeEventListener('pointerdown', markInteraction);
+    window.removeEventListener('keydown', markInteraction);
+    window.removeEventListener('touchstart', markInteraction);
+  };
+  window.addEventListener('pointerdown', markInteraction, { passive: true });
+  window.addEventListener('keydown', markInteraction, { passive: true });
+  window.addEventListener('touchstart', markInteraction, { passive: true });
+}
+
+const getSafeAudioContext = (): AudioContext | null => {
+  if (typeof window === 'undefined') return null;
+  if (!userHasInteracted) return null; // Don't trigger browser autoplay warning before user gesture
+
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioContextClass();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+      return null;
+    }
+    return sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crystal' | 'scratch' | 'confetti') => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const ctx = getSafeAudioContext();
+    if (!ctx) return;
+
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
 

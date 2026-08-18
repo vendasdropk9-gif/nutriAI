@@ -315,7 +315,8 @@ export function Login() {
       console.warn("Google login failed", err);
       playSfx('scratch');
       if (err.code === 'auth/unauthorized-domain') {
-        setError('Domínio não autorizado no Firebase. Adicione o domínio atual na aba Authorized Domains do seu projeto Firebase.');
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
+        setError(`Domínio "${currentHost}" não autorizado no Firebase. Adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Login cancelado: A janela do Google foi fechada antes da autorização.');
       } else if (window !== window.parent) {
