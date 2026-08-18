@@ -1,22 +1,20 @@
-const CACHE_NAME = 'nutriai-cache-v1';
+const CACHE_NAME = 'nutriai-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.png',
   '/icon-192.png',
-  '/icon-512.png',
-  '/src/main.tsx',
-  '/src/index.css'
+  '/icon-512.png'
 ];
 
-// Install event - caching assets
+// Install event - caching static shell assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching static assets...');
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
-        console.warn('[Service Worker] Asset caching warning:', err);
+      console.log('[Service Worker] Caching app shell...');
+      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
+        console.warn('[Service Worker] Static assets cache notice:', err);
       });
     }).then(() => self.skipWaiting())
   );
@@ -38,41 +36,57 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serving cached assets or fetching from network
+// Fetch event - only handle GET requests, bypass API and external services
 self.addEventListener('fetch', (event) => {
-  // Only handle local HTTP/S requests, skip chrome-extension, supabase, firebase, etc.
-  if (!event.request.url.startsWith(self.location.origin)) {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const url = event.request.url;
+
+  // Never cache backend API calls, OAuth, Supabase, Firebase, or external API endpoints
+  if (
+    url.includes('/api/') ||
+    url.includes('/sso-api') ||
+    url.includes('googleapis.com') ||
+    url.includes('firebaseapp.com') ||
+    url.includes('supabase.co')
+  ) {
+    return;
+  }
+
+  // Only handle same-origin requests
+  if (!url.startsWith(self.location.origin)) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached resource, but fetch in background to update cache (Stale-While-Revalidate)
+        // Fetch in background to update cache (Stale-While-Revalidate)
         fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
+              cache.put(event.request, networkResponse.clone()).catch(() => {});
             });
           }
-        }).catch(() => {/* Ignore network errors */});
+        }).catch(() => {});
 
         return cachedResponse;
       }
 
       return fetch(event.request).then((response) => {
-        // Cache dynamic local requests that are successful
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, responseToCache).catch(() => {});
           });
         }
         return response;
       }).catch((err) => {
-        // Offline fallback for navigate requests (e.g. HTML pages)
         if (event.request.mode === 'navigate') {
-          return caches.match('/');
+          return caches.match('/') || caches.match('/index.html');
         }
         throw err;
       });
