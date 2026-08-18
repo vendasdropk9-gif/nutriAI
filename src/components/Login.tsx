@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Utensils, Mail, Lock, ScanFace, ArrowRight, Eye, EyeOff, AlertCircle, 
   CheckCircle2, Fingerprint, ShieldCheck, RefreshCw, Smartphone, X, 
-  Sparkles, Check, FileText, UserCheck, Shield
+  Sparkles, Check, FileText, UserCheck, Shield, Copy, ExternalLink
 } from 'lucide-react';
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import { playSfx, vibrate } from '../lib/sensory';
@@ -56,6 +56,18 @@ export function Login() {
   const [scanningProgress, setScanningProgress] = useState(0);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const [copiedDomain, setCopiedDomain] = useState(false);
+
+  const handleCopyDomain = () => {
+    const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+    if (domain && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(domain);
+      setCopiedDomain(true);
+      playSfx('tap');
+      setTimeout(() => setCopiedDomain(false), 3000);
+    }
+  };
 
   // Load remembered email on mount
   useEffect(() => {
@@ -585,9 +597,32 @@ export function Login() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden mb-5"
               >
-                <div className="p-3.5 bg-red-950/40 text-red-300 text-xs font-medium rounded-2xl flex items-start gap-2.5 border border-red-800/40 shadow-sm leading-relaxed">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
-                  <span>{error}</span>
+                <div className="p-3.5 bg-red-950/40 text-red-300 text-xs font-medium rounded-2xl flex flex-col gap-2.5 border border-red-800/40 shadow-sm leading-relaxed">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                    <span className="flex-1">{error}</span>
+                  </div>
+                  {error.includes('não autorizado no Firebase') && typeof window !== 'undefined' && (
+                    <div className="mt-1 pt-2.5 border-t border-red-800/30 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyDomain}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 text-red-100 rounded-xl text-[11px] font-semibold transition border border-red-700/50 active:scale-95"
+                      >
+                        {copiedDomain ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedDomain ? 'Domínio Copiado!' : 'Copiar Domínio'}
+                      </button>
+                      <a
+                        href="https://console.firebase.google.com/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[11px] font-semibold transition border border-slate-700/50"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Abrir Firebase Console
+                      </a>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
