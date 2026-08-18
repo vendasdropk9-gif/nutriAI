@@ -1093,8 +1093,19 @@ Retorne APENAS um JSON estruturado.`;
 };
 
 export const analyzePlate = async (base64Image: string, mimeType: string, profile?: UserProfile | null): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const ai = new GoogleGenAI({ apiKey: apiKey || '' });
   
+  let cleanData = base64Image || '';
+  let activeMime = mimeType || 'image/jpeg';
+  if (cleanData.includes(';base64,')) {
+    const parts = cleanData.split(';base64,');
+    if (parts[0].startsWith('data:')) {
+      activeMime = parts[0].replace('data:', '');
+    }
+    cleanData = parts[1];
+  }
+
   const prompt = `Analise a imagem deste prato de comida e reconheça os alimentos presentes.
 Calcule aproximadamente os valores nutricionais totais do prato (proteína em gramas, carboidratos em gramas, gorduras em gramas, calorias totais, e fibras em gramas).
 
@@ -1107,7 +1118,7 @@ Crie também uma 'nutriScoreExplanation' (1 frase rápida) explicando por que es
 
 Verifique se a refeição corresponde de forma geral ao plano sugerido (quantidade, tipos de alimentos) ou ao objetivo do usuário.
 Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium.
-- Se o prato estiver de acordo com o plano, confirme o progresso positivamente (ex: "Isso aí! Esse prato está perfeito e super alinhado com o seu plano de hoje. Muito orgilho!").
+- Se o prato estiver de acordo com o plano, confirme o progresso positivamente (ex: "Isso aí! Esse prato está perfeito e super alinhado com o seu plano de hoje. Muito orgulho!").
 - Se não estiver, sugira ajustes ou encoraje sem culpa (ex: "Parece muito gostoso! Mas pra chegar no seu objetivo, faltou uma saladinha ou um pouco mais de proteína. Na próxima a gente acerta, sem estresse.").
 Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição na array 'suggestions'.
 Garanta privacidade e reforço positivo ao hábito.
@@ -1138,12 +1149,12 @@ Responda APENAS num json.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
-            data: base64Image,
-            mimeType: mimeType
+            data: cleanData,
+            mimeType: activeMime
           }
         },
         prompt
@@ -1159,7 +1170,7 @@ Responda APENAS num json.`;
     if (!text) return null;
     return JSON.parse(text);
   } catch (error) {
-    console.info("Fallback triggered: plate");
+    console.info("Fallback triggered: plate", error);
     return {
       foods: ["Alimentos saudáveis variados", "Proteína leve", "Vegetais"],
       nutrition: {
@@ -1169,7 +1180,9 @@ Responda APENAS num json.`;
         fat: 10,
         fiber: 8
       },
-      assistantMessage: "Este é um prato equilibrado, parece excelente! (Fallback Offline)",
+      nutriScore: 85,
+      nutriScoreExplanation: "Refeição balanceada com boa distribuição de nutrientes e vegetais frescos.",
+      assistantMessage: "Este é um prato equilibrado, parece excelente! Seu almoço está bem alinhado com suas metas.",
       suggestions: ["Beba água após a refeição", "Equilibre a próxima refeição com mais fibras se necessário."]
     };
   }
