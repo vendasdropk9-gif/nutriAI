@@ -302,15 +302,17 @@ export function Login() {
     } catch (err: any) {
       console.warn("Google login failed", err);
       playSfx('scratch');
-      if (err.code === 'auth/unauthorized-domain') {
+      if (err.code === 'auth/unauthorized-domain' || err?.message?.includes('authorized for OAuth operations')) {
         const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
         setError(`Domínio "${currentHost}" não autorizado no Firebase. Adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.');
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Login cancelado: A janela do Google foi fechada antes da autorização.');
       } else if (window !== window.parent) {
         setError('O login do Google pode ser bloqueado dentro de iFrames. Recomendamos abrir o app em uma nova janela.');
       } else {
-        setError('Não foi possível entrar com a conta do Google. Tente novamente.');
+        setError(err?.message || 'Não foi possível entrar com a conta do Google. Tente novamente.');
       }
     } finally {
       setLoading(false);

@@ -10,16 +10,25 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isIframe = window !== window.parent;
+    const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = typeof window !== 'undefined' && window !== window.parent;
 
     if ((isStandalone || isMobile) && !isIframe) {
       await signInWithRedirect(auth, googleProvider);
       return null;
     } else {
-      const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        return result.user;
+      } catch (popupErr: any) {
+        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/popup-closed-by-user' && isMobile) {
+          console.warn("Popup blocked or closed on mobile, falling back to signInWithRedirect...");
+          await signInWithRedirect(auth, googleProvider);
+          return null;
+        }
+        throw popupErr;
+      }
     }
   } catch (error) {
     console.error("Error signing in with Google", error);
