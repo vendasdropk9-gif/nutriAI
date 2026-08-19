@@ -73,7 +73,7 @@ Lembre-se: Você é uma interface de VOZ superinteligente e humanizada. Responda
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -144,7 +144,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -253,7 +253,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -386,7 +386,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -589,7 +589,7 @@ Responda APENAS com um objeto JSON.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -625,7 +625,7 @@ export const scanIngredients = async (base64Image: string, mimeType: string): Pr
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
@@ -718,7 +718,7 @@ Responda APENAS com um array JSON com os objetos de receita.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1019,7 +1019,7 @@ Retorne APENAS um JSON no formato definido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           role: 'user',
@@ -1075,7 +1075,7 @@ Retorne APENAS um JSON estruturado.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1197,7 +1197,7 @@ Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse con
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction,
         temperature: 0.7,
@@ -1269,7 +1269,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1357,7 +1357,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1413,7 +1413,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1453,7 +1453,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         temperature: 0.8,
@@ -1495,7 +1495,7 @@ Diretrizes:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.7 }
     });
@@ -1526,7 +1526,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: { temperature: 0.7 },
     });
@@ -1579,7 +1579,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1638,7 +1638,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1699,7 +1699,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1781,7 +1781,7 @@ Responda APENAS com JSON.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1871,7 +1871,7 @@ Responda APENAS JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1951,7 +1951,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2017,7 +2017,7 @@ Responda APENAS em JSON no formato Array de WeeklyChallenge.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2067,7 +2067,7 @@ Responda APENAS em JSON no seguinte formato:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2182,7 +2182,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
@@ -2277,7 +2277,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
@@ -2383,7 +2383,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2482,7 +2482,7 @@ Responda APENAS em JSON em conformidade com o schema fornecido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2579,7 +2579,7 @@ Responda APENAS com um objeto JSON validando o schema fornecido.`;
     required: ["tips"]
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
   let responseText = "";
   let lastError: any = null;
 
@@ -2674,7 +2674,7 @@ DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -2879,7 +2879,7 @@ Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve 
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: { parts: [imagePart, textPart] },
       config: {
         systemInstruction: systemInstruction,
@@ -2924,7 +2924,7 @@ DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3050,7 +3050,7 @@ Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve 
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: { parts: [imagePart, textPart] },
       config: {
         systemInstruction: systemInstruction,
@@ -3095,7 +3095,7 @@ DIRETRIZES DE SEGURANÇA INDISPENSÁVEIS:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3200,7 +3200,7 @@ DIRETRIZES IMPORTANTES:
     required: ["identified", "productName", "ingredientsFound", "isSafe", "allergensDetected", "userSpecificThreats", "alternativesSuggested", "detailedAnalysis", "score"]
   };
 
-  const modelsToTry = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  const modelsToTry = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
   let responseText = "";
   let lastError: any = null;
 
@@ -3299,7 +3299,7 @@ Retorne apenas JSON com o campo "text" em formato markdown. Exemplo: { "text": "
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3477,7 +3477,7 @@ Explique detalhadamente em português qual opção (A ou B) se encaixa melhor no
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -3627,7 +3627,7 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido conte
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -3700,7 +3700,7 @@ Analise o caso e forneça um diagnóstico ecológico preciso, as causas prováve
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -3728,7 +3728,7 @@ Sua missão é dar respostas precisas, científicas, acolhedoras e em português
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: `O usuário tem a seguinte dúvida sobre a qualidade ou origem da água: "${queryText}". Dê uma resposta de até 4 parágrafos, didática, amigável e com dicas práticas excelentes.`,
       config: {
         systemInstruction: systemInstruction,
@@ -3779,7 +3779,7 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "Você é um Chef de Cozinha profissional e especialista em gastronomia funcional saudável para o NutriAI. Suas dicas devem ser rápidas, acionáveis, saudáveis e realistas para cozinheiros domésticos.",

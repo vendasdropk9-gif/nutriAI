@@ -27,10 +27,6 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const signInWithApple = async () => {
-  throw new Error("Apple Sign-In not configured");
-};
-
 // --- FIRESTORE TO SUPABASE BRIDGE LAYER ---
 
 // Map Firestore collection names to Supabase tables

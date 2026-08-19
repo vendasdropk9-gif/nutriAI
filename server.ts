@@ -97,7 +97,6 @@ async function startServer() {
       console.error("Failed to seed couriers:", e);
     }
   };
-  seedCouriers();
 
   const seedMedicinalHerbs = async () => {
     try {
@@ -397,7 +396,11 @@ async function startServer() {
       console.error("Failed to seed medicinal herbs:", e);
     }
   };
-  seedMedicinalHerbs();
+  // Defer seeding to background to allow instant server boot
+  setTimeout(() => {
+    seedCouriers().catch(err => console.warn("Background seed couriers skipped/failed:", err?.message || err));
+    seedMedicinalHerbs().catch(err => console.warn("Background seed medicinal herbs skipped/failed:", err?.message || err));
+  }, 1000);
 
   const app = express();
   const PORT = 3000;
