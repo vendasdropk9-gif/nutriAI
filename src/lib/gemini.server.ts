@@ -518,10 +518,10 @@ export const generateRecipe = async (
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
     profileText = `
-Restrições fixas: ${profile.restrictions.join(", ") || "Nenhuma"}
-Alergias: ${profile.allergies.join(", ") || "Nenhuma"}
+Restrições fixas: ${profile?.restrictions?.join(", ") || "Nenhuma"}
+Alergias: ${profile?.allergies?.join(", ") || "Nenhuma"}
 Objetivo: ${profile.goals || "Nenhum específico"}
-Equipamentos disponíveis: ${profile.equipment.join(", ") || "Todos"}
+Equipamentos disponíveis: ${profile?.equipment?.join(", ") || "Todos"}
 `;
   }
 
@@ -1218,25 +1218,27 @@ export const generateJuiceRecipe = async (
   ingredients: string = "",
   budgetMode: boolean = false
 ): Promise<any> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
-  let profileText = "Nenhum";
-  if (profile) {
-    profileText = `
-Peso: ${profile.weight}kg
-Altura: ${profile.height}m
-Objetivo: ${profile.goals}
-Restrições: ${profile.restrictions.join(", ")}
-Alergias: ${profile.allergies.join(", ")}
+    let profileText = "Nenhum";
+    if (profile) {
+      profileText = `
+Peso: ${profile.weight || 'Não informado'}kg
+Altura: ${profile.height || 'Não informada'}m
+Objetivo: ${profile.goals || 'Saúde e bem-estar'}
+Restrições: ${profile?.restrictions?.join(", ") || 'Nenhuma'}
+Alergias: ${profile?.allergies?.join(", ") || 'Nenhuma'}
 `;
-  }
+    }
 
-  const budgetContext = budgetMode 
-    ? "\nMODO ECONOMIA ATIVADO: Sugira sucos com ingredientes de BAIXO CUSTO e acessíveis (ex: limão, melancia, cenoura, hortelã quintal)." 
-    : "";
+    const budgetContext = budgetMode 
+      ? "\nMODO ECONOMIA ATIVADO: Sugira sucos com ingredientes de BAIXO CUSTO e acessíveis (ex: limão, melancia, cenoura, hortelã quintal)." 
+      : "";
 
-  const prompt = `Gere uma receita de SUCO NATURAL focado no perfil e objetivo do usuário (ex: emagrecimento, reeducação alimentar).
-  
+    const prompt = `Gere uma receita de SUCO NATURAL focado no perfil e objetivo do usuário (ex: emagrecimento, reeducação alimentar).
+    
 Perfil do Usuário: ${profileText}${budgetContext}
 Ingredientes sugeridos/disponíveis pelo usuário: ${ingredients || "O que for melhor para o objetivo, priorize frutas, vegetais e funcionais como chia ou gengibre."}
 
@@ -1246,28 +1248,27 @@ Regras:
 3. Produza uma 'assistantMessage' (fala de IA em tom premium, curto, humano, acolhedor. Ex: "Deixei mais simples pra facilitar." ou "Separei algo rápido pra agora.").
 4. Responda APENAS com JSON validando o schema exato.`;
 
-  const schema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      name: { type: Type.STRING },
-      assistantMessage: { type: Type.STRING },
-      ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
-      instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
-      nutrition: {
-        type: Type.OBJECT,
-        properties: {
-          calories: { type: Type.NUMBER },
-          carbs: { type: Type.NUMBER },
-          fiber: { type: Type.NUMBER },
+    const schema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        name: { type: Type.STRING },
+        assistantMessage: { type: Type.STRING },
+        ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+        instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        nutrition: {
+          type: Type.OBJECT,
+          properties: {
+            calories: { type: Type.NUMBER },
+            carbs: { type: Type.NUMBER },
+            fiber: { type: Type.NUMBER },
+          },
+          required: ["calories", "carbs", "fiber"],
         },
-        required: ["calories", "carbs", "fiber"],
+        benefits: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      benefits: { type: Type.ARRAY, items: { type: Type.STRING } },
-    },
-    required: ["name", "assistantMessage", "ingredients", "instructions", "nutrition", "benefits"],
-  };
+      required: ["name", "assistantMessage", "ingredients", "instructions", "nutrition", "benefits"],
+    };
 
-  try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -1279,7 +1280,7 @@ Regras:
     });
 
     const text = response.text;
-    if (!text) return null;
+    if (!text) throw new Error("Sem resposta da IA");
     return JSON.parse(text);
   } catch (error) {
     console.info("Fallback triggered: juice", error);
@@ -1318,8 +1319,8 @@ export const analyzeBarcodeProduct = async (
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile.restrictions.join(", ")}
-Alergias: ${profile.allergies.join(", ")}
+Restrições: ${profile?.restrictions?.join(", ")}
+Alergias: ${profile?.allergies?.join(", ")}
 `;
   }
 
@@ -2137,8 +2138,8 @@ export const analyzeProductImage = async (
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile.restrictions.join(", ")}
-Alergias: ${profile.allergies.join(", ")}
+Restrições: ${profile?.restrictions?.join(", ")}
+Alergias: ${profile?.allergies?.join(", ")}
 `;
   }
 
@@ -2228,8 +2229,8 @@ export const analyzeEmotionalImage = async (
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile.restrictions.join(", ")}
-Alergias: ${profile.allergies.join(", ")}
+Restrições: ${profile?.restrictions?.join(", ")}
+Alergias: ${profile?.allergies?.join(", ")}
 `;
   }
 
@@ -3751,7 +3752,7 @@ export const generateRecipePreparationTips = async (
 
   const prompt = `Gere dicas de preparo profissionais e criativas para a seguinte receita:
 Receita: ${recipeName}
-Ingredientes principais: ${ingredients.join(", ")}
+Ingredientes principais: ${Array.isArray(ingredients) ? ingredients.join(", ") : String(ingredients || "")}
 
 Forneça dicas práticas e em português do Brasil sobre como melhorar a textura e o sabor desta refeição específica.
 Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido.`;

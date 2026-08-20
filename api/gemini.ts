@@ -40,13 +40,6 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Nome de função Gemini inválido ou ausente.' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({
-        error: 'A variável de ambiente GEMINI_API_KEY não foi configurada na Vercel. Adicione GEMINI_API_KEY em Settings > Environment Variables no painel da Vercel.'
-      });
-    }
-
     const func = (geminiServer as any)[functionName];
     if (!func || typeof func !== 'function') {
       return res.status(404).json({ error: `Função '${functionName}' não localizada no backend do Gemini.` });
