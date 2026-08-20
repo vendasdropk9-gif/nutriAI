@@ -1,0 +1,167 @@
+src/components/HydrationTracker.tsx:149:                <button
+src/components/HydrationTracker.tsx:166:             <button
+src/components/HydrationTracker.tsx:174:             <button
+src/components/HydrationTracker.tsx:189:               <button
+src/components/SmartSwaps.tsx:88:          <button
+src/components/SmartSwaps.tsx:127:             <button
+src/components/Profile.tsx:327:            <button
+src/components/Profile.tsx:336:            <button
+src/components/PlateAnalyzer.tsx:122:            <button
+src/components/PlateAnalyzer.tsx:172:                 <button
+src/components/AdaptiveCoach.tsx:215:            <button 
+src/components/AdaptiveCoach.tsx:296:                            <button
+src/components/AdaptiveCoach.tsx:449:                <button
+src/components/AdaptiveCoach.tsx:484:                <button onClick={() => setSuggestedMeal(null)} className="text-slate-400 hover:text-slate-600">
+src/components/AdaptiveCoach.tsx:503:                <button 
+src/components/AdaptiveCoach.tsx:509:                <button 
+src/components/BodyAnalyzer.tsx:208:                  <button
+src/components/BodyAnalyzer.tsx:223:                 <button
+src/components/ResultPrediction.tsx:88:            <button
+src/components/ResultPrediction.tsx:124:                   <button
+src/components/ResultPrediction.tsx:138:                    <button
+src/components/SmartChat.tsx:339:                                  <button 
+src/components/SmartChat.tsx:348:                                  <button 
+src/components/SmartChat.tsx:357:                                  <button 
+src/components/SmartChat.tsx:366:                                  <button 
+src/components/MealPlanCalendar.tsx:91:            <button
+src/components/MealPlanCalendar.tsx:111:            <button
+src/components/MealPlanCalendar.tsx:131:                    <button
+src/components/MealPlanCalendar.tsx:148:                      <button 
+src/components/MealPlanCalendar.tsx:161:                      <button 
+src/components/MealPlanCalendar.tsx:186:                        <button 
+src/components/MealPlanCalendar.tsx:194:                      <button
+src/components/MealPlanCalendar.tsx:213:            <button 
+src/components/Generator.tsx:104:              <button
+src/components/Generator.tsx:124:              <button
+src/components/Generator.tsx:154:            <button
+src/components/FreshnessMap.tsx:320:              <button
+src/components/FreshnessMap.tsx:364:                <button 
+src/components/FreshnessMap.tsx:405:                <button className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate">
+src/components/FreshnessMap.tsx:408:                <button className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate">
+src/components/ShoppingListView.tsx:92:              <button
+src/components/Marketplace.tsx:230:            <button 
+src/components/Marketplace.tsx:240:            <button 
+src/components/Marketplace.tsx:254:            <button
+src/components/Marketplace.tsx:294:                  <button 
+src/components/Marketplace.tsx:305:               <button 
+src/components/Marketplace.tsx:339:        <button 
+src/components/Marketplace.tsx:358:          <button
+src/components/Marketplace.tsx:392:              <button 
+src/components/Marketplace.tsx:431:              <button 
+src/components/Marketplace.tsx:487:                <button onClick={() => setShowCart(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400">
+src/components/Marketplace.tsx:501:                      <button 
+src/components/Marketplace.tsx:508:                      <button 
+src/components/Marketplace.tsx:523:                    <button 
+src/components/Marketplace.tsx:530:                    <button 
+src/components/Marketplace.tsx:555:                <button 
+src/components/Marketplace.tsx:618:                  <button 
+src/components/Marketplace.tsx:628:                  <button 
+src/components/Marketplace.tsx:646:                      <button
+src/components/Marketplace.tsx:664:                    <button
+src/components/Marketplace.tsx:741:        <button 
+src/components/Marketplace.tsx:763:        <button 
+src/components/Marketplace.tsx:796:                <button 
+src/components/BarcodeScanner.tsx:153:            <button
+src/components/BarcodeScanner.tsx:166:            <button
+src/components/BarcodeScanner.tsx:192:            <button onClick={reset} className="p-2 hover:bg-rose-100 dark:hover:bg-rose-800/40 rounded-full transition-colors">
+src/components/BarcodeScanner.tsx:236:               <button
+src/components/BarcodeScanner.tsx:264:            <button
+src/components/JuiceGenerator.tsx:96:            <button
+src/components/JuiceGenerator.tsx:116:            <button
+src/components/JuiceGenerator.tsx:142:               <button
+src/components/DeliveryTracking.tsx:87:        <button 
+src/components/DeliveryTracking.tsx:196:                 <button className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg text-emerald-600 hover:bg-emerald-50 transition-colors">
+src/components/DeliveryTracking.tsx:199:                 <button className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg text-emerald-600 hover:bg-emerald-50 transition-colors">
+src/components/DeliveryTracking.tsx:212:             <button 
+src/components/PersonalTrainer.tsx:245:            <button
+src/components/PersonalTrainer.tsx:275:            <button
+src/components/PersonalTrainer.tsx:300:                  <button
+src/components/PersonalTrainer.tsx:321:                   <button 
+src/components/PersonalTrainer.tsx:371:                    <button
+src/components/PersonalTrainer.tsx:433:                         <button
+src/components/PersonalTrainer.tsx:442:                         <button
+src/components/PersonalTrainer.tsx:471:                           <button
+src/components/PersonalTrainer.tsx:479:                           <button
+src/components/PersonalTrainer.tsx:487:                         <button
+src/components/PersonalTrainer.tsx:520:                             <button
+src/components/PersonalTrainer.tsx:528:                             <button
+src/components/PersonalTrainer.tsx:537:                           <button
+src/components/PersonalTrainer.tsx:546:                           <button
+src/components/PersonalTrainer.tsx:554:                           <button
+src/components/GamificationCenter.tsx:264:          <button className="flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-50 transition-all">
+src/components/Pricing.tsx:127:              <button
+src/components/Pricing.tsx:182:              <button 
+src/components/Pricing.tsx:220:              <button className={`w-full py-6 rounded-3xl font-black text-xs uppercase tracking-[3px] shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 ${
+src/components/Pricing.tsx:229:              <button className="w-full py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2">
+src/components/DetoxBanner.tsx:146:              <button className="flex-1 min-w-[140px] md:min-w-[200px] px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-5 bg-white text-emerald-950 rounded-xl md:rounded-2xl font-bold flex items-center justify-center gap-2 md:gap-3 active:scale-95 md:hover:bg-emerald-50 transition-all shadow-xl shadow-emerald-950/20 group">
+src/components/DetoxBanner.tsx:158:          <button
+src/components/ChallengeView.tsx:107:                <button
+src/components/ChallengeView.tsx:134:          <button
+src/components/ChallengeView.tsx:163:        <button
+src/components/ChallengeView.tsx:218:             <button
+src/components/ChallengeView.tsx:236:                 <button
+src/components/EmotionalTracker.tsx:108:              <button
+src/components/EmotionalTracker.tsx:131:              <button
+src/components/EmotionalTracker.tsx:155:          <button
+src/components/EmotionalTracker.tsx:198:               <button
+src/components/LockScreen.tsx:39:          <button 
+src/components/LockScreen.tsx:53:        <button 
+src/components/PersonalizationWizard.tsx:68:                  <button
+src/components/PersonalizationWizard.tsx:106:                  <button
+src/components/PersonalizationWizard.tsx:119:              <button onClick={handleBack} className="text-slate-400 hover:text-slate-600 flex items-center gap-2 text-sm font-bold">
+src/components/PersonalizationWizard.tsx:147:                <button 
+src/components/PersonalizationWizard.tsx:155:              <button onClick={handleBack} className="text-slate-400 hover:text-slate-600 flex items-center gap-2 text-sm font-bold">
+src/components/PersonalizationWizard.tsx:183:                <button 
+src/components/PersonalizationWizard.tsx:191:              <button onClick={handleBack} className="text-slate-400 hover:text-slate-600 flex items-center gap-2 text-sm font-bold">
+src/components/FoodGalleryBanner.tsx:159:          <button className="flex-1 min-w-[140px] px-4 py-3 sm:px-6 sm:py-4 md:px-8 md:py-4 clay-btn px-6 py-3 md:rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-95 duration-200 shadow-lg text-sm md:text-base">
+src/components/NotificationSystem.tsx:68:            <button 
+src/components/JourneyVisualizer.tsx:229:            <button 
+src/components/JourneyVisualizer.tsx:253:             <button
+src/components/JourneyVisualizer.tsx:348:                <button 
+src/components/DiningOut.tsx:97:          <button
+src/components/DiningOut.tsx:137:                    <button
+src/components/Login.tsx:269:                      <button 
+src/components/Login.tsx:282:                      <button type="button" onClick={() => setView('forgot')} className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+src/components/Login.tsx:288:                  <button
+src/components/Login.tsx:315:                      <button
+src/components/Login.tsx:332:                        <button 
+src/components/Login.tsx:370:                      <button 
+src/components/Login.tsx:383:                    <button 
+src/components/MagicRecipeFAB.tsx:150:                <button 
+src/components/MagicRecipeFAB.tsx:177:                      <button className="p-2 text-slate-400 hover:text-emerald-500 transition-colors">
+src/components/MagicRecipeFAB.tsx:180:                      <button 
+src/components/MagicRecipeFAB.tsx:200:                      <button
+src/components/PartnerPortal.tsx:143:              <button 
+src/components/PartnerPortal.tsx:150:              <button 
+src/components/PartnerPortal.tsx:216:                <button 
+src/components/PartnerPortal.tsx:230:          <button 
+src/components/PartnerPortal.tsx:257:              <button className="text-emerald-600 font-bold text-sm">Ver todos</button>
+src/components/PartnerPortal.tsx:291:                          <button className="text-slate-400 hover:text-emerald-500 transition-all">
+src/components/PartnerPortal.tsx:319:         <button 
+src/components/PartnerPortal.tsx:366:              <button 
+src/components/PartnerPortal.tsx:431:                      <button className="px-6 py-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-700">
+src/components/PartnerPortal.tsx:452:                    <button 
+src/components/PartnerPortal.tsx:465:                    <button 
+src/components/PartnerPortal.tsx:509:                                <button 
+src/components/PartnerPortal.tsx:515:                                <button 
+src/components/PartnerPortal.tsx:533:                      <button 
+src/components/PartnerPortal.tsx:567:                       <button className="text-emerald-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+src/components/PartnerPortal.tsx:575:                         <button 
+src/components/PartnerPortal.tsx:595:              <button 
+src/components/PartnerPortal.tsx:606:              <button 
+src/components/PartnerPortal.tsx:654:                      <button 
+src/components/PartnerPortal.tsx:752:                      <button 
+src/components/PartnerPortal.tsx:759:                      <button 
+src/components/LiveAssistant.tsx:242:            <button onClick={() => { setIsOpen(false); stopLive(); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+src/components/DeliveryPartnerPortal.tsx:28:          <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+src/components/DeliveryPartnerPortal.tsx:70:              <button 
+src/components/DeliveryPartnerPortal.tsx:110:           <button onClick={() => setStep('landing')} className="flex items-center gap-2 text-slate-500 hover:text-emerald-500 transition-colors font-bold text-sm uppercase tracking-widest">
+src/components/DeliveryPartnerPortal.tsx:141:                 <button type="submit" className="w-full py-4 clay-primary px-6 py-3 font-bold text-lg hover:bg-emerald-700 transition-colors shadow-lg">
+src/components/DeliveryPartnerPortal.tsx:165:         <button 
+src/components/DeliveryPartnerPortal.tsx:249:                     <button className="w-full py-4 clay-btn px-6 py-3 font-bold transform transition-transform group-hover:scale-[1.02] active:scale-[0.98]">
+src/components/DeliveryPartnerPortal.tsx:253:                     <button className="w-full py-4 clay-primary px-6 py-3 font-bold flex items-center justify-center gap-2">
+src/components/DeliveryPartnerPortal.tsx:266:            <button 
+src/components/DeliveryPartnerPortal.tsx:282:            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex flex-col items-center gap-1 p-2 w-16 ${activeTab === tab.id ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}>
+src/components/RecipeCard.tsx:72:            <button
+src/components/Scanner.tsx:66:              <button onClick={cancelScan} className="absolute top-4 right-4 p-2 bg-white/20 dark:bg-slate-800/40 rounded-full hover:bg-white/40 dark:hover:bg-slate-700/60 backdrop-blur-md text-white transition-colors">
+src/components/Scanner.tsx:90:      <button 

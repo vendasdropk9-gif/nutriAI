@@ -1,0 +1,590 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Core user information, biometric configuration, and settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "goals": { "type": "string" },
+        "preferences": { "type": "string" },
+        "restrictions": { "type": "array", "items": { "type": "string" } },
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "weight": { "type": "number" },
+        "height": { "type": "number" },
+        "age": { "type": "number" },
+        "activityLevel": { "type": "string" },
+        "gender": { "type": "string" },
+        "targetWeight": { "type": "number" },
+        "points": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastActiveDate": { "type": "string", "format": "date-time" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "mealPlan": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string" }
+      },
+      "required": ["name", "email", "createdAt", "updatedAt"]
+    },
+    "IntakeLog": {
+      "title": "Intake Log",
+      "description": "Record of food intake with potential meal photos",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "mealId": { "type": "string" },
+        "recipeName": { "type": "string" },
+        "photoURL": { "type": "string", "description": "URL or Base64 of meal image" },
+        "planned": { "$ref": "#/entities/NutritionInfo" },
+        "actual": { "$ref": "#/entities/NutritionInfo" },
+        "adjusted": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "recipeName", "userId", "createdAt"]
+    },
+    "ProgressLog": {
+      "title": "Progress Log",
+      "description": "Biological tracking including weight and fat logs",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "weight": { "type": "number" },
+        "bodyFat": { "type": "number" },
+        "notes": { "type": "string" },
+        "photoURL": { "type": "string", "description": "Progress photo of user" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "weight", "userId", "createdAt"]
+    },
+    "HydrationLog": {
+      "title": "Hydration Log",
+      "description": "Daily liquid consumption tracker",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "amount", "userId", "createdAt"]
+    },
+    "SleepLog": {
+      "title": "Sleep Log",
+      "description": "Daily sleep duration and quality log",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "durationHours": { "type": "number" },
+        "quality": { "type": "string", "enum": ["Péssimo", "Ruim", "Regular", "Bom", "Excelente"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "durationHours", "quality", "userId", "createdAt"]
+    },
+    "EmotionalLog": {
+      "title": "Emotional Log",
+      "description": "Humor and emotional status log matched with meals",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "mood": { "type": "string" },
+        "trigger": { "type": "string" },
+        "mealType": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "mood", "userId", "createdAt"]
+    },
+    "FastingLog": {
+      "title": "Fasting Log",
+      "description": "Intermittent fasting tracking events",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "durationHours": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "durationHours", "userId", "createdAt"]
+    },
+    "WorkoutLog": {
+      "title": "Workout Log",
+      "description": "Training exercises completed and active session details",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "completed": { "type": "boolean" },
+        "durationMinutes": { "type": "number" },
+        "intensity": { "type": "string", "enum": ["Leve", "Moderado", "Intenso"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "completed", "userId", "createdAt"]
+    },
+    "BloodPressureLog": {
+      "title": "Blood Pressure Log",
+      "description": "Daily blood pressure measurements containing systolic, diastolic and heart rate readings",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "systolic": { "type": "number" },
+        "diastolic": { "type": "number" },
+        "bpm": { "type": "number" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "systolic", "diastolic", "bpm", "userId", "createdAt"]
+    },
+    "BodyMonitorLog": {
+      "title": "Body Monitor Log",
+      "description": "Intelligent camera-based biometric logs tracking physical stress, fatigue, heart rate and wellness",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "heartRate": { "type": "number" },
+        "stressLevel": { "type": "number" },
+        "fatigueLevel": { "type": "number" },
+        "anxietyLevel": { "type": "number" },
+        "notes": { "type": "string" },
+        "facialScanConsent": { "type": "boolean" },
+        "fingerScanConsent": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["normal", "attention", "high_signals"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "heartRate", "stressLevel", "fatigueLevel", "anxietyLevel", "facialScanConsent", "fingerScanConsent", "status", "userId", "createdAt"]
+    },
+    "AICert": {
+      "title": "AI Conversation",
+      "description": "Conversations log directly linked with Gemini model insights",
+      "type": "object",
+      "properties": {
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "messages": { "type": "array", "items": { "type": "object" } },
+        "preferencesLearned": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["createdAt", "updatedAt", "messages"]
+    },
+    "Order": {
+      "title": "Shopping Order",
+      "description": "Record of shop items purchased",
+      "type": "object",
+      "properties": {
+        "storeId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "delivering", "delivered", "cancelled"] },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "deliveryAddress": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["storeId", "totalAmount", "status", "items", "createdAt", "updatedAt"]
+    },
+    "DeliveryDriver": {
+      "title": "Courier / Entregador",
+      "description": "Delivery courier profile and telemetry logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "vehicleModel": { "type": "string" },
+        "routes": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "string" },
+        "rating": { "type": "number" },
+        "status": { "type": "string", "enum": ["available", "delivering", "offline"] },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" }
+      },
+      "required": ["id", "name", "vehicleType", "status"]
+    },
+    "DeliveryTracking": {
+      "title": "Rastreamento de Entrega",
+      "description": "Detailed real-time courier route, progress status, and ETAs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "total": { "type": "number" },
+        "vehicleType": { "type": "string" },
+        "courierId": { "type": "string" },
+        "courierName": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" },
+        "etaMinutes": { "type": "number" },
+        "deliveryAddress": { "type": "string" },
+        "notifications": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["id", "orderId", "courierId", "status"]
+    },
+    "Notification": {
+      "title": "System Notification",
+      "description": "General system log messages and alerts history",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["title", "message", "type", "date"]
+    },
+    "Recipe": {
+      "title": "Recipe",
+      "description": "Meal specifications and ingredients checklist",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "prepTime": { "type": "string" },
+        "ingredients": { "type": "array", "items": { "type": "string" } },
+        "instructions": { "type": "array", "items": { "type": "string" } },
+        "nutrition": { "$ref": "#/entities/NutritionInfo" },
+        "authorId": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ingredients", "instructions", "authorId", "createdAt", "updatedAt"]
+    },
+    "Academy": {
+      "title": "Academy",
+      "description": "Registered gym wellness facilities partner center",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "about": { "type": "string" },
+        "modalities": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "string" },
+        "image": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDENTE", "ATIVO", "REJEITADO"] }
+      },
+      "required": ["name", "address", "city", "neighborhood", "phone", "email", "modalities", "image", "status"]
+    },
+    "NutritionInfo": {
+      "title": "Nutrition Information",
+      "type": "object",
+      "properties": {
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" }
+      }
+    },
+    "RecipeReview": {
+      "title": "Recipe Review",
+      "description": "User ratings and written comments about recipes",
+      "type": "object",
+      "properties": {
+        "recipeId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "userName": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipeId", "rating", "comment", "userName", "userId", "createdAt"]
+    },
+    "AppFeedback": {
+      "title": "App Feedback",
+      "description": "General user rating and suggestions about the NutriAI application",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "rating", "comment", "createdAt"]
+    },
+    "Note": {
+      "title": "User Note",
+      "description": "User notes, daily routines, thoughts, or custom plan drafts in the personal block notes",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content", "createdAt", "updatedAt"]
+    },
+    "MedicinalHerb": {
+      "title": "Medicinal Herb Profile",
+      "description": "Scientific and traditional profile of a Brazilian medicinal plant",
+      "type": "object",
+      "properties": {
+        "popularName": { "type": "string" },
+        "scientificName": { "type": "string" },
+        "botanicalFamily": { "type": "string" },
+        "otherNames": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" },
+        "origin": { "type": "string" },
+        "biome": { "type": "string" },
+        "states": { "type": "array", "items": { "type": "string" } },
+        "harvestSeason": { "type": "string" },
+        "partUsed": { "type": "string" },
+        "properties": { "type": "array", "items": { "type": "string" } },
+        "indications": { "type": "array", "items": { "type": "object" } },
+        "preparation": { "type": "object" },
+        "dosage": { "type": "object" },
+        "contraindications": { "type": "object" },
+        "compounds": { "type": "array", "items": { "type": "string" } },
+        "cultivation": { "type": "object" },
+        "curiosities": { "type": "array", "items": { "type": "string" } },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "photoURL": { "type": "string" },
+        "gallery": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["popularName", "scientificName", "botanicalFamily", "description"]
+    },
+    "UserFavoriteHerb": {
+      "title": "User Favorite Herb",
+      "description": "Indicates a user saved/favorited herb",
+      "type": "object",
+      "properties": {
+        "herbId": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["herbId", "savedAt"]
+    },
+    "PlantIdentification": {
+      "title": "Plant Identification History",
+      "description": "User's plant identification scan history with confidence level",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "name": { "type": "string" },
+        "confidence": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "classification": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "details": { "type": "object" }
+      },
+      "required": ["photoURL", "name", "confidence", "date"]
+    },
+    "MushroomIdentification": {
+      "title": "Mushroom Identification History",
+      "description": "User's mushroom identification scan history with safety categories and confidence level",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "name": { "type": "string" },
+        "scientificName": { "type": "string" },
+        "confidence": { "type": "number" },
+        "edibility": { "type": "string", "enum": ["Comestível", "Tóxico", "Desconhecido"] },
+        "date": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "details": { "type": "object" }
+      },
+      "required": ["photoURL", "name", "confidence", "edibility", "date"]
+    },
+    "AllergyScan": {
+      "title": "Allergy Scan History",
+      "description": "User's scanned food labels or products checked for allergens",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "productName": { "type": "string" },
+        "isSafe": { "type": "boolean" },
+        "allergensDetected": { "type": "array", "items": { "type": "string" } },
+        "date": { "type": "string", "format": "date-time" },
+        "isFavorite": { "type": "boolean" },
+        "details": { "type": "object" }
+      },
+      "required": ["photoURL", "productName", "isSafe", "allergensDetected", "date"]
+    },
+    "ProductComparison": {
+      "title": "Product Comparison History",
+      "description": "Comparison of two scanned products based on user health goals",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productA": { "type": "object" },
+        "productB": { "type": "object" },
+        "userGoal": { "type": "string" },
+        "comparisonDetails": { "type": "object" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productA", "productB", "userGoal", "comparisonDetails", "date"]
+    },
+    "FridgeItem": {
+      "title": "Fridge Item",
+      "description": "An item stored in the user's smart fridge",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "quantity": { "type": "string" },
+        "category": { "type": "string" },
+        "expirationDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["fresco", "perto_vencimento", "vencido"] },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "quantity", "category", "expirationDate", "status", "addedAt"]
+    },
+    "GardenCrop": {
+      "title": "Garden Crop",
+      "description": "An active plant in the user's smart garden",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cropType": { "type": "string", "enum": ["alface", "tomate", "cebolinha", "hortela", "manjericao", "alecrim"] },
+        "varietyName": { "type": "string" },
+        "plantedAt": { "type": "string", "format": "date" },
+        "wateringIntervalHours": { "type": "integer" },
+        "lastWateredAt": { "type": "string", "format": "date-time" },
+        "fertilizingIntervalDays": { "type": "integer" },
+        "lastFertilizedAt": { "type": "string", "format": "date-time" },
+        "estimatedHarvestDate": { "type": "string", "format": "date" },
+        "harvestCompleted": { "type": "boolean" },
+        "notes": { "type": "string" }
+      },
+      "required": ["cropType", "plantedAt", "wateringIntervalHours", "lastWateredAt", "fertilizingIntervalDays", "lastFertilizedAt", "estimatedHarvestDate", "harvestCompleted"]
+    }
+  },
+  "firestore": {
+    "/feedbacks/{feedbackId}": {
+      "schema": "AppFeedback",
+      "description": "Global user feedback and reviews about the application"
+    },
+    "/recipeReviews/{reviewId}": {
+      "schema": "RecipeReview",
+      "description": "Global user feedback and ratings per recipe"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Primary user profiles containing mealPlans and configurations"
+    },
+    "/users/{userId}/intakeLogs/{logId}": {
+      "schema": "IntakeLog",
+      "description": "Food ingestion logs with photos"
+    },
+    "/users/{userId}/progressLogs/{logId}": {
+      "schema": "ProgressLog",
+      "description": "Weight biological logs"
+    },
+    "/users/{userId}/hydrationLogs/{logId}": {
+      "schema": "HydrationLog",
+      "description": "Liquid tracking timeline logs"
+    },
+    "/users/{userId}/sleepLogs/{logId}": {
+      "schema": "SleepLog",
+      "description": "Daily sleeping timelines logs"
+    },
+    "/users/{userId}/emotionalLogs/{logId}": {
+      "schema": "EmotionalLog",
+      "description": "Mood tracking events"
+    },
+    "/users/{userId}/fastingLogs/{logId}": {
+      "schema": "FastingLog",
+      "description": "Fasting logs histories"
+    },
+    "/users/{userId}/workoutLogs/{logId}": {
+      "schema": "WorkoutLog",
+      "description": "Physical activity workout sets logs"
+    },
+    "/users/{userId}/bloodPressureLogs/{logId}": {
+      "schema": "BloodPressureLog",
+      "description": "Patient blood pressure, systolic, diastolic and bmp tracking logs"
+    },
+    "/users/{userId}/bodyMonitorLogs/{logId}": {
+      "schema": "BodyMonitorLog",
+      "description": "Biometric body scanning logs including stress, anxiety and heart rates"
+    },
+    "/users/{userId}/aiChats/{chatId}": {
+      "schema": "AICert",
+      "description": "AI conversation logs history"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Grocery orders records"
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "System alerts and recommendations log history"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Personal user notes, drafts, summaries, or checklists"
+    },
+    "/recipes/{recipeId}": {
+      "schema": "Recipe",
+      "description": "Global user recipes"
+    },
+    "/academies/{academyId}": {
+      "schema": "Academy",
+      "description": "Gym partner centers moderation databases"
+    },
+    "/couriers/{courierId}": {
+      "schema": "DeliveryDriver",
+      "description": "Delivery drivers registration and dispatch available telemetries"
+    },
+    "/deliveries/{deliveryId}": {
+      "schema": "DeliveryTracking",
+      "description": "Deliveries statuses, logs, routes and real-time trackers"
+    },
+    "/medicinalHerbs/{herbId}": {
+      "schema": "MedicinalHerb",
+      "description": "Database of medicinal plants with therapeutic indications"
+    },
+    "/users/{userId}/favoriteHerbs/{favoriteId}": {
+      "schema": "UserFavoriteHerb",
+      "description": "The user's favorite medicinal herbs collections"
+    },
+    "/users/{userId}/plantIdentifications/{id}": {
+      "schema": "PlantIdentification",
+      "description": "The user's scan history for the Smart Plant Identifier"
+    },
+    "/users/{userId}/mushroomIdentifications/{id}": {
+      "schema": "MushroomIdentification",
+      "description": "The user's scan history for the Smart Mushroom Identifier"
+    },
+    "/users/{userId}/allergyScans/{id}": {
+      "schema": "AllergyScan",
+      "description": "The user's allergen scan history for the Food Allergy Detector"
+    },
+    "/users/{userId}/productComparisons/{id}": {
+      "schema": "ProductComparison",
+      "description": "The user's smart product comparison logs"
+    },
+    "/users/{userId}/fridgeItems/{id}": {
+      "schema": "FridgeItem",
+      "description": "The user's smart fridge inventory items"
+    },
+    "/users/{userId}/gardenCrops/{id}": {
+      "schema": "GardenCrop",
+      "description": "The user's active plant crops in the smart garden"
+    }
+  }
+}

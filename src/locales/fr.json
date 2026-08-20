@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "coach": "AI Coach",
+    "generator": "Recettes",
+    "juice": "Jus",
+    "habits": "Habitudes",
+    "notes": "Notes",
+    "bloodpressure": "Tension",
+    "barcode": "Scanner",
+    "allergy": "Allergies",
+    "comparer": "Comparateur",
+    "herbs": "Herbes",
+    "emotional": "Esprit",
+    "analyzer": "Assiette",
+    "body": "Corps",
+    "plan": "Plan",
+    "shopping": "Courses",
+    "journey": "Évolution",
+    "challenge": "Défi",
+    "swaps": "Échanges",
+    "dining": "Resto",
+    "market": "Market",
+    "frescor": "Carte",
+    "trainer": "Entraîner",
+    "academies": "Salles",
+    "gamification": "Succès",
+    "prediction": "Prévision",
+    "profile": "Profil",
+    "pricing": "Premium",
+    "partner": "Partenaire",
+    "fridge": "Frigo",
+    "garden": "Jardin"
+  },
+  "settings": {
+    "language": "Langue",
+    "select_lang": "Sélectionnez votre langue préférée pour utiliser l'application."
+  }
+}

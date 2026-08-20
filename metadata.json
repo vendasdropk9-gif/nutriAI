@@ -1,0 +1,6 @@
+{
+  "name": "NutriAI",
+  "description": "Um aplicativo de saúde e receitas com inteligência artificial, incluindo plano alimentar, treinos e uma enciclopédia digital completa de Ervas Medicinais brasileiras.",
+  "requestFramePermissions": ["microphone", "camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

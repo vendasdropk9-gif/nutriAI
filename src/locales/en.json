@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "coach": "AI Coach",
+    "generator": "Recipes",
+    "juice": "Juices",
+    "habits": "Habits",
+    "notes": "Notes",
+    "bloodpressure": "Pressure",
+    "barcode": "Scanner",
+    "allergy": "Allergies",
+    "comparer": "Comparer",
+    "herbs": "Herbs",
+    "emotional": "Mind",
+    "analyzer": "Plate",
+    "body": "Body",
+    "plan": "Plan",
+    "shopping": "Shopping",
+    "journey": "Evolution",
+    "challenge": "Challenge",
+    "swaps": "Swaps",
+    "dining": "Ate Out",
+    "market": "Market",
+    "frescor": "Map",
+    "trainer": "Train",
+    "academies": "Gyms",
+    "gamification": "Achievements",
+    "prediction": "Prediction",
+    "profile": "Profile",
+    "pricing": "Premium",
+    "partner": "Partner",
+    "fridge": "Fridge",
+    "garden": "Garden"
+  },
+  "settings": {
+    "language": "Language",
+    "select_lang": "Select your preferred language to use throughout the application."
+  }
+}
