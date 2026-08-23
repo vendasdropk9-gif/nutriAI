@@ -199,7 +199,7 @@ export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crys
 };
 
 export const vibrate = (pattern: number | number[]) => {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+  if (typeof navigator !== 'undefined' && typeof window !== 'undefined' && userHasInteracted && typeof navigator.vibrate === 'function') {
     try {
       navigator.vibrate(pattern);
     } catch(e) {}

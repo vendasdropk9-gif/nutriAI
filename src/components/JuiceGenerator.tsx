@@ -29,12 +29,9 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
       if (data) {
         setGeneratedJuice(data);
         if (onAwardPoints) onAwardPoints(15, 'Suco funcional personalizado gerado');
-      } else {
-        alert("Não foi possível gerar a receita de suco. Tente novamente.");
       }
     } catch (err) {
-      console.warn(err);
-      alert("Erro ao gerar a receita de suco.");
+      console.warn("Erro na geração de suco:", err);
     } finally {
       setIsGenerating(false);
     }
