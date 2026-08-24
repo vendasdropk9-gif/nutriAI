@@ -2135,13 +2135,23 @@ export const analyzeProductImage = async (
 ): Promise<any | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+  let cleanData = base64Image || '';
+  let activeMime = mimeType || 'image/jpeg';
+  if (cleanData.includes(';base64,')) {
+    const parts = cleanData.split(';base64,');
+    if (parts[0].startsWith('data:')) {
+      activeMime = parts[0].replace('data:', '');
+    }
+    cleanData = parts[1];
+  }
+
   let profileText = "Nenhum";
   if (profile) {
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile?.restrictions?.join(", ")}
-Alergias: ${profile?.allergies?.join(", ")}
+Restrições: ${Array.isArray(profile?.restrictions) ? profile.restrictions.join(", ") : profile?.restrictions || 'Nenhuma'}
+Alergias: ${Array.isArray(profile?.allergies) ? profile.allergies.join(", ") : profile?.allergies || 'Nenhuma'}
 `;
   }
 
