@@ -406,7 +406,8 @@ async function startServer() {
   const PORT = 3000;
 
   // Add JSON parsing middleware (increase limit for image base64 uploads)
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // API Health route
   app.get("/api/health", (req, res) => {

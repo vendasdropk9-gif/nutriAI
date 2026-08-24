@@ -3,7 +3,7 @@ import * as geminiServer from '../src/lib/gemini.server';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '15mb',
+      sizeLimit: '50mb',
     },
   },
 };
