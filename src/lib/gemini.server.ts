@@ -12,6 +12,21 @@ const safeAtob = (str: string): string => {
   return Buffer.from(str, 'base64').toString('binary');
 };
 
+export const safeJoin = (val: any, separator: string = ', '): string => {
+  if (!val) return 'Nenhuma';
+  if (Array.isArray(val)) return val.filter(Boolean).join(separator) || 'Nenhuma';
+  if (typeof val === 'string') return val.trim() || 'Nenhuma';
+  if (typeof val === 'object') return Object.values(val).filter(Boolean).join(separator) || 'Nenhuma';
+  return String(val);
+};
+
+export const safeArray = <T = any>(val: any): T[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object' && val !== null) return Object.values(val) as T[];
+  return [val] as T[];
+};
+
 export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
@@ -34,16 +49,16 @@ SEU COMPORTAMENTO (Voz "Premium Humana", Parceira Constante):
 - Não exagere nos emojis para não atrapalhar o fluxo de áudio.
 
 SOBRE O USUÁRIO:
-Biotipo: ${profile.bodyType || 'Não informado'}
-Objetivo: ${profile.goals || 'Não informado'}
-Rotina: ${profile.routine || 'Não informada'}
-Restrições: ${profile.restrictions?.join(', ') || 'Nenhuma'}
-Desafio Atual: ${profile.currentChallenge ? profile.currentChallenge.dailyGoal : 'Nenhum'}
-Pontuação Geral (Motivação): ${profile.points || 0} XP
+Biotipo: ${profile?.bodyType || 'Não informado'}
+Objetivo: ${profile?.goals || 'Não informado'}
+Rotina: ${profile?.routine || 'Não informada'}
+Restrições: ${safeJoin(profile?.restrictions)}
+Desafio Atual: ${profile?.currentChallenge ? profile.currentChallenge.dailyGoal : 'Nenhum'}
+Pontuação Geral (Motivação): ${profile?.points || 0} XP
 
 HISTÓRICO RECENTE:
-- Últimas refeições registradas: ${profile.intakeLogs?.slice(-3).map(l => l.recipeName).join(', ') || 'Nenhuma registrada recentemente'}
-- Últimos pesos registrados: ${profile.progressLogs?.slice(-3).map(l => l.weight + 'kg').join(', ') || 'Nenhum'}
+- Últimas refeições registradas: ${safeArray<any>(profile?.intakeLogs).slice(-3).map(l => l?.recipeName).filter(Boolean).join(', ') || 'Nenhuma registrada recentemente'}
+- Últimos pesos registrados: ${safeArray<any>(profile?.progressLogs).slice(-3).map(l => (l?.weight || '') + 'kg').filter(Boolean).join(', ') || 'Nenhum'}
 
 AÇÕES QUE VOCÊ PODE DISPARAR (Retorne no JSON no campo action):
 - "NAVIGATE": Use quando quiser levar o usuário para uma tela específica. Envie no actionData: { tab: 'plan' | 'trainer' | 'market' | 'prediction' }
@@ -113,11 +128,11 @@ export const generateMasterStrategy = async (
 Crie a estratégia nutricional e de treino mestra para este usuário.
 
 DADOS:
-Biotipo: ${profile.bodyType}
-Metabolismo: ${profile.metabolism}
-Objetivo: ${profile.goals}
-Rotina: ${profile.routine}
-Restrições: ${profile.restrictions?.join(', ')}
+Biotipo: ${profile?.bodyType || 'Endomorfo'}
+Metabolismo: ${profile?.metabolism || 'Moderado'}
+Objetivo: ${profile?.goals || 'Saúde e Emagrecimento'}
+Rotina: ${profile?.routine || 'Moderada'}
+Restrições: ${safeJoin(profile?.restrictions)}
 
 Sua tarefa é retornar o plano estratégico.
 Responda APENAS em JSON validando o schema.`;
@@ -176,12 +191,12 @@ export const generateWorkout = async (
   let profileContext = `
 - Objetivo: ${profile?.goals || 'Emagrecimento'}
 - Nível: ${profile?.activityLevel || 'Sedentário'}
-- Limitações: ${profile?.restrictions?.join(", ") || 'Nenhuma informada'}
+- Limitações: ${safeJoin(profile?.restrictions)}
 `;
   if (profile?.masterPlan) {
     profileContext += `- Foco Estratégico (IA): ${profile.masterPlan.workoutFocus}
-- Biotipo: ${profile.bodyType}
-- Rotina Diária: ${profile.routine}`;
+- Biotipo: ${profile?.bodyType || 'Não informado'}
+- Rotina Diária: ${profile?.routine || 'Não informada'}`;
   }
 
   const prompt = `Gere um treino de calistenia (peso do corpo) personalizado.
@@ -322,12 +337,12 @@ export const generateWeeklyWorkoutPlan = async (
   let profileContext = `
 - Objetivo: ${profile?.goals || 'Emagrecimento'}
 - Nível: ${profile?.activityLevel || 'Sedentário'}
-- Limitações: ${profile?.restrictions?.join(", ") || 'Nenhuma informada'}
+- Limitações: ${safeJoin(profile?.restrictions)}
 `;
   if (profile?.masterPlan) {
     profileContext += `- Foco Estratégico (IA): ${profile.masterPlan.workoutFocus}
-- Biotipo: ${profile.bodyType}
-- Rotina Diária: ${profile.routine}`;
+- Biotipo: ${profile?.bodyType || 'Não informado'}
+- Rotina Diária: ${profile?.routine || 'Não informada'}`;
   }
 
   const prompt = `Gere um Plano Semanal de Exercícios de Calistenia (Segunda a Domingo) personalizado.
@@ -518,10 +533,10 @@ export const generateRecipe = async (
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
     profileText = `
-Restrições fixas: ${profile?.restrictions?.join(", ") || "Nenhuma"}
-Alergias: ${profile?.allergies?.join(", ") || "Nenhuma"}
-Objetivo: ${profile.goals || "Nenhum específico"}
-Equipamentos disponíveis: ${profile?.equipment?.join(", ") || "Todos"}
+Restrições fixas: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}
+Objetivo: ${profile?.goals || "Nenhum específico"}
+Equipamentos disponíveis: ${safeJoin(profile?.equipment, "Todos")}
 `;
   }
 
@@ -666,8 +681,8 @@ export const generateMealSuggestions = async (
 Biotipo: ${profile.bodyType || 'Não informado'}
 Metabolismo: ${profile.metabolism || 'Não informado'}
 Rotina: ${profile.routine || 'Não informada'}
-Restrições: ${profile.restrictions?.join(", ") || "Nenhuma"}
-Alergias: ${profile.allergies?.join(", ") || "Nenhuma"}
+Restrições: ${safeJoin(profile.restrictions)}
+Alergias: ${safeJoin(profile.allergies)}
 Objetivo: ${profile.goals || "Nenhum específico"}
 `;
 
@@ -1230,8 +1245,8 @@ export const generateJuiceRecipe = async (
 Peso: ${profile.weight || 'Não informado'}kg
 Altura: ${profile.height || 'Não informada'}m
 Objetivo: ${profile.goals || 'Saúde e bem-estar'}
-Restrições: ${profile?.restrictions?.join(", ") || 'Nenhuma'}
-Alergias: ${profile?.allergies?.join(", ") || 'Nenhuma'}
+Restrições: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}
 `;
     }
 
@@ -1321,8 +1336,8 @@ export const analyzeBarcodeProduct = async (
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile?.restrictions?.join(", ")}
-Alergias: ${profile?.allergies?.join(", ")}
+Restrições: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}
 `;
   }
 
@@ -1732,17 +1747,19 @@ export const adjustMealPlan = async (
 ): Promise<Omit<Recipe, 'id'> | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  const todayLogs = (intakeLogs || []).filter(log => {
+  const safeLogs = safeArray<IntakeLog>(intakeLogs);
+  const todayLogs = safeLogs.filter(log => {
+    if (!log || !log.date) return false;
     const logDate = new Date(log.date).toDateString();
     const today = new Date().toDateString();
     return logDate === today;
   });
 
   const totalActual = todayLogs.reduce((acc, log) => ({
-    calories: acc.calories + log.actual.calories,
-    protein: acc.protein + log.actual.protein,
-    carbs: acc.carbs + log.actual.carbs,
-    fat: acc.fat + log.actual.fat,
+    calories: acc.calories + (Number(log?.actual?.calories) || 0),
+    protein: acc.protein + (Number(log?.actual?.protein) || 0),
+    carbs: acc.carbs + (Number(log?.actual?.carbs) || 0),
+    fat: acc.fat + (Number(log?.actual?.fat) || 0),
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   const prompt = `Você é um Nutricionista IA adaptativo. O usuário já consumiu os seguintes nutrientes hoje:
@@ -1752,12 +1769,12 @@ export const adjustMealPlan = async (
 - Gorduras: ${totalActual.fat}g
 
 Perfil do Usuário:
-- Objetivo: ${profile.goals}
-- Biotipo: ${profile.bodyType || 'Não informado'}
-- Metabolismo: ${profile.metabolism || 'Moderado'}
-- Peso atual: ${profile.weight}kg
+- Objetivo: ${profile?.goals || 'Emagrecimento e Saúde'}
+- Biotipo: ${profile?.bodyType || 'Não informado'}
+- Metabolismo: ${profile?.metabolism || 'Moderado'}
+- Peso atual: ${profile?.weight || '70'}kg
 
-Sua tarefa: Gere uma sugestão de ${nextMealType} que compense ou ajuste o dia para atingir as metas nutricionais do usuário de forma otimizada para o biotipo ${profile.bodyType || 'informado'}.
+Sua tarefa: Gere uma sugestão de ${nextMealType} que compense ou ajuste o dia para atingir as metas nutricionais do usuário de forma otimizada para o biotipo ${profile?.bodyType || 'informado'}.
 Responda APENAS com JSON.`;
 
   const schema: Schema = {
@@ -1983,8 +2000,8 @@ export const generateWeeklyChallenges = async (
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   const prompt = `Gere 3 desafios semanais de gamificação personalizados para o usuário NutriAI.
-OBJETIVO DO USUÁRIO: ${profile.goals}
-RESTRIÇÕES: ${profile.restrictions?.join(", ") || 'Nenhuma'}
+OBJETIVO DO USUÁRIO: ${profile?.goals || 'Saúde e hábitos saudáveis'}
+RESTRIÇÕES: ${safeJoin(profile?.restrictions)}
 
 Cada desafio deve ter:
 - id: crypto.randomUUID() ou identificador único curto
@@ -2043,7 +2060,7 @@ export const generateMagicRecipe = async (
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const prompt = `Você é um Chef e Nutricionista de alta gastronomia saudável.
 O usuário quer uma receita personalizada (ex: sobremesa). Pedido: "${input}"
-Perfil do usuário: Objetivo - ${profile?.goals || 'Geral'}. Restrições - ${profile?.restrictions?.join(', ') || 'Nenhuma'}.
+Perfil do usuário: Objetivo - ${profile?.goals || 'Geral'}. Restrições - ${safeJoin(profile?.restrictions)}.
 
 Crie uma receita incrivelmente saborosa que se encaixe no pedido (seja algo fit/low calorie ou calórico para ganho de massa, de acordo com o pedido).
 Seja criativo e priorize ingredientes naturais.
@@ -2241,8 +2258,8 @@ export const analyzeEmotionalImage = async (
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${profile?.restrictions?.join(", ")}
-Alergias: ${profile?.allergies?.join(", ")}
+Restrições: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}
 `;
   }
 
@@ -2455,7 +2472,7 @@ DADOS DE PERFIL DO USUÁRIO:
 Nome: ${profile?.name || 'Usuário'}
 Idade: ${profile?.age || 'Não especificada'} anos
 Objetivos: ${profile?.goals || 'Monitramento de sinais de bem-estar'}
-Restrições: ${profile?.restrictions?.join(', ') || 'Nenhuma'}
+Restrições: ${safeJoin(profile?.restrictions)}
 
 HISTÓRICO RECENTE DE BIO-MONITORAMENTO CARDIO/FISIOLÓGICO:
 ${logsText || 'Ainda não foram colhidos sinais de monitoramento hoje.'}
@@ -2551,8 +2568,8 @@ export const generateDailyNutritionTips = async (
 Nome: ${profile.name || "Usuário"}
 Objetivo: ${profile.goals || "Não informado"}
 Biotipo: ${profile.bodyType || "Não informado"}
-Restrições: ${profile.restrictions?.join(", ") || "Nenhuma"}
-Alergias: ${profile.allergies?.join(", ") || "Nenhuma"}
+Restrições: ${safeJoin(profile.restrictions)}
+Alergias: ${safeJoin(profile.allergies)}
 Atividade Física: ${profile.activityLevel || "Não informada"}
 `;
   }
@@ -3223,8 +3240,9 @@ DIRETRIZES IMPORTANTES:
       data: cleanBase64,
     },
   };
+  const safeAllergiesList = safeArray<string>(userAllergies);
   const textPart = {
-    text: `Analise as alergias deste usuário: [${userAllergies.join(", ")}].
+    text: `Analise as alergias deste usuário: [${safeJoin(safeAllergiesList)}].
 Verifique se há traços, derivados ou presença direta dessas substâncias ou de outros alérgenos comuns (Glúten, Lactose, Amendoim, Soja, Castanhas, Ovos, Frutos do mar) na imagem de alimento/rótulo fornecida.
 Retorne o JSON preenchido adequadamente em português brasileiro.`,
   };
@@ -3265,7 +3283,8 @@ Retorne o JSON preenchido adequadamente em português brasileiro.`,
   } catch (err: any) {
     console.error("Erro ao analisar alergias via Gemini API (Modo de Segurança ativado):", err);
     
-    const threats = userAllergies.map(allergy => ({
+    const safeList = safeArray<string>(userAllergies);
+    const threats = safeList.map(allergy => ({
       allergen: allergy,
       ingredientSource: "Ingrediente sob suspeita (Modo Offline / Segurança)",
       severity: "Média" as const
@@ -3275,15 +3294,15 @@ Retorne o JSON preenchido adequadamente em português brasileiro.`,
       identified: true,
       productName: "Alimento Analisado (Modo de Segurança / Offline)",
       ingredientsFound: "Rótulo não analisado digitalmente devido à instabilidade temporária do servidor de IA.",
-      isSafe: userAllergies.length === 0,
-      allergensDetected: userAllergies,
+      isSafe: safeList.length === 0,
+      allergensDetected: safeList,
       userSpecificThreats: threats,
       alternativesSuggested: [
         "Verifique sempre a embalagem física do produto antes de consumir.",
         "Em caso de dúvida quanto à presença de alérgenos, evite o alimento."
       ],
-      detailedAnalysis: "O sistema de IA do NutriAI está temporariamente instável ou offline (Erro 503 / Sem Conexão). Por motivos de segurança e prevenção rigorosa de reações alérgicas, recomendamos ler com extrema atenção o rótulo impresso do produto físico. As alergias cadastradas em seu perfil são: " + (userAllergies.join(", ") || "Nenhuma registrada") + ".",
-      score: userAllergies.length === 0 ? 100 : 30
+      detailedAnalysis: "O sistema de IA do NutriAI está temporariamente instável ou offline (Erro 503 / Sem Conexão). Por motivos de segurança e prevenção rigorosa de reações alérgicas, recomendamos ler com extrema atenção o rótulo impresso do produto físico. As alergias cadastradas em seu perfil são: " + (safeJoin(safeList)) + ".",
+      score: safeList.length === 0 ? 100 : 30
     };
   }
 };
@@ -3296,7 +3315,8 @@ export const chatAboutAllergies = async (
 ): Promise<{ text: string }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  const systemInstruction = `Você é o Alergologista Especialista em Segurança Alimentar do NutriAI. O usuário está analisando o produto "${productName}" e possui as seguintes alergias cadastradas: [${userAllergies.join(", ")}].
+  const safeAllergies = safeArray<string>(userAllergies);
+  const systemInstruction = `Você é o Alergologista Especialista em Segurança Alimentar do NutriAI. O usuário está analisando o produto "${productName}" e possui as seguintes alergias cadastradas: [${safeJoin(safeAllergies)}].
 Sua tarefa é esclarecer dúvidas sobre contaminação cruzada, ingredientes ocultos, nomenclatura técnica (ex: caseína para leite, maltodextrina para glúten) e segurança geral do alimento analisado.
 
 Responda em português do Brasil de forma clara, amigável, precisa e extremamente cuidadosa com a saúde.

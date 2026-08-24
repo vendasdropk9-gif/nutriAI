@@ -88,7 +88,8 @@ self.addEventListener('fetch', (event) => {
         if (event.request.mode === 'navigate') {
           return caches.match('/') || caches.match('/index.html');
         }
-        throw err;
+        console.warn('[Service Worker] Resource fetch bypassed:', event.request.url);
+        return new Response('', { status: 404, statusText: 'Resource Unavailable' });
       });
     })
   );

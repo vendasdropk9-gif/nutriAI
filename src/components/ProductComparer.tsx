@@ -274,7 +274,12 @@ export function ProductComparer() {
       });
 
       if (!response.ok) {
-        throw new Error("Erro na comunicação com o servidor de comparação nutricional.");
+        let errorMsg = "Erro na comunicação com o servidor de comparação nutricional.";
+        try {
+          const errData = await response.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch(e) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -402,9 +407,9 @@ export function ProductComparer() {
                   Produto A (Opção 1)
                 </label>
                 
-                <div 
-                  onClick={() => document.getElementById('input-file-a')?.click()}
-                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all min-h-[140px] flex flex-col items-center justify-center ${
+                <label 
+                  htmlFor="input-file-a"
+                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all min-h-[140px] flex flex-col items-center justify-center block w-full ${
                     imgA 
                       ? 'border-emerald-500 bg-emerald-50/5' 
                       : 'border-gray-200 dark:border-gray-700 hover:border-emerald-500/20'
@@ -440,7 +445,7 @@ export function ProductComparer() {
                       <p className="text-[8px] text-gray-400">Toque p/ enviar</p>
                     </div>
                   )}
-                </div>
+                </label>
 
                 {!imgA && (
                   <input
@@ -463,9 +468,9 @@ export function ProductComparer() {
                   Produto B (Opção 2)
                 </label>
                 
-                <div 
-                  onClick={() => document.getElementById('input-file-b')?.click()}
-                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all min-h-[140px] flex flex-col items-center justify-center ${
+                <label 
+                  htmlFor="input-file-b"
+                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all min-h-[140px] flex flex-col items-center justify-center block w-full ${
                     imgB 
                       ? 'border-emerald-500 bg-emerald-50/5' 
                       : 'border-gray-200 dark:border-gray-700 hover:border-emerald-500/20'
@@ -501,7 +506,7 @@ export function ProductComparer() {
                       <p className="text-[8px] text-gray-400">Toque p/ enviar</p>
                     </div>
                   )}
-                </div>
+                </label>
 
                 {!imgB && (
                   <input
