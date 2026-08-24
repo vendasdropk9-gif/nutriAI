@@ -191,7 +191,16 @@ export function setLogLevel(level: string) {
 }
 
 export function collection(dbOrRef: any, ...parts: string[]) {
-  const allParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
+  const rawParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
+  const allParts: string[] = [];
+  for (const p of rawParts) {
+    if (typeof p === 'string') {
+      const split = p.split('/').filter(Boolean);
+      allParts.push(...split);
+    } else if (p) {
+      allParts.push(String(p));
+    }
+  }
   
   let table = '';
   let userId = undefined;
@@ -205,7 +214,7 @@ export function collection(dbOrRef: any, ...parts: string[]) {
     userId = allParts[1];
     table = TABLE_MAPPING[allParts[2]] || allParts[2];
   } else {
-    table = TABLE_MAPPING[allParts[0]] || allParts[0];
+    table = TABLE_MAPPING[allParts[allParts.length - 1]] || allParts[allParts.length - 1];
   }
 
   return {
@@ -217,7 +226,16 @@ export function collection(dbOrRef: any, ...parts: string[]) {
 }
 
 export function doc(dbOrRef: any, ...parts: string[]) {
-  const allParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
+  const rawParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
+  const allParts: string[] = [];
+  for (const p of rawParts) {
+    if (typeof p === 'string') {
+      const split = p.split('/').filter(Boolean);
+      allParts.push(...split);
+    } else if (p) {
+      allParts.push(String(p));
+    }
+  }
 
   let table = '';
   let userId = undefined;
@@ -231,6 +249,10 @@ export function doc(dbOrRef: any, ...parts: string[]) {
       table = TABLE_MAPPING[allParts[0]] || allParts[0];
       id = allParts[1];
     }
+  } else if (allParts.length === 3 && allParts[0] === 'users') {
+    userId = allParts[1];
+    table = TABLE_MAPPING[allParts[2]] || allParts[2];
+    id = allParts[1];
   } else if (allParts.length === 4 && allParts[0] === 'users') {
     userId = allParts[1];
     table = TABLE_MAPPING[allParts[2]] || allParts[2];
@@ -455,7 +477,7 @@ function deleteDocLocal(docRef: any) {
 
 // Intercepts queries and routes them to Supabase with local fallback
 export async function getDocs(queryObj: any) {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || queryObj.userId?.startsWith('local-user-')) {
     return getDocsLocal(queryObj);
   }
 
@@ -504,13 +526,12 @@ export async function getDocs(queryObj: any) {
       empty: docs.length === 0,
     };
   } catch (err) {
-    console.warn(`Supabase getDocs failed on ${queryObj.table}. Falling back to local in-memory DB.`);
     return getDocsLocal(queryObj);
   }
 }
 
 export async function getDoc(docRef: any) {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) {
     return getDocLocal(docRef);
   }
 
@@ -530,7 +551,6 @@ export async function getDoc(docRef: any) {
       id: docRef.id,
     };
   } catch (err) {
-    console.warn(`Supabase getDoc failed on ${docRef.table}/${docRef.id}. Falling back to local in-memory DB.`);
     return getDocLocal(docRef);
   }
 }
@@ -541,7 +561,7 @@ export async function setDoc(docRef: any, data: any, options?: any) {
   // Always write locally first to keep cache warm and consistent
   setDocLocal(docRef, data);
 
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
 
   try {
     const serialized = serializeRow(docRef.table, data, docRef.userId);
@@ -552,15 +572,13 @@ export async function setDoc(docRef: any, data: any, options?: any) {
       .upsert(serialized);
 
     if (error) throw error;
-  } catch (err: any) {
-    console.warn(`Supabase setDoc failed on ${docRef.table}/${docRef.id}. Written locally only. Error:`, err?.message || err);
-  }
+  } catch (err: any) {}
 }
 
 export async function addDoc(collectionRef: any, data: any) {
   const localRes = addDocLocal(collectionRef, data);
 
-  if (!isSupabaseConfigured) return localRes;
+  if (!isSupabaseConfigured || collectionRef.userId?.startsWith('local-user-')) return localRes;
 
   try {
     const serialized = serializeRow(collectionRef.table, data, collectionRef.userId);
@@ -571,9 +589,7 @@ export async function addDoc(collectionRef: any, data: any) {
       .insert(serialized);
 
     if (error) throw error;
-  } catch (err: any) {
-    console.warn(`Supabase addDoc failed on ${collectionRef.table}. Saved locally only. Error:`, err?.message || err);
-  }
+  } catch (err: any) {}
 
   return localRes;
 }
@@ -581,7 +597,7 @@ export async function addDoc(collectionRef: any, data: any) {
 export async function updateDoc(docRef: any, data: any) {
   updateDocLocal(docRef, data);
 
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
 
   try {
     const serialized = serializeRow(docRef.table, data, docRef.userId);
@@ -592,15 +608,13 @@ export async function updateDoc(docRef: any, data: any) {
       .eq('id', docRef.id);
 
     if (error) throw error;
-  } catch (err: any) {
-    console.warn(`Supabase updateDoc failed on ${docRef.table}/${docRef.id}. Updated locally only. Error:`, err?.message || err);
-  }
+  } catch (err: any) {}
 }
 
 export async function deleteDoc(docRef: any) {
   deleteDocLocal(docRef);
 
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
 
   try {
     const { error } = await supabase
@@ -609,9 +623,7 @@ export async function deleteDoc(docRef: any) {
       .eq('id', docRef.id);
 
     if (error) throw error;
-  } catch (err) {
-    console.warn(`Supabase deleteDoc failed on ${docRef.table}/${docRef.id}. Deleted locally only.`);
-  }
+  } catch (err) {}
 }
 
 export function onSnapshot(
@@ -624,7 +636,7 @@ export function onSnapshot(
 
   const runFetch = async () => {
     try {
-      if (!isSupabaseConfigured) {
+      if (!isSupabaseConfigured || queryOrDocRef.userId?.startsWith('local-user-') || queryOrDocRef.id?.startsWith('local-user-')) {
         onNext(queryOrDocRef.isDoc ? getDocLocal(queryOrDocRef) : getDocsLocal(queryOrDocRef));
         return;
       }
@@ -692,7 +704,6 @@ export function onSnapshot(
         });
       }
     } catch (err) {
-      console.warn(`Supabase onSnapshot failed on ${queryOrDocRef.table}. Falling back to local in-memory snapshot.`);
       if (active) {
         onNext(queryOrDocRef.isDoc ? getDocLocal(queryOrDocRef) : getDocsLocal(queryOrDocRef));
       }
