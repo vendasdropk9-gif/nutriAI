@@ -449,15 +449,15 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                <div className="grid grid-cols-3 gap-4 pt-4">
                   <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
                      <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Proteína</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros.protein}g</p>
+                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.protein || 0}g</p>
                   </div>
                   <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
                      <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Carbos</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros.carbs}g</p>
+                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.carbs || 0}g</p>
                   </div>
                   <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
                      <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Gorduras</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros.fat}g</p>
+                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.fat || 0}g</p>
                   </div>
                </div>
             </div>

@@ -96,9 +96,9 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
     if (profile?.masterPlan?.dailyCalories) {
       return {
         calories: profile.masterPlan.dailyCalories,
-        protein: profile.masterPlan.macros.protein,
-        carbs: profile.masterPlan.macros.carbs,
-        fat: profile.masterPlan.macros.fat,
+        protein: profile.masterPlan.macros?.protein || 0,
+        carbs: profile.masterPlan.macros?.carbs || 0,
+        fat: profile.masterPlan.macros?.fat || 0,
         fiber: 30,
         sugar: 50,
       };

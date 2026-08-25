@@ -702,9 +702,9 @@ Objetivo: ${profile.goals || "Nenhum específico"}
     if (profile.masterPlan) {
       profileText += `META DIÁRIA (Estratégia Exclusiva):
 - Calorias totais (dividir no dia): ${profile.masterPlan.dailyCalories} kcal
-- Proteína total: ${profile.masterPlan.macros.protein}g
-- Carbo total: ${profile.masterPlan.macros.carbs}g
-- Gordura total: ${profile.masterPlan.macros.fat}g
+- Proteína total: ${profile.masterPlan.macros?.protein || 0}g
+- Carbo total: ${profile.masterPlan.macros?.carbs || 0}g
+- Gordura total: ${profile.masterPlan.macros?.fat || 0}g
 Foco nutricional: ${profile.masterPlan.nutritionFocus}
 `;
     }
