@@ -27,6 +27,19 @@ export const safeArray = <T = any>(val: any): T[] => {
   return [val] as T[];
 };
 
+export const cleanImageInput = (input: string, fallbackMime = 'image/jpeg'): { cleanBase64: string, activeMime: string } => {
+  let cleanBase64 = input || '';
+  let activeMime = fallbackMime;
+  if (cleanBase64.includes(';base64,')) {
+    const parts = cleanBase64.split(';base64,');
+    if (parts[0].startsWith('data:')) {
+      activeMime = parts[0].replace('data:', '');
+    }
+    cleanBase64 = parts[1];
+  }
+  return { cleanBase64, activeMime };
+};
+
 export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
@@ -1004,6 +1017,8 @@ export const generateRecipeImage = async (prompt: string): Promise<string | null
 export const analyzeBodyImage = async (base64Image: string, mimeType: string, profile: any): Promise<any | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   
+  const { cleanBase64, activeMime } = cleanImageInput(base64Image, mimeType);
+
   const prompt = `Analise a imagem corporal do usuário de forma segura e ética. 
 Contexto do perfil do usuário: Peso atual ${profile?.weight || 'Não informado'}kg, Objetivo: ${profile?.goals || 'Melhorar a saúde e forma física'}.
 Seu objetivo é fornecer recomendações personalizadas de saúde, nutrição e exercícios com base de forma holística, inclusiva e motivadora.
@@ -1042,8 +1057,8 @@ Retorne APENAS um JSON no formato definido.`;
             { text: prompt },
             {
               inlineData: {
-                data: base64Image,
-                mimeType
+                data: cleanBase64,
+                mimeType: activeMime
               }
             }
           ]
@@ -2152,23 +2167,15 @@ export const analyzeProductImage = async (
 ): Promise<any | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  let cleanData = base64Image || '';
-  let activeMime = mimeType || 'image/jpeg';
-  if (cleanData.includes(';base64,')) {
-    const parts = cleanData.split(';base64,');
-    if (parts[0].startsWith('data:')) {
-      activeMime = parts[0].replace('data:', '');
-    }
-    cleanData = parts[1];
-  }
+  const { cleanBase64, activeMime } = cleanImageInput(base64Image, mimeType);
 
   let profileText = "Nenhum";
   if (profile) {
     profileText = `
 Peso: ${profile.weight}kg
 Objetivo: ${profile.goals}
-Restrições: ${Array.isArray(profile?.restrictions) ? profile.restrictions.join(", ") : profile?.restrictions || 'Nenhuma'}
-Alergias: ${Array.isArray(profile?.allergies) ? profile.allergies.join(", ") : profile?.allergies || 'Nenhuma'}
+Restrições: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}
 `;
   }
 
@@ -2216,8 +2223,8 @@ Regras:
       contents: [
         {
           inlineData: {
-            data: base64Image,
-            mimeType: mimeType
+            data: cleanBase64,
+            mimeType: activeMime
           }
         },
         prompt
@@ -2784,12 +2791,12 @@ export const identifyPlant = async (
 ): Promise<PlantIdentificationResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  let cleanBase64 = imageBase64;
+  let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
 
-  if (imageBase64.startsWith("http")) {
+  if (cleanBase64.startsWith("http")) {
     try {
-      const response = await fetch(imageBase64);
+      const response = await fetch(cleanBase64);
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       cleanBase64 = buffer.toString("base64");
@@ -2800,8 +2807,8 @@ export const identifyPlant = async (
     } catch (e) {
       console.error("Error fetching remote image URL inside identifyPlant:", e);
     }
-  } else if (imageBase64.includes(",")) {
-    cleanBase64 = imageBase64.split(",")[1];
+  } else if (cleanBase64.includes(",")) {
+    cleanBase64 = cleanBase64.split(",")[1];
   }
 
   const systemInstruction = `Você é um botânico, fitoterapeuta e especialista em visão computacional e identificação inteligente de plantas para o NutriAI.
@@ -3008,12 +3015,12 @@ export const identifyMushroom = async (
 ): Promise<MushroomIdentificationResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  let cleanBase64 = imageBase64;
+  let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
 
-  if (imageBase64.startsWith("http")) {
+  if (cleanBase64.startsWith("http")) {
     try {
-      const response = await fetch(imageBase64);
+      const response = await fetch(cleanBase64);
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       cleanBase64 = buffer.toString("base64");
@@ -3024,8 +3031,8 @@ export const identifyMushroom = async (
     } catch (e) {
       console.error("Error fetching remote image URL inside identifyMushroom:", e);
     }
-  } else if (imageBase64.includes(",")) {
-    cleanBase64 = imageBase64.split(",")[1];
+  } else if (cleanBase64.includes(",")) {
+    cleanBase64 = cleanBase64.split(",")[1];
   }
 
   const systemInstruction = `Você é um micologista especialista em identificação visual, segurança e taxonomia de cogumelos e fungos para o NutriAI.
@@ -3172,12 +3179,12 @@ export const analyzeFoodAllergens = async (
 ): Promise<FoodAllergyAnalysisResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  let cleanBase64 = imageBase64;
+  let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
 
-  if (imageBase64.startsWith("http")) {
+  if (cleanBase64.startsWith("http")) {
     try {
-      const response = await fetch(imageBase64);
+      const response = await fetch(cleanBase64);
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       cleanBase64 = buffer.toString("base64");
@@ -3188,8 +3195,8 @@ export const analyzeFoodAllergens = async (
     } catch (e) {
       console.error("Error fetching remote image URL inside analyzeFoodAllergens:", e);
     }
-  } else if (imageBase64.includes(",")) {
-    cleanBase64 = imageBase64.split(",")[1];
+  } else if (cleanBase64.includes(",")) {
+    cleanBase64 = cleanBase64.split(",")[1];
   }
 
   const systemInstruction = `Você é um Engenheiro de Alimentos e Nutricionista especialista em alergias alimentares e leitura técnica de rótulos de ingredientes para o NutriAI.
@@ -3467,7 +3474,8 @@ DIRETRIZES IMPORTANTES:
   const parts: any[] = [];
 
   // Helper function to prepare input parts for Gemini API
-  const processInput = async (input: string, label: string) => {
+  const processInput = async (rawInput: string, label: string) => {
+    const input = rawInput || '';
     if (input.startsWith("http")) {
       try {
         const response = await fetch(input);
@@ -3485,12 +3493,11 @@ DIRETRIZES IMPORTANTES:
         parts.push({ text: `Descrição/URL do Produto ${label}: ${input}` });
       }
     } else if (input.startsWith("data:image")) {
-      const mime = input.split(";")[0].split(":")[1] || "image/jpeg";
-      const base64 = input.split(",")[1];
+      const { cleanBase64, activeMime } = cleanImageInput(input);
       parts.push({
         inlineData: {
-          mimeType: mime,
-          data: base64,
+          mimeType: activeMime,
+          data: cleanBase64,
         }
       });
       parts.push({ text: `Esta é a imagem/rótulo do Produto ${label}.` });
