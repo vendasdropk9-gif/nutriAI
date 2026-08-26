@@ -70,6 +70,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
     { id: 'generator', label: 'Receitas com IA', icon: <Utensils className="w-5 h-5 text-emerald-500" />, desc: 'Geradas sob medida' },
     { id: 'coach', label: 'NutriCoach IA', icon: <Zap className="w-5 h-5 text-emerald-400" />, desc: 'Análise de dieta 24/7' },
     { id: 'analyzer', label: 'Scanner de Prato', icon: <Camera className="w-5 h-5 text-emerald-500" />, desc: 'Fotografe e analise' },
+    { id: 'smartplate', label: 'Restaurante Inteligente', icon: <Camera className="w-5 h-5 text-emerald-400" />, desc: 'Combine opções de fora' },
     { id: 'trainer', label: 'Treino Personalizado', icon: <Dumbbell className="w-5 h-5 text-emerald-500" />, desc: 'Exercícios guiados' },
     { id: 'fridge', label: 'Geladeira Inteligente', icon: <Sparkles className="w-5 h-5 text-emerald-400" />, desc: 'Aproveitamento 100%' },
     { id: 'habits', label: 'Hábitos & Sono', icon: <Moon className="w-5 h-5 text-indigo-400" />, desc: 'Ritmo circadiano' },

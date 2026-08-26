@@ -45,6 +45,7 @@ import { GlucoseTracker } from './components/GlucoseTracker';
 import { Notebook } from './components/Notebook';
 import { MedicinalHerbs } from './components/MedicinalHerbs';
 import { SmartFridge } from './components/SmartFridge';
+import { SmartPlateCombiner } from './components/SmartPlateCombiner';
 import { SmartGarden } from './components/SmartGarden';
 import { WellnessHub } from './components/WellnessHub';
 import { PhotoEvolution } from './components/PhotoEvolution';
@@ -66,7 +67,7 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 const TAB_ORDER = [
-  'assistant360', 'coach', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
+  'assistant360', 'coach', 'smartplate', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
   'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'evolution', 
   'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
@@ -144,7 +145,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'assistant360'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360'>('assistant360');
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
@@ -688,6 +689,9 @@ export default function App() {
             )}
             {activeTab === 'herbs' && (
               <MedicinalHerbs />
+            )}
+            {activeTab === 'smartplate' && (
+              <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} />
             )}
             {activeTab === 'fridge' && (
               <SmartFridge />

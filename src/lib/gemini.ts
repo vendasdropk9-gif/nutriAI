@@ -518,3 +518,11 @@ export const generateRecipePreparationTips = async (
 
 
 
+
+export const combineSmartPlate = async (
+  images: { base64: string; mimeType: string }[],
+  goal: string,
+  profile?: any | null
+): Promise<any | null> => {
+  return callGeminiEndpoint('combineSmartPlate', [images, goal, profile]);
+};

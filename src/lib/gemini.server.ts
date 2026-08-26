@@ -3895,3 +3895,96 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido.`;
 
 
 
+
+export const combineSmartPlate = async (
+  images: { base64: string; mimeType: string }[],
+  goal: string,
+  profile?: any | null
+): Promise<any | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  let parts: any[] = [];
+  
+  for (const img of images) {
+    const { cleanBase64, activeMime } = cleanImageInput(img.base64, img.mimeType);
+    parts.push({
+      inlineData: {
+        mimeType: activeMime,
+        data: cleanBase64,
+      }
+    });
+  }
+
+  let profileText = "Nenhum";
+  if (profile) {
+    profileText = `Objetivo base do usuário: ${profile.goals || 'Não informado'}
+Restrições: ${safeJoin(profile?.restrictions)}
+Alergias: ${safeJoin(profile?.allergies)}`;
+  }
+
+  const prompt = `Você é um nutricionista especialista trabalhando na funcionalidade "COMBINE SEU PRATO COM IA" do NutriAI.
+O usuário enviou fotos das opções disponíveis em um restaurante (buffet, pratos, cardápio).
+O objetivo pontual selecionado pelo usuário para esta refeição é: "${goal}".
+Perfil do usuário:
+${profileText}
+
+Tarefa:
+1. Identifique os alimentos presentes nas imagens (seja comida visível ou itens no cardápio).
+2. Monte a MELHOR combinação de pratos de acordo com o objetivo selecionado (${goal}).
+3. Regras por objetivo:
+- Emagrecimento: Priorize proteínas, vegetais, fibras, porções adequadas e menor densidade energética. Use termos como "Opção potencialmente mais adequada ao seu objetivo" e nunca prometa perda de peso.
+- Ganho de massa muscular: Priorize maior disponibilidade de proteínas, carboidratos adequados, fontes variadas e porções compatíveis. Não prometa ganho garantido.
+- Manutenção da alimentação: Combinação equilibrada considerando proteínas, carboidratos, vegetais, fibras e variedade alimentar.
+- Mais energia / Performance: Foco em carboidratos de boa qualidade, proteínas e nutrientes energéticos.
+4. Se o usuário fotografar um cardápio, sugira substituições se aplicável (ex: "Troque batata frita por legumes" SOMENTE se a opção mais saudável estiver no cardápio).
+5. Trabalhe APENAS com os alimentos identificados nas fotos. Não invente pratos ou ingredientes que não aparecem nas opções.
+6. Verifique restrições e alergias. Se detectar ingredientes incompatíveis com as restrições ou alergias, adicione um aviso em 'warningMessage'. Lembre que identificação visual não garante ausência de contaminação cruzada.
+7. Retorne os resultados no formato JSON estrito conforme o schema.
+
+Retorne APENAS o JSON válido.`;
+
+  parts.push({ text: prompt });
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      recommendedPlate: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de alimentos que compõem o prato recomendado" },
+      reasoning: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Por que essa combinação? (ex: 'melhor equilíbrio entre proteínas e carboidratos', etc.)" },
+      nutritionEstimate: {
+        type: Type.OBJECT,
+        properties: {
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fat: { type: Type.NUMBER },
+          fiber: { type: Type.NUMBER }
+        },
+        required: ["calories", "protein", "carbs", "fat", "fiber"]
+      },
+      bestChoices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Melhores escolhas identificadas nas imagens" },
+      moderateChoices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Escolhas para moderar (ex: frituras, molhos pesados)" },
+      alternatives: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Alternativas disponíveis ou sugestões de substituições (se for um cardápio)" },
+      warningMessage: { type: Type.STRING, description: "Aviso sobre alergias/restrições ou contaminação cruzada, se aplicável. Vazio se não houver problemas detectados." }
+    },
+    required: ["recommendedPlate", "reasoning", "nutritionEstimate", "bestChoices", "moderateChoices", "alternatives"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: { parts },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2,
+      }
+    });
+
+    const responseText = response.text;
+    if (!responseText) return null;
+    return JSON.parse(responseText);
+  } catch (err) {
+    console.error("Erro em combineSmartPlate:", err);
+    throw err;
+  }
+};

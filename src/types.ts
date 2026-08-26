@@ -424,3 +424,19 @@ export interface RecipePreparationTips {
   flavorTips: string[];
   chefSecret: string;
 }
+
+export interface SmartPlateCombination {
+  recommendedPlate: string[];
+  reasoning: string[];
+  nutritionEstimate: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  };
+  bestChoices: string[];
+  moderateChoices: string[];
+  alternatives: string[];
+  warningMessage?: string;
+}
