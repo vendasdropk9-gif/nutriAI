@@ -303,6 +303,46 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
         </div>
       </div>
 
+      {/* NOVO: BANNER DESTAQUE PARA O RESTAURANTE INTELIGENTE */}
+      <motion.div
+        whileHover={{ y: -2, scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => {
+          playSfx('tap');
+          vibrate(10);
+          onNavigate('smartplate');
+        }}
+        className={`relative overflow-hidden rounded-[24px] p-6 sm:p-8 cursor-pointer transition-all ${
+          isPremium
+            ? 'bg-gradient-to-r from-[#D8B14A]/10 via-[#B8860B]/10 to-transparent border border-[#D8B14A]/30'
+            : 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/30'
+        }`}
+      >
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-emerald-500/5 to-transparent pointer-events-none" />
+        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
+          <div className={`p-4 rounded-full ${isPremium ? 'bg-[#D8B14A]/20 text-[#D8B14A]' : 'bg-emerald-500/20 text-emerald-500'}`}>
+            <Camera className="w-8 h-8" />
+          </div>
+          <div className="text-center sm:text-left flex-1">
+            <div className={`text-[10px] uppercase font-bold tracking-wider mb-1 ${isPremium ? 'text-[#D8B14A]' : 'text-emerald-500'}`}>
+              NOVIDADE EXCLUSIVA
+            </div>
+            <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 dark:text-white mb-2">
+              Restaurante Inteligente
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg">
+              Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo.
+            </p>
+          </div>
+          <div className="shrink-0 mt-4 sm:mt-0">
+            <div className={`px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 ${isPremium ? 'bg-[#D8B14A] text-slate-900' : 'bg-emerald-500 text-white'}`}>
+              <Utensils className="w-4 h-4" />
+              Combinar Prato
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
       {/* 4. Grid de Funcionalidades Principais */}
       <div className="space-y-4">
         <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white px-1">

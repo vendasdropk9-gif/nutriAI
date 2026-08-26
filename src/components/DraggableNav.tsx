@@ -50,6 +50,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'challenge', label: 'Desafio', icon: <Trophy className="w-5 h-5" />, color: 'from-orange-500 to-amber-500' },
   { id: 'swaps', label: 'Trocas', icon: <RefreshCw className="w-5 h-5" /> },
   { id: 'dining', label: 'Comi Fora', icon: <ChefHat className="w-5 h-5" /> },
+  { id: 'smartplate', label: 'Restaurante', icon: <Utensils className="w-5 h-5 text-emerald-500" />, color: 'from-emerald-500 to-teal-600' },
   { id: 'market', label: 'Market', icon: <Store className="w-5 h-5" />, color: 'bg-emerald-600' },
   { id: 'frescor', label: 'Mapa', icon: <MapIcon className="w-5 h-5" /> },
   { id: 'trainer', label: 'Treinar', icon: <Dumbbell className="w-5 h-5" />, color: 'bg-slate-900' },
@@ -101,9 +102,9 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
         return 0;
       });
     } 
-    // Lunch/Dinner: Prioritize Camera, Swaps, Dining out
+    // Lunch/Dinner: Prioritize Camera, Swaps, Dining out, SmartPlate
     else if ((hour >= 11 && hour <= 14) || (hour >= 18 && hour <= 21)) {
-      const priorities = ['assistant360', 'analyzer', 'dining', 'swaps', 'market'];
+      const priorities = ['assistant360', 'smartplate', 'analyzer', 'dining', 'swaps', 'market'];
       sortedList.sort((a, b) => {
         const aIndex = priorities.indexOf(a.id);
         const bIndex = priorities.indexOf(b.id);
