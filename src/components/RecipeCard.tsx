@@ -198,6 +198,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isExportingCard, setIsExportingCard] = useState(false);
+  const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
   const [isTextCopied, setIsTextCopied] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
 
@@ -213,15 +214,25 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         scale: 2,
       });
       const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `receita-${recipeId}-card.png`;
-      link.href = dataUrl;
-      link.click();
       
+      // Attempt download directly (may fail in iframes or mobile)
+      try {
+        const link = document.createElement('a');
+        link.download = `receita-${recipeId}-card.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.warn('Download attribute failed, using fallback.');
+      }
+
+      setExportedCardUrl(dataUrl);
+
       window.dispatchEvent(new CustomEvent('app:notification', {
         detail: {
-          title: "Card Salvo! 📸",
-          message: "O card da sua receita foi exportado como imagem.",
+          title: "Card Gerado! 📸",
+          message: "A imagem está pronta para ser salva.",
           type: "success"
         }
       }));
@@ -1766,7 +1777,24 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               </div>
 
               {/* Viewport Card wrapper to download */}
-              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden">
+              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden relative">
+                
+                {exportedCardUrl && (
+                  <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+                    <p className="text-emerald-400 font-bold mb-4 text-center text-sm">Card Gerado com Sucesso!</p>
+                    <img src={exportedCardUrl} alt="Card Exportado" className="max-w-[280px] rounded-2xl shadow-xl mb-4 border border-white/20" />
+                    <p className="text-white text-xs text-center max-w-[250px]">
+                      Pressione e segure (ou clique com o botão direito) na imagem para salvá-la ou compartilhá-la.
+                    </p>
+                    <button 
+                      onClick={() => setExportedCardUrl(null)} 
+                      className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold text-white transition-colors"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                )}
+
                 <div 
                   ref={shareCardRef}
                   id="recipe-social-share-card"
@@ -1830,16 +1858,16 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
                   {/* Macro Nutrients Grid */}
                   <div className="grid grid-cols-3 gap-2 my-4 relative z-10">
-                    <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-center">
-                      <span className="text-[8px] font-bold uppercase text-blue-400 block tracking-widest">Proteínas</span>
+                    <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded-xl text-center flex flex-col justify-center">
+                      <span className="text-[7px] font-bold uppercase text-blue-400 block tracking-tight">Proteínas</span>
                       <span className="text-sm font-black text-blue-300">{recipe.nutrition.protein}g</span>
                     </div>
-                    <div className="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-center">
-                      <span className="text-[8px] font-bold uppercase text-amber-400 block tracking-widest">Carboidratos</span>
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl text-center flex flex-col justify-center">
+                      <span className="text-[7px] font-bold uppercase text-amber-400 block tracking-tight">Carboidratos</span>
                       <span className="text-sm font-black text-amber-300">{recipe.nutrition.carbs}g</span>
                     </div>
-                    <div className="bg-pink-500/10 border border-pink-500/20 p-2.5 rounded-xl text-center">
-                      <span className="text-[8px] font-bold uppercase text-pink-400 block tracking-widest">Gorduras</span>
+                    <div className="bg-pink-500/10 border border-pink-500/20 p-2 rounded-xl text-center flex flex-col justify-center">
+                      <span className="text-[7px] font-bold uppercase text-pink-400 block tracking-tight">Gorduras</span>
                       <span className="text-sm font-black text-pink-300">{recipe.nutrition.fat}g</span>
                     </div>
                   </div>

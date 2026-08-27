@@ -40,6 +40,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isExportingCard, setIsExportingCard] = useState(false);
+  const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   const handleExportCard = async () => {
@@ -54,15 +55,24 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
         scale: 2,
       });
       const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `mealplan-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
-      link.href = dataUrl;
-      link.click();
+      
+      try {
+        const link = document.createElement('a');
+        link.download = `mealplan-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.warn('Download attribute failed, using fallback.');
+      }
+
+      setExportedCardUrl(dataUrl);
       
       window.dispatchEvent(new CustomEvent('app:notification', {
         detail: {
-          title: "Plano Salvo! 📸",
-          message: `O plano alimentar de ${selectedDay} foi exportado como imagem.`,
+          title: "Card Gerado! 📸",
+          message: `A imagem do plano alimentar de ${selectedDay} está pronta para ser salva.`,
           type: "success"
         }
       }));
@@ -783,7 +793,24 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               </div>
 
               {/* Viewport Card wrapper to download */}
-              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden">
+              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden relative">
+                
+                {exportedCardUrl && (
+                  <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+                    <p className="text-emerald-400 font-bold mb-4 text-center text-sm">Card Gerado com Sucesso!</p>
+                    <img src={exportedCardUrl} alt="Card Exportado" className="max-w-[280px] rounded-2xl shadow-xl mb-4 border border-white/20" />
+                    <p className="text-white text-xs text-center max-w-[250px]">
+                      Pressione e segure (ou clique com o botão direito) na imagem para salvá-la ou compartilhá-la.
+                    </p>
+                    <button 
+                      onClick={() => setExportedCardUrl(null)} 
+                      className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold text-white transition-colors"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                )}
+
                 <div 
                   ref={shareCardRef}
                   id="mealplan-social-share-card"
