@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Sparkles } from 'lucide-react';
-import { playSfx } from '../lib/sensory';
+import { playLogoIntroSound, playSfx } from '../lib/sensory';
 import nutriaiVoiceUrl from '../assets/audio/nutriai_gemini.wav';
 
 interface SplashScreenProps {
@@ -11,58 +11,84 @@ interface SplashScreenProps {
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasPlayedRef = useRef(false);
+  const hasPlayedAudioRef = useRef(false);
+  const hasPlayedSfxRef = useRef(false);
 
-  // Inicializa a referência de áudio com segurança para persistir em re-renders
+  // Inicializa a referência de áudio com segurança
   if (!audioRef.current && typeof Audio !== 'undefined') {
     try {
       audioRef.current = new Audio(nutriaiVoiceUrl);
       audioRef.current.preload = 'auto';
-      audioRef.current.volume = 0.95; // Volume limpo, balanceado e direto
+      audioRef.current.volume = 0.9;
     } catch (e) {
-      console.warn('Audio initialization not supported or blocked in this environment:', e);
+      console.warn('Audio initialization blocked or not supported:', e);
       audioRef.current = null;
     }
   }
 
-  const playVoice = () => {
-    if (hasPlayedRef.current || !audioRef.current) return;
-    
-    try {
-      audioRef.current.play()
-        .then(() => {
-          hasPlayedRef.current = true;
-          document.removeEventListener('click', playVoice);
-          document.removeEventListener('touchstart', playVoice);
-        })
-        .catch(e => {
-          console.log('Autoplay do áudio aguardando interação natural do usuário (tocar/clicar)...', e);
-        });
-    } catch (e) {
-      console.warn('Audio playback blocked or failed:', e);
+  const triggerStartupSounds = () => {
+    // 1. Toca o efeito sonoro de chime/cristal da logo
+    if (!hasPlayedSfxRef.current) {
+      try {
+        playLogoIntroSound();
+        hasPlayedSfxRef.current = true;
+      } catch (e) {
+        console.warn('SFX trigger error:', e);
+      }
+    }
+
+    // 2. Toca a voz NutriAI
+    if (!hasPlayedAudioRef.current && audioRef.current) {
+      try {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              hasPlayedAudioRef.current = true;
+            })
+            .catch(() => {
+              // Navegador aguardando interação do usuário
+            });
+        }
+      } catch (e) {
+        console.warn('Audio playback error:', e);
+      }
     }
   };
 
   useEffect(() => {
-    // Sincronizado com o momento em que o reflexo cruza o centro
-    const soundTimer = setTimeout(() => {
+    // Dispara o som logo nos primeiros frames de exibição da logo
+    const initialSoundTimer = setTimeout(() => {
+      triggerStartupSounds();
+    }, 150);
+
+    // Segundo reforço sonoro no momento do brilho (shine)
+    const shimmerTimer = setTimeout(() => {
       playSfx('crystal');
-    }, 1000);
+    }, 600);
 
-    // Fallbacks para garantir reprodução em políticas estritas de navegadores/mobile/tablets
-    document.addEventListener('click', playVoice, { passive: true });
-    document.addEventListener('touchstart', playVoice, { passive: true });
+    // Fallbacks para garantir que ao menor toque ou clique na tela, o som toque imediatamente
+    const handleUserInteraction = () => {
+      triggerStartupSounds();
+    };
 
+    window.addEventListener('pointerdown', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true, once: true });
+    window.addEventListener('click', handleUserInteraction, { passive: true, once: true });
+
+    // Duração confortável para o efeito visual e sonoro completo
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 500);
-    }, 1200); // Reduzido para iniciar muito mais rápido e evitar espera longa
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
-      clearTimeout(soundTimer);
-      document.removeEventListener('click', playVoice);
-      document.removeEventListener('touchstart', playVoice);
+      clearTimeout(initialSoundTimer);
+      clearTimeout(shimmerTimer);
+      window.removeEventListener('pointerdown', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('click', handleUserInteraction);
       try {
         if (audioRef.current) {
           audioRef.current.pause();
@@ -109,8 +135,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 delay: 0.1
               }}
               onAnimationStart={() => {
-                // Sincronização e engatilhamento absoluto: a voz toca exato no frame em que a logo visualmente inicia sua entrada
-                playVoice();
+                // Sincronização e engatilhamento absoluto: a voz e o efeito sonoro tocam no início da animação da logo
+                triggerStartupSounds();
               }}
               className="relative mb-8"
             >

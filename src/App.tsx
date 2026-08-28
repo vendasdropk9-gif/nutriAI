@@ -427,15 +427,42 @@ export default function App() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20 gap-4">
-            <div className="flex items-center gap-2 sm:gap-3 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <motion.div 
+              className="flex items-center gap-2 sm:gap-3 text-emerald-600 dark:text-emerald-400 shrink-0 cursor-pointer select-none"
+              animate={{ 
+                rotate: [0, 0, -4, 4, -3, 3, 0, 0],
+                y: [0, 0, -3, 1, -2, 0, 0, 0],
+                scale: [1, 1, 1.05, 0.98, 1.02, 1, 1, 1]
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                times: [0, 0.72, 0.76, 0.81, 0.86, 0.91, 0.96, 1]
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                playSfx('tap');
+                setActiveTab('assistant360');
+              }}
+            >
               <motion.div
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                animate={{ 
+                  rotate: [0, 0, -12, 14, -8, 8, 0, 0],
+                  scale: [1, 1, 1.15, 0.95, 1.08, 1, 1, 1]
+                }}
+                transition={{ 
+                  duration: 5,
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  times: [0, 0.72, 0.76, 0.81, 0.86, 0.91, 0.96, 1]
+                }}
               >
                 <Utensils className="w-8 h-8" />
               </motion.div>
               <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
-            </div>
+            </motion.div>
             
             {/* Global Search Bar */}
             <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />

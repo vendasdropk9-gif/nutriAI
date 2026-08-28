@@ -17,9 +17,9 @@ if (typeof window !== 'undefined') {
   window.addEventListener('touchstart', markInteraction, { passive: true });
 }
 
-const getSafeAudioContext = (): AudioContext | null => {
+const getSafeAudioContext = (force = false): AudioContext | null => {
   if (typeof window === 'undefined') return null;
-  if (!userHasInteracted) return null; // Don't trigger browser autoplay warning before user gesture
+  if (!userHasInteracted && !force) return null; // Don't trigger browser autoplay warning before user gesture
 
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -29,11 +29,72 @@ const getSafeAudioContext = (): AudioContext | null => {
     }
     if (sharedAudioCtx.state === 'suspended') {
       sharedAudioCtx.resume().catch(() => {});
-      return null;
     }
     return sharedAudioCtx;
   } catch (e) {
     return null;
+  }
+};
+
+/**
+ * Efeito sonoro exclusivo da logo de abertura NutriAI:
+ * Chime harmônico cristalino com cauda espacial e brilho sonoro
+ */
+export const playLogoIntroSound = () => {
+  try {
+    const ctx = getSafeAudioContext(true);
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+
+    // 1. Resonância suave e profunda de fundo (Warm Sub Pad)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(196, now); // G3
+    subOsc.frequency.exponentialRampToValueAtTime(261.63, now + 0.6); // Glissando suave para C4
+    subGain.gain.setValueAtTime(0, now);
+    subGain.gain.linearRampToValueAtTime(0.08, now + 0.15);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    subOsc.connect(subGain);
+    subGain.connect(ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 1.3);
+
+    // 2. Acorde de Brilho Cristalino (Arpejo harmônico C Major 9: C5 -> E5 -> G5 -> B5 -> D6)
+    const notes = [
+      { freq: 523.25, delay: 0.0, dur: 0.8, gain: 0.09 }, // C5
+      { freq: 659.25, delay: 0.08, dur: 0.9, gain: 0.08 }, // E5
+      { freq: 783.99, delay: 0.16, dur: 1.0, gain: 0.08 }, // G5
+      { freq: 987.77, delay: 0.24, dur: 1.1, gain: 0.07 }, // B5
+      { freq: 1174.66, delay: 0.32, dur: 1.3, gain: 0.06 }, // D6
+      { freq: 2093.00, delay: 0.40, dur: 1.4, gain: 0.04 }  // C7 (Sparkle shimmer)
+    ];
+
+    notes.forEach(({ freq, delay, dur, gain }) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = delay > 0.2 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      
+      // Leve vibrato/modulação para sensação de cristal puro
+      gainNode.gain.setValueAtTime(0, now + delay);
+      gainNode.gain.linearRampToValueAtTime(gain, now + delay + 0.03);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + dur + 0.05);
+    });
+
+  } catch (e) {
+    console.warn('Erro ao tocar efeito sonoro da logo:', e);
   }
 };
 
