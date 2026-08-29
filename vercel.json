@@ -6,6 +6,14 @@
       "destination": "/api/gemini"
     },
     {
+      "source": "/api/herbs",
+      "destination": "/api/herbs"
+    },
+    {
+      "source": "/api/tts",
+      "destination": "/api/tts"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

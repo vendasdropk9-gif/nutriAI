@@ -4,6 +4,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, up
 import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
 import * as geminiServer from "../src/lib/gemini.server";
 import firebaseConfig from "../firebase-applet-config.json";
+import { DEFAULT_MEDICINAL_HERBS } from "../src/data/medicinalHerbsData";
 
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
@@ -27,11 +28,13 @@ app.get("/api/herbs", async (req, res) => {
     querySnapshot.forEach((docSnap) => {
       list.push({ id: docSnap.id, ...docSnap.data() });
     });
-    res.json(list);
+    if (list.length > 0) {
+      return res.status(200).json(list);
+    }
   } catch (err: any) {
-    console.error("Erro ao obter ervas medicinais:", err);
-    res.status(500).json({ error: err?.message || "Erro ao obter ervas medicinais." });
+    console.warn("Aviso ao obter ervas medicinais no Firestore, usando catálogo integrado:", err?.message || err);
   }
+  return res.status(200).json(DEFAULT_MEDICINAL_HERBS);
 });
 
 // Secure API Proxy for all Gemini queries

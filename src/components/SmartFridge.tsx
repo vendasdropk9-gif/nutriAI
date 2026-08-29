@@ -8,7 +8,7 @@ import {
   Camera, Upload, Sparkles, Trash2, Edit2, Plus, Search, Calendar, 
   AlertTriangle, ShieldCheck, CheckSquare, Square, ShoppingBag, 
   ChevronRight, RefreshCw, Loader2, Utensils, AlertOctagon, ListFilter,
-  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X
+  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell
 } from 'lucide-react';
 import { analyzeFridgeContents, FridgeAnalysisResult } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -972,7 +972,7 @@ export function SmartFridge() {
                             <div className="space-y-2 mb-4">
                               <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-300">Ingredientes de casa:</p>
                               <div className="flex flex-wrap gap-1">
-                                {recipe.usedIngredients.map((u, i) => (
+                                {(recipe.usedIngredients || []).map((u, i) => (
                                   <span key={i} className="text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40">{u}</span>
                                 ))}
                               </div>
@@ -1093,7 +1093,7 @@ export function SmartFridge() {
                         <div className="space-y-2 mb-4">
                           <p className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-300">Ingredientes usados:</p>
                           <div className="flex flex-wrap gap-1">
-                            {recipe.usedIngredients.map((u, i) => (
+                            {(recipe.usedIngredients || []).map((u, i) => (
                               <span key={i} className="text-[10px] bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">{u}</span>
                             ))}
                           </div>
@@ -1164,6 +1164,15 @@ export function SmartFridge() {
                 <span className="text-xs font-sans font-medium px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                   {shoppingList.filter(i => i.checked).length} de {shoppingList.length} Comprados
                 </span>
+              </div>
+
+              {/* Lembrete da Lista de Compras */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-start gap-3">
+                <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-sans font-semibold text-amber-800 dark:text-amber-300 text-sm">Lembrete</p>
+                  <p className="font-sans text-amber-700 dark:text-amber-400 text-xs mt-1">Não se esqueça de levar suas sacolas ecológicas e verificar o que já tem na despensa antes de sair para o mercado!</p>
+                </div>
               </div>
 
               {shoppingList.length === 0 ? (
@@ -1395,7 +1404,7 @@ export function SmartFridge() {
               <div>
                 <h4 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Ingredientes Usados</h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {selectedRecipe.usedIngredients.map((u: string, idx: number) => (
+                  {(selectedRecipe.usedIngredients || []).map((u: string, idx: number) => (
                     <span key={idx} className="text-xs bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/30 font-medium">
                       {u}
                     </span>
@@ -1403,7 +1412,7 @@ export function SmartFridge() {
                 </div>
               </div>
 
-              {selectedRecipe.missingIngredients && selectedRecipe.missingIngredients.length > 0 && (
+              {(selectedRecipe.missingIngredients && selectedRecipe.missingIngredients.length > 0) ? (
                 <div>
                   <h4 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Ingredientes Faltantes</h4>
                   <div className="flex flex-wrap gap-1.5">
@@ -1414,13 +1423,13 @@ export function SmartFridge() {
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Step by step instructions */}
               <div>
                 <h4 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Modo de Preparo</h4>
                 <ol className="space-y-3">
-                  {selectedRecipe.instructions.map((step: string, idx: number) => (
+                  {(selectedRecipe.instructions || []).map((step: string, idx: number) => (
                     <li key={idx} className="flex gap-3 text-sm font-sans text-slate-600 dark:text-slate-300">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
                         {idx + 1}

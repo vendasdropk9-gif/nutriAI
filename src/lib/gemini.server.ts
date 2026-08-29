@@ -3869,7 +3869,7 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido conte
       return JSON.parse(text);
     }
   } catch (err: any) {
-    console.warn("Fallback acionado na análise de geladeira via Gemini:", err);
+    console.warn("Aviso na análise de geladeira via Gemini (Usando Fallback):", err?.message || "Erro desconhecido de API");
   }
 
   // Resposta de fallback rica e consistente
@@ -3928,11 +3928,126 @@ export interface PlantDiagnosisResult {
   urgency: 'baixa' | 'media' | 'alta';
 }
 
+export const getFallbackPlantDiagnosis = (description: string): PlantDiagnosisResult => {
+  const desc = (description || '').toLowerCase();
+  
+  if (desc.includes('amarel') || desc.includes('clara') || desc.includes('amarela') || desc.includes('desbotada')) {
+    return {
+      diagnosis: "Clorose foliar (provável deficiência de nitrogênio/ferro ou excesso de umidade no substrato)",
+      causes: [
+        "Encharcamento das raízes impedindo a absorção de nutrientes vitais",
+        "Esgotamento de nitrogênio e matéria orgânica no solo",
+        "Compactação da terra nos vasos impedindo a aeração radicular"
+      ],
+      organicSolutions: [
+        "Espalhar 1 colher de sopa de borra de café curtida ou húmus de minhoca sobre a terra",
+        "Reduzir o intervalo de regas e verificar se os furos de drenagem do vaso estão desobstruídos",
+        "Fazer uma adubação foliar suave com chá de casca de banana e cinzas de madeira diluído"
+      ],
+      preventions: [
+        "Mantenha um cronograma de regas respeitando o teste do dedo no solo antes de molhar",
+        "Renove a camada superficial de adubo orgânico a cada 30 dias",
+        "Garanta pelo menos 4 a 6 horas de luminosidade natural diária"
+      ],
+      urgency: "media"
+    };
+  }
+
+  if (desc.includes('pulg') || desc.includes('cochonilh') || desc.includes('inseto') || desc.includes('bicho') || desc.includes('mosca') || desc.includes('aranh') || desc.includes('lagarta')) {
+    return {
+      diagnosis: "Infestação por pragas sugadoras de seiva (pulgões, cochonilhas ou ácaros)",
+      causes: [
+        "Ambiente quente e abafado com baixa ventilação no local de cultivo",
+        "Desequilíbrio de umidade ou proximidade com plantas infectadas",
+        "Estresse nutricional tornando os tecidos da planta vulneráveis a insetos"
+      ],
+      organicSolutions: [
+        "Borrife solução de água com sabão de coco neutro (1 colher de chá para 500ml de água) ao entardecer",
+        "Aplique óleo de neem puro emulsionado (0.5%) nas partes inferiores das folhas a cada 5 dias",
+        "Remova focos manuais maiores com um algodão embebido em álcool 70%"
+      ],
+      preventions: [
+        "Cultive plantas companheiras repelentes ao redor (como alecrim, hortelã e manjericão)",
+        "Evite excesso de adubos nitrogenados que amolecem demais os tecidos vegetais",
+        "Inspecione a face inferior das folhas uma vez por semana"
+      ],
+      urgency: "alta"
+    };
+  }
+
+  if (desc.includes('manch') || desc.includes('marrom') || desc.includes('preta') || desc.includes('fung') || desc.includes('ferrugem') || desc.includes('mofo') || desc.includes('branc') || desc.includes('oidio') || desc.includes('oídio')) {
+    return {
+      diagnosis: "Infecção fúngica foliar (Oídio, Ferrugem ou Antracnose)",
+      causes: [
+        "Molhar as folhas durante as regas em horários de calor intenso ou durante a noite",
+        "Falta de circulação de ar entre os ramos e vasos",
+        "Substrato constantemente encharcado sem aeração adequada"
+      ],
+      organicSolutions: [
+        "Pode e descarte as folhas mais afetadas (evite colocar na composteira)",
+        "Borrife calda de leite cru (1 parte de leite para 9 partes de água) sob sol matinal para ação fungicida biológica",
+        "Polvilhe uma leve pitada de canela em pó nas partes podadas para cicatrizar e proteger contra fungos"
+      ],
+      preventions: [
+        "Regue sempre diretamente na base da terra, nunca molhando as folhas",
+        "Aumente o espaçamento entre os vasos para assegurar ventilação contínua",
+        "Higienize tesouras de poda com álcool antes de manusear outras mudas"
+      ],
+      urgency: "media"
+    };
+  }
+
+  if (desc.includes('murch') || desc.includes('caida') || desc.includes('mole') || desc.includes('seca') || desc.includes('queimada')) {
+    return {
+      diagnosis: "Estresse hídrico / Desidratação ou choque térmico radicular",
+      causes: [
+        "Falta de água prolongada ou solo muito arenoso que não retém a umidade necessária",
+        "Exposição súbita a calor intenso, vento forte ou ar-condicionado",
+        "Raízes sufocadas ou sem espaço devido a vaso pequeno"
+      ],
+      organicSolutions: [
+        "Faça uma rega lenta e profunda até a água começar a escorrer pelos furos inferiores",
+        "Mova a planta temporariamente para uma área com sombra luminosa e fresca até se reidratar",
+        "Cubra o solo com palha seca, casca de pinus ou folhas secas trituradas para reter a umidade"
+      ],
+      preventions: [
+        "Monitore a umidade da terra diariamente colocando a ponta do dedo a 2 cm de profundidade",
+        "Transplante para um vaso maior com substrato rico em matéria orgânica se as raízes estiverem saindo por baixo",
+        "Evite deixar pratos com água estagnada sob o vaso para não apodrecer as raízes"
+      ],
+      urgency: "alta"
+    };
+  }
+
+  return {
+    diagnosis: "Desequilíbrio ambiental e necessidade de adaptação na horta",
+    causes: [
+      "Adaptação a variações de temperatura ou luminosidade no local de cultivo",
+      "Necessidade de reforço nutricional orgânico no substrato",
+      "Rotina de rega precisando de ajuste fino"
+    ],
+    organicSolutions: [
+      "Adube com farinha de casca de ovo seca e borra de café curtida para fornecer cálcio e minerais",
+      "Borrife chá de camomila frio nas folhas para atuar como tônico bioestimulante suave",
+      "Posicione a planta em local com boa luminosidade natural indireta e sem ventos fortes"
+    ],
+    preventions: [
+      "Mantenha um ciclo equilibrado de regas matinais",
+      "Mantenha a terra fofa e aerada na superfície dos vasos",
+      "Faça adubação orgânica leve a cada 3 a 4 semanas"
+    ],
+    urgency: "baixa"
+  };
+};
+
 export const diagnosePlantHealth = async (
   description: string,
   imageInput?: string
 ): Promise<PlantDiagnosisResult> => {
-  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+  const ai = getGenAI();
+  if (!ai) {
+    return getFallbackPlantDiagnosis(description);
+  }
 
   const systemInstruction = `Você é um Agrônomo e Botânico especialista em Hortas Urbanas e Domésticas para o NutriAI.
 Sua missão é ajudar usuários que estão plantando Alface, Tomate, Cebolinha, Hortelã, Manjericão ou Alecrim a identificar problemas de saúde nas plantas (doenças, deficiências nutricionais, pragas, excesso/falta de água ou sol) e sugerir soluções estritamente orgânicas/caseiras.
@@ -3985,11 +4100,11 @@ Analise o caso e forneça um diagnóstico ecológico preciso, as causas prováve
     });
 
     const text = response.text;
-    if (!text) throw new Error("Sem resposta do modelo ao diagnosticar planta");
+    if (!text) return getFallbackPlantDiagnosis(description);
     return JSON.parse(text);
   } catch (err: any) {
-    console.error("Erro no diagnóstico de horta via Gemini:", err);
-    throw err;
+    console.warn("Aviso no diagnóstico de horta via Gemini, usando fallback botânico:", err?.message || err);
+    return getFallbackPlantDiagnosis(description);
   }
 };
 

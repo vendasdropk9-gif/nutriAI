@@ -11,6 +11,7 @@ import {
 import Markdown from 'react-markdown';
 import { SmartPlantIdentifier } from './SmartPlantIdentifier';
 import { SmartMushroomIdentifier } from './SmartMushroomIdentifier';
+import { DEFAULT_MEDICINAL_HERBS } from '../data/medicinalHerbsData';
 
 interface Indication {
   name: string;
@@ -71,8 +72,8 @@ interface Herb {
 
 export function MedicinalHerbs() {
   const { user } = useAuth();
-  const [herbs, setHerbs] = useState<Herb[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [herbs, setHerbs] = useState<Herb[]>(() => DEFAULT_MEDICINAL_HERBS as Herb[]);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBiome, setSelectedBiome] = useState<string>('all');
   const [selectedPurpose, setSelectedPurpose] = useState<string>('all');
@@ -143,19 +144,17 @@ export function MedicinalHerbs() {
         const response = await fetch('/api/herbs');
         if (response.ok) {
           const data = await response.json();
-          if (Array.isArray(data)) {
+          if (Array.isArray(data) && data.length > 0) {
             setHerbs(data.map(sanitizeHerb));
           } else {
-            console.error("Data is not an array:", data);
-            setHerbs([]);
+            setHerbs(DEFAULT_MEDICINAL_HERBS.map(sanitizeHerb));
           }
         } else {
-          console.error("Failed to load herbs from REST endpoint.");
-          setHerbs([]);
+          setHerbs(DEFAULT_MEDICINAL_HERBS.map(sanitizeHerb));
         }
       } catch (err) {
-        console.error("Error fetching herbs:", err);
-        setHerbs([]);
+        console.warn("Usando catálogo integrado de ervas medicinais:", err);
+        setHerbs(DEFAULT_MEDICINAL_HERBS.map(sanitizeHerb));
       } finally {
         setLoading(false);
       }
