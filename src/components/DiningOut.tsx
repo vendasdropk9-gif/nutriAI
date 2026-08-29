@@ -149,7 +149,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
       const base64Audio = await textToSpeech(text);
       if (base64Audio) {
-        const url = `data:audio/wav;base64,${base64Audio}`;
+        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
         await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {

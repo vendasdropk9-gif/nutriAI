@@ -29,8 +29,10 @@ interface HistoryItem {
   imagesCount: number;
 }
 
-export function SmartPlateCombiner({ onClose }: { onClose: () => void }) {
-  const { user, profile } = useAuth();
+import { UserProfile } from '../types';
+
+export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; profile?: UserProfile }) {
+  const { user } = useAuth();
   
   const [images, setImages] = useState<{ url: string; file: File; base64: string; mimeType: string }[]>([]);
   const [selectedGoal, setSelectedGoal] = useState<string>('Emagrecimento');

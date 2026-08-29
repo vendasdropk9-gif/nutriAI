@@ -368,7 +368,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     try {
       const base64Audio = await textToSpeech(text);
       if (base64Audio) {
-        const url = `data:audio/wav;base64,${base64Audio}`;
+        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
         await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
       } else {
@@ -430,7 +430,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     try {
       const base64Audio = await textToSpeech(textToSpeak);
       if (base64Audio) {
-        const url = `data:audio/wav;base64,${base64Audio}`;
+        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
         setAudioUrl(url);
         await playAudioUrl(url, {
           onEnded: () => {

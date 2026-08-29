@@ -718,7 +718,7 @@ export default function App() {
               <MedicinalHerbs />
             )}
             {activeTab === 'smartplate' && (
-              <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} />
+              <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} profile={profile} />
             )}
             {activeTab === 'fridge' && (
               <SmartFridge />

@@ -56,7 +56,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
       const textToSpeak = `Receita Mágica: ${recipe.title}. ${recipe.description}. Os ingredientes são: ${recipe.ingredients.join(', ')}. Modo de preparo: ${recipe.instructions.join('. ')}. E tem aproximadamente ${recipe.calories} calorias. Bom apetite!`;
       const base64Audio = await textToSpeech(textToSpeak);
       if (base64Audio) {
-        const url = `data:audio/wav;base64,${base64Audio}`;
+        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
         await playAudioUrl(url, { onEnded: () => setIsPlayingAudio(false) });
       } else {
         setIsPlayingAudio(false);

@@ -71,7 +71,9 @@ export const generateMealSuggestions = async (
 import { safeGet, safeSet } from './storage';
 
 export const textToSpeech = async (text: string): Promise<string | null> => {
-  const cacheKey = `tts_v2_${text.substring(0, 50)}`;
+  if (!text || !text.trim()) return null;
+  const cleanKey = text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 40);
+  const cacheKey = `tts_v3_${cleanKey}`;
   
   try {
     const cached = safeGet(cacheKey);
@@ -80,15 +82,37 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
     // ignore local storage errors
   }
 
+  // 1. Try /api/gemini proxy
   try {
-    const base64Audio = await callGeminiEndpoint('textToSpeech', [text]);
-    if (base64Audio) {
-      safeSet(cacheKey, base64Audio);
-      return base64Audio;
+    const res = await callGeminiEndpoint('textToSpeech', [text]);
+    const audioData = typeof res === 'string' ? res : res?.audio || null;
+    if (audioData) {
+      safeSet(cacheKey, audioData);
+      return audioData;
     }
   } catch (error) {
-    console.warn("TTS backend errored, falling back", error);
+    console.warn("TTS backend errored, trying /api/tts fallback:", error);
   }
+
+  // 2. Direct fallback to /api/tts endpoint
+  try {
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const audioData = typeof data === 'string' ? data : data?.audio || null;
+      if (audioData) {
+        safeSet(cacheKey, audioData);
+        return audioData;
+      }
+    }
+  } catch (e) {
+    console.warn("Direct /api/tts failed:", e);
+  }
+
   return null;
 };
 

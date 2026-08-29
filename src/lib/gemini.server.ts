@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
+import * as https from "https";
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
@@ -765,41 +766,125 @@ Responda APENAS com um array JSON com os objetos de receita.`;
   }
 };
 
-export const textToSpeech = async (text: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Aoede' },
-          },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      const wavBytes = wrapPcmInWav(base64Audio, 24000);
-      
-      let binary = '';
-      const len = wavBytes.byteLength;
-      const chunkSize = 8192;
-      for (let i = 0; i < len; i += chunkSize) {
-        const chunk = wavBytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
+const fetchNaturalAudioChunk = (chunkText: string): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=pt-BR&q=${encodeURIComponent(chunkText)}`;
+    const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`Translate TTS status: ${res.statusCode}`));
       }
-      const b64 = safeBtoa(binary);
-      return b64;
+      const chunks: Buffer[] = [];
+      res.on('data', (d) => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+    req.on('error', reject);
+    req.setTimeout(8000, () => {
+      req.destroy();
+      reject(new Error('Translate TTS timeout'));
+    });
+  });
+};
+
+const getNaturalServerTTS = async (rawText: string): Promise<string | null> => {
+  try {
+    const cleanText = rawText
+      .replace(/[*#_~`>\[\]\(\)\{\}]/g, ' ')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\u{1F600}-\u{1F6FF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) return null;
+
+    const sentences = cleanText.match(/[^.!?\n]+[.!?\n]+/g) || [cleanText];
+    const chunks: string[] = [];
+    let current = '';
+
+    for (const s of sentences) {
+      if ((current + ' ' + s).length < 160) {
+        current = current ? current + ' ' + s : s;
+      } else {
+        if (current) chunks.push(current.trim());
+        if (s.length >= 160) {
+          const words = s.split(' ');
+          let sub = '';
+          for (const w of words) {
+            if ((sub + ' ' + w).length < 160) {
+              sub = sub ? sub + ' ' + w : w;
+            } else {
+              if (sub) chunks.push(sub.trim());
+              sub = w;
+            }
+          }
+          if (sub) chunks.push(sub.trim());
+          current = '';
+        } else {
+          current = s;
+        }
+      }
     }
-  } catch (error: any) {
-    console.error("Gemini TTS failed:", error);
+    if (current.trim()) chunks.push(current.trim());
+
+    const bufferList: Buffer[] = [];
+    for (const chunk of chunks.slice(0, 15)) {
+      if (chunk.trim()) {
+        const buf = await fetchNaturalAudioChunk(chunk.trim());
+        bufferList.push(buf);
+      }
+    }
+
+    if (bufferList.length === 0) return null;
+    const combined = Buffer.concat(bufferList);
+    return `data:audio/mp3;base64,${combined.toString('base64')}`;
+  } catch (err) {
+    console.warn('Fallback server natural TTS error:', err);
     return null;
   }
+};
+
+export const textToSpeech = async (text: string): Promise<string | null> => {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Aoede' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const wavBytes = wrapPcmInWav(base64Audio, 24000);
+        let binary = '';
+        const len = wavBytes.byteLength;
+        const chunkSize = 8192;
+        for (let i = 0; i < len; i += chunkSize) {
+          const chunk = wavBytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const b64 = safeBtoa(binary);
+        return `data:audio/wav;base64,${b64}`;
+      }
+    } catch (error: any) {
+      console.warn("Gemini TTS high demand/unavailable, activating high-fidelity fallback audio:", error?.message || error);
+    }
+  }
+
+  // Fallback de alta fidelidade com voz feminina natural brasileira (nunca som mecânico ou robótico)
+  return await getNaturalServerTTS(text);
 };
 
 function wrapPcmInWav(pcmBase64: string, sampleRate: number): Uint8Array {

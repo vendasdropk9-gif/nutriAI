@@ -63,6 +63,25 @@ app.post("/api/gemini", async (req, res) => {
   }
 });
 
+// Dedicated TTS Endpoint for High Fidelity Voice
+app.post("/api/tts", async (req, res) => {
+  const { text } = req.body || {};
+  if (!text) {
+    return res.status(400).json({ error: "Nenhum texto informado." });
+  }
+
+  try {
+    const audio = await geminiServer.textToSpeech(text);
+    if (!audio) {
+      return res.status(500).json({ error: "Falha ao sintetizar áudio natural." });
+    }
+    res.json({ audio });
+  } catch (e: any) {
+    console.error("TTS handler error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Auth Routes
 app.post("/api/auth/register", async (req, res) => {
   const { email, password, name } = req.body;
