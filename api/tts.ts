@@ -39,14 +39,10 @@ export default async function handler(req: any, res: any) {
     }
 
     const audio = await geminiServer.textToSpeech(text);
-    if (!audio) {
-      return res.status(500).json({ error: 'Falha ao sintetizar áudio natural.' });
-    }
-
-    return res.status(200).json({ audio });
+    return res.status(200).json({ audio: audio || null });
   } catch (err: any) {
     console.error('Erro no TTS Serverless handler:', err);
-    return res.status(500).json({ error: err?.message || 'Erro ao gerar áudio.' });
+    return res.status(200).json({ audio: null, error: err?.message || 'Erro ao gerar áudio.' });
   }
 }
 

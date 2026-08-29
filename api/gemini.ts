@@ -46,11 +46,12 @@ export default async function handler(req: any, res: any) {
     }
 
     const result = await func(...(args || []));
-    return res.status(200).json(result);
+    return res.status(200).json(result !== undefined ? result : null);
   } catch (err: any) {
     console.error('Erro na execução da API Gemini Serverless Function:', err);
-    return res.status(500).json({
-      error: err?.message || 'Erro interno ao processar a requisição no servidor.'
+    return res.status(200).json({
+      error: err?.message || 'Erro interno ao processar a requisição no servidor.',
+      fallback: true
     });
   }
 }

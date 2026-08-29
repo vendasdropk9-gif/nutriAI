@@ -42,13 +42,6 @@ app.post("/api/gemini", async (req, res) => {
     return res.status(400).json({ error: "Nome de função inválido ou ausente." });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      error: "Variável GEMINI_API_KEY não configurada na Vercel. Adicione em Settings > Environment Variables."
-    });
-  }
-
   const func = (geminiServer as any)[functionName];
   if (!func || typeof func !== "function") {
     return res.status(404).json({ error: `Função '${functionName}' não localizada no backend.` });
@@ -56,10 +49,10 @@ app.post("/api/gemini", async (req, res) => {
 
   try {
     const result = await func(...(args || []));
-    res.json(result);
+    res.status(200).json(result !== undefined ? result : null);
   } catch (err: any) {
     console.error(`Erro na execução da API Gemini '${functionName}':`, err);
-    res.status(500).json({ error: err?.message || "Erro interno ao processar a requisição." });
+    res.status(200).json({ error: err?.message || "Erro ao processar.", fallback: true });
   }
 });
 
@@ -72,13 +65,10 @@ app.post("/api/tts", async (req, res) => {
 
   try {
     const audio = await geminiServer.textToSpeech(text);
-    if (!audio) {
-      return res.status(500).json({ error: "Falha ao sintetizar áudio natural." });
-    }
-    res.json({ audio });
+    res.status(200).json({ audio: audio || null });
   } catch (e: any) {
     console.error("TTS handler error:", e.message);
-    res.status(500).json({ error: e.message });
+    res.status(200).json({ audio: null, error: e?.message });
   }
 });
 

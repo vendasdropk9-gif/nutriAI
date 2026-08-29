@@ -41,12 +41,41 @@ export const cleanImageInput = (input: string, fallbackMime = 'image/jpeg'): { c
   return { cleanBase64, activeMime };
 };
 
+export const getGeminiApiKey = (customKey?: string): string => {
+  return (
+    customKey ||
+    process.env.GEMINI_API_KEY ||
+    process.env.API_KEY ||
+    process.env.VITE_GEMINI_API_KEY ||
+    process.env.VITE_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.VITE_GOOGLE_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    ''
+  );
+};
+
+export const getGenAI = (customKey?: string): GoogleGenAI | null => {
+  const key = getGeminiApiKey(customKey);
+  if (!key) return null;
+  try {
+    return new GoogleGenAI({
+      apiKey: key,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+  } catch (e) {
+    console.warn("Failed to instantiate GoogleGenAI client:", e);
+    return null;
+  }
+};
+
 export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
 ): Promise<{ text: string, action: string, actionData?: any }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI();
 
   const systemInstruction = `Você é a Malu, uma IA superinteligente que atua como uma assistente personalizada de saúde e bem-estar.
 SEU COMPORTAMENTO (Voz "Premium Humana", Parceira Constante):
@@ -136,7 +165,7 @@ RESPONDA EM JSON.`;
 export const generateMasterStrategy = async (
   profile: UserProfile
 ): Promise<MasterPlanStrategy | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Você é um Nutricionista e Personal Trainer de Alta Performance.
 Crie a estratégia nutricional e de treino mestra para este usuário.
@@ -200,7 +229,7 @@ Responda APENAS em JSON validando o schema.`;
 export const generateWorkout = async (
   profile: UserProfile | null
 ): Promise<WorkoutSession | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileContext = `
 - Objetivo: ${profile?.goals || 'Emagrecimento'}
@@ -346,7 +375,7 @@ Regras:
 export const generateWeeklyWorkoutPlan = async (
   profile: UserProfile | null
 ): Promise<WeeklyWorkoutPlan | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileContext = `
 - Objetivo: ${profile?.goals || 'Emagrecimento'}
@@ -542,7 +571,7 @@ export const generateRecipe = async (
   budgetMode: boolean = false,
   preferences: string = ""
 ): Promise<Omit<Recipe, "id"> | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
@@ -687,7 +716,7 @@ export const generateMealSuggestions = async (
   profile: UserProfile | null,
   day: string
 ): Promise<Omit<Recipe, "id">[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileText = "Nenhuma restrição específica.";
   if (profile) {
@@ -1100,7 +1129,7 @@ export const generateRecipeImage = async (prompt: string): Promise<string | null
 };
 
 export const analyzeBodyImage = async (base64Image: string, mimeType: string, profile: any): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   
   const { cleanBase64, activeMime } = cleanImageInput(base64Image, mimeType);
 
@@ -1165,7 +1194,7 @@ Retorne APENAS um JSON no formato definido.`;
 };
 
 export const getGeneralBodyTips = async (profile: any): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   
   const prompt = `Gere dicas gerais sobre evolução corporal, saúde e bem-estar para o usuário.
 Contexto: Peso atual ${profile?.weight || 'Não informado'}kg, Objetivo: ${profile?.goals || 'Melhorar a saúde e forma física'}.
@@ -1210,7 +1239,7 @@ Retorne APENAS um JSON estruturado.`;
 export const analyzePlate = async (base64Image: string, mimeType: string, profile?: UserProfile | null): Promise<any | null> => {
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+    const ai = getGenAI(apiKey); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
     
     let cleanData = base64Image || '';
     let activeMime = mimeType || 'image/jpeg';
@@ -1306,7 +1335,7 @@ Responda APENAS num json.`;
 };
 
 export const generateJourneyMessage = async (profile: UserProfile, period: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   
   const systemInstruction = `Você é uma assistente virtual de saúde. Seu tom é altamente humano, acolhedor e premium, como uma mensagem de WhatsApp.
 O usuário está visualizando a evolução do seu próprio corpo no período: ${period}.
@@ -1337,7 +1366,7 @@ export const generateJuiceRecipe = async (
 ): Promise<any> => {
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+    const ai = getGenAI(apiKey); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
     let profileText = "Nenhum";
     if (profile) {
@@ -1429,7 +1458,7 @@ export const analyzeBarcodeProduct = async (
   productData: any,
   profile: UserProfile | null
 ): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileText = "Nenhum";
   if (profile) {
@@ -1505,7 +1534,7 @@ export const analyzeEmotionalPatterns = async (
   logs: EmotionalLog[],
   profile: UserProfile | null
 ): Promise<{ insight: string; suggestion: string; assistantMessage: string } | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const logsText = logs.slice(-10).map(l => `${l.date}: ${l.mood} (${l.trigger || 'sem gatilho'})`).join("\n");
   
@@ -1558,7 +1587,7 @@ export const generateChallengeFeedback = async (
   totalDays: number,
   profile: UserProfile | null
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Gere uma mensagem motivadorar curta de uma assistente de voz feminina para o usuário que acabou de completar o Dia ${day} de um desafio de ${totalDays} dias.
   
@@ -1592,7 +1621,7 @@ export const generateHabitsInsight = async (
   sleepLogs: any[],
   fastingLogs: any[]
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   const tzDate = new Date().toISOString().split('T')[0];
   const todaySleep = sleepLogs.find(l => l.date.split('T')[0] === tzDate);
   const todayFasting = fastingLogs.find(l => l.date.split('T')[0] === tzDate);
@@ -1629,7 +1658,7 @@ export const generateHydrationAdvice = async (
   goal: number,
   profile: UserProfile | null
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const percentage = (current / goal) * 100;
   const prompt = `Gere uma mensagem motivadora curta (fala feminina doce) sobre hidratação.
@@ -1659,7 +1688,7 @@ export const analyzeDiningOut = async (
   description: string,
   profile: UserProfile | null
 ): Promise<DiningOutAnalysis | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Analise a seguinte refeição ou opções de cardápio de um restaurante: "${description}".
   
@@ -1855,7 +1884,7 @@ Regras:
 export const generateGoalPrediction = async (
   profile: UserProfile
 ): Promise<GoalPrediction | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Analise o perfil do usuário para prever o tempo necessário para atingir o objetivo de peso.
   
@@ -1917,7 +1946,7 @@ export const adjustMealPlan = async (
   intakeLogs: IntakeLog[],
   nextMealType: 'Café da Manhã' | 'Almoço' | 'Lanche' | 'Jantar'
 ): Promise<Omit<Recipe, 'id'> | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const safeLogs = safeArray<IntakeLog>(intakeLogs);
   const todayLogs = safeLogs.filter(log => {
@@ -2015,7 +2044,7 @@ export interface BehavioralIntervention {
 export const generateBehavioralIntervention = async (
   profile: UserProfile
 ): Promise<BehavioralIntervention | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const recentFoodLogs = (profile.intakeLogs || []).slice(-10);
   const recentWorkouts = (profile.workoutLogs || []).slice(-7);
@@ -2090,7 +2119,7 @@ export const generateAdaptiveInsight = async (
   intakeLogs: IntakeLog[],
   workoutLogs: WorkoutLog[]
 ): Promise<Omit<AdaptiveInsight, 'id' | 'status'> | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const recentFood = (intakeLogs || []).slice(-10);
   const recentWorkouts = (workoutLogs || []).slice(-5);
@@ -2169,7 +2198,7 @@ Responda APENAS em JSON validando o schema.`;
 export const generateWeeklyChallenges = async (
   profile: UserProfile
 ): Promise<WeeklyChallenge[]> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Gere 3 desafios semanais de gamificação personalizados para o usuário NutriAI.
 OBJETIVO DO USUÁRIO: ${profile?.goals || 'Saúde e hábitos saudáveis'}
@@ -2229,7 +2258,7 @@ export const generateMagicRecipe = async (
   input: string,
   profile: UserProfile | null
 ): Promise<any> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   const prompt = `Você é um Chef e Nutricionista de alta gastronomia saudável.
 O usuário quer uma receita personalizada (ex: sobremesa). Pedido: "${input}"
 Perfil do usuário: Objetivo - ${profile?.goals || 'Geral'}. Restrições - ${safeJoin(profile?.restrictions)}.
@@ -2288,7 +2317,7 @@ export const analyzeImage = async (
   prompt: string
 ): Promise<string | null> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
     
     // extrair mimeType do base64 (ex: data:image/jpeg;base64,...)
     const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || "image/jpeg";
@@ -2322,7 +2351,7 @@ export const analyzeProductImage = async (
   mimeType: string,
   profile?: UserProfile | null
 ): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const { cleanBase64, activeMime } = cleanImageInput(base64Image, mimeType);
 
@@ -2415,7 +2444,7 @@ export const analyzeEmotionalImage = async (
   mimeType: string,
   profile?: UserProfile | null
 ): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let profileText = "Nenhum";
   if (profile) {
@@ -2522,7 +2551,7 @@ export const analyzeBloodPressure = async (
   };
   dailySummary: string;
 } | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const logsText = logs.map(l => `Data: ${new Date(l.date).toLocaleString('pt-BR')}, Sistólica: ${l.systolic}, Diastólica: ${l.diastolic}, BPM: ${l.bpm}${l.notes ? `, Notas: ${l.notes}` : ''}`).join('\n');
 
@@ -2623,7 +2652,7 @@ export const analyzeBodyBiometrics = async (
   };
   dailySummary: string;
 } | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const logsText = logs.map(l => {
     return `Data: ${new Date(l.date).toLocaleString('pt-BR')}, BPM Freq: ${l.heartRate}, Estresse: ${l.stressLevel}%, Fadiga: ${l.fatigueLevel}%, Ansiedade: ${l.anxietyLevel}%${l.notes ? `, Notas: ${l.notes}` : ''}`;
@@ -2843,7 +2872,7 @@ export const chatWithHerbsAssistant = async (
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
 ): Promise<{ text: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const systemInstruction = `Você é o Fitoterapeuta e Botânico Especialista do NutriAI, uma inteligência artificial criada para sanar dúvidas exclusivamente sobre ervas medicinais brasileiras com total rigor científico e em um tom amigável, acolhedor e altamente esclarecedor.
 
@@ -2946,7 +2975,7 @@ export const identifyPlant = async (
   imageBase64: string,
   mimeType: string = "image/jpeg"
 ): Promise<PlantIdentificationResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
@@ -3097,7 +3126,7 @@ export const chatAboutIdentifiedPlant = async (
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
 ): Promise<{ text: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const systemInstruction = `Você é o Fitoterapeuta Especialista do NutriAI. O usuário acabou de identificar a planta "${plantName}".
 Sua tarefa é responder perguntas específicas do usuário sobre essa planta.
@@ -3170,7 +3199,7 @@ export const identifyMushroom = async (
   imageBase64: string,
   mimeType: string = "image/jpeg"
 ): Promise<MushroomIdentificationResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
@@ -3268,7 +3297,7 @@ export const chatAboutIdentifiedMushroom = async (
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
 ): Promise<{ text: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const systemInstruction = `Você é o Micologista Especialista do NutriAI. O usuário identificou o cogumelo "${mushroomName}".
 Sua tarefa é responder a dúvidas e prover suporte de forma extremamente prudente, científica e educativa sobre esse espécime.
@@ -3334,7 +3363,7 @@ export const analyzeFoodAllergens = async (
   userAllergies: string[],
   mimeType: string = "image/jpeg"
 ): Promise<FoodAllergyAnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let cleanBase64 = imageBase64 || '';
   let activeMime = mimeType;
@@ -3477,7 +3506,7 @@ export const chatAboutAllergies = async (
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
 ): Promise<{ text: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const safeAllergies = safeArray<string>(userAllergies);
   const systemInstruction = `Você é o Alergologista Especialista em Segurança Alimentar do NutriAI. O usuário está analisando o produto "${productName}" e possui as seguintes alergias cadastradas: [${safeJoin(safeAllergies)}].
@@ -3560,7 +3589,7 @@ export const compareTwoProducts = async (
   imageOrTextB: string,
   userGoal: string
 ): Promise<ProductComparisonResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const systemInstruction = `Você é um Engenheiro de Alimentos e Nutricionista especialista em análise comparativa de rótulos e tabelas nutricionais para o NutriAI.
 Sua missão é analisar as informações de dois produtos (sejam fotos de embalagens, tabelas de nutrientes ou descrições em texto) e realizar uma comparação criteriosa de:
@@ -3723,7 +3752,7 @@ export const analyzeFridgeContents = async (
 ): Promise<FridgeAnalysisResult> => {
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+    const ai = getGenAI(apiKey); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
     const systemInstruction = `Você é uma Inteligência Artificial especialista em Cozinha Inteligente, Combate ao Desperdício e Nutrição para o NutriAI.
 Sua tarefa é analisar uma foto da geladeira ou despensa do usuário (ou processar os dados textuais/descrições se ele os enviou) e:
@@ -3903,7 +3932,7 @@ export const diagnosePlantHealth = async (
   description: string,
   imageInput?: string
 ): Promise<PlantDiagnosisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const systemInstruction = `Você é um Agrônomo e Botânico especialista em Hortas Urbanas e Domésticas para o NutriAI.
 Sua missão é ajudar usuários que estão plantando Alface, Tomate, Cebolinha, Hortelã, Manjericão ou Alecrim a identificar problemas de saúde nas plantas (doenças, deficiências nutricionais, pragas, excesso/falta de água ou sol) e sugerir soluções estritamente orgânicas/caseiras.
@@ -3967,7 +3996,7 @@ Analise o caso e forneça um diagnóstico ecológico preciso, as causas prováve
 export const getWaterQualityAdvice = async (
   queryText: string
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
   const systemInstruction = `Você é um Engenheiro de Recursos Hídricos, Nutrólogo e Botânico especialista em Qualidade da Água e Hidratação.
 Sua missão é dar respostas precisas, científicas, acolhedoras e em português do Brasil sobre filtragem de água, pH, TDS (sólidos dissolvidos totais), tipos de filtros (filtro de barro, carvão ativado, osmose reversa, ozonizadores), mineralização, água da torneira e os impactos de cada origem de água no corpo humano e plantas. Se limite a responder sobre qualidade e consumo de água, mantendo um tom educativo e profissional.`;
 
@@ -3992,7 +4021,7 @@ export const generateRecipePreparationTips = async (
   recipeName: string,
   ingredients: string[]
 ): Promise<RecipePreparationTips | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   const prompt = `Gere dicas de preparo profissionais e criativas para a seguinte receita:
 Receita: ${recipeName}
@@ -4058,7 +4087,7 @@ export const combineSmartPlate = async (
   goal: string,
   profile?: any | null
 ): Promise<any | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
   let parts: any[] = [];
   

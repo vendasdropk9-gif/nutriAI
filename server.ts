@@ -451,10 +451,10 @@ async function startServer() {
 
     try {
       const result = await func(...(args || []));
-      res.json(result);
+      res.status(200).json(result !== undefined ? result : null);
     } catch (err: any) {
       console.error(`Erro na execução da API Gemini '${functionName}':`, err);
-      res.status(500).json({ error: err?.message || "Erro interno ao processar a requisição." });
+      res.status(200).json({ error: err?.message || "Erro ao processar.", fallback: true });
     }
   });
 
@@ -464,11 +464,10 @@ async function startServer() {
 
     try {
       const audio = await geminiServer.textToSpeech(text);
-      if (!audio) throw new Error("No audio generated");
-      res.json({ audio });
+      res.status(200).json({ audio: audio || null });
     } catch (e: any) {
       console.error("TTS error:", e.message);
-      res.status(500).json({ error: e.message });
+      res.status(200).json({ audio: null, error: e.message });
     }
   });
 
