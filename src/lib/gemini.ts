@@ -317,7 +317,58 @@ export const generateSmartSwap = async (
   foodItem: string,
   profile: UserProfile | null
 ): Promise<SmartSwap | null> => {
-  return callGeminiEndpoint('generateSmartSwap', [foodItem, profile]);
+  try {
+    const result = await callGeminiEndpoint('generateSmartSwap', [foodItem, profile]);
+    if (result && result.substitute) return result;
+  } catch (err) {
+    console.warn('generateSmartSwap endpoint failed, using client fallback:', err);
+  }
+
+  const cleanFood = (foodItem || '').trim();
+  const foodLower = cleanFood.toLowerCase();
+
+  if (foodLower.includes('choc') || foodLower.includes('doce') || foodLower.includes('bombom') || foodLower.includes('nutella')) {
+    return {
+      original: cleanFood,
+      substitute: "Chocolate 70%+ cacau ou tâmaras recheadas com pasta de amendoim",
+      reason: "Menor teor de açúcar refinado, alto teor de flavonoides antioxidantes e gorduras boas que prolongam a saciedade.",
+      benefits: ["Rico em antioxidantes", "Não gera picos inflamatórios de insulina", "Sacia o desejo por doces com alto valor nutricional", "Auxilia na liberação natural de serotonina"],
+      assistantMessage: "Experimente um quadradinho de chocolate amargo 70% ou uma tâmara com pasta de amendoim! Você mata a vontade de doce nutrindo seu corpo com muito sabor."
+    };
+  }
+
+  if (foodLower.includes('refrig') || foodLower.includes('coca') || foodLower.includes('suco de caixinha') || foodLower.includes('soda')) {
+    return {
+      original: cleanFood,
+      substitute: "Água com gás, rodelas de limão siciliano e folhas de hortelã fresca",
+      reason: "Zero açúcares adicionados e zero corantes artificiais, mantendo o frescor gasoso e a sensação refrescante.",
+      benefits: ["Zero calorias vazias", "Hidratação celular pura e profunda", "Protege a saúde digestiva e esmalte dental", "Combate a retenção de líquidos"],
+      assistantMessage: "Que tal uma água com gás bem geladinha com limão e hortelã? O frescor das bolhas continua lá, mas sem todo aquele açúcar que pesa no seu organismo!"
+    };
+  }
+
+  if (foodLower.includes('pao') || foodLower.includes('pão') || foodLower.includes('torrada') || foodLower.includes('bisnaga')) {
+    return {
+      original: cleanFood,
+      substitute: "Pão 100% integral de fermentação natural ou Pãozinho de aveia na frigideira",
+      reason: "A farinha branca é digerida rapidamente causando fome precoce; os grãos integrais e aveia liberam energia estável e prolongada.",
+      benefits: ["Fibras solúveis (beta-glucana)", "Maior saciedade matinal duradoura", "Regulação natural do trânsito intestinal", "Controle glicêmico constante"],
+      assistantMessage: "Trocar o pão branco por um de aveia ou fermentação natural é maravilhoso! Você vai se sentir leve e com energia constante por muito mais tempo."
+    };
+  }
+
+  return {
+    original: cleanFood || "Alimento",
+    substitute: `Versão assada ou integral com ervas naturais de ${cleanFood || 'alimento'}`,
+    reason: "Menor densidade calórica, redução de açúcares/sódio refinados e maior concentração de fibras e micronutrientes.",
+    benefits: [
+      "Melhora a saciedade e controla a fome",
+      "Reduz a carga glicêmica da refeição",
+      "Rico em vitaminas e minerais essenciais",
+      "Digestão mais leve e sensação de bem-estar"
+    ],
+    assistantMessage: `Essa substituição para ${cleanFood} é uma escolha inteligente e saborosa! Pequenas mudanças consistentes transformam totalmente a sua saúde e disposição.`
+  };
 };
 
 export const generateGoalPrediction = async (

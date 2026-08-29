@@ -1731,53 +1731,125 @@ export const generateSmartSwap = async (
   foodItem: string,
   profile: UserProfile | null
 ): Promise<SmartSwap | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const cleanFood = (foodItem || '').trim();
+  if (!cleanFood) return null;
 
-  const prompt = `Sugira uma substituição saudável for the alimento: "${foodItem}".
-  
-Perfil do Usuário: ${profile?.goals || 'Emagrecimento'}
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `Você é a Malu, nutricionista inteligente do NutriAI. Sugira uma substituição saudável, prática e deliciosa para o alimento ou refeição: "${cleanFood}".
+      
+Perfil do Usuário: ${profile?.goals || 'Emagrecimento e Saúde'} (Restrições: ${profile?.restrictions?.join(', ') || 'Nenhuma'})
 
 Regras:
-1. A substituição deve ser prática e saborosa.
-2. Forneça o 'original', o 'substitute', a 'reason' (por que trocar), uma lista de 'benefits' e uma 'assistantMessage' (fala feminina suave e motivadora).
-3. Responda APENAS com JSON validando o schema.`;
+1. 'original': Nome exato ou corrigido do alimento original (${cleanFood}).
+2. 'substitute': Nome da melhor alternativa saudável, saborosa e prática.
+3. 'reason': Explicação clara do motivo nutricional para a troca (ex: menor pico de insulina, mais fibras, gorduras boas).
+4. 'benefits': Array com 4 a 5 benefícios diretos no corpo e na saúde.
+5. 'assistantMessage': Mensagem em tom feminino, acolhedor e motivador da Malu em 1ª pessoa, explicando como preparar ou saborear a troca com alegria.
+6. Responda ESTRITAMENTE em formato JSON.`;
 
-  const schema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      original: { type: Type.STRING },
-      substitute: { type: Type.STRING },
-      reason: { type: Type.STRING },
-      benefits: { type: Type.ARRAY, items: { type: Type.STRING } },
-      assistantMessage: { type: Type.STRING },
-    },
-    required: ["original", "substitute", "reason", "benefits", "assistantMessage"],
-  };
+      const schema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+          original: { type: Type.STRING },
+          substitute: { type: Type.STRING },
+          reason: { type: Type.STRING },
+          benefits: { type: Type.ARRAY, items: { type: Type.STRING } },
+          assistantMessage: { type: Type.STRING },
+        },
+        required: ["original", "substitute", "reason", "benefits", "assistantMessage"],
+      };
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        temperature: 0.7,
-      },
-    });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          temperature: 0.7,
+        },
+      });
 
-    const text = response.text;
-    if (!text) return null;
-    return JSON.parse(text);
-  } catch (error) {
-    console.info("Fallback triggered: smart swap");
+      const text = response.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed && parsed.substitute) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.warn("Gemini generateSmartSwap fallback triggered:", error);
+    }
+  }
+
+  // Resilient contextual knowledge base fallback
+  const foodLower = cleanFood.toLowerCase();
+  
+  if (foodLower.includes('choc') || foodLower.includes('doce') || foodLower.includes('bombom') || foodLower.includes('nutella')) {
     return {
-      original: foodItem,
-      substitute: "Uma alternativa mais saudável",
-      reason: "Menos calorias e mais nutrientes",
-      benefits: ["Rico em vitaminas", "Baixo índice glicêmico"],
-      assistantMessage: "Aqui está uma sugestão rápida (Modo Offline)."
+      original: cleanFood,
+      substitute: "Chocolate 70%+ cacau ou tâmaras recheadas com pasta de amendoim",
+      reason: "Menor teor de açúcar refinado, alto teor de flavonoides antioxidantes e gorduras boas que prolongam a saciedade.",
+      benefits: ["Rico em antioxidantes que combatem o envelhecimento celular", "Não gera picos inflamatórios de insulina", "Sacia o desejo por doces com maior valor nutricional", "Auxilia na liberação natural de serotonina"],
+      assistantMessage: "Experimente um quadradinho de chocolate amargo 70% ou uma tâmara com pasta de amendoim! Você mata a vontade de doce nutrindo seu corpo com muito sabor."
     };
   }
+
+  if (foodLower.includes('refrig') || foodLower.includes('coca') || foodLower.includes('suco de caixinha') || foodLower.includes('soda')) {
+    return {
+      original: cleanFood,
+      substitute: "Água com gás, rodelas de limão siciliano e folhas de hortelã fresca",
+      reason: "Zero açúcares adicionados e zero corantes artificiais, mantendo o frescor gasoso e a sensação refrescante.",
+      benefits: ["Zero calorias vazias", "Hidratação celular pura e profunda", "Protege a saúde digestiva e esmalte dental", "Combate a retenção de líquidos"],
+      assistantMessage: "Que tal uma água com gás bem geladinha com limão e hortelã? O frescor das bolhas continua lá, mas sem todo aquele açúcar que pesa no seu organismo!"
+    };
+  }
+
+  if (foodLower.includes('pao') || foodLower.includes('pão') || foodLower.includes('torrada') || foodLower.includes('bisnaga')) {
+    return {
+      original: cleanFood,
+      substitute: "Pão 100% integral de fermentação natural ou Pãozinho de aveia na frigideira",
+      reason: "A farinha branca é digerida rapidamente causando fome precoce; os grãos integrais e aveia liberam energia estável e prolongada.",
+      benefits: ["Fibras solúveis (beta-glucana)", "Maior saciedade matinal duradoura", "Regulação natural do trânsito intestinal", "Controle glicêmico constante"],
+      assistantMessage: "Trocar o pão branco por um de aveia ou fermentação natural é maravilhoso! Você vai se sentir leve e com energia constante por muito mais tempo."
+    };
+  }
+
+  if (foodLower.includes('frita') || foodLower.includes('batata') || foodLower.includes('nugget') || foodLower.includes('pastel')) {
+    return {
+      original: cleanFood,
+      substitute: "Batata doce rústica assada na Airfryer com azeite extravirgem, páprica e alecrim",
+      reason: "A fritura em óleo aquecido gera compostos inflamatórios; assar com azeite preserva os nutrientes com alto teor de crocância.",
+      benefits: ["Rica em vitamina A e betacaroteno", "Redução de mais de 60% no teor calórico", "Sem gorduras oxidadas de fritura", "Crocante por fora e macia por dentro"],
+      assistantMessage: "Corte em palitos, tempere com azeite, páprica defumada e alecrim, e asse na Airfryer! Fica super crocante e sem o peso do óleo no estômago."
+    };
+  }
+
+  if (foodLower.includes('pizza') || foodLower.includes('hamburg') || foodLower.includes('hambúrguer') || foodLower.includes('fast food')) {
+    return {
+      original: cleanFood,
+      substitute: "Mini pizza com base de wrap 100% integral, molho caseiro, frango desfiado e queijo minas curado",
+      reason: "Substitui massas pesadas ultraprocessadas por massa leve rica em fibras e proteínas de alto valor biológico.",
+      benefits: ["Massa leve de fácil digestão", "Proteínas magras que geram saciedade", "Rica em licopeno do molho de tomate natural", "Permite saborear sem sair do foco"],
+      assistantMessage: "Monte uma pizza no wrap integral com molho de tomate caseiro, bastante orégano e queijo magro na frigideira! Fica crocante, deliciosa e super nutritiva."
+  };
+  }
+
+  return {
+    original: cleanFood,
+    substitute: `Versão integral ou assada com ervas naturais de ${cleanFood}`,
+    reason: "Menor densidade calórica, redução de açúcares/sódio refinados e maior concentração de fibras e micronutrientes.",
+    benefits: [
+      "Melhora a saciedade e controla a fome",
+      "Reduz a carga glicêmica da refeição",
+      "Rico em vitaminas e minerais essenciais",
+      "Digestão mais leve e sensação de bem-estar"
+    ],
+    assistantMessage: `Essa substituição para ${cleanFood} é uma escolha inteligente e saborosa! Pequenas mudanças consistentes transformam totalmente a sua saúde e disposição.`
+  };
 };
 
 export const generateGoalPrediction = async (
