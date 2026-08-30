@@ -70,6 +70,54 @@ export const getGenAI = (customKey?: string): GoogleGenAI | null => {
   }
 };
 
+export const callWithModelFallback = async (
+  ai: GoogleGenAI,
+  params: {
+    contents: any;
+    config?: any;
+    models?: string[];
+  }
+): Promise<{ text: string | undefined; rawResponse?: any }> => {
+  const models = params.models || ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  let lastError: any = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: params.contents,
+          config: params.config,
+        });
+        if (response?.text !== undefined) {
+          return { text: response.text, rawResponse: response };
+        }
+      } catch (err: any) {
+        lastError = err;
+        const msg = String(err?.message || '').toLowerCase();
+        const isTransient =
+          err?.status === 'UNAVAILABLE' ||
+          err?.status === 'RESOURCE_EXHAUSTED' ||
+          msg.includes('503') ||
+          msg.includes('429') ||
+          msg.includes('high demand') ||
+          msg.includes('unavailable') ||
+          msg.includes('quota') ||
+          msg.includes('overloaded');
+
+        if (isTransient && attempt < 2) {
+          const delay = (attempt + 1) * 600;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        break;
+      }
+    }
+  }
+
+  throw lastError || new Error("Falha temporária ao comunicar com os modelos Gemini.");
+};
+
 export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
@@ -674,21 +722,24 @@ Responda APENAS com um objeto JSON.`;
 };
 
 export const scanIngredients = async (base64Image: string, mimeType: string): Promise<string[]> => {
-  const ai = new GoogleGenAI({ 
-    apiKey: process.env.GEMINI_API_KEY || '',
-    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-  });
+  const ai = getGenAI();
+  if (!ai) {
+    console.warn("API_KEY_UNAVAILABLE in scanIngredients");
+    return [];
+  }
+
+  const { cleanBase64, activeMime } = cleanImageInput(base64Image, mimeType || 'image/jpeg');
   
-  const prompt = `Identifique todos os ingredientes alimentícios visíveis nesta imagem. \nRetorne APENAS um array JSON de strings, onde cada string é o nome do ingrediente identificado em português. Exemplo: ["maçã", "banana", "leite"]. Se não houver comida, retorne [].`;
+  const prompt = `Identifique todos os ingredientes alimentícios visíveis nesta imagem de forma detalhada e precisa.
+Retorne APENAS um array JSON de strings, onde cada string é o nome do ingrediente identificado em português (ex: ["tomate", "frango", "cebola", "cenoura", "ovos", "leite", "azeite"]). Se não houver nenhum alimento visível, retorne [].`;
   
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const result = await callWithModelFallback(ai, {
       contents: [
         {
           inlineData: {
-            data: base64Image,
-            mimeType: mimeType
+            data: cleanBase64,
+            mimeType: activeMime
           }
         },
         prompt
@@ -700,14 +751,21 @@ export const scanIngredients = async (base64Image: string, mimeType: string): Pr
           items: { type: Type.STRING }
         },
         temperature: 0.2
-      }
+      },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
-    const text = response.text;
+    const text = result.text?.trim();
     if (!text) return [];
-    return JSON.parse(text) as string[];
-  } catch (error) {
-    console.error("Failed to scan ingredients:", error);
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+        .map(item => item.trim());
+    }
+    return [];
+  } catch (error: any) {
+    console.warn("Erro ao escanear ingredientes (todas as tentativas com fallback esgotadas):", error?.message || error);
     return [];
   }
 };
@@ -1252,8 +1310,7 @@ Retorne APENAS um JSON no formato definido.`;
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const result = await callWithModelFallback(ai, {
       contents: [
         {
           role: 'user',
@@ -1272,13 +1329,14 @@ Retorne APENAS um JSON no formato definido.`;
         responseMimeType: "application/json",
         responseSchema: schema,
         temperature: 0.2
-      }
+      },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
-    const data = JSON.parse(response.text || '{}');
+    const data = JSON.parse(result.text || '{}');
     return data;
   } catch (error) {
-    console.info("Error analyzing body image:");
+    console.info("Error analyzing body image:", error);
     return null;
   }
 };
@@ -1308,20 +1366,20 @@ Retorne APENAS um JSON estruturado.`;
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const result = await callWithModelFallback(ai, {
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
-        temperature: 0.7
-      }
+        temperature: 0.3
+      },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
-    const data = JSON.parse(response.text || '{}');
+    const data = JSON.parse(result.text || '{}');
     return data;
   } catch (error) {
-    console.info("Error generating general tips:");
+    console.info("Error generating general tips:", error);
     return null;
   }
 };
@@ -1382,8 +1440,7 @@ Responda APENAS num json.`;
       required: ["foods", "nutrition", "nutriScore", "nutriScoreExplanation", "assistantMessage", "suggestions"],
     };
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const result = await callWithModelFallback(ai, {
       contents: [
         {
           inlineData: {
@@ -1397,10 +1454,11 @@ Responda APENAS num json.`;
         responseMimeType: "application/json",
         responseSchema: schema,
         temperature: 0.2
-      }
+      },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
-    const text = response.text;
+    const text = result.text?.trim();
     if (text) {
       return JSON.parse(text);
     }
@@ -4462,7 +4520,20 @@ Retorne APENAS o JSON válido.`;
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {
-      recommendedPlate: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de alimentos que compõem o prato recomendado" },
+      recommendedPlate: { 
+        type: Type.ARRAY, 
+        items: { 
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING, description: "Nome do alimento ou prato selecionado (ex: 'Peito de Frango Grelhado', 'Arroz Integral com Brócolis', 'Salada Verde Mediterrânea')" },
+            portion: { type: Type.STRING, description: "Sugestão prática de porção no prato (ex: '1 filé médio (140g)', '2 a 3 colheres de sopa', 'Metade do prato')" },
+            category: { type: Type.STRING, description: "Categoria do alimento: 'Proteína Principal', 'Carboidrato Complexo', 'Vegetais & Saladas', 'Leguminosa', 'Gordura Saudável', etc." },
+            description: { type: Type.STRING, description: "Breve justificativa nutricional deste item no prato" }
+          },
+          required: ["name", "portion", "category"]
+        }, 
+        description: "Lista estruturada dos alimentos que compõem o prato recomendado" 
+      },
       reasoning: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Por que essa combinação? (ex: 'melhor equilíbrio entre proteínas e carboidratos', etc.)" },
       nutritionEstimate: {
         type: Type.OBJECT,
@@ -4484,19 +4555,20 @@ Retorne APENAS o JSON válido.`;
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const result = await callWithModelFallback(ai, {
       contents: { parts },
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
         temperature: 0.2,
-      }
+      },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
-    const responseText = response.text;
+    const responseText = result.text?.trim();
     if (!responseText) return null;
-    return JSON.parse(responseText);
+    const parsed = JSON.parse(responseText);
+    return parsed;
   } catch (err) {
     console.error("Erro em combineSmartPlate:", err);
     throw err;

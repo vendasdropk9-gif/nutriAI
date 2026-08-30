@@ -453,8 +453,17 @@ export interface RecipePreparationTips {
   chefSecret: string;
 }
 
+export interface SmartPlateDishItem {
+  name: string;
+  category?: string;
+  portion?: string;
+  description?: string;
+  image?: string;
+}
+
 export interface SmartPlateCombination {
-  recommendedPlate: string[];
+  recommendedPlate: (string | SmartPlateDishItem)[];
+  plateOverviewImage?: string;
   reasoning: string[];
   nutritionEstimate: {
     calories: number;
