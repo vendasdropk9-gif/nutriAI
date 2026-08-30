@@ -452,7 +452,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                       Volume Consumido
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { amount: 150, label: "Xícara/Dose", sub: "150ml" },
                         { amount: 250, label: "Copo", sub: "250ml" },

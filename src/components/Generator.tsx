@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
@@ -161,6 +161,23 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
         <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
           Informe o que você tem na geladeira ou tire uma foto. A Inteligência Artificial criará uma receita exclusiva respeitando seu perfil.
         </p>
+
+        {/* 1-Tap Quick Dishes Button */}
+        <div className="pt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              playSfx('tap');
+              vibrate(20);
+              window.dispatchEvent(new CustomEvent('app:changeTab', { detail: 'quickdishes' }));
+            }}
+            className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500 hover:from-orange-600 hover:to-emerald-600 text-white font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+          >
+            <Flame className="w-4 h-4 text-white animate-pulse" />
+            <span>🍽️ GERAR PRATOS RÁPIDOS (1 TOQUE)</span>
+            <Sparkles className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

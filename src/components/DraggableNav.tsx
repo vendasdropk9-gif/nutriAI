@@ -7,7 +7,7 @@ import {
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
   Map as MapIcon, Zap, Activity, Building2, Heart, BookOpen, Leaf,
   ShieldAlert, Scale, Apple, Sprout, Image as ImageIcon,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Flame
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -27,6 +27,7 @@ interface DraggableNavProps {
 
 const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'assistant360', label: 'Assistente 360°', icon: <Zap className="w-5 h-5" />, isSpecial: true, color: 'from-indigo-500 to-purple-600' },
+  { id: 'quickdishes', label: 'Pratos Rápidos', icon: <Flame className="w-5 h-5 text-orange-500" />, isSpecial: true, color: 'from-orange-500 to-amber-500' },
   { id: 'coach', label: 'Coach IA', icon: <Zap className="w-5 h-5" /> },
   { id: 'generator', label: 'Receitas', icon: <Utensils className="w-5 h-5" /> },
   { id: 'fridge', label: 'Geladeira', icon: <Apple className="w-5 h-5 text-emerald-500" />, color: 'from-emerald-500 to-teal-600' },
@@ -70,6 +71,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   const getLabel = (item: any): string => {
     switch (item.id) {
       case 'assistant360': return t('assistant_ai', item.label) as string;
+      case 'quickdishes': return 'Pratos Rápidos';
       case 'generator': return t('recipes', item.label) as string;
       case 'fridge': return t('smart_fridge', item.label) as string;
       case 'herbs': return t('herbs', item.label) as string;

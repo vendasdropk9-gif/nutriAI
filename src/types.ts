@@ -368,6 +368,34 @@ export interface NutritionInfo {
   minerals?: string[];
 }
 
+export type QuickDishGoal = 'weight_loss' | 'muscle_gain' | 'quick_fit_snack';
+
+export interface QuickDishIngredient {
+  name: string;
+  amount: string;
+}
+
+export interface QuickDish {
+  id: string;
+  name: string;
+  category: QuickDishGoal;
+  categoryLabel: string;
+  description: string;
+  prepTime: string;
+  portionSuggestion: string;
+  ingredients: QuickDishIngredient[];
+  instructions: string[];
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  };
+  possibleSwaps: string[];
+  image: string;
+}
+
 export interface Recipe {
   id: string;
   name: string;

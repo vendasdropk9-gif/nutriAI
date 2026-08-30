@@ -67,6 +67,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
   const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : 'Ótimo';
 
   const features = [
+    { id: 'quickdishes', label: 'Pratos Rápidos IA', icon: <Flame className="w-5 h-5 text-orange-500" />, desc: '3 opções em 1 toque' },
     { id: 'generator', label: 'Receitas com IA', icon: <Utensils className="w-5 h-5 text-emerald-500" />, desc: 'Geradas sob medida' },
     { id: 'coach', label: 'NutriCoach IA', icon: <Zap className="w-5 h-5 text-emerald-400" />, desc: 'Análise de dieta 24/7' },
     { id: 'analyzer', label: 'Scanner de Prato', icon: <Camera className="w-5 h-5 text-emerald-500" />, desc: 'Fotografe e analise' },
@@ -167,7 +168,48 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
         </div>
       </div>
 
-      {/* 2. Proactive AI Banner */}
+      {/* 2. Featured Spotlight: GERAR PRATOS RÁPIDOS */}
+      <div 
+        onClick={() => {
+          playSfx('tap');
+          vibrate(20);
+          onNavigate('quickdishes');
+        }}
+        className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-teal-500/15 p-6 sm:p-7 border border-orange-500/30 hover:border-orange-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group backdrop-blur-md"
+      >
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/10 blur-2xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-300 shrink-0">
+              <Flame className="w-7 h-7 animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[11px] font-bold tracking-wide uppercase">
+                <Sparkles className="w-3 h-3" />
+                <span>1 Toque • Fotos IA • 3 Opções</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                🍽️ Pratos Rápidos com IA
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
+                Escolha <strong>Emagrecer</strong>, <strong>Ganhar Massa</strong> ou <strong>Lanches Fit</strong> e receba 3 sugestões imediatas com foto realista e macros.
+              </p>
+            </div>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 shrink-0 group-hover:shadow-orange-500/50 transition-all"
+          >
+            <span>GERAR PRATOS RÁPIDOS</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </motion.button>
+        </div>
+      </div>
+
+      {/* 3. Proactive AI Banner */}
       <motion.div 
         key={activeTip}
         initial={{ opacity: 0, y: 8 }}

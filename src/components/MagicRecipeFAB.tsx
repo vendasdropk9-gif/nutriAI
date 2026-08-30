@@ -69,7 +69,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
 
   return (
     <>
-      <div className="fixed bottom-24 right-[72px] md:bottom-6 md:right-[80px] z-40">
+      <div className="fixed bottom-[152px] right-4 md:bottom-[76px] md:right-6 z-40">
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -77,6 +77,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
           className="p-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-amber-200/50 dark:border-amber-500/20 text-amber-500 hover:text-amber-600 transition-all font-serif"
+          aria-label="Assistente Culinário"
         >
           <div className="absolute inset-0 bg-amber-500/10 rounded-full" />
           <ChefHat className="w-5 h-5" />
@@ -147,6 +148,22 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                       </button>
                     </div>
+                  </div>
+
+                  <div className="w-full flex justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        playSfx('tap');
+                        vibrate(20);
+                        window.dispatchEvent(new CustomEvent('app:openQuickDishes'));
+                      }}
+                      className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1.5 p-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Ou toque aqui para Gerar 3 Pratos Rápidos</span>
+                    </button>
                   </div>
                 </>
               ) : (

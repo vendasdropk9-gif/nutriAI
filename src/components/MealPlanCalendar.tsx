@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
-import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Upload } from 'lucide-react';
+import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
+import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 
 interface MealPlanProps {
   mealPlan: MealPlan;
@@ -41,48 +42,45 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isExportingCard, setIsExportingCard] = useState(false);
   const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
+  const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   const handleExportCard = async () => {
     if (!shareCardRef.current) return;
     setIsExportingCard(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(shareCardRef.current, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        scale: 2,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      
-      try {
-        const link = document.createElement('a');
-        link.download = `mealplan-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (e) {
-        console.warn('Download attribute failed, using fallback.');
-      }
+      const fileName = `plano-alimentar-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`;
+      const result = await exportElementAsImage(
+        shareCardRef.current,
+        fileName,
+        `Plano Alimentar - ${selectedDay}`
+      );
 
-      setExportedCardUrl(dataUrl);
-      
-      window.dispatchEvent(new CustomEvent('app:notification', {
-        detail: {
-          title: "Card Gerado! 📸",
-          message: `A imagem do plano alimentar de ${selectedDay} está pronta para ser salva.`,
-          type: "success"
+      if (result.success && result.dataUrl) {
+        setExportedCardUrl(result.dataUrl);
+        if (result.blobUrl) {
+          setExportedBlobUrl(result.blobUrl);
         }
-      }));
-    } catch (err) {
+
+        window.dispatchEvent(new CustomEvent('app:notification', {
+          detail: {
+            title: result.shared ? "Compartilhado com Sucesso! 📸" : "Imagem Pronta! 📸",
+            message: result.shared 
+              ? `Plano de ${selectedDay} compartilhado.`
+              : `Toque no botão Salvar ou mantenha pressionado para baixar.`,
+            type: "success"
+          }
+        }));
+      } else {
+        throw new Error(result.error || "Falha ao gerar imagem.");
+      }
+    } catch (err: any) {
       console.warn("Erro ao gerar imagem do plano:", err);
       window.dispatchEvent(new CustomEvent('app:notification', {
         detail: {
-          title: "Erro ao Salvar",
-          message: "Não foi possível gerar a imagem no momento.",
-          type: "error"
+          title: "Aviso de Exportação",
+          message: "Você pode tirar um print ou tentar novamente.",
+          type: "info"
         }
       }));
     } finally {
@@ -589,7 +587,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                       className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/30 text-slate-800 dark:text-slate-100 text-sm shadow-sm"
                     />
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">Kcal</label>
                       <input
@@ -759,148 +757,180 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
       )}
 
       {/* Modal de Compartilhamento */}
-      <AnimatePresence>
-        {isShareModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl relative border border-slate-200 dark:border-slate-800"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-serif text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <Share2 className="w-5 h-5 text-indigo-500" />
-                    Compartilhar Plano
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Gere um card elegante do seu cardápio de {selectedDay}.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsShareModalOpen(false)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 border-none bg-transparent cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Viewport Card wrapper to download */}
-              <div className="border border-slate-200/60 dark:border-slate-800 rounded-3xl p-3 bg-slate-50 dark:bg-slate-950/40 flex justify-center overflow-hidden relative">
-                
-                {exportedCardUrl && (
-                  <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
-                    <p className="text-emerald-400 font-bold mb-4 text-center text-sm">Card Gerado com Sucesso!</p>
-                    <img src={exportedCardUrl} alt="Card Exportado" className="max-w-[280px] rounded-2xl shadow-xl mb-4 border border-white/20" />
-                    <p className="text-white text-xs text-center max-w-[250px]">
-                      Pressione e segure (ou clique com o botão direito) na imagem para salvá-la ou compartilhá-la.
-                    </p>
-                    <button 
-                      onClick={() => setExportedCardUrl(null)} 
-                      className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold text-white transition-colors"
-                    >
-                      Voltar
-                    </button>
-                  </div>
-                )}
-
-                <div 
-                  ref={shareCardRef}
-                  id="mealplan-social-share-card"
-                  className="w-[350px] min-h-[480px] bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 rounded-[24px] relative overflow-hidden flex flex-col text-white shadow-2xl"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
-                >
-                  {/* Glowing background highlights */}
-                  <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                  {/* Header Branding */}
-                  <div className="flex items-center justify-between relative z-10 border-b border-white/10 pb-3 mb-6">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-lg">📅</span>
-                      <span className="font-serif text-sm font-black tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
-                        NutriAI
-                      </span>
+      {typeof document !== 'undefined' && (
+        <AnimatePresence>
+          {isShareModalOpen && (
+            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="bg-[#0b131f] text-slate-100 rounded-[28px] sm:rounded-[36px] max-w-lg w-full p-5 sm:p-7 shadow-2xl relative border border-emerald-500/30 max-h-[92vh] flex flex-col my-auto"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 shrink-0 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                      <Share2 className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-white/50 bg-white/5 px-2 py-1 rounded-full border border-white/10">
-                      Plano Alimentar
-                    </span>
-                  </div>
-
-                  {/* Main Content */}
-                  <div className="flex-1 relative z-10 flex flex-col gap-4">
-                     <h2 className="text-3xl font-black font-serif tracking-tight text-white mb-2">
-                       {selectedDay}
-                     </h2>
-                     
-                     <div className="space-y-3">
-                        {['Café da Manhã', 'Almoço', 'Jantar'].map((mealType) => {
-                          const mealKey = mealType === 'Café da Manhã' ? 'breakfast' : mealType === 'Almoço' ? 'lunch' : 'dinner';
-                           const mealItem = mealPlan[selectedDay]?.meals?.[mealKey as 'breakfast' | 'lunch' | 'dinner'];
-                          return (
-                            <div key={mealType} className="bg-white/5 border border-white/10 rounded-xl p-3">
-                               <p className="text-[10px] text-emerald-400 uppercase tracking-widest font-bold mb-1">{mealType}</p>
-                               {mealItem ? (
-                                 <p className="text-sm font-medium text-white/90 leading-tight">
-                                   {mealItem.name}
-                                 </p>
-                               ) : (
-                                 <p className="text-sm text-white/40 italic">Não planejado</p>
-                               )}
-                            </div>
-                          );
-                        })}
-                     </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="pt-4 mt-6 border-t border-white/10 relative z-10 flex flex-col gap-2">
-                    <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-white/60">
-                       <span>Total</span>
-                       <span className="text-emerald-400">
-                         {Math.round(
-                           Object.values(dayPlan).reduce((acc: number, curr: any) => acc + (curr?.nutrition?.calories || 0), 0) + 
-                           0 + 
-                           0 +
-                           0
-                         )} kcal
-                       </span>
+                    <div>
+                      <h3 className="font-serif text-lg sm:text-xl font-bold text-white leading-tight">
+                        Compartilhar Plano
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        {selectedDay} • Card de Alta Resolução
+                      </p>
                     </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      setIsShareModalOpen(false);
+                      setExportedCardUrl(null);
+                    }}
+                    className="p-2 hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-white"
+                    aria-label="Fechar"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={() => setIsShareModalOpen(false)}
-                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full font-bold text-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleExportCard}
-                  disabled={isExportingCard}
-                  className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isExportingCard ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</>
+                {/* Viewport Card wrapper or Exported Image */}
+                <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-2 rounded-2xl bg-slate-950/60 border border-slate-800/80 my-2">
+                  {exportedCardUrl ? (
+                    <div className="flex flex-col items-center justify-center p-2 space-y-3 w-full">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/30">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Imagem Gerada com Sucesso!
+                      </div>
+                      <img 
+                        src={exportedCardUrl} 
+                        alt="Card Exportado" 
+                        className="max-w-[260px] sm:max-w-[300px] rounded-2xl shadow-2xl border-2 border-emerald-500/30 object-contain" 
+                      />
+                      <p className="text-slate-300 text-center text-[11px] max-w-xs font-medium leading-relaxed bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        💡 <strong>Dica:</strong> Toque no botão de baixar abaixo ou <strong>pressione e segure</strong> o dedo sobre a imagem para salvar direto na sua galeria.
+                      </p>
+                    </div>
                   ) : (
-                    <><Upload className="w-4 h-4" /> Baixar Imagem</>
+                    <div 
+                      ref={shareCardRef}
+                      id="mealplan-social-share-card"
+                      className="w-[320px] sm:w-[340px] bg-[#0c1626] p-5 sm:p-6 rounded-[24px] relative overflow-hidden flex flex-col text-white shadow-2xl border border-emerald-500/30"
+                    >
+                      {/* Header Branding */}
+                      <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🥗</span>
+                          <span className="font-serif text-sm font-black tracking-widest text-emerald-400 uppercase">
+                            NutriAI
+                          </span>
+                        </div>
+                        <span className="text-[9px] uppercase tracking-widest font-black text-emerald-300 bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                          Planejamento Alimentar
+                        </span>
+                      </div>
+
+                      {/* Main Content */}
+                      <div className="flex-1 flex flex-col gap-3">
+                        <h2 className="text-xl sm:text-2xl font-black font-serif tracking-tight text-white">
+                          {selectedDay}
+                        </h2>
+                        
+                        <div className="space-y-2">
+                          {['Café da Manhã', 'Almoço', 'Jantar'].map((mealType) => {
+                            const mealKey = mealType === 'Café da Manhã' ? 'breakfast' : mealType === 'Almoço' ? 'lunch' : 'dinner';
+                            const mealItem = mealPlan[selectedDay]?.meals?.[mealKey as 'breakfast' | 'lunch' | 'dinner'];
+                            return (
+                              <div key={mealType} className="bg-[#112033] border border-slate-700/60 rounded-xl p-2.5">
+                                <p className="text-[9px] text-emerald-400 uppercase tracking-widest font-black mb-0.5">{mealType}</p>
+                                {mealItem ? (
+                                  <p className="text-xs font-semibold text-white/95 leading-tight">
+                                    {mealItem.name}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-slate-400 italic">Não planejado</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="pt-3 mt-4 border-t border-slate-800 flex justify-between items-center text-[10px] uppercase tracking-widest font-black text-slate-400">
+                        <span>Total Estimado</span>
+                        <span className="text-emerald-400 text-xs font-black">
+                          {Math.round(
+                            Object.values(dayPlan).reduce((acc: number, curr: any) => acc + (curr?.nutrition?.calories || 0), 0)
+                          )} kcal
+                        </span>
+                      </div>
+                    </div>
                   )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </div>
+
+                {/* Actions Footer */}
+                <div className="mt-4 flex flex-col sm:flex-row gap-2.5 shrink-0 pt-2">
+                  {exportedCardUrl ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (exportedBlobUrl) {
+                            downloadBlobUrl(exportedBlobUrl, `plano-alimentar-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`);
+                          } else if (exportedCardUrl) {
+                            downloadBlobUrl(exportedCardUrl, `plano-alimentar-${selectedDay.toLowerCase().replace(/[^a-z0-9]/g, '-')}.png`);
+                          }
+                        }}
+                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 border border-emerald-400/30"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Baixar Arquivo</span>
+                      </button>
+
+                      {exportedBlobUrl && (
+                        <button
+                          onClick={() => window.open(exportedBlobUrl, '_blank')}
+                          className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 border border-slate-700"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span>Abrir Imagem</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => setExportedCardUrl(null)}
+                        className="py-3 px-4 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-2xl font-bold text-xs transition-all border border-slate-700"
+                      >
+                        Voltar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setIsShareModalOpen(false)}
+                        className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold text-xs sm:text-sm transition-all border border-slate-700"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleExportCard}
+                        disabled={isExportingCard}
+                        className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed border border-emerald-400/30"
+                      >
+                        {isExportingCard ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Gerando Imagem...</>
+                        ) : (
+                          <><Download className="w-4 h-4" /> Baixar Imagem</>
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

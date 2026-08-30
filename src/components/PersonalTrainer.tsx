@@ -540,8 +540,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-      <div className="text-center space-y-4">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      <div className="text-center space-y-4 w-full max-w-3xl mx-auto">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Personal Trainer 3D
         </h2>
@@ -551,7 +551,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       </div>
 
       {/* Sub-tabs Navigation */}
-      <div className="flex justify-center">
+      <div className="flex justify-center w-full">
         <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-full flex gap-1 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
           <button
             onClick={() => setActiveSubTab('plan')}
@@ -579,7 +579,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       </div>
 
       {activeSubTab === 'plan' ? (
-        <div className="space-y-8">
+        <div className="space-y-8 w-full">
           {/* Sync status alert banner */}
           <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-[24px] p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="space-y-2">
@@ -757,10 +757,10 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
             </button>
         </motion.div>
       ) : (
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start justify-center">
            {/* Left Column: Avatar and Visuals */}
-           <div className="lg:col-span-12 xl:col-span-7 space-y-6 relative">
-             <div className="relative w-full rounded-[40px] overflow-hidden bg-slate-950/5 dark:bg-slate-900/50">
+           <div className="lg:col-span-7 space-y-6 relative w-full">
+             <div className="relative w-full rounded-[32px] md:rounded-[40px] overflow-hidden bg-slate-950/5 dark:bg-slate-900/50 shadow-2xl">
                <Avatar3D 
                  activeMuscles={currentExercise?.primaryMuscles || []} 
                  animation={
@@ -862,7 +862,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            </div>
 
            {/* Right Column: Exercise Details & Controls */}
-           <div className="lg:col-span-12 xl:col-span-5 space-y-6">
+           <div className="lg:col-span-5 space-y-6 w-full">
               <motion.div 
                 key={currentExercise?.id + activeMode}
                 initial={{ opacity: 0, x: 20 }}

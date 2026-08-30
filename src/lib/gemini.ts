@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal } from "../types";
 
 const callGeminiEndpoint = async (functionName: string, args: any[]) => {
   try {
@@ -71,6 +71,18 @@ export const generateMealSuggestions = async (
   day: string
 ): Promise<Omit<Recipe, "id">[]> => {
   return callGeminiEndpoint('generateMealSuggestions', [profile, day]);
+};
+
+export const generateQuickDishes = async (
+  goal: QuickDishGoal = 'weight_loss',
+  profile: UserProfile | null = null,
+  previousDishes: string[] = []
+): Promise<QuickDish[]> => {
+  const result = await callGeminiEndpoint('generateQuickDishes', [goal, profile, previousDishes]);
+  if (Array.isArray(result) && result.length > 0) {
+    return result;
+  }
+  return [];
 };
 
 import { safeGet, safeSet } from './storage';

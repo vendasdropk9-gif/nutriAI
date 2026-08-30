@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -131,7 +131,7 @@ Lembre-se: Você é uma interface de VOZ superinteligente e humanizada. Responda
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -202,7 +202,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -311,7 +311,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -444,7 +444,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -647,7 +647,7 @@ Responda APENAS com um objeto JSON.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -683,7 +683,7 @@ export const scanIngredients = async (base64Image: string, mimeType: string): Pr
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           inlineData: {
@@ -774,25 +774,115 @@ Responda APENAS com um array JSON com os objetos de receita.`;
     }
   };
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: recipeSchema,
-        temperature: 0.7,
-      },
-    });
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
 
-    const text = response.text;
-    if (!text) return [];
-    
-    return JSON.parse(text) as Omit<Recipe, "id">[];
-  } catch (error) {
-    console.info("Failed to generate meal suggestions:");
-    return [];
+  for (const modelName of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: recipeSchema,
+          temperature: 0.7,
+        },
+      });
+
+      const text = response?.text;
+      if (text) {
+        const parsed = JSON.parse(text) as Omit<Recipe, "id">[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (error: any) {
+      const isTemporary = error?.status === 'RESOURCE_EXHAUSTED' || 
+                          error?.status === 'UNAVAILABLE' || 
+                          error?.message?.includes('429') || 
+                          error?.message?.includes('503') || 
+                          error?.message?.includes('quota') || 
+                          error?.message?.includes('demand') ||
+                          error?.message?.includes('unavailable');
+      if (!isTemporary) {
+        console.info(`[generateMealSuggestions] Info modelo ${modelName}:`, error?.message || error);
+      }
+    }
   }
+
+  // Fallback estruturado de alta qualidade para o usuário não ficar sem refeições caso a rede/cota oscile
+  const isGain = profile?.goals?.toLowerCase().includes("massa") || profile?.goals?.toLowerCase().includes("hipertrofia");
+  const isLoss = profile?.goals?.toLowerCase().includes("emagrec") || profile?.goals?.toLowerCase().includes("perda");
+
+  return [
+    {
+      name: isGain ? "Ovos Mexidos Cremosos com Aveia e Frutas" : "Omelete de Claras com Espinafre e Queijo Branco",
+      description: "Café da manhã energizante e rico em micronutrientes para iniciar o metabolismo com alta biodisponibilidade.",
+      prepTime: "12 min",
+      ingredients: ["3 ovos inteiros ou claras", "30g de aveia em flocos finos", "1 banana fatiada", "Canela em pó a gosto", "1 colher de café de azeite"],
+      instructions: ["Bata os ovos com uma pitada de sal", "Aqueça a frigideira com o azeite", "Cozinhe em fogo brando mexendo delicadamente", "Sirva acompanhado das frutas e aveia salpicada com canela"],
+      nutrition: {
+        calories: isGain ? 480 : 290,
+        protein: isGain ? 28 : 24,
+        carbs: isGain ? 45 : 16,
+        fat: isGain ? 18 : 9,
+        fiber: 5,
+        sugar: 8,
+        vitamins: ["Vitamina A", "Complexo B", "Vitamina D"],
+        minerals: ["Ferro", "Zinco", "Potássio"]
+      }
+    },
+    {
+      name: "Peito de Frango Grelhado com Arroz Integral e Vegetais Vaporizados",
+      description: "Almoço completo e balanceado, fornecendo proteína magra, carboidratos complexos de baixo índice glicêmico e fibras.",
+      prepTime: "25 min",
+      ingredients: ["150g de peito de frango em filé", "120g de arroz integral cozido", "1 xícara de brócolis e cenoura", "1 colher de sopa de azeite extra virgem", "Alho, ervas finas e cúrcuma"],
+      instructions: ["Tempere o frango com alho, limão e cúrcuma", "Grelhe até dourar ambos os lados", "Cozinhe os vegetais no vapor até ficarem al dente", "Monte o prato finalizando com o fio de azeite cru"],
+      nutrition: {
+        calories: isGain ? 620 : 420,
+        protein: isGain ? 46 : 40,
+        carbs: isGain ? 60 : 35,
+        fat: isGain ? 16 : 10,
+        fiber: 7,
+        sugar: 3,
+        vitamins: ["Vitamina C", "Vitamina K", "Vitamina B6"],
+        minerals: ["Magnésio", "Fósforo", "Selênio"]
+      }
+    },
+    {
+      name: isGain ? "Iogurte Proteico com Pasta de Amendoim e Chia" : "Iogurte Natural com Sementes e Morangos",
+      description: "Lanche prático com lenta absorção de proteínas e gorduras nobres para sustentar a saciedade.",
+      prepTime: "5 min",
+      ingredients: ["170g de iogurte grego natural", "1 scoop de whey protein ou sementes", "1 colher de sopa de pasta de amendoim ou chia", "Morangos frescos"],
+      instructions: ["Misture o iogurte com a fonte proteica", "Decore com os morangos picados e as sementes", "Consuma fresco"],
+      nutrition: {
+        calories: isGain ? 350 : 190,
+        protein: isGain ? 30 : 18,
+        carbs: isGain ? 22 : 12,
+        fat: isGain ? 14 : 5,
+        fiber: 4,
+        sugar: 6,
+        vitamins: ["Cálcio", "Vitamina B12"],
+        minerals: ["Zinco", "Magnésio"]
+      }
+    },
+    {
+      name: "Salmão Grelhado ou Filé de Tilápia com Purê de Mandioquinha",
+      description: "Jantar leve e reconfortante rico em ômega-3, favorecendo a recuperação muscular noturna e a qualidade do sono.",
+      prepTime: "20 min",
+      ingredients: ["150g de filé de peixe fresco", "100g de mandioquinha ou batata doce", "Mix de folhas verdes", "Azeite de oliva e alecrim"],
+      instructions: ["Grelhe o peixe com alecrim e azeite", "Amasse a mandioquinha cozida com um toque de azeite e noz-moscada", "Sirva junto à salada fresca de folhas verdes"],
+      nutrition: {
+        calories: isGain ? 530 : 360,
+        protein: isGain ? 38 : 34,
+        carbs: isGain ? 42 : 22,
+        fat: isGain ? 18 : 10,
+        fiber: 5,
+        sugar: 2,
+        vitamins: ["Vitamina D", "Ômega 3", "Vitamina E"],
+        minerals: ["Potássio", "Iodo", "Selênio"]
+      }
+    }
+  ];
 };
 
 const fetchNaturalAudioChunk = (chunkText: string): Promise<Buffer> => {
@@ -966,7 +1056,7 @@ export const generateAvatarImage = async (prompt: string): Promise<string | null
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3.1-flash-lite-image',
       contents: [{ parts: [{ text: prompt }] }],
       config: {
         imageConfig: {
@@ -1075,7 +1165,7 @@ export const generateRecipeImage = async (prompt: string): Promise<string | null
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3.1-flash-lite-image',
       contents: [{ parts: [{ text: prompt }] }],
       config: {
         imageConfig: {
@@ -1163,7 +1253,7 @@ Retorne APENAS um JSON no formato definido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           role: 'user',
@@ -1219,7 +1309,7 @@ Retorne APENAS um JSON estruturado.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1293,7 +1383,7 @@ Responda APENAS num json.`;
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           inlineData: {
@@ -1343,7 +1433,7 @@ Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse con
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction,
         temperature: 0.7,
@@ -1416,7 +1506,7 @@ Regras:
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1504,7 +1594,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1560,7 +1650,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1600,7 +1690,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         temperature: 0.8,
@@ -1642,7 +1732,7 @@ Diretrizes:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { temperature: 0.7 }
     });
@@ -1673,7 +1763,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: { temperature: 0.7 },
     });
@@ -1726,7 +1816,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1793,7 +1883,7 @@ Regras:
       };
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.1-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -1918,7 +2008,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1946,8 +2036,6 @@ export const adjustMealPlan = async (
   intakeLogs: IntakeLog[],
   nextMealType: 'Café da Manhã' | 'Almoço' | 'Lanche' | 'Jantar'
 ): Promise<Omit<Recipe, 'id'> | null> => {
-  const ai = getGenAI(); if (!ai) throw new Error("API_KEY_UNAVAILABLE");
-
   const safeLogs = safeArray<IntakeLog>(intakeLogs);
   const todayLogs = safeLogs.filter(log => {
     if (!log || !log.date) return false;
@@ -1974,8 +2062,9 @@ Perfil do Usuário:
 - Biotipo: ${profile?.bodyType || 'Não informado'}
 - Metabolismo: ${profile?.metabolism || 'Moderado'}
 - Peso atual: ${profile?.weight || '70'}kg
+- Restrições alimentares: ${safeJoin(profile?.restrictions) || 'Nenhuma'}
 
-Sua tarefa: Gere uma sugestão de ${nextMealType} que compense ou ajuste o dia para atingir as metas nutricionais do usuário de forma otimizada para o biotipo ${profile?.bodyType || 'informado'}.
+Sua tarefa: Gere uma sugestão deliciosa, prática e nutritiva de ${nextMealType} que compense e ajuste o dia para atingir as metas nutricionais do usuário de forma otimizada para o biotipo ${profile?.bodyType || 'informado'}.
 Responda APENAS com JSON.`;
 
   const schema: Schema = {
@@ -2000,36 +2089,160 @@ Responda APENAS com JSON.`;
     required: ["name", "description", "prepTime", "ingredients", "instructions", "nutrition"],
   };
 
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
+  
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        temperature: 0.7,
-      },
-    });
+    const ai = getGenAI();
+    if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
-    const text = response.text;
-    if (!text) return null;
-    return JSON.parse(text);
-  } catch (error) {
-    console.info("Fallback triggered");
+    for (const modelName of modelsToTry) {
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: schema,
+            temperature: 0.7,
+          },
+        });
+
+        const text = response?.text;
+        if (text) {
+          const parsed = JSON.parse(text);
+          if (parsed && parsed.name) {
+            return parsed;
+          }
+        }
+      } catch (err: any) {
+        // Se der quota (429), indisponibilidade temporária (503) ou erro de demanda, tenta o próximo modelo silenciosamente
+        const isTemporary = err?.status === 'RESOURCE_EXHAUSTED' || 
+                            err?.status === 'UNAVAILABLE' || 
+                            err?.message?.includes('429') || 
+                            err?.message?.includes('503') || 
+                            err?.message?.includes('quota') || 
+                            err?.message?.includes('demand') ||
+                            err?.message?.includes('unavailable');
+        if (!isTemporary) {
+          console.info(`[adjustMealPlan] Erro no modelo ${modelName}:`, err?.message || err);
+        }
+      }
+    }
+  } catch (error: any) {
+    console.info("Aviso no adjustMealPlan (Usando fallback estratégico):", error?.message || error);
+  }
+
+  // Fallbacks ricos e especializados por tipo de refeição
+  if (nextMealType === 'Café da Manhã') {
     return {
-      name: `Refeição Adaptativa (Fallback)`,
-      description: `Sugestão adaptativa de ${nextMealType} baseada no seu perfil.`,
-      prepTime: "15 min",
-      ingredients: ["1 porção de proteína magra", "1 porção de carboidrato complexo", "Vegetais à vontade", "1 fio de azeite"],
-      instructions: ["Misture os ingredientes", "Aqueça ou prepare conforme a embalagem", "Sirva imediatamente"],
+      name: 'Omelete Funcional com Espinafre e Queijo Branco',
+      description: 'Café da manhã rico em proteínas de alto valor biológico e ferro, ideal para manter a saciedade e dar energia sustentada.',
+      prepTime: '12 min',
+      ingredients: [
+        '2 ovos caipiras inteiros + 1 clara',
+        '1 xícara de folhas de espinafre fresco picado',
+        '2 fatias de queijo branco (minas frescal ou ricota) em cubos',
+        '1 fatia de pão 100% integral',
+        '1 colher de chá de azeite de oliva extra virgem',
+        'Sal marinho, orégano e cúrcuma a gosto'
+      ],
+      instructions: [
+        'Bata os ovos com uma pitada de sal, orégano e cúrcuma.',
+        'Aqueça uma frigideira antiaderente com o azeite e murche levemente o espinafre.',
+        'Despeje os ovos batidos sobre o espinafre e adicione os cubos de queijo branco.',
+        'Deixe dourar em fogo baixo, dobre ao meio e sirva acompanhado da torrada integral.'
+      ],
       nutrition: {
-        calories: 350,
-        protein: 25,
-        carbs: 40,
-        fat: 10
+        calories: 340,
+        protein: 26,
+        carbs: 18,
+        fat: 16
       }
     };
   }
+
+  if (nextMealType === 'Almoço') {
+    return {
+      name: 'Bowl de Quinoa Real com Frango Grelhado e Legumes Coloridos',
+      description: 'Almoço completo e balanceado, combinando proteínas magras, carboidratos de baixo índice glicêmico e antioxidantes.',
+      prepTime: '20 min',
+      ingredients: [
+        '150g de peito de frango grelhado em tiras',
+        '1/2 xícara de quinoa real cozida',
+        '1 xícara de brócolis e cenoura cozidos no vapor',
+        'Mix de folhas verdes (rúcula, alface americana)',
+        '1 colher de sopa de azeite de oliva extra virgem',
+        'Suco de 1/2 limão siciliano, sal e ervas finas'
+      ],
+      instructions: [
+        'Grelhe o peito de frango temperado com ervas finas, limão e uma pitada de sal.',
+        'Monte o bowl dispondo a quinoa cozida na base.',
+        'Adicione o frango em tiras, os legumes no vapor e o mix de folhas frescas ao redor.',
+        'Regue com o azeite de oliva e finalize com gotas de limão siciliano.'
+      ],
+      nutrition: {
+        calories: 450,
+        protein: 42,
+        carbs: 38,
+        fat: 14
+      }
+    };
+  }
+
+  if (nextMealType === 'Lanche') {
+    return {
+      name: 'Parfait Proteico de Iogurte Grego com Frutas Vermelhas e Sementes',
+      description: 'Lanche intermediário refrescante, denso em nutrientes e proteínas, perfeito para controlar a glicemia entre as refeições.',
+      prepTime: '5 min',
+      ingredients: [
+        '1 pote (150g) de iogurte grego natural desnatado sem açúcar',
+        '1/2 xícara de morangos e mirtilos frescos',
+        '1 colher de sopa de sementes de chia ou linhaça dourada',
+        '1 colher de sobremesa de castanhas do Pará picadas',
+        '1 pitada de canela em pó'
+      ],
+      instructions: [
+        'Coloque metade do iogurte grego em uma taça ou copo.',
+        'Adicione uma camada de frutas vermelhas e sementes de chia.',
+        'Cubra com o restante do iogurte e decore com as castanhas picadas e a canela.',
+        'Consuma gelado imediatamente.'
+      ],
+      nutrition: {
+        calories: 220,
+        protein: 18,
+        carbs: 20,
+        fat: 7
+      }
+    };
+  }
+
+  // Jantar
+  return {
+    name: 'Filé de Tilápia Grelhado ao Molho de Ervas com Purê de Mandioquinha',
+    description: 'Jantar leve e de fácil digestão, com proteínas magras e nutrientes anti-inflamatórios para favorecer um sono reparador.',
+    prepTime: '20 min',
+    ingredients: [
+      '1 filé grande (160g) de tilápia ou peixe branco',
+      '1 mandioquinha (batata baroa) média cozida e amassada',
+      '1 xícara de abobrinha e tomates cereja salteados no azeite',
+      '1 colher de chá de azeite de oliva',
+      'Ervas frescas (salsinha, cebolinha e alecrim)',
+      'Sal e pimenta branca a gosto'
+    ],
+    instructions: [
+      'Tempere o filé de peixe com sal, pimenta e limão.',
+      'Grelhe a tilápia em frigideira quente com um fio de azeite por 3-4 minutos de cada lado.',
+      'Amasse a mandioquinha ainda quente com uma pitada de sal marinho para fazer o purê leve.',
+      'Salteie rapidamente a abobrinha com os tomatinhos cereja.',
+      'Sirva o peixe coberto com o molho de ervas frescas ao lado do purê e legumes.'
+    ],
+    nutrition: {
+      calories: 380,
+      protein: 36,
+      carbs: 28,
+      fat: 11
+    }
+  };
 };
 
 export interface BehavioralIntervention {
@@ -2092,7 +2305,7 @@ Responda APENAS JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2172,7 +2385,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2238,7 +2451,7 @@ Responda APENAS em JSON no formato Array de WeeklyChallenge.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2288,7 +2501,7 @@ Responda APENAS em JSON no seguinte formato:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2324,7 +2537,7 @@ export const analyzeImage = async (
     const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           role: "user",
@@ -2405,7 +2618,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           inlineData: {
@@ -2500,7 +2713,7 @@ Regras:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: [
         {
           inlineData: {
@@ -2606,7 +2819,7 @@ Responda APENAS em JSON validando o schema.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2705,7 +2918,7 @@ Responda APENAS em JSON em conformidade com o schema fornecido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2802,7 +3015,7 @@ Responda APENAS com um objeto JSON validando o schema fornecido.`;
     required: ["tips"]
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
   let responseText = "";
   let lastError: any = null;
 
@@ -2897,7 +3110,7 @@ DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3102,7 +3315,7 @@ Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve 
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts: [imagePart, textPart] },
       config: {
         systemInstruction: systemInstruction,
@@ -3147,7 +3360,7 @@ DIRETRIZES DE ATUAÇÃO E SEGURANÇA:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3273,7 +3486,7 @@ Retorne estritamente o JSON validando o schema fornecido. Todo o conteúdo deve 
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts: [imagePart, textPart] },
       config: {
         systemInstruction: systemInstruction,
@@ -3318,7 +3531,7 @@ DIRETRIZES DE SEGURANÇA INDISPENSÁVEIS:
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3423,7 +3636,7 @@ DIRETRIZES IMPORTANTES:
     required: ["identified", "productName", "ingredientsFound", "isSafe", "allergensDetected", "userSpecificThreats", "alternativesSuggested", "detailedAnalysis", "score"]
   };
 
-  const modelsToTry = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
   let responseText = "";
   let lastError: any = null;
 
@@ -3525,7 +3738,7 @@ Retorne apenas JSON com o campo "text" em formato markdown. Exemplo: { "text": "
 
   try {
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -3703,7 +3916,7 @@ Explique detalhadamente em português qual opção (A ou B) se encaixa melhor no
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -3854,7 +4067,7 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido conte
     });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -4089,7 +4302,7 @@ Analise o caso e forneça um diagnóstico ecológico preciso, as causas prováve
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts },
       config: {
         systemInstruction: systemInstruction,
@@ -4117,7 +4330,7 @@ Sua missão é dar respostas precisas, científicas, acolhedoras e em português
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: `O usuário tem a seguinte dúvida sobre a qualidade ou origem da água: "${queryText}". Dê uma resposta de até 4 parágrafos, didática, amigável e com dicas práticas excelentes.`,
       config: {
         systemInstruction: systemInstruction,
@@ -4168,7 +4381,7 @@ Retorne rigorosamente um JSON estruturado de acordo com o schema fornecido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         systemInstruction: "Você é um Chef de Cozinha profissional e especialista em gastronomia funcional saudável para o NutriAI. Suas dicas devem ser rápidas, acionáveis, saudáveis e realistas para cozinheiros domésticos.",
@@ -4272,7 +4485,7 @@ Retorne APENAS o JSON válido.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: { parts },
       config: {
         responseMimeType: "application/json",
@@ -4289,3 +4502,602 @@ Retorne APENAS o JSON válido.`;
     throw err;
   }
 };
+
+// Curated high-resolution gastronomic food photography matching specific healthy dishes
+const QUICK_DISH_PHOTOS: Record<string, string[]> = {
+  // Bowls & Salads
+  bowl_frango: [
+    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=900&h=700",
+  ],
+  // Wraps & Rolls
+  wrap_fit: [
+    "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Omelettes & Eggs
+  omelete: [
+    "https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Muscle Gain Chicken / Steak & Rice / Sweet Potato
+  frango_arroz: [
+    "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  carne_batata: [
+    "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Protein Pancakes & Waffles
+  panqueca_proteica: [
+    "https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1565299543923-37dd37887442?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Quick Yogurts & Smoothie Bowls
+  iogurte_frutas: [
+    "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Protein Shakes & Smoothies
+  shake_proteico: [
+    "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1494390248081-4e55172b3c99?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1577805947697-89e18249d767?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Avocado Toasts & Gourmet Sandwiches
+  sanduiche_fit: [
+    "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?auto=format&fit=crop&q=80&w=900&h=700"
+  ],
+  // Salmon & Seafood
+  salmao_peixe: [
+    "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&q=80&w=900&h=700"
+  ]
+};
+
+const getRealisticDishPhoto = (dishName: string, description: string, index: number): string => {
+  const text = (dishName + " " + description).toLowerCase();
+  
+  if (text.includes("panqueca") || text.includes("crepioca") || text.includes("waffle")) {
+    const list = QUICK_DISH_PHOTOS.panqueca_proteica;
+    return list[index % list.length];
+  }
+  if (text.includes("shake") || text.includes("smoothie") || text.includes("vitamina") || text.includes("suco")) {
+    const list = QUICK_DISH_PHOTOS.shake_proteico;
+    return list[index % list.length];
+  }
+  if (text.includes("iogurte") || text.includes("overnight") || text.includes("aveia") || text.includes("parfait") || text.includes("bowl de frutas") || text.includes("chia")) {
+    const list = QUICK_DISH_PHOTOS.iogurte_frutas;
+    return list[index % list.length];
+  }
+  if (text.includes("wrap") || text.includes("tapioca") || text.includes("burrito") || text.includes("rolinho")) {
+    const list = QUICK_DISH_PHOTOS.wrap_fit;
+    return list[index % list.length];
+  }
+  if (text.includes("omelete") || text.includes("ovos") || text.includes("mexidos") || text.includes("fritada")) {
+    const list = QUICK_DISH_PHOTOS.omelete;
+    return list[index % list.length];
+  }
+  if (text.includes("salmão") || text.includes("peixe") || text.includes("tilápia") || text.includes("atum") || text.includes("camarão")) {
+    const list = QUICK_DISH_PHOTOS.salmao_peixe;
+    return list[index % list.length];
+  }
+  if (text.includes("carne") || text.includes("patinho") || text.includes("alcatra") || text.includes("bife") || text.includes("músculo")) {
+    const list = QUICK_DISH_PHOTOS.carne_batata;
+    return list[index % list.length];
+  }
+  if (text.includes("sanduíche") || text.includes("toast") || text.includes("pão") || text.includes("abacate")) {
+    const list = QUICK_DISH_PHOTOS.sanduiche_fit;
+    return list[index % list.length];
+  }
+  if (text.includes("frango") || text.includes("arroz") || text.includes("purê") || text.includes("mandioca")) {
+    const list = QUICK_DISH_PHOTOS.frango_arroz;
+    return list[index % list.length];
+  }
+  if (text.includes("salada") || text.includes("bowl") || text.includes("legumes") || text.includes("quinoa")) {
+    const list = QUICK_DISH_PHOTOS.bowl_frango;
+    return list[index % list.length];
+  }
+
+  // Default rotation
+  const fallbackList = [
+    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=900&h=700",
+    "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=900&h=700"
+  ];
+  return fallbackList[index % fallbackList.length];
+};
+
+export const generateQuickDishes = async (
+  goal: QuickDishGoal = 'weight_loss',
+  profile: UserProfile | null = null,
+  previousDishes: string[] = []
+): Promise<QuickDish[]> => {
+  const ai = getGenAI();
+  
+  let goalLabel = 'Emagrecimento';
+  let goalGuidelines = `
+- Foco em saciedade, controle calórico moderado (entre 250 a 420 kcal), alto teor de fibras, vegetais e proteínas magras.
+- Exemplos de inspiração: Bowls coloridos com frango/peixe grelhado, wraps integrais com folhas e ricota/frango, omeletes proteicos com legumes crocantes.`;
+
+  if (goal === 'muscle_gain') {
+    goalLabel = 'Ganho de Massa';
+    goalGuidelines = `
+- Foco em alta densidade de proteínas (30g a 48g de proteína por prato), carboidratos complexos de excelente qualidade e calorias adequadas para recuperação e síntese proteica (450 a 680 kcal).
+- Exemplos de inspiração: Peito de frango suculento com arroz integral e mix de vegetais no vapor, sanduíche hiperproteico com pasta de frango e abacate, panquecas proteicas com aveia e banana.`;
+  } else if (goal === 'quick_fit_snack') {
+    goalLabel = 'Lanches Rápidos';
+    goalGuidelines = `
+- Foco em preparo ultrarrápido (5 a 15 minutos), praticidade máxima, ingredientes simples e densidade nutricional inteligente (180 a 350 kcal).
+- Exemplos de inspiração: Iogurte grego/natural com frutas frescas, sementes de chia e aveia; sanduíche integral express com ovos mexidos ou atum; smoothie cremoso com frutas e proteína.`;
+  }
+
+  const profileContext = profile ? `
+DADOS DO PERFIL DO USUÁRIO (PERSONALIZAÇÃO OBRIGATÓRIA):
+- Nome: ${profile.name || 'Usuário'}
+- Restrições alimentares: ${safeJoin(profile.restrictions)}
+- Alergias cadastradas: ${safeJoin(profile.allergies)}
+- Preferências / Desgostos: ${profile.preferences || 'Nenhuma restrição adicional'}
+- Nível de Atividade: ${profile.activityLevel || 'Moderado'}
+- Meta geral: ${profile.goals || goalLabel}
+` : 'Perfil padrão saudável sem restrições informadas.';
+
+  const previousContext = previousDishes && previousDishes.length > 0 
+    ? `\nNÃO repita os seguintes pratos que já foram sugeridos anteriormente:\n${previousDishes.map(d => `- ${d}`).join('\n')}\nCrie 3 opções TOTALMENTE NOVAS e criativas!`
+    : '';
+
+  const prompt = `Você é o Chef e Nutricionista Chefe do NutriAI.
+Sua missão é gerar exatamente 3 opções de PRATOS RÁPIDOS COM IA para o objetivo selecionado: "${goalLabel}".
+
+${goalGuidelines}
+
+${profileContext}
+${previousContext}
+
+REGRAS RÍGIDAS:
+1. Gere EXATAMENTE 3 opções de pratos/lanches distintos, saborosos, fáceis de fazer e realistas para a culinária do dia a dia.
+2. Respeite 100% as alergias e restrições do perfil (ex: se for sem lactose, celíaco, vegetariano, etc).
+3. Cada prato DEVE conter:
+   - name: Nome apetitoso e claro do prato em português (ex: "Bowl de Frango Grelhado com Legumes e Quinoa")
+   - description: Descrição curta (1 a 2 frases) destacando o sabor e o benefício funcional para o objetivo.
+   - prepTime: Tempo de preparo realista (ex: "10 min", "15 min", "20 min")
+   - portionSuggestion: Sugestão clara de porção (ex: "1 bowl individual (350g)", "1 sanduíche duplo", "1 porção de 300g")
+   - ingredients: Lista com nome e quantidade exata (ex: [{ name: "Peito de frango em cubos", amount: "150g" }, { name: "Brócolis cozido", amount: "1 xícara" }])
+   - instructions: Passo a passo claro e conciso (3 a 5 passos práticos)
+   - nutrition: Valores numéricos estimados e realistas (calories em kcal, protein em g, carbs em g, fat em g, fiber em g)
+   - possibleSwaps: 2 a 3 sugestões inteligentes de trocas de ingredientes caso o usuário não tenha algum em casa (ex: "Troque o frango por tofu grelhado", "Substitua a quinoa por arroz integral")
+4. Retorne em formato JSON estrito conforme o schema.`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      dishes: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            description: { type: Type.STRING },
+            prepTime: { type: Type.STRING },
+            portionSuggestion: { type: Type.STRING },
+            ingredients: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  amount: { type: Type.STRING }
+                },
+                required: ["name", "amount"]
+              }
+            },
+            instructions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            nutrition: {
+              type: Type.OBJECT,
+              properties: {
+                calories: { type: Type.NUMBER },
+                protein: { type: Type.NUMBER },
+                carbs: { type: Type.NUMBER },
+                fat: { type: Type.NUMBER },
+                fiber: { type: Type.NUMBER }
+              },
+              required: ["calories", "protein", "carbs", "fat", "fiber"]
+            },
+            possibleSwaps: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          },
+          required: ["name", "description", "prepTime", "portionSuggestion", "ingredients", "instructions", "nutrition", "possibleSwaps"]
+        }
+      }
+    },
+    required: ["dishes"]
+  };
+
+  try {
+    if (!ai) throw new Error("GEMINI_CLIENT_UNAVAILABLE");
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response from model");
+    const parsed = JSON.parse(text);
+    const rawDishes = parsed.dishes || [];
+
+    if (!Array.isArray(rawDishes) || rawDishes.length === 0) {
+      throw new Error("Invalid dishes array");
+    }
+
+    return rawDishes.slice(0, 3).map((d: any, idx: number) => {
+      const dishPhoto = getRealisticDishPhoto(d.name || '', d.description || '', idx);
+      return {
+        id: `dish-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
+        name: d.name || `Opção Saudável ${idx + 1}`,
+        category: goal,
+        categoryLabel: goalLabel,
+        description: d.description || 'Refeição equilibrada e balanceada com alta densidade nutricional.',
+        prepTime: d.prepTime || '15 min',
+        portionSuggestion: d.portionSuggestion || '1 porção individual',
+        ingredients: Array.isArray(d.ingredients) ? d.ingredients : [{ name: "Ingredientes frescos", amount: "A gosto" }],
+        instructions: Array.isArray(d.instructions) ? d.instructions : ["Misture todos os ingredientes e sirva fresco."],
+        nutrition: {
+          calories: Number(d.nutrition?.calories) || 350,
+          protein: Number(d.nutrition?.protein) || 25,
+          carbs: Number(d.nutrition?.carbs) || 30,
+          fat: Number(d.nutrition?.fat) || 12,
+          fiber: Number(d.nutrition?.fiber) || 5
+        },
+        possibleSwaps: Array.isArray(d.possibleSwaps) ? d.possibleSwaps : ["Adapte as ervas e temperos ao seu gosto."],
+        image: dishPhoto
+      };
+    });
+  } catch (error: any) {
+    console.warn("Fallback triggered in generateQuickDishes:", error?.message || error);
+    
+    // High-quality deterministic fallback options based on goal
+    if (goal === 'muscle_gain') {
+      return [
+        {
+          id: `dish-mg-1-${Date.now()}`,
+          name: "Frango Grelhado Suculento com Arroz Integral e Brócolis",
+          category: 'muscle_gain',
+          categoryLabel: 'Ganho de Massa',
+          description: "Combinação clássica e poderosa para hipertrofia, rica em aminoácidos essenciais e carboidratos de liberação gradual.",
+          prepTime: "20 min",
+          portionSuggestion: "1 prato generoso (380g)",
+          ingredients: [
+            { name: "Peito de frango em filés", amount: "180g" },
+            { name: "Arroz integral cozido", amount: "150g" },
+            { name: "Brócolis ninja no vapor", amount: "1 xícara (100g)" },
+            { name: "Azeite de oliva extravirgem", amount: "1 colher de chá (5ml)" },
+            { name: "Alho picado e ervas finas", amount: "A gosto" }
+          ],
+          instructions: [
+            "Tempere os filés de frango com alho, limão, sal marinho e ervas finas.",
+            "Aqueça uma frigideira antiaderente com um fio de azeite e grelhe o frango por 4 a 5 minutos de cada lado até dourar.",
+            "Cozinhe o brócolis no vapor por 4 minutos para manter a cor verde viva e os nutrientes crocantes.",
+            "Monte o prato com o arroz integral quente, os filés suculentos e o brócolis temperado."
+          ],
+          nutrition: {
+            calories: 520,
+            protein: 46,
+            carbs: 52,
+            fat: 14,
+            fiber: 6
+          },
+          possibleSwaps: [
+            "Substitua o arroz integral por batata-doce assada ou mandioca cozida.",
+            "Troque o frango por filé de tilápia ou patinho moído magro."
+          ],
+          image: QUICK_DISH_PHOTOS.frango_arroz[0]
+        },
+        {
+          id: `dish-mg-2-${Date.now()}`,
+          name: "Sanduíche Hiperproteico de Frango com Abacate",
+          category: 'muscle_gain',
+          categoryLabel: 'Ganho de Massa',
+          description: "Energia densa e gorduras boas com alta carga proteica para construção muscular imediata e saciedade prolongada.",
+          prepTime: "10 min",
+          portionSuggestion: "1 sanduíche duplo completo",
+          ingredients: [
+            { name: "Pão 100% integral com grãos", amount: "2 fatias" },
+            { name: "Frango desfiado temperado", amount: "130g" },
+            { name: "Abacate maduro amassado", amount: "2 colheres de sopa (40g)" },
+            { name: "Queijo cottage ou ricota cremosa", amount: "2 colheres de sopa (30g)" },
+            { name: "Folhas de rúcula fresca e tomate em rodelas", amount: "A gosto" }
+          ],
+          instructions: [
+            "Em uma tigela, misture o frango desfiado com o cottage e o abacate amassado até formar uma pasta cremosa.",
+            "Aqueça levemente as fatias de pão integral na torradeira ou frigideira.",
+            "Espalhe a pasta proteica generosamente sobre uma fatia.",
+            "Adicione as rodelas de tomate, a rúcula fresca e feche com a outra fatia."
+          ],
+          nutrition: {
+            calories: 480,
+            protein: 38,
+            carbs: 42,
+            fat: 18,
+            fiber: 7
+          },
+          possibleSwaps: [
+            "Troque o frango desfiado por atum sólido em água ou ovos cozidos picados.",
+            "Substitua o pão por wrap integral tipo tortilha."
+          ],
+          image: QUICK_DISH_PHOTOS.sanduiche_fit[0]
+        },
+        {
+          id: `dish-mg-3-${Date.now()}`,
+          name: "Panqueca Proteica Dourada de Aveia e Banana",
+          category: 'muscle_gain',
+          categoryLabel: 'Ganho de Massa',
+          description: "Opção anabólica e naturalmente adocicada, perfeita para pré ou pós-treino com ótima proporção de glicogênio e proteína.",
+          prepTime: "12 min",
+          portionSuggestion: "2 panquecas médias empilhadas",
+          ingredients: [
+            { name: "Ovos inteiros", amount: "2 unidades" },
+            { name: "Clara de ovo", amount: "2 unidades" },
+            { name: "Farinha ou farelo de aveia", amount: "4 colheres de sopa (40g)" },
+            { name: "Banana madura", amount: "1 unidade média" },
+            { name: "Canela em pó e essência de baunilha", amount: "1 pitada" },
+            { name: "Pasta de amendoim integral", amount: "1 colher de sobremesa (15g)" }
+          ],
+          instructions: [
+            "Em um prato fundo, amasse a banana com um garfo.",
+            "Adicione os ovos, as claras, a aveia, a canela e a baunilha, batendo bem até homogeneizar.",
+            "Despeje metade da massa em uma frigideira antiaderente untada em fogo baixo.",
+            "Vire quando formar bolhas e doure o outro lado. Repita com a outra metade e finalize com a pasta de amendoim por cima."
+          ],
+          nutrition: {
+            calories: 440,
+            protein: 32,
+            carbs: 48,
+            fat: 14,
+            fiber: 6
+          },
+          possibleSwaps: [
+            "Adicione 1 scoop de whey protein de baunilha à massa para aumentar ainda mais as proteínas.",
+            "Substitua a banana por purê de maçã ou morangos picados."
+          ],
+          image: QUICK_DISH_PHOTOS.panqueca_proteica[0]
+        }
+      ];
+    } else if (goal === 'quick_fit_snack') {
+      return [
+        {
+          id: `dish-qf-1-${Date.now()}`,
+          name: "Bowl de Iogurte Grego com Frutas Vermelhas e Sementes de Chia",
+          category: 'quick_fit_snack',
+          categoryLabel: 'Lanches Rápidos',
+          description: "Refrescante, cremoso e rico em probióticos, fibras e antioxidantes com montagem em menos de 5 minutos.",
+          prepTime: "5 min",
+          portionSuggestion: "1 bowl de sobremesa (250g)",
+          ingredients: [
+            { name: "Iogurte grego natural desnatado / sem açúcar", amount: "1 pote (170g)" },
+            { name: "Morangos frescos ou amoras", amount: "1/2 xícara picada (70g)" },
+            { name: "Sementes de chia", amount: "1 colher de sopa (10g)" },
+            { name: "Castanha-do-pará picada", amount: "2 unidades (10g)" },
+            { name: "Mel puro ou canela", amount: "1 fio opcional" }
+          ],
+          instructions: [
+            "Coloque o iogurte grego gelado na base de uma tigela funda.",
+            "Distribua os morangos frescos picados em metade do bowl.",
+            "Polvilhe as sementes de chia e as castanhas picadas para dar crocância.",
+            "Finalize com uma pitada de canela em pó e saboreie imediatamente."
+          ],
+          nutrition: {
+            calories: 230,
+            protein: 19,
+            carbs: 22,
+            fat: 8,
+            fiber: 5
+          },
+          possibleSwaps: [
+            "Substitua as frutas vermelhas por kiwi, mirtilos ou banana em rodelas.",
+            "Use sementes de abóbora ou amêndoas laminadas no lugar das castanhas."
+          ],
+          image: QUICK_DISH_PHOTOS.iogurte_frutas[0]
+        },
+        {
+          id: `dish-qf-2-${Date.now()}`,
+          name: "Wrap Expresso de Ovos Mexidos com Ricota e Espinafre",
+          category: 'quick_fit_snack',
+          categoryLabel: 'Lanches Rápidos',
+          description: "Lanche morno e aconchegante, feito rapidamente na frigideira com excelente equilíbrio de aminoácidos e ferro.",
+          prepTime: "8 min",
+          portionSuggestion: "1 wrap enrolado aquecido",
+          ingredients: [
+            { name: "Tortilha ou wrap integral", amount: "1 unidade (40g)" },
+            { name: "Ovos caipiras", amount: "2 unidades" },
+            { name: "Folhas de espinafre baby", amount: "1 xícara" },
+            { name: "Creme de ricota light", amount: "1 colher de sopa cheia (25g)" },
+            { name: "Azeite e orégano", amount: "A gosto" }
+          ],
+          instructions: [
+            "Bata ligeiramente os dois ovos com uma pitada de sal e orégano.",
+            "Em fogo médio, refogue o espinafre na frigideira com um fio de azeite até murchar (1 min).",
+            "Adicione os ovos batidos e mexa suavemente até ficarem macios e cremosos.",
+            "Aqueça o wrap por 30 segundos, espalhe o creme de ricota, adicione os ovos mexidos e enrole firmemente."
+          ],
+          nutrition: {
+            calories: 290,
+            protein: 20,
+            carbs: 24,
+            fat: 12,
+            fiber: 4
+          },
+          possibleSwaps: [
+            "Troque a tortilha por folha de couve manteiga crua para versão low carb extrema.",
+            "Adicione cubos de tomate fresco ou tiras de peito de peru."
+          ],
+          image: QUICK_DISH_PHOTOS.wrap_fit[0]
+        },
+        {
+          id: `dish-qf-3-${Date.now()}`,
+          name: "Smoothie Cremoso de Banana, Cacau Puro e Pasta de Amendoim",
+          category: 'quick_fit_snack',
+          categoryLabel: 'Lanches Rápidos',
+          description: "Bebida energética aveludada com sabor marcante de sobremesa, porém 100% nutritiva e sem adição de açúcares refinados.",
+          prepTime: "5 min",
+          portionSuggestion: "1 copo grande (350ml)",
+          ingredients: [
+            { name: "Banana congelada em rodelas", amount: "1 unidade média" },
+            { name: "Leite vegetal (amêndoa/aveia) ou desnatado", amount: "200ml" },
+            { name: "Cacau em pó 100% puro", amount: "1 colher de sopa cheia (10g)" },
+            { name: "Pasta de amendoim pura", amount: "1 colher de sobremesa (15g)" },
+            { name: "Gelo e canela", amount: "A gosto" }
+          ],
+          instructions: [
+            "Coloque o leite e a banana congelada no liquidificador.",
+            "Adicione o cacau puro, a pasta de amendoim e 3 pedras de gelo.",
+            "Bata na velocidade máxima por 60 a 90 segundos até atingir consistência densa e cremosa.",
+            "Despeje no copo, polvilhe canela e beba geladinho."
+          ],
+          nutrition: {
+            calories: 270,
+            protein: 10,
+            carbs: 38,
+            fat: 10,
+            fiber: 6
+          },
+          possibleSwaps: [
+            "Adicione 1 dose de proteína vegetal ou whey de chocolate para elevar a proteína para 30g.",
+            "Substitua a banana por abacate e adoçante natural se preferir low carb."
+          ],
+          image: QUICK_DISH_PHOTOS.shake_proteico[0]
+        }
+      ];
+    } else {
+      // Default: Weight Loss
+      return [
+        {
+          id: `dish-wl-1-${Date.now()}`,
+          name: "Bowl Colorido de Frango Grelhado com Legumes e Quinoa Real",
+          category: 'weight_loss',
+          categoryLabel: 'Emagrecimento',
+          description: "Rico em volume, micronutrientes e água para saciedade máxima com densidade calórica ultracontrolada.",
+          prepTime: "15 min",
+          portionSuggestion: "1 bowl farto individual (350g)",
+          ingredients: [
+            { name: "Peito de frango grelhado em tiras", amount: "130g" },
+            { name: "Quinoa cozida ou arroz de couve-flor", amount: "3 colheres de sopa (60g)" },
+            { name: "Tomatinhos cereja cortados ao meio", amount: "6 unidades" },
+            { name: "Abobrinha e cenoura raladas", amount: "1 xícara cheia" },
+            { name: "Mix de folhas verdes (rúcula e alface)", amount: "2 xícaras" },
+            { name: "Azeite de oliva e limão siciliano", amount: "1 colher de chá (5ml)" }
+          ],
+          instructions: [
+            "Grelhe as tiras de frango temperadas com sal, cúrcuma e pimenta-do-reino até ficarem bem douradas.",
+            "Monte a base da tigela com as folhas verdes higienizadas e os vegetais ralados.",
+            "Disponha a quinoa cozida de um lado e o frango grelhado do outro.",
+            "Finalize com os tomatinhos cereja e regue com molho de azeite e suco de limão fresco."
+          ],
+          nutrition: {
+            calories: 330,
+            protein: 34,
+            carbs: 24,
+            fat: 10,
+            fiber: 7
+          },
+          possibleSwaps: [
+            "Troque o frango por camarões salteados ou tofu marinado grelhado.",
+            "Substitua a quinoa por grão-de-bico cozido."
+          ],
+          image: QUICK_DISH_PHOTOS.bowl_frango[0]
+        },
+        {
+          id: `dish-wl-2-${Date.now()}`,
+          name: "Wrap Fit Integral de Frango Desfiado com Salada Crocante",
+          category: 'weight_loss',
+          categoryLabel: 'Emagrecimento',
+          description: "Praticidade para levar ou comer rápido, com fibras abundantes que promovem mastigação e controle glicêmico.",
+          prepTime: "10 min",
+          portionSuggestion: "1 wrap duplo enrolado",
+          ingredients: [
+            { name: "Pão folha ou tortilha integral 100%", amount: "1 unidade (35g)" },
+            { name: "Peito de frango cozido e desfiado", amount: "100g" },
+            { name: "Cenoura ralada fininha", amount: "3 colheres de sopa" },
+            { name: "Iogurte natural temperado com ervas e mostarda", amount: "2 colheres de sopa (30g)" },
+            { name: "Alface americana crocante picada", amount: "1 xícara" }
+          ],
+          instructions: [
+            "Misture o frango desfiado com o molho de iogurte e mostarda até ficar úmido e saboroso.",
+            "Abra a tortilha integral em uma tábua plana.",
+            "Coloque as folhas de alface e a cenoura ralada no centro.",
+            "Cubra com a mistura de frango temperado, dobre as laterais e enrole bem apertado."
+          ],
+          nutrition: {
+            calories: 280,
+            protein: 28,
+            carbs: 26,
+            fat: 6,
+            fiber: 5
+          },
+          possibleSwaps: [
+            "Substitua o iogurte por homus (pasta de grão-de-bico) ou guacamole suave.",
+            "Troque a tortilha por folhas grandes de acelga ou couve para versão zero carb."
+          ],
+          image: QUICK_DISH_PHOTOS.wrap_fit[0]
+        },
+        {
+          id: `dish-wl-3-${Date.now()}`,
+          name: "Omelete Proteico Gourmet com Vegetais Coloridos e Chia",
+          category: 'weight_loss',
+          categoryLabel: 'Emagrecimento',
+          description: "Gorduras saudáveis na medida certa com colina e antioxidantes para um almoço leve ou jantar saciante.",
+          prepTime: "12 min",
+          portionSuggestion: "1 omelete médio recheado",
+          ingredients: [
+            { name: "Ovos caipiras", amount: "2 unidades inteiras" },
+            { name: "Clara de ovo", amount: "1 unidade" },
+            { name: "Tomate em cubinhos sem sementes", amount: "1/2 unidade" },
+            { name: "Cogumelos paris ou palmito fatiado", amount: "1/2 xícara (50g)" },
+            { name: "Cebolinha picada e orégano", amount: "1 colher de sopa" },
+            { name: "Sementes de chia", amount: "1 colher de chá (5g)" }
+          ],
+          instructions: [
+            "Bata os ovos e a clara com um garfo até espumar levemente, adicionando uma pitada de sal marinho e chia.",
+            "Em uma frigideira antiaderente pré-aquecida, salteie os cogumelos e o tomate por 2 minutos.",
+            "Despeje os ovos batidos sobre os vegetais, mantendo fogo baixo e tampando a frigideira.",
+            "Quando a parte superior estiver firme, salpique a cebolinha, dobre ao meio e sirva quente."
+          ],
+          nutrition: {
+            calories: 260,
+            protein: 22,
+            carbs: 8,
+            fat: 15,
+            fiber: 4
+          },
+          possibleSwaps: [
+            "Adicione cubos de ricota fresca ou queijo minas frescal light.",
+            "Adicione folhas de manjericão fresco para um toque italiano."
+          ],
+          image: QUICK_DISH_PHOTOS.omelete[0]
+        }
+      ];
+    }
+  }
+};
+
