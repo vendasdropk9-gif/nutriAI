@@ -73,16 +73,22 @@ export const generateMealSuggestions = async (
   return callGeminiEndpoint('generateMealSuggestions', [profile, day]);
 };
 
+import { getClientFallbackQuickDishes } from './quickDishesData';
+
 export const generateQuickDishes = async (
   goal: QuickDishGoal = 'weight_loss',
   profile: UserProfile | null = null,
   previousDishes: string[] = []
 ): Promise<QuickDish[]> => {
-  const result = await callGeminiEndpoint('generateQuickDishes', [goal, profile, previousDishes]);
-  if (Array.isArray(result) && result.length > 0) {
-    return result;
+  try {
+    const result = await callGeminiEndpoint('generateQuickDishes', [goal, profile, previousDishes]);
+    if (Array.isArray(result) && result.length > 0) {
+      return result;
+    }
+  } catch (err) {
+    console.warn("API generateQuickDishes indisponível, usando motor culinário local com fotos HD:", err);
   }
-  return [];
+  return getClientFallbackQuickDishes(goal, profile, previousDishes);
 };
 
 import { safeGet, safeSet } from './storage';

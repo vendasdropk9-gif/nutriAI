@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { QuickDish, QuickDishGoal, UserProfile, Recipe } from '../types';
 import { generateQuickDishes } from '../lib/gemini';
+import { getClientFallbackQuickDishes, DEFAULT_FALLBACK_IMAGE } from '../lib/quickDishesData';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -46,7 +47,7 @@ export function QuickDishes({
   onCloseModal
 }: QuickDishesProps) {
   const [selectedGoal, setSelectedGoal] = useState<QuickDishGoal>(initialGoal);
-  const [dishes, setDishes] = useState<QuickDish[]>([]);
+  const [dishes, setDishes] = useState<QuickDish[]>(() => getClientFallbackQuickDishes(initialGoal, profile));
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDishForModal, setSelectedDishForModal] = useState<QuickDish | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({});
@@ -97,9 +98,16 @@ export function QuickDishes({
         if (onAwardPoints) {
           onAwardPoints(15, 'Pratos rápidos gerados com IA');
         }
+      } else {
+        const fallback = getClientFallbackQuickDishes(goalToUse, profile, previousDishesHistory);
+        setDishes(fallback);
+        setHasGeneratedOnce(true);
       }
     } catch (err) {
-      console.warn("Erro ao gerar pratos rápidos:", err);
+      console.warn("Erro ao gerar pratos rápidos, aplicando seleção culinária inteligente:", err);
+      const fallback = getClientFallbackQuickDishes(goalToUse, profile, previousDishesHistory);
+      setDishes(fallback);
+      setHasGeneratedOnce(true);
     } finally {
       setIsLoading(false);
     }
@@ -395,9 +403,16 @@ export function QuickDishes({
                   {/* Photo Header */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                     <img 
-                      src={dish.image} 
+                      src={dish.image || DEFAULT_FALLBACK_IMAGE} 
                       alt={dish.name}
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== DEFAULT_FALLBACK_IMAGE) {
+                          target.src = DEFAULT_FALLBACK_IMAGE;
+                        }
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
@@ -549,9 +564,16 @@ export function QuickDishes({
               {/* Photo Banner Header */}
               <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-inner">
                 <img 
-                  src={selectedDishForModal.image} 
+                  src={selectedDishForModal.image || DEFAULT_FALLBACK_IMAGE} 
                   alt={selectedDishForModal.name}
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src !== DEFAULT_FALLBACK_IMAGE) {
+                      target.src = DEFAULT_FALLBACK_IMAGE;
+                    }
+                  }}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
