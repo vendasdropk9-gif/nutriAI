@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, Volume2, Play, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse } from 'lucide-react';
-import { analyzeBodyImage, getGeneralBodyTips, textToSpeech } from '../lib/gemini';
-import { playAudioUrl } from '../lib/speech';
+import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse } from 'lucide-react';
+import { analyzeBodyImage, getGeneralBodyTips } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { BodySensorsMonitor } from './BodySensorsMonitor';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface BodyAnalyzerProps {
   profile: UserProfile | null;
@@ -16,8 +16,6 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -33,40 +31,11 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     };
   }, [cameraStream]);
 
-  const stopAudio = () => {
-    setIsPlaying(false);
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
-    try {
-      if (audioUrl) {
-         await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
-         return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
-    }
-  };
-
   const startCamera = async () => {
     setCameraError(null);
     setIsCameraActive(true);
     setPreviewImage(null);
     setAnalysisResult(null);
-    stopAudio();
 
     try {
       let stream: MediaStream;
@@ -153,8 +122,6 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     if (!file) return;
 
     try {
-      stopAudio();
-      setAudioUrl(null);
       setIsScanning(true);
       setAnalysisResult(null);
       setIsCameraActive(false);
@@ -179,9 +146,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
   };
 
   const handleGeneralTips = async () => {
-    stopAudio();
     stopCamera();
-    setAudioUrl(null);
     setIsScanning(true);
     setAnalysisResult(null);
     setPreviewImage(null);
@@ -197,11 +162,9 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
   };
 
   const resetAnalyzer = () => {
-    stopAudio();
     stopCamera();
     setPreviewImage(null);
     setAnalysisResult(null);
-    setAudioUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -431,13 +394,13 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
               
               <div className="flex-1 space-y-4 w-full">
                 <div className="flex items-start gap-4">
-                  <button
-                    onClick={() => playTTS(analysisResult.assistantMessage)}
-                    className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 hover:scale-105 transition-all shadow-md mt-1 ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : ''}`}
-                    title="Ouvir análise"
-                  >
-                    {isPlaying ? <Volume2 className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
-                  </button>
+                  {analysisResult.assistantMessage && (
+                    <VoicePlayButton
+                      text={analysisResult.assistantMessage}
+                      size="md"
+                      title="Ouvir análise com a voz da Malu"
+                    />
+                  )}
                   <div className="pt-1 flex-1">
                     <h4 className="font-serif text-xl text-slate-800 dark:text-slate-100 font-medium mb-2">Mensagem do Treinador:</h4>
                     <p className="font-sans text-slate-600 dark:text-slate-300 text-base md:text-lg leading-relaxed italic border-l-4 border-emerald-500 pl-4 bg-slate-50 dark:bg-slate-800/40 py-2 rounded-r-lg">

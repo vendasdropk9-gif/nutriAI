@@ -1,8 +1,8 @@
-import { playAudioUrl } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
-import { Utensils, Search, Loader2, Sparkles, Volume2, Play, AlertCircle, CheckCircle2, ArrowRight, Info, Mic, MicOff, RefreshCw, Trash2 } from 'lucide-react';
+import { Utensils, Search, Loader2, Sparkles, AlertCircle, CheckCircle2, ArrowRight, Info, Mic, MicOff, RefreshCw, Trash2 } from 'lucide-react';
 import { UserProfile, DiningOutAnalysis } from '../types';
-import { analyzeDiningOut, textToSpeech } from '../lib/gemini';
+import { analyzeDiningOut } from '../lib/gemini';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface DiningOutProps {
   profile: UserProfile | null;
@@ -13,8 +13,6 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
   const [description, setDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<DiningOutAnalysis | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Voice Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -124,7 +122,6 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
     setIsAnalyzing(true);
     setAnalysis(null);
-    setAudioUrl(null);
 
     try {
       const result = await analyzeDiningOut(description, profile);
@@ -134,30 +131,6 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       console.warn(error);
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
-    try {
-      if (audioUrl) {
-        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
-        return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
     }
   };
 
@@ -302,12 +275,13 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
 
             <div className="md:col-span-2 clay-card p-6 flex flex-col justify-center space-y-6">
                 <div className="flex items-start gap-4">
-                    <button
-                        onClick={() => playTTS(analysis.assistantMessage)}
-                        className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md shadow-emerald-500/20'}`}
-                    >
-                        {isPlaying ? <Volume2 className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
-                    </button>
+                    {analysis.assistantMessage && (
+                      <VoicePlayButton
+                        text={analysis.assistantMessage}
+                        size="md"
+                        title="Ouvir dica com a voz da Malu"
+                      />
+                    )}
                     <div>
                         <h4 className="font-serif text-xl text-emerald-800 dark:text-emerald-400 font-medium mb-1">Dica de quem entende:</h4>
                         <p className="font-sans text-slate-700 dark:text-slate-300 text-lg italic">

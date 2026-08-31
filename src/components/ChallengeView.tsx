@@ -1,9 +1,10 @@
-import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
-import { Target, Trophy, Flame, ChevronRight, CheckCircle2, Circle, Sparkles, Volume2, Play, Calendar, Timer } from 'lucide-react';
+import { Target, Trophy, Flame, ChevronRight, CheckCircle2, Circle, Sparkles, Calendar, Timer } from 'lucide-react';
 import { Challenge, UserProfile } from '../types';
-import { generateChallengeFeedback, textToSpeech } from '../lib/gemini';
+import { generateChallengeFeedback } from '../lib/gemini';
 import { ConfettiCelebration } from './ConfettiCelebration';
+import { VoicePlayButton } from './VoicePlayButton';
+import { speak } from '../lib/speech';
 
 interface ChallengeViewProps {
   profile: UserProfile | null;
@@ -15,8 +16,6 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
   const [selectedType, setSelectedType] = useState<7 | 15 | 30>(7);
   const [goal, setGoal] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const challenge = profile?.currentChallenge;
@@ -42,7 +41,6 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
     if (!challenge) return;
     
     setIsProcessing(true);
-    setAudioUrl(null);
 
     const nextDay = challenge.completedDays + 1;
     const feedback = await generateChallengeFeedback(nextDay, challenge.type, profile);
@@ -65,27 +63,8 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
     setIsProcessing(false);
     setShowConfetti(true);
     
-    // Auto-play the feedback
-    playTTS(feedback);
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
-    try {
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
-    }
+    // Auto-play the feedback with Aoede voice
+    speak(feedback).catch(console.warn);
   };
 
   const progressPercentage = challenge ? (challenge.completedDays / challenge.type) * 100 : 0;
@@ -238,15 +217,14 @@ export function ChallengeView({ profile, onUpdateChallenge, onAwardPoints }: Cha
 
            {latestFeedback && (
              <div className="clay-card p-6 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                 <button
-                    onClick={() => playTTS(latestFeedback)}
-                    className={`w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md ${isPlaying ? 'animate-pulse' : ''}`}
-                  >
-                    {isPlaying ? <Volume2 className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                  </button>
-                  <p className="text-slate-700 dark:text-slate-200 font-sans italic text-sm leading-relaxed">
-                     "{latestFeedback}"
-                  </p>
+                 <VoicePlayButton
+                   text={latestFeedback}
+                   size="sm"
+                   title="Ouvir motivação com a voz da Malu"
+                 />
+                 <p className="text-slate-700 dark:text-slate-200 font-sans italic text-sm leading-relaxed pt-1">
+                    "{latestFeedback}"
+                 </p>
              </div>
            )}
         </div>

@@ -1507,6 +1507,96 @@ Gere UMA frase curta e encorajadora (máximo 2 sentenças) como se estivesse con
   }
 };
 
+export const resolveJuiceImage = (juiceName: string, ingredients: string[] | string): string => {
+  const combined = `${juiceName || ''} ${Array.isArray(ingredients) ? ingredients.join(' ') : ingredients || ''}`.toLowerCase();
+  
+  // 1. Abacaxi, Manga, Maracujá, Banana, Frutas Amarelas / Tropicais (ex: "abacaxi com manga")
+  if (
+    combined.includes('manga') ||
+    combined.includes('abacaxi') ||
+    combined.includes('maracujá') ||
+    combined.includes('maracuja') ||
+    combined.includes('amarelo') ||
+    combined.includes('tropical') ||
+    combined.includes('pêssego') ||
+    combined.includes('pessego') ||
+    combined.includes('banana')
+  ) {
+    return "https://images.unsplash.com/photo-1622597467836-f3285f2131b7?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 2. Verde, Couve, Maçã Verde, Espinafre, Pepino, Hortelã, Clorofila, Detox Verde
+  if (
+    combined.includes('couve') ||
+    combined.includes('verde') ||
+    combined.includes('espinafre') ||
+    combined.includes('pepino') ||
+    combined.includes('hortelã') ||
+    combined.includes('hortela') ||
+    combined.includes('maçã verde') ||
+    combined.includes('maca verde') ||
+    combined.includes('salsão') ||
+    combined.includes('aipo')
+  ) {
+    return "https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 3. Laranja, Cenoura, Tangerina, Acerola, Mamão, Cúrcuma, Termogênico
+  if (
+    combined.includes('cenoura') ||
+    combined.includes('laranja') ||
+    combined.includes('tangerina') ||
+    combined.includes('acerola') ||
+    combined.includes('mamão') ||
+    combined.includes('mamao') ||
+    combined.includes('cúrcuma') ||
+    combined.includes('curcuma') ||
+    combined.includes('citrus')
+  ) {
+    return "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 4. Melancia, Morango, Frutas Vermelhas, Melancia com Hortelã, Hibisco
+  if (
+    combined.includes('melancia') ||
+    combined.includes('morango') ||
+    combined.includes('framboesa') ||
+    combined.includes('cereja') ||
+    combined.includes('hibisco') ||
+    combined.includes('goiaba')
+  ) {
+    return "https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 5. Beterraba, Açaí, Mirtilo / Blueberry, Uva Roxa, Jabuticaba, Amora
+  if (
+    combined.includes('beterraba') ||
+    combined.includes('açaí') ||
+    combined.includes('acai') ||
+    combined.includes('mirtilo') ||
+    combined.includes('blueberry') ||
+    combined.includes('uva') ||
+    combined.includes('amora') ||
+    combined.includes('roxo')
+  ) {
+    return "https://images.unsplash.com/photo-1553530979-7ee52a2670c4?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 6. Limão, Água de Coco, Gengibre, Melão
+  if (
+    combined.includes('limão') ||
+    combined.includes('limao') ||
+    combined.includes('coco') ||
+    combined.includes('melão') ||
+    combined.includes('melao')
+  ) {
+    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // Default vibrant fresh juice photo
+  return "https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&q=80&w=1200";
+};
+
 export const generateJuiceRecipe = async (
   profile: UserProfile | null,
   ingredients: string = "",
@@ -1546,6 +1636,8 @@ Regras:
       type: Type.OBJECT,
       properties: {
         name: { type: Type.STRING },
+        category: { type: Type.STRING, description: "Categoria do suco (ex: Tropical Energizante, Detox Termogênico, Imunidade & Fibras)" },
+        prepTime: { type: Type.STRING, description: "Tempo de preparo (ex: 5 min)" },
         assistantMessage: { type: Type.STRING },
         ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
         instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -1575,13 +1667,21 @@ Regras:
 
     const text = response.text;
     if (!text) throw new Error("Sem resposta da IA");
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    parsed.imageUrl = resolveJuiceImage(parsed.name || ingredients, parsed.ingredients || ingredients);
+    if (!parsed.prepTime) parsed.prepTime = "5 min";
+    if (!parsed.category) parsed.category = budgetMode ? "Econômico & Funcional" : "Detox & Emagrecimento";
+    return parsed;
   } catch (error) {
     console.info("Fallback triggered: juice", error);
+    const fallbackIngredients = ["1 maçã verde fatiada", "2 folhas de couve manteiga", "Suco de 1 limão", "1 pedaço pequeno de gengibre", "150ml de água de coco"];
     return {
       name: "Suco Verde Equilíbrio",
+      category: "Detox & Termogênico",
+      prepTime: "5 min",
+      imageUrl: resolveJuiceImage("Suco Verde Equilíbrio", fallbackIngredients),
       assistantMessage: "Este suco refrescante vai ajudar a energizar seu dia e acelerar seu metabolismo!",
-      ingredients: ["1 maçã verde fatiada", "2 folhas de couve manteiga", "Suco de 1 limão", "1 pedaço pequeno de gengibre", "150ml de água de coco"],
+      ingredients: fallbackIngredients,
       instructions: [
         "Lave bem todos os ingredientes.",
         "Corte a maçã em pedaços pequenos, removendo as sementes.",

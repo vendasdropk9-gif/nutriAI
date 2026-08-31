@@ -1,6 +1,9 @@
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal } from "../types";
 
-const callGeminiEndpoint = async (functionName: string, args: any[]) => {
+const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch('/api/gemini', {
       method: "POST",
@@ -8,7 +11,9 @@ const callGeminiEndpoint = async (functionName: string, args: any[]) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ functionName, args }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
@@ -22,7 +27,8 @@ const callGeminiEndpoint = async (functionName: string, args: any[]) => {
     }
     return data;
   } catch (err: any) {
-    console.warn(`Aviso na chamada da função ${functionName}:`, err?.message || err);
+    clearTimeout(timeoutId);
+    console.warn(`Aviso na chamada da função ${functionName}:`, err?.name === 'AbortError' ? 'Tempo limite atingido' : (err?.message || err));
     return null;
   }
 };
@@ -183,6 +189,96 @@ export const generateJourneyMessage = async (profile: UserProfile, period: strin
   return callGeminiEndpoint('generateJourneyMessage', [profile, period]);
 };
 
+export const resolveJuiceImage = (juiceName: string, ingredients: string[] | string): string => {
+  const combined = `${juiceName || ''} ${Array.isArray(ingredients) ? ingredients.join(' ') : ingredients || ''}`.toLowerCase();
+  
+  // 1. Abacaxi, Manga, Maracujá, Banana, Frutas Amarelas / Tropicais (ex: "abacaxi com manga")
+  if (
+    combined.includes('manga') ||
+    combined.includes('abacaxi') ||
+    combined.includes('maracujá') ||
+    combined.includes('maracuja') ||
+    combined.includes('amarelo') ||
+    combined.includes('tropical') ||
+    combined.includes('pêssego') ||
+    combined.includes('pessego') ||
+    combined.includes('banana')
+  ) {
+    return "https://images.unsplash.com/photo-1622597467836-f3285f2131b7?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 2. Verde, Couve, Maçã Verde, Espinafre, Pepino, Hortelã, Clorofila, Detox Verde
+  if (
+    combined.includes('couve') ||
+    combined.includes('verde') ||
+    combined.includes('espinafre') ||
+    combined.includes('pepino') ||
+    combined.includes('hortelã') ||
+    combined.includes('hortela') ||
+    combined.includes('maçã verde') ||
+    combined.includes('maca verde') ||
+    combined.includes('salsão') ||
+    combined.includes('aipo')
+  ) {
+    return "https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 3. Laranja, Cenoura, Tangerina, Acerola, Mamão, Cúrcuma, Termogênico
+  if (
+    combined.includes('cenoura') ||
+    combined.includes('laranja') ||
+    combined.includes('tangerina') ||
+    combined.includes('acerola') ||
+    combined.includes('mamão') ||
+    combined.includes('mamao') ||
+    combined.includes('cúrcuma') ||
+    combined.includes('curcuma') ||
+    combined.includes('citrus')
+  ) {
+    return "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 4. Melancia, Morango, Frutas Vermelhas, Melancia com Hortelã, Hibisco
+  if (
+    combined.includes('melancia') ||
+    combined.includes('morango') ||
+    combined.includes('framboesa') ||
+    combined.includes('cereja') ||
+    combined.includes('hibisco') ||
+    combined.includes('goiaba')
+  ) {
+    return "https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 5. Beterraba, Açaí, Mirtilo / Blueberry, Uva Roxa, Jabuticaba, Amora
+  if (
+    combined.includes('beterraba') ||
+    combined.includes('açaí') ||
+    combined.includes('acai') ||
+    combined.includes('mirtilo') ||
+    combined.includes('blueberry') ||
+    combined.includes('uva') ||
+    combined.includes('amora') ||
+    combined.includes('roxo')
+  ) {
+    return "https://images.unsplash.com/photo-1553530979-7ee52a2670c4?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // 6. Limão, Água de Coco, Gengibre, Melão
+  if (
+    combined.includes('limão') ||
+    combined.includes('limao') ||
+    combined.includes('coco') ||
+    combined.includes('melão') ||
+    combined.includes('melao')
+  ) {
+    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=1200";
+  }
+
+  // Default vibrant fresh juice photo
+  return "https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&q=80&w=1200";
+};
+
 export const generateJuiceRecipe = async (
   profile: UserProfile | null,
   ingredients: string = "",
@@ -190,7 +286,12 @@ export const generateJuiceRecipe = async (
 ): Promise<any> => {
   try {
     const result = await callGeminiEndpoint('generateJuiceRecipe', [profile, ingredients, budgetMode]);
-    if (result && result.name && result.ingredients) return result;
+    if (result && result.name && result.ingredients) {
+      if (!result.imageUrl) {
+        result.imageUrl = resolveJuiceImage(result.name, result.ingredients);
+      }
+      return result;
+    }
   } catch (e) {
     console.warn("Usando gerador de suco em modo de alta disponibilidade:", e);
   }
@@ -198,17 +299,22 @@ export const generateJuiceRecipe = async (
   // Smart client-side fallback
   const lowerIng = (ingredients || "").toLowerCase();
   const isEnergizing = lowerIng.includes('laranja') || lowerIng.includes('cenoura') || lowerIng.includes('gengibre') || lowerIng.includes('energia');
+  const isTropical = lowerIng.includes('manga') || lowerIng.includes('abacaxi') || lowerIng.includes('maracujá') || lowerIng.includes('maracuja');
   
   if (budgetMode) {
+    const ingList = [
+      "Suco de 1 limão tahiti",
+      "1 fatia média de melancia picada",
+      "Folhas frescas de hortelã a gosto",
+      "200ml de água gelada"
+    ];
     return {
       name: "Suco Econômico Refrescante",
+      category: "Econômico & Hidratante",
+      prepTime: "5 min",
+      imageUrl: resolveJuiceImage("Suco Econômico Refrescante", ingList),
       assistantMessage: "Preparei uma opção super econômica e rica em vitaminas para o seu dia!",
-      ingredients: [
-        "Suco de 1 limão tahiti",
-        "1 fatia média de melancia picada",
-        "Folhas frescas de hortelã a gosto",
-        "200ml de água gelada"
-      ],
+      ingredients: ingList,
       instructions: [
         "Lave bem as folhas de hortelã.",
         "Bata a melancia e a hortelã no liquidificador com a água gelada.",
@@ -224,16 +330,51 @@ export const generateJuiceRecipe = async (
     };
   }
 
+  if (isTropical) {
+    const ingList = [
+      "1 xícara de abacaxi fresco picado",
+      "1/2 manga madura em cubos",
+      "Folhas de hortelã fresca",
+      "1 colher de chá de chia",
+      "150ml de água de coco gelada"
+    ];
+    return {
+      name: "Suco Tropical de Abacaxi & Manga",
+      category: "Tropical Energizante & Digestivo",
+      prepTime: "5 min",
+      imageUrl: resolveJuiceImage("Suco Tropical de Abacaxi & Manga", ingList),
+      assistantMessage: "Preparei uma explosão tropical com sabor intenso e enzimas digestivas naturais para o seu dia!",
+      ingredients: ingList,
+      instructions: [
+        "Higienize as folhas de hortelã e descasque as frutas.",
+        "Coloque o abacaxi, a manga e a água de coco no liquidificador.",
+        "Bata em velocidade alta por cerca de 1 minuto até obter textura aveludada.",
+        "Acrescente a chia e as folhas de hortelã, pulsando levemente.",
+        "Sirva imediatamente bem gelado com cubos de gelo."
+      ],
+      nutrition: { calories: 140, carbs: 32, fiber: 4.5 },
+      benefits: [
+        "Rico em bromelina, excelente para digestão e redução de inflamações",
+        "Alto teor de vitamina C, betacaroteno e antioxidantes",
+        "Energia natural duradoura sem açúcares adicionados"
+      ]
+    };
+  }
+
   if (isEnergizing) {
+    const ingList = [
+      "Suco de 2 laranjas frescas",
+      "1 cenoura pequena ralada",
+      "1 colher de café de gengibre ralado",
+      "100ml de água gelada"
+    ];
     return {
       name: "Suco Citrus Imunidade & Disposição",
+      category: "Termogênico & Imunidade",
+      prepTime: "5 min",
+      imageUrl: resolveJuiceImage("Suco Citrus Imunidade & Disposição", ingList),
       assistantMessage: "Esse suco traz vitamina C e o toque termogênico do gengibre para elevar sua disposição!",
-      ingredients: [
-        "Suco de 2 laranjas frescas",
-        "1 cenoura pequena ralada",
-        "1 colher de café de gengibre ralado",
-        "100ml de água gelada"
-      ],
+      ingredients: ingList,
       instructions: [
         "Higienize a cenoura e o gengibre.",
         "Bata a cenoura ralada, o gengibre e a água no liquidificador até triturar bem.",
@@ -249,16 +390,21 @@ export const generateJuiceRecipe = async (
     };
   }
 
+  const defaultIngList = [
+    "2 folhas de couve manteiga higienizadas",
+    "1 maçã verde com casca picada",
+    "Suco de 1 limão espremido",
+    "1 colher de chá de sementes de chia",
+    "150ml de água de coco ou água filtrada"
+  ];
+
   return {
     name: "Suco Verde Detox & Equilíbrio",
+    category: "Detox & Emagrecimento",
+    prepTime: "5 min",
+    imageUrl: resolveJuiceImage("Suco Verde Detox & Equilíbrio", defaultIngList),
     assistantMessage: "Uma combinação potente de antioxidantes e clorofila para desinflamar e energizar seu metabolismo!",
-    ingredients: [
-      "2 folhas de couve manteiga higienizadas",
-      "1 maçã verde com casca picada",
-      "Suco de 1 limão espremido",
-      "1 colher de chá de sementes de chia",
-      "150ml de água de coco ou água filtrada"
-    ],
+    ingredients: defaultIngList,
     instructions: [
       "Higienize as folhas de couve e a maçã.",
       "Coloque a couve, a maçã e a água no liquidificador e bata por 1 minuto.",

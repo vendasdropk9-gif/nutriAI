@@ -1,9 +1,9 @@
-import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
-import { Calendar, TrendingUp, Sparkles, Volume2, Play, ArrowRight, Target, Clock, ShieldCheck, Loader2 } from 'lucide-react';
+import { Calendar, TrendingUp, Sparkles, ArrowRight, Target, Clock, ShieldCheck, Loader2 } from 'lucide-react';
 import { UserProfile, GoalPrediction } from '../types';
-import { generateGoalPrediction, textToSpeech } from '../lib/gemini';
+import { generateGoalPrediction } from '../lib/gemini';
 import { Skeleton } from './Skeleton';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface ResultPredictionProps {
   profile: UserProfile | null;
@@ -12,8 +12,6 @@ interface ResultPredictionProps {
 
 export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredictionProps) {
   const [isCalculating, setIsCalculating] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const prediction = profile?.prediction;
 
@@ -21,7 +19,6 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
     if (!profile) return;
     
     setIsCalculating(true);
-    setAudioUrl(null);
 
     try {
       const result = await generateGoalPrediction(profile);
@@ -32,30 +29,6 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
       console.warn(error);
     } finally {
       setIsCalculating(false);
-    }
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
-    try {
-      if (audioUrl) {
-        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
-        return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
     }
   };
 
@@ -134,15 +107,16 @@ export function ResultPrediction({ profile, onUpdatePrediction }: ResultPredicti
 
              {/* Motivation & Confidence Card */}
              <div className="space-y-8">
-                <div className="clay-card p-6 shadow-sm relative overflow-hidden">
-                    <button
-                        onClick={() => playTTS(prediction.motivationalMessage)}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center text-white bg-emerald-500 transition-all mb-6 ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md shadow-emerald-500/20'}`}
-                    >
-                        {isPlaying ? <Volume2 className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-                    </button>
+                <div className="clay-card p-6 shadow-sm relative overflow-hidden space-y-4">
+                    {prediction.motivationalMessage && (
+                      <VoicePlayButton
+                        text={prediction.motivationalMessage}
+                        size="lg"
+                        title="Ouvir mensagem com a voz da Malu"
+                      />
+                    )}
                     <div className="space-y-2">
-                        <h4 className="font-serif text-2xl text-emerald-800 dark:text-emerald-400 font-medium italic italic">Mensagem da Nutri IA:</h4>
+                        <h4 className="font-serif text-2xl text-emerald-800 dark:text-emerald-400 font-medium italic">Mensagem da Nutri IA:</h4>
                         <p className="font-sans text-slate-700 dark:text-slate-300 text-xl leading-relaxed italic">
                             "{prediction.motivationalMessage}"
                         </p>

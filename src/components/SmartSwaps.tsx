@@ -1,8 +1,8 @@
-import { playAudioUrl } from '../lib/speech';
 import React, { useState } from 'react';
-import { RefreshCw, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Volume2, Play, Search, Lightbulb } from 'lucide-react';
+import { RefreshCw, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Search, Lightbulb } from 'lucide-react';
 import { UserProfile, SmartSwap } from '../types';
-import { generateSmartSwap, textToSpeech } from '../lib/gemini';
+import { generateSmartSwap } from '../lib/gemini';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface SmartSwapsProps {
   profile: UserProfile | null;
@@ -13,8 +13,6 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
   const [foodItem, setFoodItem] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [swap, setSwap] = useState<SmartSwap | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -22,7 +20,6 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
 
     setIsGenerating(true);
     setSwap(null);
-    setAudioUrl(null);
 
     try {
       const result = await generateSmartSwap(foodItem, profile);
@@ -32,30 +29,6 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
       console.warn(error);
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
-    try {
-      if (audioUrl) {
-        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
-        return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
     }
   };
 
@@ -124,12 +97,13 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
                 <Sparkles className="w-24 h-24" />
              </div>
 
-             <button
-                onClick={() => playTTS(swap.assistantMessage)}
-                className={`w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md shadow-emerald-500/20'}`}
-              >
-                {isPlaying ? <Volume2 className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-              </button>
+             {swap.assistantMessage && (
+               <VoicePlayButton
+                 text={swap.assistantMessage}
+                 size="lg"
+                 title="Ouvir sugestão com a voz da Malu"
+               />
+             )}
               <div className="space-y-2">
                 <h4 className="font-serif text-2xl text-emerald-800 dark:text-emerald-400 font-medium italic">Minha sugestão:</h4>
                 <p className="font-sans text-slate-700 dark:text-slate-300 text-xl leading-relaxed italic">

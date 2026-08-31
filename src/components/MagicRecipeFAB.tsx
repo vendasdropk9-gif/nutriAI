@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChefHat, X, Send, Mic, Sparkles, Loader2, Play } from 'lucide-react';
+import { ChefHat, X, Send, Mic, Sparkles, Loader2 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
-import { playAudioUrl } from '../lib/speech';
-import { textToSpeech, generateMagicRecipe } from '../lib/gemini';
+import { generateMagicRecipe } from '../lib/gemini';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface MagicRecipeFABProps {
   profile: UserProfile | null;
@@ -15,7 +15,6 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recipe, setRecipe] = useState<{ title: string, description: string, ingredients: string[], instructions: string[], calories: number } | null>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,25 +44,6 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
       console.error("Erro ao gerar receita mágica", e);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePlayAudio = async () => {
-    if (!recipe || isPlayingAudio) return;
-    setIsPlayingAudio(true);
-    playSfx('tap');
-    try {
-      const textToSpeak = `Receita Mágica: ${recipe.title}. ${recipe.description}. Os ingredientes são: ${recipe.ingredients.join(', ')}. Modo de preparo: ${recipe.instructions.join('. ')}. E tem aproximadamente ${recipe.calories} calorias. Bom apetite!`;
-      const base64Audio = await textToSpeech(textToSpeak);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        await playAudioUrl(url, { onEnded: () => setIsPlayingAudio(false) });
-      } else {
-        setIsPlayingAudio(false);
-      }
-    } catch(e) {
-      console.warn(e);
-      setIsPlayingAudio(false);
     }
   };
 
@@ -172,16 +152,15 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
                    animate={{ opacity: 1, y: 0 }}
                    className="w-full flex-1 overflow-y-auto no-scrollbar space-y-6 pb-6"
                 >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-3">
                       <h4 className="font-bold text-2xl text-slate-800 dark:text-white leading-tight font-serif">
                         {recipe.title}
                       </h4>
-                      <button
-                        onClick={handlePlayAudio}
-                        className="p-3 shrink-0 bg-amber-50 dark:bg-amber-900/20 rounded-full text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
-                      >
-                        {isPlayingAudio ? <Sparkles className="w-5 h-5 animate-pulse" /> : <Play className="w-5 h-5 ml-0.5" />}
-                      </button>
+                      <VoicePlayButton
+                        text={`Receita Mágica: ${recipe.title}. ${recipe.description}. Os ingredientes são: ${recipe.ingredients.join(', ')}. Modo de preparo: ${recipe.instructions.join('. ')}. E tem aproximadamente ${recipe.calories} calorias. Bom apetite!`}
+                        size="md"
+                        title="Ouvir receita com a voz da Malu"
+                      />
                     </div>
                     <p className="text-base text-slate-600 dark:text-slate-400 italic">
                       "{recipe.description}"

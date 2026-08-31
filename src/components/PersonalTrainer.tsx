@@ -1,5 +1,5 @@
 import { playSfx, vibrate } from '../lib/sensory';
-import { playAudioUrl, stopSpeech } from '../lib/speech';
+import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -366,14 +366,10 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
+      await speak(text, {
+        onEnded: () => setIsPlaying(false),
+        onError: () => setIsPlaying(false),
+      });
     } catch (error) {
       console.warn(error);
       setIsPlaying(false);
@@ -428,24 +424,20 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     }
     
     try {
-      const base64Audio = await textToSpeech(textToSpeak);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, {
-          onEnded: () => {
-            setIsSpeakingTips(false);
-            if (bgAudioRef.current && isBgMusicPlaying) {
-              bgAudioRef.current.volume = bgMusicVolume;
-            }
+      await speak(textToSpeak, {
+        onEnded: () => {
+          setIsSpeakingTips(false);
+          if (bgAudioRef.current && isBgMusicPlaying) {
+            bgAudioRef.current.volume = bgMusicVolume;
           }
-        });
-      } else {
-        setIsSpeakingTips(false);
-        if (bgAudioRef.current && isBgMusicPlaying) {
-          bgAudioRef.current.volume = bgMusicVolume;
+        },
+        onError: () => {
+          setIsSpeakingTips(false);
+          if (bgAudioRef.current && isBgMusicPlaying) {
+            bgAudioRef.current.volume = bgMusicVolume;
+          }
         }
-      }
+      });
     } catch (error) {
       console.error("Erro ao gerar áudio de dicas:", error);
       setIsSpeakingTips(false);

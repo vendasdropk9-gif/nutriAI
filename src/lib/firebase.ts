@@ -64,7 +64,8 @@ export const TABLE_MAPPING: Record<string, string> = {
   'bodyMonitorLogs': 'body_monitor_logs',
   'notes': 'notes',
   'couriers': 'couriers',
-  'medicinalHerbs': 'medicinal_herbs'
+  'medicinalHerbs': 'medicinal_herbs',
+  'smartPlateCombinations': 'smart_plate_combinations'
 };
 
 // Key transformation utilities for snake_case/camelCase mappings

@@ -2,8 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertTriangle, Info, History, ArrowLeft, ArrowRight, Upload, X, CheckCircle2, ChevronRight, Scale, Zap, Flame, Target, Eye, Maximize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { combineSmartPlate } from '../lib/gemini';
-import { db } from '../lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
+import { db, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from '../lib/firebase';
 import { UserProfile, SmartPlateCombination, SmartPlateDishItem } from '../types';
 import { normalizeSmartPlateDish, DEFAULT_PLATE_IMAGE, SmartPlateFoodItem } from '../lib/smartPlatePhotos';
 
@@ -51,13 +50,24 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
         limit(20)
       );
       const snapshot = await getDocs(q);
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        date: doc.data().createdAt?.toDate() || new Date(),
-        goal: doc.data().goal,
-        result: doc.data().result,
-        imagesCount: doc.data().imagesCount || 1
-      }));
+      const items = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let date = new Date();
+        if (data.createdAt) {
+          if (typeof data.createdAt.toDate === 'function') {
+            date = data.createdAt.toDate();
+          } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+            date = new Date(data.createdAt);
+          }
+        }
+        return {
+          id: doc.id,
+          date,
+          goal: data.goal,
+          result: data.result,
+          imagesCount: data.imagesCount || 1
+        };
+      });
       setHistory(items);
     } catch (err) {
       console.error('Error loading history:', err);

@@ -1,4 +1,3 @@
-import { playAudioUrl } from "../lib/speech";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Brain,
@@ -9,8 +8,6 @@ import {
   Moon,
   AlertCircle,
   Sparkles,
-  Volume2,
-  Play,
   ChevronRight,
   History,
   Camera,
@@ -28,9 +25,9 @@ import {
 import { EmotionalLog, UserProfile } from "../types";
 import {
   analyzeEmotionalPatterns,
-  textToSpeech,
   analyzeEmotionalImage,
 } from "../lib/gemini";
+import { VoicePlayButton } from "./VoicePlayButton";
 
 interface EmotionalTrackerProps {
   profile: UserProfile | null;
@@ -45,8 +42,6 @@ export function EmotionalTracker({
   const [trigger, setTrigger] = useState("");
   const [analysis, setAnalysis] = useState<any | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // States for emotional face capture
   const [isFaceCameraActive, setIsFaceCameraActive] = useState(false);
@@ -59,8 +54,6 @@ export function EmotionalTracker({
   const [faceAnalysisResult, setFaceAnalysisResult] = useState<any | null>(
     null,
   );
-  const [isFacePlaying, setIsFacePlaying] = useState(false);
-  const [faceAudioUrl, setFaceAudioUrl] = useState<string | null>(null);
 
   // Active consent checkboxes before starting camera
   const [consentCheck1, setConsentCheck1] = useState(false);
@@ -81,8 +74,6 @@ export function EmotionalTracker({
     setIsFaceCameraActive(true);
     setFacePreviewImage(null);
     setFaceAnalysisResult(null);
-    setFaceAudioUrl(null);
-    setIsFacePlaying(false);
 
     try {
       let stream: MediaStream;
@@ -203,38 +194,10 @@ export function EmotionalTracker({
     }
   };
 
-  const playFaceTTS = async (text: string) => {
-    if (isFacePlaying) return;
-    setIsFacePlaying(true);
-
-    try {
-      if (faceAudioUrl) {
-        await playAudioUrl(faceAudioUrl, {
-          onEnded: () => setIsFacePlaying(false),
-        });
-        return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setFaceAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsFacePlaying(false) });
-      } else {
-        setIsFacePlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsFacePlaying(false);
-    }
-  };
-
   const resetFaceAnalyzer = () => {
     stopFaceCamera();
     setFacePreviewImage(null);
     setFaceAnalysisResult(null);
-    setFaceAudioUrl(null);
-    setIsFacePlaying(false);
   };
 
   const logs = profile?.emotionalLogs || [];
@@ -261,7 +224,6 @@ export function EmotionalTracker({
 
     setIsAnalyzing(true);
     setAnalysis(null);
-    setAudioUrl(null);
 
     try {
       const result = await analyzeEmotionalPatterns(logs, profile);
@@ -270,30 +232,6 @@ export function EmotionalTracker({
       console.warn(e);
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const playTTS = async (text: string) => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-
-    try {
-      if (audioUrl) {
-        await playAudioUrl(audioUrl, { onEnded: () => setIsPlaying(false) });
-        return;
-      }
-
-      const base64Audio = await textToSpeech(text);
-      if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
-      } else {
-        setIsPlaying(false);
-      }
-    } catch (error) {
-      console.warn(error);
-      setIsPlaying(false);
     }
   };
 
@@ -567,23 +505,13 @@ export function EmotionalTracker({
                     {faceAnalysisResult.detectedMood || "Estágio Neutro"}
                   </span>
 
-                  <button
-                    onClick={() =>
-                      playFaceTTS(faceAnalysisResult.assistantMessage)
-                    }
-                    className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 hover:scale-105 transition-all shadow-md ${
-                      isFacePlaying
-                        ? "animate-pulse ring-4 ring-emerald-500/30"
-                        : ""
-                    }`}
-                    title="Ouvir análise"
-                  >
-                    {isFacePlaying ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 ml-0.5" />
-                    )}
-                  </button>
+                  {faceAnalysisResult.assistantMessage && (
+                    <VoicePlayButton
+                      text={faceAnalysisResult.assistantMessage}
+                      size="sm"
+                      title="Ouvir análise com a voz da Malu"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -763,16 +691,13 @@ export function EmotionalTracker({
       {analysis && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
           <div className="flex items-start gap-4 clay-card p-6 shadow-sm">
-            <button
-              onClick={() => playTTS(analysis.assistantMessage)}
-              className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? "animate-pulse ring-4 ring-emerald-500/30" : "hover:scale-105 shadow-md"}`}
-            >
-              {isPlaying ? (
-                <Volume2 className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5 ml-1" />
-              )}
-            </button>
+            {analysis.assistantMessage && (
+              <VoicePlayButton
+                text={analysis.assistantMessage}
+                size="md"
+                title="Ouvir análise com a voz da Malu"
+              />
+            )}
             <div>
               <h4 className="font-serif text-xl text-emerald-800 dark:text-emerald-400 font-medium mb-1">
                 Mente & Nutrição:

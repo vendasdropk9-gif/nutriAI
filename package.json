@@ -25,6 +25,7 @@
     "esbuild": "^0.28.0",
     "express": "^4.21.2",
     "firebase": "^12.12.1",
+    "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "i18next": "^26.3.1",

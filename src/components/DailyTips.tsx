@@ -15,6 +15,7 @@ import {
 import { UserProfile } from '../types';
 import { generateDailyNutritionTips } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
+import { VoicePlayButton } from './VoicePlayButton';
 
 interface DailyTipsProps {
   profile: UserProfile | null;
@@ -192,18 +193,25 @@ export function DailyTips({ profile }: DailyTipsProps) {
                 className="bg-white dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800 p-5 rounded-[24px] shadow-sm flex flex-col justify-between hover:shadow-md transition-all gap-4"
               >
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconBg(tip.icon)}`}>
-                      {getIcon(tip.icon)}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconBg(tip.icon)}`}>
+                        {getIcon(tip.icon)}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {tip.category}
+                        </span>
+                        <h4 className="font-serif text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
+                          {tip.title}
+                        </h4>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        {tip.category}
-                      </span>
-                      <h4 className="font-serif text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
-                        {tip.title}
-                      </h4>
-                    </div>
+                    <VoicePlayButton
+                      text={`Dica sobre ${tip.category}: ${tip.title}. ${tip.content} Recomendação: ${tip.recommendation}`}
+                      size="sm"
+                      title="Ouvir dica com a voz da Malu"
+                    />
                   </div>
 
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
