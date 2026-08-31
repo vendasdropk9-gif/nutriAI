@@ -110,7 +110,7 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
         ]
       } : {}}
       transition={{ duration: 1.2, ease: "easeInOut" }}
-      className="relative w-full max-w-full mx-auto h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-white dark:bg-white transition-all box-border z-10"
+      className="relative -mx-4 sm:mx-0 w-[calc(100%+2rem)] sm:w-full h-[260px] sm:h-[360px] md:h-[460px] rounded-2xl sm:rounded-[32px] clay-card md:rounded-[40px] overflow-hidden shadow-2xl shadow-emerald-900/10 mb-8 md:mb-12 bg-white dark:bg-slate-900 transition-all box-border z-10"
     >
       <AnimatePresence mode="wait">
         <motion.div
