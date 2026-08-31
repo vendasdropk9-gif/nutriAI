@@ -434,12 +434,10 @@ export default function App() {
           <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-slate-200/50 dark:bg-slate-800/40 blur-[100px] transition-colors duration-1000"></div>
         </div>
 
-        <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500">
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20 gap-4">
+        <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500 w-full flex items-center justify-center">
+          <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 h-[54px] flex items-center justify-between gap-2 sm:gap-4">
             <motion.div 
-              className="flex items-center gap-2 sm:gap-3 text-emerald-600 dark:text-emerald-400 shrink-0 cursor-pointer select-none"
+              className="flex items-center gap-2 sm:gap-2.5 text-emerald-600 dark:text-emerald-400 shrink-0 cursor-pointer select-none"
               animate={{ 
                 rotate: [0, 0, -4, 4, -3, 3, 0, 0],
                 y: [0, 0, -3, 1, -2, 0, 0, 0],
@@ -470,71 +468,77 @@ export default function App() {
                   times: [0, 0.72, 0.76, 0.81, 0.86, 0.91, 0.96, 1]
                 }}
               >
-                <Utensils className="w-8 h-8" />
+                <Utensils className="w-6 h-6 sm:w-7 sm:h-7" />
               </motion.div>
-              <span className="font-serif text-2xl font-semibold tracking-wide">NutriAI</span>
+              <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">NutriAI</span>
             </motion.div>
             
-            {/* Global Search Bar */}
-            <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+            {/* Global Search Bar (Desktop) */}
+            <div className="hidden md:flex flex-1 max-w-md justify-center mx-2">
+              <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+            </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            {/* Action Buttons Cluster (Search on mobile, Feedback, Language, Dark Mode) */}
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+              {/* Mobile Search Trigger */}
+              <div className="md:hidden flex items-center">
+                <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+              </div>
+
+              {/* Feedback Button */}
               <motion.button 
-                whileHover={{ scale: 1.04, y: -0.5 }} 
-                whileTap={{ scale: 0.96 }}
+                whileHover={{ scale: 1.06, y: -0.5 }} 
+                whileTap={{ scale: 0.94 }}
                 onClick={() => {
                   playSfx('tap');
                   setIsFeedbackOpen(true);
                 }}
-                className="relative p-[1.5px] rounded-full overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none active:scale-95 cursor-pointer group flex items-center justify-center"
+                className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-[1.5px] overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none cursor-pointer flex items-center justify-center"
                 title="Deixe seu feedback"
                 id="header-feedback-trigger-btn"
               >
-                {/* Sleek pulsing and shimmering ambient border */}
+                {/* Sleek pulsing ambient ring */}
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 dark:from-emerald-500 dark:via-teal-400 dark:to-emerald-500 animate-pulse" />
                 
-                {/* Perfectly centered inner button mask */}
-                <div className="relative flex items-center justify-center gap-1.5 p-2 sm:px-3.5 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 font-medium hover:bg-slate-50/90 dark:hover:bg-slate-800/90 transition-all duration-300 w-full h-full">
-                  <div className="absolute inset-0 rounded-full bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <MessageSquare className="w-4 h-4 text-emerald-500 relative z-10 shrink-0" />
-                  <span className="hidden sm:inline-block text-xs md:text-sm font-semibold relative z-10 text-slate-800 dark:text-slate-200 leading-none tracking-wide">
-                    Feedback
-                  </span>
+                {/* Perfectly centered inner icon */}
+                <div className="relative flex items-center justify-center rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 w-full h-full">
+                  <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
                 </div>
               </motion.button>
 
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              {/* Language Switcher Button */}
+              <motion.button 
+                whileHover={{ scale: 1.06 }} 
+                whileTap={{ scale: 0.94 }}
                 onClick={() => {
                   playSfx('tap');
                   vibrate(10);
                   setIsLanguageOpen(true);
                 }}
-                className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
                 title="Mudar idioma / Change language"
                 id="header-language-trigger-btn"
               >
-                <Globe className="w-5 h-5" />
+                <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
 
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+              {/* Dark Mode Toggle Button */}
+              <motion.button 
+                whileHover={{ scale: 1.06 }} 
+                whileTap={{ scale: 0.94 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2.5 rounded-full text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-300 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
                 title={isDarkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
               >
                 {isDarkMode ? (
-                  <Sun 
-                    className="w-5 h-5" 
-                  />
+                  <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 ) : (
-                  <Moon 
-                    className="w-5 h-5" 
-                  />
+                  <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
                 )}
               </motion.button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       <div className="sticky top-16 md:top-20 z-[15] w-full">
         <DraggableNav activeTab={activeTab} onTabChange={setActiveTab} />

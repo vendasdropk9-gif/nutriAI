@@ -265,7 +265,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
 
       {/* Info bottom panel drawer */}
       <div className="bg-white dark:bg-slate-900 rounded-t-[32px] shadow-[0_-15px_35px_rgba(0,0,0,0.08)] z-30 px-6 py-6 md:px-12 md:py-8 space-y-6 relative border-t border-slate-100 dark:border-slate-800/60 max-h-[50%] overflow-y-auto">
-        <div className="w-12 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" />
+        <div className="w-12 h-1.5 bg-emerald-500 rounded-full mx-auto shadow-sm shadow-emerald-500/30" />
         
         <div className="flex items-center justify-between">
           <div>

@@ -642,20 +642,20 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode }: GlobalSearch
       </div>
 
       {/* Mobile Search Icon & Mic Trigger Buttons */}
-      <div className="flex md:hidden items-center gap-1">
+      <div className="flex md:hidden items-center">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
           onClick={() => {
             playSfx('tap');
             vibrate(15);
             setIsOpen(true);
           }}
-          className="p-2.5 rounded-full text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
           title="Busque receitas, ingredientes ou dicas de saúde no NutriAI."
           id="mobile-search-trigger-btn"
         >
-          <Search className="w-5 h-5 text-emerald-500" />
+          <Search className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
         </motion.button>
       </div>
 

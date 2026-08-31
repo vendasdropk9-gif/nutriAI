@@ -231,11 +231,11 @@ export function PartnerBanner() {
   };
 
   return (
-    <div className="w-full py-2 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800/85 transition-colors duration-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Banner Principal Unificado com Altura Completa */}
-        <div className="relative w-full h-44 sm:h-48 md:h-52 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-slate-200/80 dark:border-slate-800/80 group transition-all duration-300">
-          {/* Imagem de Fundo (Preenche todo o tamanho do banner) */}
+    <div className="w-full bg-slate-900 border-b border-slate-200 dark:border-slate-800/85 transition-colors duration-500 overflow-hidden">
+      <div className="w-full">
+        {/* Banner Principal Unificado com Largura Total (Edge-to-Edge) */}
+        <div className="relative w-full h-52 sm:h-60 md:h-68 overflow-hidden group transition-all duration-300">
+          {/* Imagem de Fundo (Preenche todo o tamanho da tela) */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             <AnimatePresence mode="sync">
               <motion.img
@@ -251,43 +251,39 @@ export function PartnerBanner() {
             </AnimatePresence>
           </div>
 
-          {/* Gradiente de sobreposição para leitura perfeita */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-slate-950/20 pointer-events-none z-0" />
+          {/* Gradiente de sobreposição para leitura perfeita em toda a tela */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/35 to-slate-950/30 pointer-events-none z-0" />
 
           {/* Conteúdo sobreposto e integrado */}
-          <div className="relative z-10 w-full h-full p-3 sm:p-4 flex flex-col justify-between">
+          <div className="relative z-10 w-full h-full p-4 sm:p-6 md:p-8 flex flex-col justify-between max-w-7xl mx-auto">
             {/* Topo do Banner: Badge Fidelidade e Controles de Áudio */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full font-mono text-[10px] sm:text-xs tracking-wider uppercase font-extrabold shadow-md shrink-0">
-                <Store className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="flex items-center gap-1.5 bg-transparent border border-white/25 text-white px-3 py-1.5 rounded-full font-mono text-[10px] sm:text-xs tracking-wider uppercase font-extrabold shrink-0 drop-shadow-md">
+                <Store className="w-3.5 h-3.5 text-white" />
                 <span>{t('fidelity_partner', 'Fidelidade Parceira')}</span>
               </div>
 
-              {/* Controles de Áudio em Pilula de Vidro */}
-              <div className="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-md shrink-0">
-                <div className="flex items-center gap-0.5 bg-slate-950/70 rounded-full p-0.5">
+              {/* Controles de Áudio em Pilula Transparente */}
+              <div className="flex items-center gap-1.5 bg-transparent p-1 rounded-full border border-white/25 shrink-0 backdrop-blur-sm">
+                <div className="flex items-center gap-0.5 bg-transparent rounded-full p-0.5">
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("cooking"); }}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
-                      soundType === "cooking"
-                        ? "bg-emerald-500 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer bg-transparent text-white hover:bg-white/15 drop-shadow-md ${
+                      soundType === "cooking" ? "ring-1 ring-white/70 font-black bg-white/10" : "opacity-85 hover:opacity-100"
                     }`}
                     title="Música saudável & alegre de culinária (Acústico)"
                   >
-                    <Utensils className="w-3 h-3" />
+                    <Utensils className="w-3 h-3 text-white" />
                     <span className="hidden sm:inline">Nutri-Ritmo</span>
                   </button>
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("meditative"); }}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer ${
-                      soundType === "meditative"
-                        ? "bg-teal-500 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer bg-transparent text-white hover:bg-white/15 drop-shadow-md ${
+                      soundType === "meditative" ? "ring-1 ring-white/70 font-black bg-white/10" : "opacity-85 hover:opacity-100"
                     }`}
                     title="Frequências zen de meditação e foco"
                   >
-                    <Compass className="w-3 h-3" />
+                    <Compass className="w-3 h-3 text-white" />
                     <span className="hidden sm:inline">Meditar</span>
                   </button>
                 </div>
@@ -301,37 +297,31 @@ export function PartnerBanner() {
                     value={volume}
                     onChange={(e) => setVolume(parseFloat(e.target.value))}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="w-10 sm:w-14 h-1 bg-emerald-500/40 rounded-lg appearance-none cursor-pointer accent-emerald-400 transition-all opacity-80 hover:opacity-100"
+                    className="w-10 sm:w-14 h-1 bg-white/40 rounded-lg appearance-none cursor-pointer accent-white transition-all opacity-90 hover:opacity-100"
                     title="Ajustar Volume"
                   />
                 )}
 
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
-                  className={`p-1.5 rounded-full border transition-all duration-300 cursor-pointer ${
-                    !isMuted
-                      ? soundType === "cooking"
-                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
-                        : "bg-teal-500/20 border-teal-500/50 text-teal-400"
-                      : "bg-transparent border-transparent text-slate-400 hover:text-white"
-                  }`}
+                  className="p-1.5 rounded-full border border-transparent bg-transparent text-white hover:bg-white/15 transition-all duration-300 cursor-pointer drop-shadow-md"
                   title={isMuted ? "Tocar trilha sonora" : "Pausar música"}
                   id="toggle-ambient-music-btn"
                 >
                   {isMuted ? (
-                    <VolumeX className="w-3.5 h-3.5" />
+                    <VolumeX className="w-3.5 h-3.5 text-white" />
                   ) : (
-                    <Volume2 className="w-3.5 h-3.5" />
+                    <Volume2 className="w-3.5 h-3.5 text-white" />
                   )}
                 </motion.button>
               </div>
             </div>
 
-            {/* Rodapé do Banner: Nome e Oferta do Parceiro */}
-            <div className="w-full bg-slate-900/75 backdrop-blur-md rounded-xl p-2.5 sm:p-3 border border-white/10 shadow-lg">
-              <div className="h-6 overflow-hidden relative w-full flex items-center">
+            {/* Rodapé do Banner: Nome e Oferta do Parceiro Transparente com Texto Branco */}
+            <div className="w-full bg-transparent rounded-xl p-1 sm:p-2 border-none">
+              <div className="h-7 overflow-hidden relative w-full flex items-center">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={index}
@@ -344,10 +334,10 @@ export function PartnerBanner() {
                     }}
                     className="w-full flex items-center justify-between gap-2"
                   >
-                    <span className="font-sans text-xs sm:text-sm font-bold text-white tracking-wide block truncate">
+                    <span className="font-sans text-sm sm:text-base md:text-lg font-bold text-white tracking-wide block truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                       {PARTNERS[index]}
                     </span>
-                    <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 shrink-0 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    <span className="text-[11px] sm:text-xs font-semibold text-white shrink-0 bg-transparent px-2.5 py-0.5 rounded-full border border-white/40 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                       Desconto NutriAI
                     </span>
                   </motion.div>
