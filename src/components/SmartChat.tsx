@@ -259,7 +259,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
             whileTap={{ scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 bg-emerald-600 text-white p-3 rounded-full shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:bg-emerald-500 transition-colors"
+            className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 bg-emerald-600 text-white p-3 rounded-full shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:bg-emerald-500 transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
           </motion.button>
@@ -274,7 +274,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-x-4 bottom-24 md:bottom-24 md:right-6 md:left-auto md:w-[400px] h-[650px] max-h-[85vh] z-50 flex flex-col bg-[#F0F4F8] dark:bg-[#0f172a] rounded-[32px] clay-panel shadow-[0_20px_50px_rgba(16,185,129,0.15)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.05)] overflow-hidden border border-emerald-50 dark:border-slate-800"
+            className="fixed inset-x-4 bottom-4 md:bottom-6 md:right-6 md:left-auto md:w-[400px] h-[650px] max-h-[85vh] z-50 flex flex-col bg-[#F0F4F8] dark:bg-[#0f172a] rounded-[32px] clay-panel shadow-[0_20px_50px_rgba(16,185,129,0.15)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.05)] overflow-hidden border border-emerald-50 dark:border-slate-800"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 bg-[#f8fafc]/80 dark:bg-[#1e293b]/80 backdrop-blur-md border-b border-white/50 dark:border-slate-700/50">

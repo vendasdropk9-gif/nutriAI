@@ -204,7 +204,7 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('pessego') ||
     combined.includes('banana')
   ) {
-    return "https://images.unsplash.com/photo-1622597467836-f3285f2131b7?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_tropical.jpg";
   }
 
   // 2. Verde, Couve, Maçã Verde, Espinafre, Pepino, Hortelã, Clorofila, Detox Verde
@@ -220,7 +220,7 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('salsão') ||
     combined.includes('aipo')
   ) {
-    return "https://images.unsplash.com/photo-1610970881699-44a5587cabec?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_green.jpg";
   }
 
   // 3. Laranja, Cenoura, Tangerina, Acerola, Mamão, Cúrcuma, Termogênico
@@ -235,7 +235,7 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('curcuma') ||
     combined.includes('citrus')
   ) {
-    return "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_citrus.jpg";
   }
 
   // 4. Melancia, Morango, Frutas Vermelhas, Melancia com Hortelã, Hibisco
@@ -247,7 +247,7 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('hibisco') ||
     combined.includes('goiaba')
   ) {
-    return "https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_red.jpg";
   }
 
   // 5. Beterraba, Açaí, Mirtilo / Blueberry, Uva Roxa, Jabuticaba, Amora
@@ -261,7 +261,7 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('amora') ||
     combined.includes('roxo')
   ) {
-    return "https://images.unsplash.com/photo-1553530979-7ee52a2670c4?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_purple.jpg";
   }
 
   // 6. Limão, Água de Coco, Gengibre, Melão
@@ -272,11 +272,11 @@ export const resolveJuiceImage = (juiceName: string, ingredients: string[] | str
     combined.includes('melão') ||
     combined.includes('melao')
   ) {
-    return "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=1200";
+    return "/images/juice_default.jpg"; // could reuse another or default
   }
 
   // Default vibrant fresh juice photo
-  return "https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&q=80&w=1200";
+  return "/images/juice_default.jpg";
 };
 
 export const generateJuiceRecipe = async (

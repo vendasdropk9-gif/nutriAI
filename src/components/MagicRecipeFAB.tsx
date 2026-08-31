@@ -49,7 +49,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
 
   return (
     <>
-      <div className="fixed bottom-[152px] right-4 md:bottom-[76px] md:right-6 z-40">
+      <div className="fixed bottom-[72px] right-4 md:bottom-[76px] md:right-6 z-40">
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}

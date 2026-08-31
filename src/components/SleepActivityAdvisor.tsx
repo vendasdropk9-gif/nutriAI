@@ -119,7 +119,7 @@ export function SleepActivityAdvisor() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 mb-10 overflow-hidden relative">
+    <div className="w-full min-w-0 bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 mb-10 overflow-hidden relative">
       {/* Background decoration */}
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -139,7 +139,7 @@ export function SleepActivityAdvisor() {
             </p>
           </div>
           
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col items-center min-w-[140px]">
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col items-center">
             <span className="text-[10px] uppercase font-bold text-slate-500">Horário Base</span>
             <input 
               type="time" 

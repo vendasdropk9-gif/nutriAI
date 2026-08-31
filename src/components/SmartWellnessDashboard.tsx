@@ -106,7 +106,7 @@ export function SmartWellnessDashboard() {
   };
 
   return (
-    <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-[32px] p-6 md:p-8 shadow-sm border border-slate-200/50 dark:border-slate-800/50 mb-10">
+    <div className="w-full min-w-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-[32px] p-6 md:p-8 shadow-sm border border-slate-200/50 dark:border-slate-800/50 mb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h3 className="text-2xl font-serif font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">

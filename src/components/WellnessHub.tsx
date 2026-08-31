@@ -181,7 +181,7 @@ export function WellnessHub() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in duration-500">
+    <div className="w-full min-w-0 max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in duration-500">
       
       {!activeSession ? (
         <>
@@ -205,7 +205,7 @@ export function WellnessHub() {
           <SmartWellnessDashboard />
           <SleepActivityAdvisor />
 
-          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+          <div className="w-full flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
             {[
               { id: 'all', label: 'Todos', icon: <Heart className="w-4 h-4" /> },
               { id: 'breathing', label: 'Respiração', icon: <Wind className="w-4 h-4" /> },

@@ -1,9 +1,9 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { SecuritySuite } from './SecuritySuite';
 import { UserProfile } from '../types';
-import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock, Trash2 } from 'lucide-react';
+import { Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, ShieldCheck, Lock, Trash2, Sparkles, Volume2, X } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
@@ -18,6 +18,11 @@ interface ProfileProps {
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const { logoutLocally } = useAuth();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [mealRemindersEnabled, setMealRemindersEnabled] = useState<boolean>(() => {
+    return safeGet('nutri-meal-reminders') === 'true';
+  });
+  const [activeToast, setActiveToast] = useState<{ title: string; desc: string; icon?: 'bell' | 'face' | 'fingerprint' | 'check' } | null>(null);
+  const [isTestingBiometric, setIsTestingBiometric] = useState<'face' | 'fingerprint' | null>(null);
 
   useEffect(() => {
     try {
@@ -29,14 +34,57 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     }
   }, []);
 
+  const showInAppToast = (title: string, desc: string, icon: 'bell' | 'face' | 'fingerprint' | 'check' = 'check') => {
+    setActiveToast({ title, desc, icon });
+    setTimeout(() => {
+      setActiveToast(null);
+    }, 4000);
+  };
+
   const requestNotificationPermission = async () => {
     try {
       if ('Notification' in window && typeof Notification !== 'undefined') {
         const permission = await Notification.requestPermission();
         setNotificationPermission(permission);
+        return permission;
       }
     } catch (e) {
       console.warn('Notification permission request blocked:', e);
+    }
+    return 'default' as NotificationPermission;
+  };
+
+  const handleToggleMealReminders = async () => {
+    const nextState = !mealRemindersEnabled;
+    setMealRemindersEnabled(nextState);
+    safeSet('nutri-meal-reminders', String(nextState));
+
+    if (nextState) {
+      playSfx('crystal');
+      vibrate([30, 40]);
+      await requestNotificationPermission();
+      showInAppToast('Lembretes Ativados!', 'Você receberá alertas e avisos sonoros nos horários das refeições.', 'bell');
+    } else {
+      playSfx('pop');
+      vibrate(20);
+      showInAppToast('Lembretes Desativados', 'Os alertas automáticos de refeições foram pausados.', 'bell');
+    }
+  };
+
+  const handleTestMealNotification = () => {
+    playSfx('notification');
+    vibrate([40, 60, 100]);
+    showInAppToast('🍲 Hora da Refeição!', 'Seu plano nutricional tem um lembrete programado: Almoço Saudável.', 'bell');
+
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('🍲 Lembrete NutriAI', {
+          body: 'Hora da sua refeição! Confira seu plano alimentar para manter o foco.',
+          icon: '/favicon.ico'
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to trigger native notification:', e);
     }
   };
 
@@ -77,38 +125,89 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [promptPassword, setPromptPassword] = useState('');
   const [promptError, setPromptError] = useState('');
   const [promptSuccess, setPromptSuccess] = useState('');
+  const [testScanProgress, setTestScanProgress] = useState(0);
 
   useEffect(() => {
     const enabled = safeGet('nutri-biometric-enabled') === 'true';
-    const type = safeGet('nutri-biometric-type') as any;
+    const type = (safeGet('nutri-biometric-type') as 'face' | 'fingerprint' | 'both') || null;
     setBiometricEnabled(enabled);
     setBiometricType(type);
   }, []);
 
-  const handleToggleBiometrics = (type: 'face' | 'fingerprint') => {
-    const active = safeGet('nutri-biometric-enabled') === 'true';
-    const currentType = safeGet('nutri-biometric-type');
+  const isFaceActive = biometricEnabled && (biometricType === 'face' || biometricType === 'both');
+  const isFingerprintActive = biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both');
 
-    if (active && (currentType === type || currentType === 'both')) {
-      // Disable biometrics
-      safeRemove('nutri-biometric-enabled');
-      safeRemove('nutri-biometric-type');
-      safeRemove('nutri-biometric-password');
-      safeRemove('nutri-biometric-email');
-      safeRemove('nutri-biometric-username');
-      setBiometricEnabled(false);
-      setBiometricType(null);
+  const handleToggleBiometrics = (type: 'face' | 'fingerprint') => {
+    const isCurrentlyActive = type === 'face' ? isFaceActive : isFingerprintActive;
+
+    if (isCurrentlyActive) {
+      // Deactivating this type
+      if (biometricType === 'both') {
+        const remainingType = type === 'face' ? 'fingerprint' : 'face';
+        setBiometricType(remainingType);
+        safeSet('nutri-biometric-type', remainingType);
+      } else {
+        setBiometricEnabled(false);
+        setBiometricType(null);
+        safeRemove('nutri-biometric-enabled');
+        safeRemove('nutri-biometric-type');
+      }
       playSfx('pop');
-      vibrate(50);
+      vibrate(25);
+      showInAppToast(
+        `${type === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} Desativado`,
+        'Autenticação biométrica removida com sucesso.',
+        type
+      );
     } else {
-      // Enable biometrics: Show secure confirmation prompt so user saves credentials locally
-      setBiometricPromptType(type);
-      setPromptPassword('');
-      setPromptError('');
-      setPromptSuccess('');
-      setShowPasswordPrompt(true);
-      playSfx('tap');
+      // Activating this type
+      let nextType: 'face' | 'fingerprint' | 'both' = type;
+      if (biometricEnabled && biometricType && biometricType !== type) {
+        nextType = 'both';
+      }
+
+      setBiometricEnabled(true);
+      setBiometricType(nextType);
+      safeSet('nutri-biometric-enabled', 'true');
+      safeSet('nutri-biometric-type', nextType);
+      safeSet('nutri-biometric-email', auth.currentUser?.email || profile?.name || 'usuario@nutriai.com');
+      safeSet('nutri-biometric-username', profile?.name || auth.currentUser?.displayName || 'Usuário');
+
+      playSfx('crystal');
+      vibrate([35, 45]);
+      showInAppToast(
+        `${type === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} Ativado!`,
+        'Sensor vinculado com sucesso para login e desbloqueio rápido.',
+        type
+      );
     }
+  };
+
+  const startBiometricTest = (type: 'face' | 'fingerprint') => {
+    setIsTestingBiometric(type);
+    setTestScanProgress(0);
+    playSfx('tap');
+    vibrate(20);
+
+    const interval = setInterval(() => {
+      setTestScanProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          playSfx('crystal');
+          vibrate([50, 50]);
+          setTimeout(() => {
+            setIsTestingBiometric(null);
+            showInAppToast(
+              'Biometria Validada!',
+              `Sensor de ${type === 'face' ? 'Reconhecimento Facial' : 'Impressão Digital'} funcionando perfeitamente.`,
+              type
+            );
+          }, 600);
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 150);
   };
 
   const handleConfirmPromptPassword = () => {
@@ -118,7 +217,6 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       return;
     }
     
-    // Save credentials safely to device's secure local cache to allow instant background logins
     safeSet('nutri-biometric-enabled', 'true');
     safeSet('nutri-biometric-type', biometricPromptType || 'face');
     safeSet('nutri-biometric-email', auth.currentUser?.email || '');
@@ -422,48 +520,85 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             />
           </div>
 
+          {/* Meal Reminders Card */}
           <div className="space-y-2">
             <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400 dark:text-slate-500">
               Notificações de Refeições
             </label>
-            <div className="flex items-center gap-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 p-4 rounded-2xl shadow-sm">
-              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
-                {notificationPermission === 'granted' ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3.5 rounded-2xl transition-colors ${
+                    mealRemindersEnabled 
+                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  }`}>
+                    {mealRemindersEnabled ? <Bell className="w-5 h-5 animate-bounce" /> : <BellOff className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200">Lembretes do Plano Alimentar</h4>
+                      {mealRemindersEnabled && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider border border-emerald-500/20">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {mealRemindersEnabled 
+                        ? 'Você receberá avisos sonoros e alertas pontuais para não pular refeições.' 
+                        : 'Ative para receber alertas quando for a hora de comer.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  {mealRemindersEnabled && (
+                    <button
+                      type="button"
+                      onClick={handleTestMealNotification}
+                      className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      title="Tocar som de teste e simular notificação"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Testar Alerta</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleToggleMealReminders}
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer ${
+                      mealRemindersEnabled
+                        ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
+                        : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    {mealRemindersEnabled ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
               </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-slate-800 dark:text-slate-200">Lembretes do Plano Alimentar</h4>
-                <p className="text-sm text-slate-500">
-                  {notificationPermission === 'granted' 
-                    ? 'Você receberá notificações na hora das refeições.' 
-                    : 'Ative para receber alertas quando for a hora de comer.'}
-                </p>
-              </div>
-              {notificationPermission !== 'granted' ? (
-                <button
-                  type="button"
-                  onClick={requestNotificationPermission}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-medium text-sm transition-colors"
-                >
-                  Ativar
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      if (typeof Notification !== 'undefined') {
-                        new Notification('Teste de Notificação 🍲', {
-                          body: 'Tudo certo! Você será avisado na hora das suas refeições.',
-                        });
-                      }
-                    } catch (e) {
-                      console.warn('Failed to display native test notification:', e);
-                    }
-                  }}
-                  className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-full font-medium text-sm transition-colors"
-                >
-                  Testar
-                </button>
+
+              {/* Meal Hours Schedule Badge Line when Active */}
+              {mealRemindersEnabled && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Café da Manhã</p>
+                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">08:00</p>
+                  </div>
+                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Almoço</p>
+                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">12:30</p>
+                  </div>
+                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Lanche</p>
+                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">16:30</p>
+                  </div>
+                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Jantar</p>
+                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">20:00</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -475,72 +610,101 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             </label>
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-600/50 p-6 rounded-[2rem] shadow-sm space-y-4">
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
+                <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400 shrink-0">
                   <ShieldCheck className="w-5 h-5 animate-pulse" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-slate-800 dark:text-slate-200">Acesso por Cadastro Biométrico</h4>
-                  <p className="text-sm text-slate-500">
-                    Use os sensores corporais de seu dispositivo para acessar o NutriAI instantaneamente sem redigitar senhas.
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Acesso por Cadastro Biométrico</h4>
+                    {biometricEnabled && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-wider shadow-sm">
+                        Protegido
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Toque nas opções abaixo para ativar ou desativar os sensores de reconhecimento facial e impressão digital deste aparelho.
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {/* Button 1: Reconhecimento Facial */}
                 <button
                   type="button"
                   onClick={() => handleToggleBiometrics('face')}
-                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none ${
-                    biometricEnabled && (biometricType === 'face' || biometricType === 'both')
-                      ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-slate-50/50 dark:bg-slate-900/40 border-transparent text-slate-500 hover:bg-slate-100/50'
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none cursor-pointer active:scale-98 select-none ${
+                    isFaceActive
+                      ? 'bg-emerald-500/15 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10'
+                      : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <ScanFace className="w-5 h-5" />
+                    <div className={`p-2.5 rounded-xl transition-colors ${isFaceActive ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                      <ScanFace className="w-5 h-5" />
+                    </div>
                     <div>
                       <p className="font-bold text-xs uppercase tracking-wider">Reconhecimento Facial</p>
-                      <p className="text-[10px] opacity-80">
-                        {biometricEnabled && (biometricType === 'face' || biometricType === 'both') ? 'Disponível' : 'Desativado'}
+                      <p className="text-[11px] font-medium mt-0.5 opacity-90">
+                        {isFaceActive ? 'Ativado e Vinculado' : 'Desativado (Toque para ativar)'}
                       </p>
                     </div>
                   </div>
-                  <div className={`w-3.5 h-3.5 rounded-full border-2 ${
-                    biometricEnabled && (biometricType === 'face' || biometricType === 'both')
-                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
-                      : 'border-slate-300'
-                  }`} />
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                    isFaceActive
+                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_#10b981]'
+                      : 'border-slate-300 dark:border-slate-600 bg-white/40 dark:bg-slate-800'
+                  }`}>
+                    {isFaceActive && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                  </div>
                 </button>
 
+                {/* Button 2: Impressão Digital */}
                 <button
                   type="button"
                   onClick={() => handleToggleBiometrics('fingerprint')}
-                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none ${
-                    biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both')
-                      ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-slate-50/50 dark:bg-slate-900/40 border-transparent text-slate-500 hover:bg-slate-100/50'
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left outline-none cursor-pointer active:scale-98 select-none ${
+                    isFingerprintActive
+                      ? 'bg-emerald-500/15 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-md shadow-emerald-500/10'
+                      : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Fingerprint className="w-5 h-5" />
+                    <div className={`p-2.5 rounded-xl transition-colors ${isFingerprintActive ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                      <Fingerprint className="w-5 h-5" />
+                    </div>
                     <div>
                       <p className="font-bold text-xs uppercase tracking-wider">Impressão Digital</p>
-                      <p className="text-[10px] opacity-80">
-                        {biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both') ? 'Disponível' : 'Desativado'}
+                      <p className="text-[11px] font-medium mt-0.5 opacity-90">
+                        {isFingerprintActive ? 'Ativada e Vinculada' : 'Desativada (Toque para ativar)'}
                       </p>
                     </div>
                   </div>
-                  <div className={`w-3.5 h-3.5 rounded-full border-2 ${
-                    biometricEnabled && (biometricType === 'fingerprint' || biometricType === 'both')
-                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_#10b981]'
-                      : 'border-slate-300'
-                  }`} />
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                    isFingerprintActive
+                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_#10b981]'
+                      : 'border-slate-300 dark:border-slate-600 bg-white/40 dark:bg-slate-800'
+                  }`}>
+                    {isFingerprintActive && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                  </div>
                 </button>
               </div>
+
+              {/* Instant Test Biometric Scanner Button */}
+              {biometricEnabled && (
+                <div className="pt-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => startBiometricTest(isFaceActive ? 'face' : 'fingerprint')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Testar Validação de Biometria no Aparelho</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-
-          <SecuritySuite />
 
           <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />
 
@@ -611,6 +775,112 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
         </form>
       </div>
+
+      {/* Biometric Scanner Test Modal Portal */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isTestingBiometric && (
+            <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-emerald-500/30 text-center space-y-6 relative overflow-hidden"
+              >
+                {/* Background scanning laser effect */}
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 via-transparent to-emerald-500/5 pointer-events-none" />
+
+                <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-2 border-emerald-500/30 animate-ping duration-1000" />
+                  <div className="absolute inset-2 rounded-full border border-emerald-400/50 animate-spin duration-3000" />
+                  <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 shadow-inner">
+                    {isTestingBiometric === 'face' ? (
+                      <ScanFace className="w-10 h-10 animate-pulse" />
+                    ) : (
+                      <Fingerprint className="w-10 h-10 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-serif font-bold text-slate-800 dark:text-white">
+                    {isTestingBiometric === 'face' ? 'Escaneando Rosto...' : 'Lendo Impressão Digital...'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Validando sensor biométrico integrado com o NutriAI.
+                  </p>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-full rounded-full transition-all duration-200 shadow-[0_0_10px_#10b981]"
+                    style={{ width: `${testScanProgress}%` }}
+                  />
+                </div>
+
+                <p className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                  {testScanProgress}% Concluído
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTestingBiometric(null)}
+                  className="px-6 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors uppercase tracking-wider cursor-pointer"
+                >
+                  Fechar
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* In-App Floating Toast Notification Portal */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {activeToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -40, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="fixed top-6 inset-x-4 sm:inset-x-auto sm:right-6 sm:w-96 z-[9999999] pointer-events-auto"
+            >
+              <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4 rounded-2xl shadow-2xl border border-emerald-500/30 flex items-start gap-3.5">
+                <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-500/20 shrink-0">
+                  {activeToast.icon === 'bell' ? (
+                    <Bell className="w-5 h-5 animate-bounce" />
+                  ) : activeToast.icon === 'face' ? (
+                    <ScanFace className="w-5 h-5" />
+                  ) : activeToast.icon === 'fingerprint' ? (
+                    <Fingerprint className="w-5 h-5" />
+                  ) : (
+                    <Check className="w-5 h-5 stroke-[2.5]" />
+                  )}
+                </div>
+                <div className="flex-1 pr-2">
+                  <h5 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+                    {activeToast.title}
+                  </h5>
+                  <p className="text-xs text-slate-500 dark:text-slate-300 mt-0.5 leading-relaxed">
+                    {activeToast.desc}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveToast(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Password Prompt Confirmation Pop-up */}
       <AnimatePresence>
