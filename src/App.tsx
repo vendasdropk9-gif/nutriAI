@@ -475,14 +475,14 @@ export default function App() {
             
             {/* Global Search Bar (Desktop) */}
             <div className="hidden md:flex flex-1 max-w-md justify-center mx-2">
-              <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+              <GlobalSearch variant="desktop" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
             </div>
 
             {/* Action Buttons Cluster (Search on mobile, Feedback, Language, Dark Mode) */}
             <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
               {/* Mobile Search Trigger */}
               <div className="md:hidden flex items-center">
-                <GlobalSearch activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+                <GlobalSearch variant="mobile" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
               </div>
 
               {/* Feedback Button */}
