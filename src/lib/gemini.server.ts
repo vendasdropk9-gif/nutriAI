@@ -1056,7 +1056,13 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
         return `data:audio/wav;base64,${b64}`;
       }
     } catch (error: any) {
-      console.warn("Gemini TTS high demand/unavailable, activating high-fidelity fallback audio:", error?.message || error);
+      // Gracefully catch rate limit / quota / high demand and seamlessly activate high-fidelity natural audio fallback
+      const errorMsg = error?.message || String(error);
+      if (error?.status === 'RESOURCE_EXHAUSTED' || errorMsg.includes('quota') || errorMsg.includes('429')) {
+        // Quota reached on Gemini TTS preview endpoint, quietly switch to natural audio without polluting logs
+      } else {
+        console.warn("Gemini TTS high demand/unavailable, activating natural voice fallback:", errorMsg);
+      }
     }
   }
 
@@ -4904,14 +4910,14 @@ REGRAS RÍGIDAS:
   try {
     if (!ai) throw new Error("GEMINI_CLIENT_UNAVAILABLE");
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+    const response = await callWithModelFallback(ai, {
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
         temperature: 0.7,
       },
+      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
     });
 
     const text = response.text;
