@@ -343,3 +343,75 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
   margin-right: -6px;
 }
 
+/* High Contrast Mode (Accessibility & WCAG AAA Optimization) */
+html.high-contrast {
+  --high-contrast-border: #000000;
+  --high-contrast-text: #000000;
+  --high-contrast-bg: #FFFFFF;
+}
+
+html.high-contrast.dark {
+  --high-contrast-border: #FFFFFF;
+  --high-contrast-text: #FFFFFF;
+  --high-contrast-bg: #000000;
+}
+
+html.high-contrast body {
+  font-weight: 500;
+}
+
+html.high-contrast button,
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  border-width: 2px !important;
+}
+
+html.high-contrast .card-premium,
+html.high-contrast .clay-card,
+html.high-contrast .clay-panel,
+html.high-contrast [class*="rounded-3xl"],
+html.high-contrast [class*="rounded-2xl"],
+html.high-contrast [class*="rounded-[2rem]"] {
+  border-width: 2px !important;
+}
+
+html.high-contrast:not(.dark) .card-premium,
+html.high-contrast:not(.dark) .clay-card,
+html.high-contrast:not(.dark) .clay-panel,
+html.high-contrast:not(.dark) input,
+html.high-contrast:not(.dark) select,
+html.high-contrast:not(.dark) textarea {
+  border-color: #0f172a !important;
+  color: #000000 !important;
+}
+
+html.high-contrast.dark .card-premium,
+html.high-contrast.dark .clay-card,
+html.high-contrast.dark .clay-panel,
+html.high-contrast.dark input,
+html.high-contrast.dark select,
+html.high-contrast.dark textarea {
+  border-color: #e2e8f0 !important;
+  color: #ffffff !important;
+}
+
+html.high-contrast .text-slate-400,
+html.high-contrast .text-slate-500 {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+html.high-contrast.dark .text-slate-400,
+html.high-contrast.dark .text-slate-500 {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
+}
+
+html.high-contrast a,
+html.high-contrast button:focus-visible {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 2px !important;
+}
+
+

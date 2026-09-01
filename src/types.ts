@@ -102,6 +102,7 @@ export interface UserProfile {
   bodyType?: BodyType;
   metabolism?: MetabolismSpeed;
   routine?: string;
+  highContrast?: boolean;
   biometricsEnabled?: boolean;
   biometricType?: 'face' | 'fingerprint' | 'both' | null;
   emotionalLogs?: EmotionalLog[];

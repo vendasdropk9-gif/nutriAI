@@ -234,28 +234,28 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
 
   return (
     <div className="fixed bottom-5 left-5 z-50 flex items-center gap-3">
-      {/* Floating Microphone Button with Rotating Neon Glow Ring */}
-      <div className="relative group p-1.5 flex items-center justify-center">
-        {/* Continuous Rotating Neon Glow Ring */}
+      {/* Floating Microphone Button with Slim & Subtle Rotating Neon Glow Ring */}
+      <div className="relative group p-1 flex items-center justify-center">
+        {/* Soft, Subtle Ambient Glow (refined opacity and blur) */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          className={`absolute inset-0 rounded-full blur-[6px] opacity-90 transition-all duration-500 ${
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          className={`absolute inset-0 rounded-full blur-[4px] opacity-40 group-hover:opacity-60 transition-all duration-500 pointer-events-none ${
             isListening
-              ? 'bg-[conic-gradient(from_0deg,#ff0055,#ff5500,#ff0055)] opacity-100 blur-[8px]'
+              ? 'bg-[conic-gradient(from_0deg,#ff0055,#ff5500,#ff0055)] opacity-60 blur-[5px]'
               : isSpeaking
-              ? 'bg-[conic-gradient(from_0deg,#00ffcc,#00ff66,#00ccff,#00ffcc)] opacity-100 blur-[8px]'
+              ? 'bg-[conic-gradient(from_0deg,#00ffcc,#00ff66,#00ccff,#00ffcc)] opacity-60 blur-[5px]'
               : isProcessing
-              ? 'bg-[conic-gradient(from_0deg,#ffaa00,#ffdd00,#ff6600,#ffaa00)] opacity-100 blur-[8px]'
+              ? 'bg-[conic-gradient(from_0deg,#ffaa00,#ffdd00,#ff6600,#ffaa00)] opacity-60 blur-[5px]'
               : 'bg-[conic-gradient(from_0deg,#00f2fe,#4facfe,#00ff88,#00f2fe)]'
           }`}
         />
 
-        {/* Sharp Rotating Neon Border Ring */}
+        {/* Ultra-Slim (1.5px) Rotating Neon Border */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          className={`absolute inset-[1px] rounded-full p-[2.5px] transition-all duration-500 ${
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          className={`absolute inset-0 rounded-full p-[1.5px] transition-all duration-500 pointer-events-none ${
             isListening
               ? 'bg-[conic-gradient(from_0deg,#ff0055,#ff7700,#ff0077)]'
               : isSpeaking
@@ -265,7 +265,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
               : 'bg-[conic-gradient(from_0deg,#06b6d4,#10b981,#3b82f6,#06b6d4)]'
           }`}
         >
-          <div className="w-full h-full rounded-full bg-slate-950/20" />
+          <div className="w-full h-full rounded-full bg-transparent" />
         </motion.div>
 
         {/* Main Floating Button */}

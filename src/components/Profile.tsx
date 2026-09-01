@@ -6,7 +6,7 @@ import { UserProfile } from '../types';
 import { 
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
-  User, RefreshCw, X, Image as ImageIcon, Droplets
+  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -37,6 +37,16 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [mealRemindersEnabled, setMealRemindersEnabled] = useState<boolean>(() => {
     return safeGet('nutri-meal-reminders') === 'true';
   });
+  const [highContrastEnabled, setHighContrastEnabled] = useState<boolean>(() => {
+    if (profile?.highContrast !== undefined) return Boolean(profile.highContrast);
+    return safeGet('nutri-high-contrast') === 'true';
+  });
+
+  useEffect(() => {
+    if (profile?.highContrast !== undefined) {
+      setHighContrastEnabled(Boolean(profile.highContrast));
+    }
+  }, [profile?.highContrast]);
   const [activeToast, setActiveToast] = useState<{ title: string; desc: string; icon?: 'bell' | 'face' | 'fingerprint' | 'check' } | null>(null);
   const [isTestingBiometric, setIsTestingBiometric] = useState<'face' | 'fingerprint' | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -151,6 +161,35 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       vibrate(20);
       showInAppToast('Lembretes Desativados', 'Os alertas automáticos de refeições foram pausados.', 'bell');
     }
+  };
+
+  const handleToggleHighContrast = () => {
+    const nextState = !highContrastEnabled;
+    setHighContrastEnabled(nextState);
+    safeSet('nutri-high-contrast', String(nextState));
+
+    if (nextState) {
+      document.documentElement.classList.add('high-contrast');
+      playSfx('crystal');
+      vibrate([20, 30]);
+      showInAppToast('Alto Contraste Ativado!', 'Bordas, fontes e elementos agora possuem contraste ampliado para melhor leitura.', 'check');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+      playSfx('pop');
+      vibrate(20);
+      showInAppToast('Alto Contraste Desativado', 'Tema visual padrão reativado com sucesso.', 'check');
+    }
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      highContrast: nextState
+    };
+    onSaveProfile(updatedProfile);
   };
 
   const handleTestMealNotification = () => {
@@ -419,6 +458,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       goals: formData.goals.trim() || undefined,
       preferences: formData.preferences.trim() || undefined,
       equipment: formData.equipment.split(',').map((s) => s.trim()).filter(Boolean),
+      highContrast: highContrastEnabled,
     };
     
     onSaveProfile(processedProfile);
@@ -1021,6 +1061,84 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                     <span>Testar Validação de Biometria no Aparelho</span>
                   </button>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Accessibility & High Contrast Card */}
+          <div className="space-y-4">
+            <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+              Acessibilidade & Visual
+            </label>
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-full shrink-0 transition-colors ${
+                    highContrastEnabled 
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' 
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    <Contrast className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
+                        Modo de Alto Contraste
+                      </h4>
+                      {highContrastEnabled ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px] uppercase tracking-wider border border-amber-500/30">
+                          Ativado
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                          Padrão
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                      Reforça o contraste de cores, espessura de bordas e nitidez dos textos para facilitar a visualização e navegação de pessoas com baixa visão ou em ambientes com luz solar intensa.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleToggleHighContrast}
+                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                      highContrastEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}
+                    role="switch"
+                    aria-checked={highContrastEnabled}
+                    title={highContrastEnabled ? "Desativar Modo de Alto Contraste" : "Ativar Modo de Alto Contraste"}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
+                        highContrastEnabled ? 'translate-x-6 text-amber-600' : 'translate-x-0 text-slate-400'
+                      }`}
+                    >
+                      {highContrastEnabled ? (
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      ) : (
+                        <Contrast className="w-3.5 h-3.5 opacity-60" />
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {highContrastEnabled && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center gap-3 text-xs text-amber-900 dark:text-amber-200 font-medium"
+                >
+                  <Eye className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>
+                    O modo de alto contraste está ativo em todas as abas e botões do aplicativo.
+                  </span>
+                </motion.div>
               )}
             </div>
           </div>

@@ -315,6 +315,16 @@ export default function App() {
     }
   }, [isDarkMode]);
 
+  useEffect(() => {
+    const storedContrast = window.localStorage.getItem('nutri-high-contrast') === 'true';
+    const isHighContrast = profile?.highContrast !== undefined ? profile.highContrast : storedContrast;
+    if (isHighContrast) {
+      document.documentElement.classList.add('high-contrast');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+    }
+  }, [profile?.highContrast]);
+
   const mealPlan = profile?.mealPlan || {};
   const savedRecipes = profile?.savedRecipes || [];
 
