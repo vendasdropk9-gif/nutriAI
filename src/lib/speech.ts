@@ -28,9 +28,14 @@ export const speak = async (text: string, options?: SpeechOptions) => {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
 
     if (audioUrl) {
-      const url = audioUrl.startsWith('data:') || audioUrl.startsWith('blob:') || audioUrl.startsWith('http')
-        ? audioUrl 
-        : `data:audio/wav;base64,${audioUrl}`;
+      let url = audioUrl;
+      if (!url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('http')) {
+        if (url.startsWith('SUQz') || url.startsWith('//') || url.startsWith('/+')) {
+          url = `data:audio/mp3;base64,${url}`;
+        } else {
+          url = `data:audio/wav;base64,${url}`;
+        }
+      }
 
       const audio = new Audio(url);
       currentAudio = audio;
@@ -47,13 +52,19 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
 
       audio.onerror = (e) => {
-        console.warn("Audio element playback error:", e);
+        console.warn("Audio element playback error, attempting fallback:", e);
         if (currentAudio === audio) currentAudio = null;
-        options?.onEnded?.();
+        fallbackSpeak(text, options);
       };
       
-      await audio.play();
-      return { method: 'gemini' as const, audio };
+      try {
+        await audio.play();
+        return { method: 'gemini' as const, audio };
+      } catch (playErr) {
+        console.warn("Audio play blocked or failed, attempting fallback:", playErr);
+        if (currentAudio === audio) currentAudio = null;
+        return fallbackSpeak(text, options);
+      }
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
@@ -66,19 +77,19 @@ export const speak = async (text: string, options?: SpeechOptions) => {
 };
 
 export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
-  // Only attempt native speech synthesis if a high-quality natural voice is available
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     const voices = window.speechSynthesis.getVoices();
-    const naturalVoice = voices.find(v => {
-      const nameLower = v.name.toLowerCase();
-      const isPtBr = v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt');
-      if (!isPtBr) return false;
-      return (nameLower.includes('natural') || nameLower.includes('neural') || nameLower.includes('online')) &&
-             (nameLower.includes('maria') || nameLower.includes('francisca') || nameLower.includes('female') || nameLower.includes('mulher'));
-    });
+    const ptVoice =
+      voices.find(v => {
+        const nameLower = v.name.toLowerCase();
+        const isPtBr = v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt');
+        return isPtBr && (nameLower.includes('natural') || nameLower.includes('neural') || nameLower.includes('online') || nameLower.includes('maria') || nameLower.includes('francisca') || nameLower.includes('female') || nameLower.includes('mulher') || nameLower.includes('luciana'));
+      }) ||
+      voices.find(v => v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt')) ||
+      voices[0];
 
-    if (naturalVoice) {
-      return executeBrowserTTS(text, options, naturalVoice);
+    if (ptVoice || voices.length > 0) {
+      return executeBrowserTTS(text, options, ptVoice);
     }
   }
 

@@ -2,11 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Mic, 
-  MicOff, 
   Loader2, 
-  Waves, 
-  Square,
-  Sparkles
+  Waves
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { chatWithAssistant } from '../lib/gemini';
@@ -15,6 +12,29 @@ import { playSfx, vibrate } from '../lib/sensory';
 
 interface LiveAssistantProps {
   profile: UserProfile | null;
+}
+
+// Inactivity timeout in milliseconds (8 seconds of silence closes the session)
+const INACTIVITY_TIMEOUT_MS = 8000;
+
+// Compute time-appropriate greeting in Brazilian Portuguese:
+// "Olá, [bom dia / boa tarde / boa noite]! Eu sou a Malu. No que posso te ajudar?"
+function getTimeGreeting(profile?: UserProfile | null): string {
+  const currentHour = new Date().getHours();
+  let timeGreeting = "boa noite";
+  if (currentHour >= 5 && currentHour < 12) {
+    timeGreeting = "bom dia";
+  } else if (currentHour >= 12 && currentHour < 18) {
+    timeGreeting = "boa tarde";
+  }
+
+  const rawName = profile?.name?.trim();
+  const firstName = rawName && !['usuário', 'usuario', 'amigo', 'amiga', 'amigo(a)', ''].includes(rawName.toLowerCase())
+    ? rawName.split(' ')[0]
+    : null;
+
+  const namePrefix = firstName ? `, ${firstName}` : '';
+  return `Olá, ${timeGreeting}${namePrefix}! Eu sou a Malu. No que posso te ajudar?`;
 }
 
 export function LiveAssistant({ profile }: LiveAssistantProps) {
@@ -27,8 +47,19 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
   // References
   const recognitionRef = useRef<any>(null);
   const statusTimerRef = useRef<any>(null);
+  const inactivityTimerRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
+  const isSpeakingRef = useRef(false);
+  const isProcessingRef = useRef(false);
 
-  const showStatus = (text: string, autoHideMs = 4000) => {
+  // Synchronize ref flags for callbacks
+  useEffect(() => {
+    isListeningRef.current = isListening;
+    isSpeakingRef.current = isSpeaking;
+    isProcessingRef.current = isProcessing;
+  }, [isListening, isSpeaking, isProcessing]);
+
+  const showStatus = useCallback((text: string, autoHideMs = 4000) => {
     setStatusText(text);
     if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     if (autoHideMs > 0) {
@@ -36,10 +67,19 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
         setStatusText(null);
       }, autoHideMs);
     }
-  };
+  }, []);
 
-  // Stop everything
+  // Clear the inactivity timeout
+  const clearInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  }, []);
+
+  // Stop everything and close connection
   const stopAll = useCallback(() => {
+    clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
     setIsListening(false);
@@ -48,60 +88,37 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch (e) {}
     }
-  }, []);
+  }, [clearInactivityTimer]);
 
-  // Web Speech Recognition setup
-  const initSpeechRecognition = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'pt-BR';
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        showStatus('Ouvindo você...', 0);
-        setTranscript('');
-      };
-
-      recognition.onresult = (event: any) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        setTranscript(currentTranscript);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          showStatus('Permissão de microfone necessária', 3500);
-        } else if (event.error !== 'no-speech') {
-          showStatus('Não entendi, tente novamente', 3000);
-        }
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      return recognition;
-    } catch (e) {
-      console.warn('Speech recognition init error:', e);
-      return null;
+  // Handler for inactivity timeout
+  const handleInactivityTimeout = useCallback(() => {
+    if (isListeningRef.current) {
+      console.info("[InactivityMonitor] Sessão de voz encerrada automaticamente por inatividade.");
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      showStatus('Sessão encerrada por inatividade', 3500);
+      playSfx('pop');
     }
-  }, []);
+  }, [showStatus]);
+
+  // Start or reset the inactivity timer
+  const resetInactivityTimer = useCallback(() => {
+    clearInactivityTimer();
+    inactivityTimerRef.current = setTimeout(() => {
+      handleInactivityTimeout();
+    }, INACTIVITY_TIMEOUT_MS);
+  }, [clearInactivityTimer, handleInactivityTimeout]);
+
+  // Forward declaration of startListening
+  const startListeningRef = useRef<() => void>(() => {});
 
   // Send user query to Malu and speak reply
-  const handleUserQuery = async (queryText: string) => {
-    if (!queryText || !queryText.trim() || isProcessing) return;
+  const handleUserQuery = useCallback(async (queryText: string) => {
+    if (!queryText || !queryText.trim() || isProcessingRef.current) return;
 
+    clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
     setIsListening(false);
@@ -138,7 +155,9 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       await speak(replyText, {
         onEnded: () => {
           setIsSpeaking(false);
-          showStatus('Pronta para falar!', 2500);
+          // Seamlessly transition back to listening with inactivity monitor active
+          showStatus('Ouvindo você...', 0);
+          startListeningRef.current();
         },
         onError: () => {
           setIsSpeaking(false);
@@ -152,10 +171,68 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       setIsSpeaking(false);
       showStatus('Tente falar novamente', 3000);
     }
-  };
+  }, [clearInactivityTimer, profile, showStatus]);
+
+  // Web Speech Recognition setup
+  const initSpeechRecognition = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        showStatus('Ouvindo você...', 0);
+        setTranscript('');
+        // Start inactivity monitor when recognition starts
+        resetInactivityTimer();
+      };
+
+      recognition.onresult = (event: any) => {
+        // Reset inactivity timer upon voice detection
+        resetInactivityTimer();
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        clearInactivityTimer();
+        console.warn('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showStatus('Permissão de microfone necessária', 3500);
+        } else if (event.error === 'no-speech') {
+          // No speech detected during window, shut down cleanly
+          showStatus('Sessão encerrada por silêncio', 3000);
+        } else {
+          showStatus('Não entendi, tente novamente', 3000);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        clearInactivityTimer();
+        setIsListening(false);
+      };
+
+      return recognition;
+    } catch (e) {
+      console.warn('Speech recognition init error:', e);
+      return null;
+    }
+  }, [clearInactivityTimer, resetInactivityTimer, showStatus]);
 
   // Start listening
-  const startListening = () => {
+  const startListening = useCallback(() => {
+    clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
 
@@ -169,10 +246,12 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
         recognitionRef.current.start();
         playSfx('pop');
         vibrate(15);
+        resetInactivityTimer();
       } catch (err) {
         recognitionRef.current = initSpeechRecognition();
         try {
           recognitionRef.current?.start();
+          resetInactivityTimer();
         } catch (e) {
           showStatus('Toque para falar', 2000);
         }
@@ -180,49 +259,62 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
     } else {
       showStatus('Reconhecimento de voz indisponível', 3000);
     }
-  };
+  }, [clearInactivityTimer, initSpeechRecognition, resetInactivityTimer, showStatus]);
+
+  startListeningRef.current = startListening;
+
+  // Speak initial greeting then start listening loop
+  const speakGreetingAndListen = useCallback(async (greetingText: string) => {
+    clearInactivityTimer();
+    setIsProcessing(false);
+    setIsListening(false);
+    setIsSpeaking(true);
+    showStatus('Malu falando...', 0);
+
+    await speak(greetingText, {
+      onEnded: () => {
+        setIsSpeaking(false);
+        showStatus('Ouvindo você...', 0);
+        startListening();
+      },
+      onError: () => {
+        setIsSpeaking(false);
+        startListening();
+      }
+    });
+  }, [clearInactivityTimer, showStatus, startListening]);
 
   // Toggle voice button
   const handleButtonClick = () => {
     playSfx('tap');
     vibrate(20);
 
-    if (isSpeaking) {
-      // If currently speaking, stop audio
+    if (isSpeaking || isListening) {
+      // If currently speaking or listening, stop session
       stopAll();
-      showStatus('Áudio pausado', 2000);
+      showStatus('Assistente pausada', 2000);
       return;
     }
 
-    if (isListening) {
-      // If currently listening, stop and send transcript
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
-      }
-      setIsListening(false);
-      if (transcript.trim()) {
-        handleUserQuery(transcript);
-      } else {
-        setStatusText(null);
-      }
-    } else {
-      // Start listening
-      startListening();
-    }
+    // 1 Tap: Greet with time of day, name, and Malu introduction, then auto-listen
+    const greetingText = getTimeGreeting(profile);
+    speakGreetingAndListen(greetingText);
   };
 
   // Listen for custom open event
   useEffect(() => {
     const handleOpen = () => {
-      startListening();
+      const greetingText = getTimeGreeting(profile);
+      speakGreetingAndListen(greetingText);
     };
     window.addEventListener('app:openLiveAssistant', handleOpen);
     return () => {
       window.removeEventListener('app:openLiveAssistant', handleOpen);
+      stopAll();
     };
-  }, []);
+  }, [profile, speakGreetingAndListen, stopAll]);
 
-  // Process transcript when listening ends
+  // Process transcript when listening ends with content
   useEffect(() => {
     if (!isListening && transcript.trim() && !isProcessing) {
       const timer = setTimeout(() => {
@@ -230,7 +322,15 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [isListening, transcript, isProcessing]);
+  }, [isListening, transcript, isProcessing, handleUserQuery]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearInactivityTimer();
+      stopSpeech();
+    };
+  }, [clearInactivityTimer]);
 
   return (
     <div className="fixed bottom-5 left-5 z-50 flex items-center gap-3">
@@ -288,7 +388,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
             isSpeaking 
               ? "Toque para interromper a fala da Malu" 
               : isListening 
-              ? "Ouvindo você... Toque para finalizar" 
+              ? "Ouvindo você... Toque para pausar" 
               : isProcessing 
               ? "Malu pensando..." 
               : "Falar com a Assistente Malu (Voz)"
@@ -331,7 +431,7 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
             initial={{ opacity: 0, x: -10, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -10, scale: 0.9 }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-md border max-w-[220px] truncate ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-md border max-w-[240px] truncate ${
               isListening
                 ? 'bg-rose-600/90 text-white border-rose-400/40'
                 : isSpeaking
@@ -348,3 +448,4 @@ export function LiveAssistant({ profile }: LiveAssistantProps) {
     </div>
   );
 }
+

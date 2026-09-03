@@ -70,6 +70,14 @@ export const getGenAI = (customKey?: string): GoogleGenAI | null => {
   }
 };
 
+export const GEMINI_FALLBACK_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite"
+];
+
 export const callWithModelFallback = async (
   ai: GoogleGenAI,
   params: {
@@ -78,11 +86,11 @@ export const callWithModelFallback = async (
     models?: string[];
   }
 ): Promise<{ text: string | undefined; rawResponse?: any }> => {
-  const models = params.models || ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  const models = params.models && params.models.length > 0 ? params.models : GEMINI_FALLBACK_MODELS;
   let lastError: any = null;
 
   for (const model of models) {
-    for (let attempt = 0; attempt <= 2; attempt++) {
+    for (let attempt = 0; attempt <= 1; attempt++) {
       try {
         const response = await ai.models.generateContent({
           model,
@@ -95,18 +103,26 @@ export const callWithModelFallback = async (
       } catch (err: any) {
         lastError = err;
         const msg = String(err?.message || '').toLowerCase();
-        const isTransient =
+        const isDemandSpike =
           err?.status === 'UNAVAILABLE' ||
-          err?.status === 'RESOURCE_EXHAUSTED' ||
           msg.includes('503') ||
-          msg.includes('429') ||
           msg.includes('high demand') ||
           msg.includes('unavailable') ||
-          msg.includes('quota') ||
           msg.includes('overloaded');
+        
+        const isQuota =
+          err?.status === 'RESOURCE_EXHAUSTED' ||
+          msg.includes('429') ||
+          msg.includes('quota');
 
-        if (isTransient && attempt < 2) {
-          const delay = (attempt + 1) * 600;
+        // On 503 high demand spike, failover immediately to the next model
+        if (isDemandSpike) {
+          console.info(`[Model Failover] Model ${model} is under high demand (503). Switching seamlessly to alternative model.`);
+          break;
+        }
+
+        if (isQuota && attempt < 1) {
+          const delay = (attempt + 1) * 500;
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
@@ -752,7 +768,7 @@ Retorne APENAS um array JSON de strings, onde cada string é o nome do ingredien
         },
         temperature: 0.2
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const text = result.text?.trim();
@@ -1019,7 +1035,80 @@ const getNaturalServerTTS = async (rawText: string): Promise<string | null> => {
   }
 };
 
+const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
+  const elevenKey =
+    process.env.ELEVENLABS_API_KEY ||
+    process.env.ELEVEN_LABS_API_KEY ||
+    process.env.VITE_ELEVENLABS_API_KEY ||
+    process.env.ELEVENLABS_KEY;
+
+  if (!elevenKey) return null;
+
+  try {
+    const cleanText = rawText
+      .replace(/[*#_~`>\[\]\(\)\{\}]/g, ' ')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\u{1F600}-\u{1F6FF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) return null;
+
+    // ElevenLabs Voice ID for Malu (Defaults to high quality Portuguese female voice: Bella / Rachel)
+    const voiceId =
+      process.env.ELEVENLABS_VOICE_ID ||
+      process.env.VITE_ELEVENLABS_VOICE_ID ||
+      "EXAVITQu4vr4xnSDxMaL"; // Bella - Natural warm female voice with multilingual support
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': elevenKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: cleanText,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.8,
+          style: 0.0,
+          use_speaker_boost: true
+        }
+      })
+    });
+
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      return `data:audio/mp3;base64,${base64}`;
+    } else {
+      const errText = await response.text();
+      if (response.status === 401 || response.status === 403) {
+        console.info(`[ElevenLabs TTS] API Key requer permissão 'text_to_speech' (status ${response.status}). Utilizando fallback Gemini Aoede / Voz Natural Brasileira.`);
+      } else {
+        console.info(`[ElevenLabs TTS] Status ${response.status}, alternando para voz de fallback.`);
+      }
+    }
+  } catch (error: any) {
+    console.info("[ElevenLabs TTS] Alternando para fallback de voz:", error?.message || error);
+  }
+  return null;
+};
+
 export const textToSpeech = async (text: string): Promise<string | null> => {
+  // 1. Try ElevenLabs first if API Key is configured
+  try {
+    const elevenAudio = await getElevenLabsTTS(text);
+    if (elevenAudio) {
+      return elevenAudio;
+    }
+  } catch (e) {
+    console.warn("ElevenLabs error, continuing to next provider:", e);
+  }
+
+  // 2. Try Gemini TTS with Aoede voice (Brazilian Portuguese)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
@@ -1066,7 +1155,7 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
     }
   }
 
-  // Fallback de alta fidelidade com voz feminina natural brasileira (nunca som mecânico ou robótico)
+  // 3. Fallback de alta fidelidade com voz feminina natural brasileira (nunca som mecânico ou robótico)
   return await getNaturalServerTTS(text);
 };
 
@@ -1336,7 +1425,7 @@ Retorne APENAS um JSON no formato definido.`;
         responseSchema: schema,
         temperature: 0.2
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const data = JSON.parse(result.text || '{}');
@@ -1379,7 +1468,7 @@ Retorne APENAS um JSON estruturado.`;
         responseSchema: schema,
         temperature: 0.3
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const data = JSON.parse(result.text || '{}');
@@ -1461,7 +1550,7 @@ Responda APENAS num json.`;
         responseSchema: schema,
         temperature: 0.2
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const text = result.text?.trim();
@@ -4668,7 +4757,7 @@ Retorne APENAS o JSON válido.`;
         responseSchema: schema,
         temperature: 0.2,
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const responseText = result.text?.trim();
@@ -4917,7 +5006,7 @@ REGRAS RÍGIDAS:
         responseSchema: schema,
         temperature: 0.7,
       },
-      models: ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+      models: GEMINI_FALLBACK_MODELS
     });
 
     const text = response.text;
@@ -4953,7 +5042,7 @@ REGRAS RÍGIDAS:
       };
     });
   } catch (error: any) {
-    console.warn("Fallback triggered in generateQuickDishes:", error?.message || error);
+    console.info("[QuickDishes] Gerando pratos balanceados sob medida (fallback ativo):", error?.message || error);
     
     // High-quality deterministic fallback options based on goal
     if (goal === 'muscle_gain') {

@@ -467,10 +467,14 @@ async function startServer() {
 
     try {
       const audio = await geminiServer.textToSpeech(text);
-      res.status(200).json({ audio: audio || null });
+      res.status(200).json({
+        audio: audio || null,
+        audioBase64: audio || null,
+        success: !!audio
+      });
     } catch (e: any) {
       console.error("TTS error:", e.message);
-      res.status(200).json({ audio: null, error: e.message });
+      res.status(200).json({ audio: null, audioBase64: null, error: e.message, success: false });
     }
   });
 
