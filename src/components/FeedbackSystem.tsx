@@ -228,11 +228,11 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 )}
 
                 {/* Submit Actions */}
-                <div className="flex gap-3 pt-2">
+                <div className="flex items-center gap-3 pt-3">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 active:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-colors cursor-pointer"
+                    className="flex-1 min-h-[48px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer shadow-xs"
                     id="cancel-feedback-form-btn"
                   >
                     Cancelar
@@ -240,16 +240,20 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                   <motion.button
                     type="submit"
                     disabled={isSubmitting}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
+                    whileHover={{ scale: 1.015 }}
+                    whileTap={{ scale: 0.985 }}
+                    className="flex-[1.4] min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 disabled:opacity-50 transition-all cursor-pointer select-none whitespace-nowrap"
                     id="submit-feedback-form-btn"
                   >
                     {isSubmitting ? (
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span className="text-xs font-semibold">Enviando...</span>
+                      </div>
                     ) : (
                       <>
-                        <Send className="h-4 w-4" /> Enviar Feedback
+                        <Send className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                        <span className="leading-none">Enviar Feedback</span>
                       </>
                     )}
                   </motion.button>

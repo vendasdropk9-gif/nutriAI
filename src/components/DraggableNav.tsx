@@ -293,10 +293,10 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
                   vibrate(12);
                 }
               }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.95 }}
               className={`
-                flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none
+                group flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none
                 ${isActive
                   ? isPremiumItem
                     ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-bold shadow-[0_4px_18px_rgba(16,185,129,0.38)] ring-1 ring-[#D8B14A]/90 border border-[#D8B14A]/80 scale-[1.02]'
@@ -305,13 +305,15 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
                 }
               `}
             >
-              <span className={`transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+              <span className={`inline-flex items-center justify-center transition-all duration-300 group-hover:scale-115 group-hover:-translate-y-0.5 group-active:scale-95 ${
+                isActive ? 'text-white scale-110 drop-shadow-xs' : 'text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400'
+              }`}>
                 {item.icon}
               </span>
               <span className="tracking-wide">{getLabel(item)}</span>
 
               {isPremiumItem && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D8B14A] shadow-[0_0_8px_#D8B14A] shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D8B14A] shadow-[0_0_8px_#D8B14A] animate-pulse shrink-0" />
               )}
             </motion.button>
           );

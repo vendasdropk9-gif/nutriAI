@@ -573,39 +573,68 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       {activeSubTab === 'plan' ? (
         <div className="space-y-8 w-full">
           {/* Sync status alert banner */}
-          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-[24px] p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-serif font-bold text-lg">
-                <Sparkles className="w-5 h-5" />
-                Sincronização de IA Ativa
+          <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-slate-900/80 border border-emerald-500/20 dark:border-emerald-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold text-base sm:text-lg">
+                  <div className="p-1.5 bg-emerald-500/15 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span>Sincronização de IA Ativa</span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+                  Seu plano de calistenia foi sincronizado com seu objetivo de{' '}
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{profile?.goals || 'Emagrecimento'}</span> e nível de atividade{' '}
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{profile?.activityLevel || 'Iniciante'}</span>.
+                </p>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
-                Seu plano de calistenia foi sincronizado com seu objetivo de <span className="font-bold text-emerald-600 dark:text-emerald-400">{profile?.goals || 'Emagrecimento'}</span> e nível de atividade <span className="font-bold text-emerald-600 dark:text-emerald-400">{profile?.activityLevel || 'Iniciante'}</span>.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50">
-                  <Apple className="w-3.5 h-3.5" />
-                  Nutrição: {profile?.masterPlan?.nutritionFocus || 'Foco em Carboidratos & Proteínas'}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200/50">
-                  <Flame className="w-3.5 h-3.5" />
-                  Calistenia: {profile?.masterPlan?.workoutFocus || 'Resistência & Força Muscular'}
-                </span>
-              </div>
+
+              <button
+                onClick={handleGenerateWeeklyPlan}
+                disabled={isGeneratingWeekly}
+                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white dark:text-slate-950 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all disabled:opacity-50 active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                {isGeneratingWeekly ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                Regerar com IA
+              </button>
             </div>
 
-            <button
-              onClick={handleGenerateWeeklyPlan}
-              disabled={isGeneratingWeekly}
-              className="w-full md:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm shadow-xl transition-all disabled:opacity-50 active:scale-95"
-            >
-              {isGeneratingWeekly ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Regerar com Inteligência Artificial
-            </button>
+            {/* Structured Insights Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {/* Nutrition focus card */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 border border-emerald-500/20 shadow-xs">
+                <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5">
+                  <Apple className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    Diretriz Nutricional
+                  </span>
+                  <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                    {profile?.masterPlan?.nutritionFocus || 'Dieta balanceada e calculada para apoiar sua recuperação muscular e aporte calórico ideal.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Workout focus card */}
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 border border-blue-500/20 shadow-xs">
+                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5">
+                  <Flame className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                    Foco da Calistenia
+                  </span>
+                  <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                    {profile?.masterPlan?.workoutFocus || 'Treinos focados em progressão de força corporal, ativação neuromuscular e resistência.'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Weekly Days List */}
