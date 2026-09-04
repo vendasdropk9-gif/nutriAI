@@ -194,17 +194,7 @@ Lembre-se: Você é uma interface de VOZ superinteligente e humanizada. Responda
   };
 
   try {
-    const chat = ai.chats.create({
-      model: "gemini-3.1-flash-lite",
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        temperature: 0.8,
-      }
-    });
-
-    const stringifiedHistory = history.map(h => `${h.role === 'user' ? 'Usuário' : 'Você'}: ${h.text}`).join('\n');
+    const stringifiedHistory = (history || []).map(h => `${h.role === 'user' ? 'Usuário' : 'Você'}: ${h.text}`).join('\n');
     
     const finalPrompt = `HISTÓRICO DA CONVERSA:
 ${stringifiedHistory}
@@ -212,15 +202,25 @@ ${stringifiedHistory}
 O usuário acabou de dizer: "${userMessage}"
 RESPONDA EM JSON.`;
 
-    const response = await chat.sendMessage({ message: finalPrompt });
+    const response = await callWithModelFallback(ai, {
+      contents: finalPrompt,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+      models: GEMINI_FALLBACK_MODELS
+    });
+
     const text = response.text;
     if (!text) throw new Error("No response");
     
     return JSON.parse(text);
-  } catch (error) {
-    console.info("Chat Error:");
+  } catch (error: any) {
+    console.info("[Chat Assistente] Ativando resposta de contingência:", error?.message || error);
     return {
-      text: "Poxa, minha internet falhou aqui. Me conta de novo? 💚",
+      text: "Olha, tive uma breve oscilação de conexão aqui... Me conta de novo o que você precisa? 💚",
       action: "NONE"
     };
   }
@@ -1054,11 +1054,11 @@ const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
 
     if (!cleanText) return null;
 
-    // ElevenLabs Voice ID for Malu (Defaults to high quality Portuguese female voice: Bella / Rachel)
+    // ElevenLabs Voice ID for Malu (Defaults to custom Brazilian voice: fhtZMBwha5du5OxuvexO or Bella)
     const voiceId =
       process.env.ELEVENLABS_VOICE_ID ||
       process.env.VITE_ELEVENLABS_VOICE_ID ||
-      "EXAVITQu4vr4xnSDxMaL"; // Bella - Natural warm female voice with multilingual support
+      "fhtZMBwha5du5OxuvexO";
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -1145,12 +1145,19 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
         return `data:audio/wav;base64,${b64}`;
       }
     } catch (error: any) {
-      // Gracefully catch rate limit / quota / high demand and seamlessly activate high-fidelity natural audio fallback
+      // Gracefully catch rate limit / quota / high demand (503) and seamlessly activate high-fidelity natural audio fallback
       const errorMsg = error?.message || String(error);
-      if (error?.status === 'RESOURCE_EXHAUSTED' || errorMsg.includes('quota') || errorMsg.includes('429')) {
-        // Quota reached on Gemini TTS preview endpoint, quietly switch to natural audio without polluting logs
-      } else {
-        console.warn("Gemini TTS high demand/unavailable, activating natural voice fallback:", errorMsg);
+      const isTransientOrSpike = 
+        error?.status === 'RESOURCE_EXHAUSTED' ||
+        error?.status === 'UNAVAILABLE' ||
+        errorMsg.includes('quota') ||
+        errorMsg.includes('429') ||
+        errorMsg.includes('503') ||
+        errorMsg.includes('high demand') ||
+        errorMsg.includes('overloaded');
+
+      if (!isTransientOrSpike) {
+        console.info("[TTS Engine] Alternando para fallback de voz natural:", errorMsg);
       }
     }
   }
