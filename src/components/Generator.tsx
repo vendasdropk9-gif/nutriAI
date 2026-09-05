@@ -344,49 +344,67 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
-                    Objetivo / Dieta
-                  </label>
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <label className="block font-sans text-xs sm:text-sm font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                      Objetivo & Dieta
+                    </label>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => {
                       playSfx('pop');
                       setShowTipModal(true);
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-xs"
                     title="Ver dica de restrições alimentares"
                     id="btn-reopen-diet-smart-tip"
                   >
-                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Dica de Restrições (Vegano, Sem Glúten...)</span>
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="whitespace-nowrap">Dica de Restrições (Vegano, Sem Glúten...)</span>
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 p-3.5 sm:p-4 rounded-2xl bg-white/40 dark:bg-slate-800/40 border border-white/50 dark:border-slate-700/50 shadow-xs">
                   {[
-                    'Emagrecimento', 'Ganho de massa', 'Diabetes', 'Hipertensão', 
-                    'Vegetariano', 'Vegano', 'Sem glúten', 'Sem lactose'
-                  ].map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        if (preferences.includes(tag)) {
-                          setPreferences(prev => prev.replace(tag, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim());
-                        } else {
-                          setPreferences(prev => prev ? `${prev}, ${tag}` : tag);
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        preferences.includes(tag)
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                    { label: 'Emagrecimento', icon: '🔥' },
+                    { label: 'Ganho de massa', icon: '💪' },
+                    { label: 'Diabetes', icon: '🩸' },
+                    { label: 'Hipertensão', icon: '❤️' },
+                    { label: 'Vegetariano', icon: '🥦' },
+                    { label: 'Vegano', icon: '🌿' },
+                    { label: 'Sem glúten', icon: '🌾' },
+                    { label: 'Sem lactose', icon: '🥛' },
+                  ].map(item => {
+                    const isSelected = preferences.includes(item.label);
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          playSfx('pop');
+                          vibrate(15);
+                          if (isSelected) {
+                            setPreferences(prev => prev.replace(item.label, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim());
+                          } else {
+                            setPreferences(prev => prev ? `${prev}, ${item.label}` : item.label);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer select-none active:scale-95 border ${
+                          isSelected
+                            ? 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500 shadow-md shadow-emerald-500/20 scale-[1.02]'
+                            : 'bg-white/80 dark:bg-slate-700/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-600/60 hover:border-emerald-500/40'
+                        }`}
+                      >
+                        <span className="text-xs">{item.icon}</span>
+                        <span className="whitespace-nowrap">{item.label}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 ml-0.5 shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
