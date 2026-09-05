@@ -2,9 +2,10 @@ import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink } from 'lucide-react';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech } from '../lib/speech';
+import { playSfx, vibrate } from '../lib/sensory';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from '../lib/firebase';
 import { db, auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -74,6 +75,123 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [voiceHelpOpen, setVoiceHelpOpen] = useState(false);
   const [recognizedCommand, setRecognizedCommand] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+
+  // States for Modo de Leitura (Accessibility / High-Contrast Reading Mode)
+  const [isReadingModeActive, setIsReadingModeActive] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem('nutri-reading-mode') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [readingFontSize, setReadingFontSize] = useState<'normal' | 'large' | 'xlarge' | 'xxlarge'>(() => {
+    try {
+      return (window.localStorage.getItem('nutri-reading-font-size') as any) || 'large';
+    } catch (e) {
+      return 'large';
+    }
+  });
+  const [readingContrast, setReadingContrast] = useState<'contrast-max' | 'contrast-yellow' | 'contrast-soft'>(() => {
+    try {
+      return (window.localStorage.getItem('nutri-reading-contrast') as any) || 'contrast-max';
+    } catch (e) {
+      return 'contrast-max';
+    }
+  });
+  const [checkedIngredients, setCheckedIngredients] = useState<Record<number, boolean>>({});
+  const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
+  const [isNarratingIngredients, setIsNarratingIngredients] = useState(false);
+  const [isNarratingFull, setIsNarratingFull] = useState(false);
+
+  // Sync Reading Mode globally with app event
+  useEffect(() => {
+    const handleReadingModeSync = (e: any) => {
+      if (e && typeof e.detail === 'boolean') {
+        setIsReadingModeActive(e.detail);
+      } else {
+        try {
+          setIsReadingModeActive(window.localStorage.getItem('nutri-reading-mode') === 'true');
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('app:reading-mode-changed', handleReadingModeSync);
+    return () => window.removeEventListener('app:reading-mode-changed', handleReadingModeSync);
+  }, []);
+
+  const handleToggleReadingMode = (value?: boolean) => {
+    const nextVal = typeof value === 'boolean' ? value : !isReadingModeActive;
+    setIsReadingModeActive(nextVal);
+    try {
+      window.localStorage.setItem('nutri-reading-mode', String(nextVal));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('app:reading-mode-changed', { detail: nextVal }));
+    playSfx('crystal');
+    vibrate(20);
+  };
+
+  const handleFontSizeChange = (size: 'normal' | 'large' | 'xlarge' | 'xxlarge') => {
+    setReadingFontSize(size);
+    try {
+      window.localStorage.setItem('nutri-reading-font-size', size);
+    } catch (e) {}
+    playSfx('tap');
+    vibrate(10);
+  };
+
+  const handleContrastChange = (theme: 'contrast-max' | 'contrast-yellow' | 'contrast-soft') => {
+    setReadingContrast(theme);
+    try {
+      window.localStorage.setItem('nutri-reading-contrast', theme);
+    } catch (e) {}
+    playSfx('tap');
+    vibrate(10);
+  };
+
+  const handleToggleNarrateIngredients = () => {
+    if (isNarratingIngredients) {
+      stopSpeech();
+      setIsNarratingIngredients(false);
+      return;
+    }
+    stopSpeech();
+    setIsNarratingFull(false);
+    setIsPlaying(false);
+    setIsNarratingIngredients(true);
+    const text = `Lista de ingredientes para ${recipe.name}: ` + recipe.ingredients.map((ing, i) => `Item ${i + 1}: ${ing}`).join('. ');
+    speak(text, {
+      onEnded: () => setIsNarratingIngredients(false),
+      onError: () => setIsNarratingIngredients(false)
+    });
+  };
+
+  const handleToggleNarrateFullRecipe = () => {
+    if (isNarratingFull) {
+      stopSpeech();
+      setIsNarratingFull(false);
+      return;
+    }
+    stopSpeech();
+    setIsNarratingIngredients(false);
+    setIsPlaying(false);
+    setIsNarratingFull(true);
+    
+    const text = `Receita: ${recipe.name}. ${recipe.description}. Tempo de preparo: ${recipe.prepTime}. Calorias: ${recipe.nutrition.calories} calorias. Ingredientes: ${recipe.ingredients.join(', ')}. Modo de preparo: ` + recipe.instructions.map((step, idx) => `Passo ${idx + 1}: ${step}`).join('. ');
+    
+    speak(text, {
+      onEnded: () => setIsNarratingFull(false),
+      onError: () => setIsNarratingFull(false)
+    });
+  };
+
+  const handleToggleAllIngredients = () => {
+    const allChecked = recipe.ingredients.every((_, i) => !!checkedIngredients[i]);
+    const next: Record<number, boolean> = {};
+    if (!allChecked) {
+      recipe.ingredients.forEach((_, i) => { next[i] = true; });
+    }
+    setCheckedIngredients(next);
+    playSfx(allChecked ? 'pop' : 'success');
+  };
 
   const { nutrition } = recipe;
 
@@ -715,6 +833,475 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
     };
   }, [isVoiceModeActive, activeStep]);
 
+  const contrastClasses = {
+    'contrast-max': {
+      container: 'bg-white dark:bg-black text-black dark:text-white border-4 border-black dark:border-white shadow-2xl',
+      card: 'bg-slate-100 dark:bg-[#121212] border-2 border-black dark:border-white text-black dark:text-white',
+      badge: 'bg-emerald-700 dark:bg-emerald-500 text-white font-black',
+      accentText: 'text-emerald-800 dark:text-emerald-300 font-black',
+      buttonPrimary: 'bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white border-2 border-black dark:border-white font-black',
+      buttonSecondary: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-black dark:text-white border-2 border-black dark:border-white font-bold',
+      divider: 'border-black dark:border-white',
+      checkboxChecked: 'bg-emerald-700 dark:bg-emerald-500 text-white border-black dark:border-white',
+      stepNumber: 'bg-emerald-700 dark:bg-emerald-500 text-white font-black',
+      stepNumberCompleted: 'bg-slate-700 dark:bg-slate-300 text-white dark:text-black font-black'
+    },
+    'contrast-yellow': {
+      container: 'bg-black text-[#ffff00] border-4 border-[#ffff00] shadow-2xl',
+      card: 'bg-[#0a0a0a] border-2 border-[#ffff00] text-[#ffff00]',
+      badge: 'bg-[#ffff00] text-black font-black',
+      accentText: 'text-[#ffff00] font-black underline',
+      buttonPrimary: 'bg-[#ffff00] hover:bg-[#e6e600] text-black border-2 border-[#ffff00] font-black',
+      buttonSecondary: 'bg-[#181818] hover:bg-[#282828] text-[#ffff00] border-2 border-[#ffff00] font-bold',
+      divider: 'border-[#ffff00]',
+      checkboxChecked: 'bg-[#ffff00] text-black border-[#ffff00]',
+      stepNumber: 'bg-[#ffff00] text-black font-black',
+      stepNumberCompleted: 'bg-[#333333] text-[#ffff00] border-2 border-[#ffff00] font-black'
+    },
+    'contrast-soft': {
+      container: 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 border-2 border-emerald-600 dark:border-emerald-500 shadow-xl',
+      card: 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100',
+      badge: 'bg-emerald-600 text-white font-bold',
+      accentText: 'text-emerald-600 dark:text-emerald-400 font-bold',
+      buttonPrimary: 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold',
+      buttonSecondary: 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 font-bold',
+      divider: 'border-slate-200 dark:border-slate-800',
+      checkboxChecked: 'bg-emerald-600 text-white border-emerald-600',
+      stepNumber: 'bg-emerald-600 text-white font-bold',
+      stepNumberCompleted: 'bg-slate-700 text-white font-bold'
+    }
+  };
+
+  const fontSizeClasses = {
+    normal: {
+      body: 'text-lg leading-relaxed',
+      title: 'text-2xl sm:text-3xl font-extrabold',
+      sectionTitle: 'text-xl font-black tracking-wide',
+      statValue: 'text-2xl font-black',
+      statLabel: 'text-xs font-bold uppercase tracking-wider',
+      stepText: 'text-lg leading-relaxed font-normal',
+      ingText: 'text-lg font-medium'
+    },
+    large: {
+      body: 'text-xl leading-loose',
+      title: 'text-3xl sm:text-4xl font-extrabold',
+      sectionTitle: 'text-2xl font-black tracking-wide',
+      statValue: 'text-3xl font-black',
+      statLabel: 'text-sm font-bold uppercase tracking-wider',
+      stepText: 'text-xl leading-loose font-medium',
+      ingText: 'text-xl font-semibold'
+    },
+    xlarge: {
+      body: 'text-2xl leading-loose',
+      title: 'text-4xl sm:text-5xl font-black',
+      sectionTitle: 'text-3xl font-black tracking-wide',
+      statValue: 'text-4xl font-black',
+      statLabel: 'text-base font-black uppercase tracking-wider',
+      stepText: 'text-2xl leading-loose font-medium',
+      ingText: 'text-2xl font-semibold'
+    },
+    xxlarge: {
+      body: 'text-3xl leading-loose',
+      title: 'text-5xl sm:text-6xl font-black',
+      sectionTitle: 'text-4xl font-black tracking-wide',
+      statValue: 'text-5xl font-black',
+      statLabel: 'text-lg font-black uppercase tracking-wider',
+      stepText: 'text-3xl leading-loose font-semibold',
+      ingText: 'text-3xl font-bold'
+    }
+  };
+
+  if (isReadingModeActive) {
+    const activeContrast = contrastClasses[readingContrast];
+    const activeFont = fontSizeClasses[readingFontSize];
+    const checkedIngCount = Object.values(checkedIngredients).filter(Boolean).length;
+    const completedStepCount = Object.values(completedSteps).filter(Boolean).length;
+    const progressPercent = Math.round((completedStepCount / (recipe.instructions.length || 1)) * 100);
+
+    return (
+      <div 
+        id={`recipe-reading-mode-${recipe.id}`}
+        className={`rounded-[28px] overflow-hidden transition-all duration-300 p-6 sm:p-10 space-y-8 ${activeContrast.container}`}
+      >
+        {/* Top Control Bar for Accessibility */}
+        <div className={`flex flex-wrap items-center justify-between gap-4 pb-6 border-b ${activeContrast.divider}`}>
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${activeContrast.badge}`}>
+              <BookOpen className="w-5 h-5" />
+              <span>Modo de Leitura Acessível</span>
+            </span>
+            <span className="hidden sm:inline-block text-xs font-bold opacity-80">
+              Fontes ampliadas • Alto contraste
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Font Sizer Controls */}
+            <div className={`flex items-center p-1 rounded-xl border ${activeContrast.divider} ${activeContrast.card}`}>
+              <span className="text-[11px] font-black uppercase px-2 opacity-70">Fonte:</span>
+              <button
+                type="button"
+                onClick={() => handleFontSizeChange('normal')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  readingFontSize === 'normal' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Fonte Normal (18px)"
+              >
+                A
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFontSizeChange('large')}
+                className={`px-2.5 py-1.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                  readingFontSize === 'large' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Fonte Grande (20px)"
+              >
+                A+
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFontSizeChange('xlarge')}
+                className={`px-2.5 py-1.5 rounded-lg text-base font-black transition-all cursor-pointer ${
+                  readingFontSize === 'xlarge' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Fonte Extra Grande (24px)"
+              >
+                A++
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFontSizeChange('xxlarge')}
+                className={`px-2.5 py-1.5 rounded-lg text-lg font-black transition-all cursor-pointer ${
+                  readingFontSize === 'xxlarge' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Fonte Gigante (30px)"
+              >
+                A+++
+              </button>
+            </div>
+
+            {/* Contrast Mode Selector */}
+            <div className={`flex items-center p-1 rounded-xl border ${activeContrast.divider} ${activeContrast.card}`}>
+              <button
+                type="button"
+                onClick={() => handleContrastChange('contrast-max')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  readingContrast === 'contrast-max' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Preto e Branco / Alto Contraste"
+              >
+                P&B
+              </button>
+              <button
+                type="button"
+                onClick={() => handleContrastChange('contrast-yellow')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  readingContrast === 'contrast-yellow' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Amarelo sobre Preto (Baixa Visão)"
+              >
+                🟡 Amarelo
+              </button>
+              <button
+                type="button"
+                onClick={() => handleContrastChange('contrast-soft')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  readingContrast === 'contrast-soft' ? activeContrast.badge : 'hover:opacity-80'
+                }`}
+                title="Suave Esmeralda"
+              >
+                🟢 Suave
+              </button>
+            </div>
+
+            {/* Exit Reading Mode Button */}
+            <button
+              type="button"
+              onClick={() => handleToggleReadingMode(false)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+              title="Voltar ao layout normal"
+            >
+              <X className="w-4 h-4" />
+              <span>Sair da Leitura</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Header Section: Title and Big Stats */}
+        <div className="space-y-4">
+          <h2 className={`${activeFont.title} leading-tight`}>
+            {recipe.name}
+          </h2>
+          <p className={`${activeFont.body} opacity-90 font-normal max-w-4xl`}>
+            {recipe.description}
+          </p>
+
+          {/* Big High-Contrast Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className={`p-4 rounded-2xl border ${activeContrast.card} flex items-center gap-4`}>
+              <div className={`p-3 rounded-xl ${activeContrast.badge}`}>
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <span className={activeFont.statLabel}>Tempo de Preparo</span>
+                <div className={`${activeFont.statValue} leading-none mt-1`}>{recipe.prepTime}</div>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl border ${activeContrast.card} flex items-center gap-4`}>
+              <div className={`p-3 rounded-xl ${activeContrast.badge}`}>
+                <Flame className="w-6 h-6" />
+              </div>
+              <div>
+                <span className={activeFont.statLabel}>Calorias</span>
+                <div className={`${activeFont.statValue} leading-none mt-1`}>{recipe.nutrition.calories} kcal</div>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl border ${activeContrast.card} flex items-center gap-4`}>
+              <div className={`p-3 rounded-xl ${activeContrast.badge}`}>
+                <Utensils className="w-6 h-6" />
+              </div>
+              <div>
+                <span className={activeFont.statLabel}>Proteínas & Macros</span>
+                <div className={`${activeFont.statValue} leading-none mt-1`}>
+                  {recipe.nutrition.protein}g <span className="text-sm font-normal">({recipe.nutrition.carbs}g C / {recipe.nutrition.fat}g G)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Full Narration Audio Controls Bar */}
+          <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-4 ${activeContrast.card}`}>
+            <div className="flex items-center gap-3">
+              <span className={`p-2 rounded-xl ${activeContrast.badge}`}>
+                <Volume2 className="w-5 h-5" />
+              </span>
+              <div>
+                <h4 className="font-bold text-sm sm:text-base leading-tight">Narração em Áudio Completa</h4>
+                <p className="text-xs opacity-80 mt-0.5">Ouça toda a receita narrada pela voz da NutriAI Malu</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleToggleNarrateFullRecipe}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm transition-all cursor-pointer ${
+                  isNarratingFull ? 'bg-rose-600 text-white font-black animate-pulse' : activeContrast.buttonPrimary
+                }`}
+              >
+                {isNarratingFull ? (
+                  <>
+                    <Square className="w-4 h-4 fill-current" />
+                    <span>Pausar Áudio da Receita</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4" />
+                    <span>Ouvir Receita Inteira</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1: Ingredients Checklist */}
+        <div className="space-y-4 pt-2">
+          <div className={`flex flex-wrap items-center justify-between gap-4 pb-3 border-b ${activeContrast.divider}`}>
+            <div>
+              <h3 className={`${activeFont.sectionTitle} flex items-center gap-3`}>
+                <span>1. Lista de Ingredientes</span>
+                <span className={`text-xs px-2.5 py-1 rounded-full ${activeContrast.badge}`}>
+                  {checkedIngCount} de {recipe.ingredients.length} separados
+                </span>
+              </h3>
+              <p className="text-xs sm:text-sm opacity-75 mt-1">
+                Toque nos ingredientes para marcá-los conforme for separando
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleNarrateIngredients}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${
+                  isNarratingIngredients ? 'bg-rose-600 text-white font-bold' : activeContrast.buttonSecondary
+                }`}
+                title="Ouvir apenas os ingredientes"
+              >
+                {isNarratingIngredients ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                <span>{isNarratingIngredients ? 'Parar Leitura' : 'Ouvir Ingredientes'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleAllIngredients}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+              >
+                {checkedIngCount === recipe.ingredients.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {recipe.ingredients.map((ing, idx) => {
+              const isChecked = !!checkedIngredients[idx];
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setCheckedIngredients(prev => ({ ...prev, [idx]: !isChecked }));
+                    playSfx(isChecked ? 'pop' : 'tap');
+                    vibrate(12);
+                  }}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    isChecked
+                      ? 'opacity-60 bg-emerald-950/20 border-emerald-500/30'
+                      : activeContrast.card
+                  }`}
+                >
+                  <div className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                    isChecked
+                      ? activeContrast.checkboxChecked
+                      : 'border-current'
+                  }`}>
+                    {isChecked && <Check className="w-5 h-5 stroke-[3]" />}
+                  </div>
+                  <span className={`${activeFont.ingText} ${isChecked ? 'line-through' : ''}`}>
+                    {ing}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section 2: Step-by-Step Instructions */}
+        <div className="space-y-6 pt-4">
+          <div className={`flex flex-wrap items-center justify-between gap-4 pb-3 border-b ${activeContrast.divider}`}>
+            <div>
+              <h3 className={`${activeFont.sectionTitle} flex items-center gap-3`}>
+                <span>2. Modo de Preparo Passo a Passo</span>
+                <span className={`text-xs px-2.5 py-1 rounded-full ${activeContrast.badge}`}>
+                  {completedStepCount} de {recipe.instructions.length} concluídos ({progressPercent}%)
+                </span>
+              </h3>
+              <p className="text-xs sm:text-sm opacity-75 mt-1">
+                Siga as instruções com calma. Toque em "Ouvir este passo" para narração isolada.
+              </p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className={`w-full h-3 rounded-full border overflow-hidden ${activeContrast.divider} ${activeContrast.card}`}>
+            <div 
+              className={`h-full transition-all duration-500 ${activeContrast.badge}`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Steps List */}
+          <div className="space-y-4">
+            {recipe.instructions.map((step, idx) => {
+              const isCompleted = !!completedSteps[idx];
+              const isSpeakingThis = isPlaying && activeStep === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`p-5 sm:p-6 rounded-2xl border transition-all space-y-4 ${
+                    isCompleted
+                      ? 'opacity-70 bg-emerald-950/15 border-emerald-500/40'
+                      : isSpeakingThis
+                      ? 'ring-4 ring-emerald-500/50 shadow-xl ' + activeContrast.card
+                      : activeContrast.card
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-lg ${
+                        isCompleted ? activeContrast.stepNumberCompleted : activeContrast.stepNumber
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <p className={`${activeFont.stepText} ${isCompleted ? 'line-through' : ''}`}>
+                          {step}
+                        </p>
+                        <RecipeStepTimer stepText={step} stepIndex={idx} recipeName={recipe.name} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions for Step */}
+                  <div className={`flex flex-wrap items-center justify-between gap-3 pt-3 border-t ${activeContrast.divider}`}>
+                    <button
+                      type="button"
+                      onClick={() => handlePlaySingleStep(idx)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        isSpeakingThis
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : activeContrast.buttonSecondary
+                      }`}
+                    >
+                      {isSpeakingThis ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                      <span>{isSpeakingThis ? 'Parar Leitura do Passo' : 'Ouvir este Passo'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompletedSteps(prev => ({ ...prev, [idx]: !isCompleted }));
+                        playSfx(isCompleted ? 'pop' : 'success');
+                        vibrate(15);
+                      }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                        isCompleted
+                          ? activeContrast.buttonPrimary
+                          : activeContrast.buttonSecondary
+                      }`}
+                    >
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>{isCompleted ? 'Passo Concluído!' : 'Marcar como Concluído'}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bottom Exit & Return Actions */}
+        <div className={`flex flex-wrap items-center justify-between gap-4 pt-6 border-t ${activeContrast.divider}`}>
+          <button
+            type="button"
+            onClick={() => handleToggleReadingMode(false)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+          >
+            <X className="w-4 h-4" />
+            <span>Voltar ao Modo Normal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById(`recipe-reading-mode-${recipe.id}`);
+              el?.scrollIntoView({ behavior: 'smooth' });
+              playSfx('tap');
+            }}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+          >
+            <ArrowUp className="w-4 h-4" />
+            <span>Subir ao Topo</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card overflow-hidden shadow-xl border border-white/60 dark:border-slate-700/50">
       {/* Visual representation of the recipe with AI generator */}
@@ -894,6 +1481,18 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             >
               <Calendar className="w-4 h-4 text-emerald-500" />
               Agendar Preparo
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={() => handleToggleReadingMode(true)}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
+              title="Ativar Modo de Leitura acessível (alto contraste e fontes ampliadas)"
+              id={`btn-open-reading-mode-${recipe.id}`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Modo de Leitura</span>
             </button>
           )}
 

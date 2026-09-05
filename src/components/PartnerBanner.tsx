@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Store, Utensils, Compass, Music, Sliders } from "lucide-react";
+import { Volume2, VolumeX, Store, Utensils, Sparkles, Music } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { playSfx, vibrate } from "../lib/sensory";
 
 const PARTNERS = [
   "Sacolão do Bairro - Frescor do Dia 🥬",
@@ -26,8 +27,8 @@ export function PartnerBanner() {
   const [index, setIndex] = useState(0);
   const [bgIndex, setBgIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
-  const [volume, setVolume] = useState(0.06);
-  const [soundType, setSoundType] = useState<"cooking" | "meditative">("cooking"); // default to energetic cooking track as requested
+  const [volume, setVolume] = useState(0.08);
+  const [soundType, setSoundType] = useState<"cooking" | "meditative">("cooking");
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const masterVolumeRef = useRef<GainNode | null>(null);
@@ -47,9 +48,9 @@ export function PartnerBanner() {
         0.1,
       );
     }
-    // Sync HTML5 audio volume (scaled slightly higher for better balance)
+    // Sync HTML5 audio volume
     if (htmlAudioRef.current) {
-      htmlAudioRef.current.volume = Math.min(volume * 4.5, 1.0);
+      htmlAudioRef.current.volume = Math.min(volume * 4.0, 1.0);
     }
   }, [volume]);
 
@@ -65,7 +66,7 @@ export function PartnerBanner() {
     };
   }, []);
 
-  // Background fruits rotation interval (every 5 seconds as requested)
+  // Background fruits rotation interval
   useEffect(() => {
     const bgTimer = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % FRUIT_BG_IMAGES.length);
@@ -92,13 +93,13 @@ export function PartnerBanner() {
   const startHTMLAudio = () => {
     try {
       if (!htmlAudioRef.current) {
-        // High quality happy, warm, sunny acoustic guitar study/cooking soundtrack
+        // High quality acoustic guitar study & joyful healthy cooking background loop
         const audio = new Audio("https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3");
         audio.loop = true;
         htmlAudioRef.current = audio;
       }
       
-      htmlAudioRef.current.volume = Math.min(volume * 4.5, 1.0);
+      htmlAudioRef.current.volume = Math.min(volume * 4.0, 1.0);
       htmlAudioRef.current.play().catch((e) => {
         console.warn("Could not play HTML5 audio loop:", e);
       });
@@ -138,18 +139,18 @@ export function PartnerBanner() {
       masterVolume.connect(ctx.destination);
       masterVolumeRef.current = masterVolume;
 
-      // Create beautiful low frequency soothing drone/pad
+      // Premium warm dual-sine drone/pad in F Major / D Minor (Health & Serenity Frequencies: 174Hz & 432Hz harmonic roots)
       const droneOsc1 = ctx.createOscillator();
       const droneOsc2 = ctx.createOscillator();
       const droneGain = ctx.createGain();
 
       droneOsc1.type = "sine";
-      droneOsc2.type = "sine"; // Premium warm dual-sine drone/pad
+      droneOsc2.type = "sine";
 
-      droneOsc1.frequency.setValueAtTime(65.41, ctx.currentTime); // C2
-      droneOsc2.frequency.setValueAtTime(98.0, ctx.currentTime); // G2
+      droneOsc1.frequency.setValueAtTime(87.31, ctx.currentTime); // F2 (Warm organic ground)
+      droneOsc2.frequency.setValueAtTime(130.81, ctx.currentTime); // C3 (Perfect fifth harmonic)
 
-      droneGain.gain.setValueAtTime(0.2, ctx.currentTime); // Soft background depth
+      droneGain.gain.setValueAtTime(0.18, ctx.currentTime);
 
       droneOsc1.connect(droneGain);
       droneOsc2.connect(droneGain);
@@ -160,42 +161,57 @@ export function PartnerBanner() {
 
       synthNodesRef.current.push(droneOsc1, droneOsc2, droneGain);
 
-      // Pentatonic relaxation scale
-      const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25];
+      // Organic Nature & Wellness Harmony Scale (F Major Pentatonic + Solfeggio 432Hz feel: F3, A3, C4, D4, F4, G4, A4, C5)
+      const scale = [174.61, 220.00, 261.63, 293.66, 349.23, 392.00, 440.00, 523.25, 659.25];
 
       const playBell = () => {
         if (!audioCtxRef.current) return;
         const currentCtx = audioCtxRef.current;
         
-        // Ensure context is running when triggering notes
         if (currentCtx.state === "suspended") {
           currentCtx.resume().catch(() => {});
         }
         
         const now = currentCtx.currentTime;
-        const freq =
-          scale[Math.floor(Math.random() * scale.length)];
+        const freq = scale[Math.floor(Math.random() * scale.length)];
 
+        // Primary harmonic bell
         const osc = currentCtx.createOscillator();
         const gain = currentCtx.createGain();
 
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, now);
 
-        // Premium soft chime envelope: 100ms attack, very long smooth exponential release
+        // Soft shimmer overtone for organic crystal resonance
+        const overtoneOsc = currentCtx.createOscillator();
+        const overtoneGain = currentCtx.createGain();
+        overtoneOsc.type = "sine";
+        overtoneOsc.frequency.setValueAtTime(freq * 2.01, now);
+
+        // Envelope: 120ms soft attack, long soothing organic decay
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.12, now + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+        gain.gain.linearRampToValueAtTime(0.14, now + 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.2);
+
+        overtoneGain.gain.setValueAtTime(0, now);
+        overtoneGain.gain.linearRampToValueAtTime(0.035, now + 0.08);
+        overtoneGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
 
         osc.connect(gain);
         gain.connect(masterVolume);
 
+        overtoneOsc.connect(overtoneGain);
+        overtoneGain.connect(masterVolume);
+
         osc.start(now);
-        osc.stop(now + 3.6);
+        osc.stop(now + 4.3);
+
+        overtoneOsc.start(now);
+        overtoneOsc.stop(now + 3.0);
       };
 
-      intervalRef.current = setInterval(playBell, 3000);
-      playBell(); // Play first chime instantly
+      intervalRef.current = setInterval(playBell, 2800);
+      playBell();
     } catch (e) {
       console.warn("Could not start ambient synthesizer:", e);
     }
@@ -227,7 +243,27 @@ export function PartnerBanner() {
   };
 
   const toggleMusic = () => {
+    playSfx('tap');
+    vibrate(15);
     setIsMuted((prev) => !prev);
+  };
+
+  const selectCookingTrack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    playSfx('tap');
+    vibrate(15);
+    setSoundType("cooking");
+    setIsMuted(false);
+  };
+
+  const selectZenTrack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    playSfx('tap');
+    vibrate(15);
+    setSoundType("meditative");
+    setIsMuted(false);
   };
 
   return (
@@ -263,28 +299,32 @@ export function PartnerBanner() {
                 <span>{t('fidelity_partner', 'Fidelidade Parceira')}</span>
               </div>
 
-              {/* Controles de Áudio em Pilula Transparente */}
-              <div className="flex items-center gap-1.5 bg-transparent p-1 rounded-full border border-white/25 shrink-0 backdrop-blur-sm">
-                <div className="flex items-center gap-0.5 bg-transparent rounded-full p-0.5">
+              {/* Controles de Áudio Compactos em Pilula Transparente */}
+              <div className="flex items-center gap-1 bg-black/40 p-0.5 sm:p-1 rounded-full border border-white/20 shrink-0 backdrop-blur-md shadow-md max-w-[200px] sm:max-w-none">
+                <div className="flex items-center gap-0.5 rounded-full">
                   <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("cooking"); }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer bg-transparent text-white hover:bg-white/15 drop-shadow-md ${
-                      soundType === "cooking" ? "ring-1 ring-white/70 font-black bg-white/10" : "opacity-85 hover:opacity-100"
+                    onClick={selectCookingTrack}
+                    className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer text-white drop-shadow-md active:scale-95 ${
+                      !isMuted && soundType === "cooking" 
+                        ? "ring-1 ring-emerald-400 font-black bg-emerald-500/40 text-emerald-100 shadow-xs" 
+                        : "opacity-80 hover:opacity-100 hover:bg-white/10"
                     }`}
-                    title="Música saudável & alegre de culinária (Acústico)"
+                    title="Música saudável & alegre de culinária e preparo (Acústico NutriAI)"
                   >
-                    <Utensils className="w-3 h-3 text-white" />
-                    <span className="hidden sm:inline">Nutri-Ritmo</span>
+                    <Utensils className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-300" />
+                    <span className="hidden xs:inline sm:inline">Ritmo</span>
                   </button>
                   <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSoundType("meditative"); }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer bg-transparent text-white hover:bg-white/15 drop-shadow-md ${
-                      soundType === "meditative" ? "ring-1 ring-white/70 font-black bg-white/10" : "opacity-85 hover:opacity-100"
+                    onClick={selectZenTrack}
+                    className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold transition-all cursor-pointer text-white drop-shadow-md active:scale-95 ${
+                      !isMuted && soundType === "meditative" 
+                        ? "ring-1 ring-teal-400 font-black bg-teal-500/40 text-teal-100 shadow-xs" 
+                        : "opacity-80 hover:opacity-100 hover:bg-white/10"
                     }`}
-                    title="Frequências zen de meditação e foco"
+                    title="Frequências de relaxamento, digestão consciente e foco"
                   >
-                    <Compass className="w-3 h-3 text-white" />
-                    <span className="hidden sm:inline">Meditar</span>
+                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-teal-300" />
+                    <span className="hidden xs:inline sm:inline">Zen</span>
                   </button>
                 </div>
 
@@ -292,12 +332,12 @@ export function PartnerBanner() {
                   <input
                     type="range"
                     min="0.01"
-                    max="0.2"
+                    max="0.25"
                     step="0.01"
                     value={volume}
                     onChange={(e) => setVolume(parseFloat(e.target.value))}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="w-10 sm:w-14 h-1 bg-white/40 rounded-lg appearance-none cursor-pointer accent-white transition-all opacity-90 hover:opacity-100"
+                    className="w-8 sm:w-12 h-1 bg-white/40 rounded-lg appearance-none cursor-pointer accent-emerald-400 transition-all opacity-90 hover:opacity-100"
                     title="Ajustar Volume"
                   />
                 )}
@@ -306,14 +346,18 @@ export function PartnerBanner() {
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.92 }}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
-                  className="p-1.5 rounded-full border border-transparent bg-transparent text-white hover:bg-white/15 transition-all duration-300 cursor-pointer drop-shadow-md"
-                  title={isMuted ? "Tocar trilha sonora" : "Pausar música"}
+                  className={`p-1 sm:p-1.5 rounded-full border transition-all duration-300 cursor-pointer drop-shadow-md ${
+                    !isMuted 
+                      ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-200' 
+                      : 'border-transparent bg-transparent text-white hover:bg-white/15'
+                  }`}
+                  title={isMuted ? "Tocar trilha sonora do NutriAI" : "Pausar música"}
                   id="toggle-ambient-music-btn"
                 >
                   {isMuted ? (
-                    <VolumeX className="w-3.5 h-3.5 text-white" />
+                    <VolumeX className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
                   ) : (
-                    <Volume2 className="w-3.5 h-3.5 text-white" />
+                    <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-300 animate-pulse" />
                   )}
                 </motion.button>
               </div>

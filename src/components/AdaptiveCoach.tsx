@@ -362,30 +362,30 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   const totals = getDailyTotals();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-stretch">
       {/* Header Insight */}
-      <div className="relative overflow-hidden rounded-[40px] clay-card bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-white shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[32px] sm:rounded-[40px] clay-card bg-gradient-to-br from-emerald-600 to-teal-800 p-6 sm:p-8 text-white shadow-2xl w-full">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
         
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-white/20 rounded-full w-max text-xs font-black uppercase tracking-widest backdrop-blur-md">
+        <div className="relative z-10 space-y-5 sm:space-y-6">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-white/20 rounded-full w-max text-[11px] sm:text-xs font-black uppercase tracking-widest backdrop-blur-md">
             <Zap className="w-3 h-3 fill-current" />
             Nutricionista Digital Ativo
           </div>
 
-          <div className="flex items-start justify-between gap-6">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-black tracking-tight leading-tight">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-5 sm:gap-6">
+            <div className="space-y-2.5 flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
                 {loading ? 'Analisando seu dia...' : 'Análise Adaptativa Real'}
               </h1>
-              <p className="text-emerald-50/80 text-lg font-medium leading-relaxed max-w-2xl">
+              <p className="text-emerald-50/90 text-sm sm:text-base md:text-lg font-medium leading-relaxed max-w-2xl">
                 {loading ? 'Monitorando seus micronutrientes e biotipo para otimizar o próximo passo...' : insight || 'Estou pronta para ajustar seu dia conforme suas escolhas reais.'}
               </p>
               {!loading && (
                 <div className="pt-2">
                   <button
                     onClick={loadInsight}
-                    className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-sm font-bold tracking-wide transition-all border border-white/20 shadow-sm flex items-center gap-2"
+                    className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-2xl text-xs sm:text-sm font-bold tracking-wide transition-all border border-white/25 shadow-sm flex items-center gap-2 cursor-pointer active:scale-95"
                   >
                     <Zap className="w-4 h-4 fill-current" /> Atualizar Análise
                   </button>
@@ -396,11 +396,12 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             <button 
               onClick={handleSpeak}
               disabled={isPlaying || loading}
-              className={`w-16 h-16 rounded-[24px] flex items-center justify-center transition-all ${
-                isPlaying ? 'bg-white text-emerald-600 animate-pulse' : 'bg-white/20 hover:bg-white text-white hover:text-emerald-700'
+              className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[24px] flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-lg ${
+                isPlaying ? 'bg-white text-emerald-600 animate-pulse ring-4 ring-white/30' : 'bg-white/20 hover:bg-white text-white hover:text-emerald-700'
               }`}
+              title="Ouvir análise"
             >
-              <Volume2 className="w-8 h-8" />
+              <Volume2 className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
           </div>
         </div>
@@ -620,22 +621,22 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
       )}
 
       {/* Adjustment Console */}
-      <div className="bg-white dark:bg-slate-900 rounded-[40px] clay-card p-8 border border-slate-100 dark:border-slate-800 shadow-2xl">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] sm:rounded-[40px] clay-card p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-2xl w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Motor Adaptativo Ativo</span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Ajuste em Tempo Real</h2>
-                <p className="text-sm font-medium text-slate-500">Selecione qual refeição você quer que a IA adapte agora com base no seu dia.</p>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Ajuste em Tempo Real</h2>
+                <p className="text-xs sm:text-sm font-medium text-slate-500">Selecione qual refeição você quer que a IA adapte agora com base no seu dia.</p>
             </div>
-            <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl">
+            <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl w-max self-start sm:self-auto">
                 <Brain className="w-6 h-6" />
             </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               { type: 'Café da Manhã', icon: Coffee, color: 'from-amber-500/10 to-orange-500/10 text-amber-500 border-amber-500/30 hover:border-amber-500', desc: 'Energia matinal' },
               { type: 'Almoço', icon: Utensils, color: 'from-emerald-500/10 to-teal-500/10 text-emerald-500 border-emerald-500/30 hover:border-emerald-500', desc: 'Nutrição principal' },

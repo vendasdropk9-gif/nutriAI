@@ -51,6 +51,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
     <>
       <div className="fixed bottom-[72px] right-4 md:bottom-[76px] md:right-6 z-40">
         <motion.button
+          id="chef-magic-fab-btn"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           whileHover={{ scale: 1.05 }}

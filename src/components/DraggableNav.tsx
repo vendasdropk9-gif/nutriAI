@@ -234,6 +234,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
 
   return (
     <nav
+      id="main-draggable-nav"
       aria-label="Barra de Navegação dos Módulos"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {

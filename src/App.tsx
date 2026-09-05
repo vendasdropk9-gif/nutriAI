@@ -54,6 +54,8 @@ import { QuickDishes } from './components/QuickDishes';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
+import { WelcomeTour } from './components/WelcomeTour';
+import { HeaderAvatar } from './components/HeaderAvatar';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
@@ -77,19 +79,22 @@ const TAB_ORDER = [
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? '30%' : direction < 0 ? '-30%' : 0,
+    x: direction > 0 ? 32 : direction < 0 ? -32 : 0,
     opacity: 0,
-    filter: 'blur(8px)',
+    scale: 0.96,
+    filter: 'blur(4px)',
   }),
   center: {
     x: 0,
     opacity: 1,
+    scale: 1,
     filter: 'blur(0px)',
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? '-30%' : direction < 0 ? '30%' : 0,
+    x: direction > 0 ? -32 : direction < 0 ? 32 : 0,
     opacity: 0,
-    filter: 'blur(8px)',
+    scale: 0.96,
+    filter: 'blur(4px)',
   }),
 };
 
@@ -99,6 +104,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
+  const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
@@ -488,8 +494,18 @@ export default function App() {
               <GlobalSearch variant="desktop" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
             </div>
 
-            {/* Action Buttons Cluster (Search on mobile, Feedback, Language, Dark Mode) */}
+            {/* Action Buttons Cluster (Avatar, Search on mobile, Feedback, Language, Dark Mode) */}
             <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+              {/* Header Profile Photo / Avatar Selector */}
+              <HeaderAvatar
+                profile={profile}
+                onSaveProfile={(updated) => {
+                  setProfile(updated);
+                  if (user) syncToFirestore(updated);
+                }}
+                onOpenProfileTab={() => setActiveTab('profile')}
+              />
+
               {/* Mobile Search Trigger */}
               <div className="md:hidden flex items-center">
                 <GlobalSearch variant="mobile" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
@@ -514,6 +530,31 @@ export default function App() {
                 <div className="relative flex items-center justify-center rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 w-full h-full">
                   <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
                 </div>
+              </motion.button>
+
+              {/* Reading Mode (Acessibilidade e Alto Contraste) */}
+              <motion.button 
+                whileHover={{ scale: 1.06 }} 
+                whileTap={{ scale: 0.94 }}
+                onClick={() => {
+                  playSfx('crystal');
+                  vibrate(15);
+                  const next = !isReadingMode;
+                  setIsReadingMode(next);
+                  window.dispatchEvent(new CustomEvent('app:reading-mode-changed', { detail: next }));
+                }}
+                className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all shrink-0 flex items-center justify-center cursor-pointer ${
+                  isReadingMode 
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-400' 
+                    : 'text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800'
+                }`}
+                title={isReadingMode ? "Desativar Modo de Leitura" : "Ativar Modo de Leitura (Alto Contraste e Letras Grandes)"}
+                id="header-reading-mode-toggle-btn"
+              >
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+                {isReadingMode && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-white dark:border-slate-900" />
+                )}
               </motion.button>
 
               {/* Language Switcher Button */}
@@ -571,7 +612,14 @@ export default function App() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 280, 
+              damping: 28, 
+              mass: 0.8,
+              opacity: { duration: 0.25 },
+              scale: { duration: 0.3 }
+            }}
             className="w-full flex-1 flex flex-col min-h-[400px]"
           >
             <ErrorBoundary>
@@ -784,6 +832,13 @@ export default function App() {
       <NotificationSystem 
         notifications={notifications} 
         onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))} 
+      />
+
+      <WelcomeTour 
+        onNavigateTab={(tab) => {
+          setActiveTab(tab as any);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
       </motion.div>
     </div>
