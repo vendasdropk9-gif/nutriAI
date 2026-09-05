@@ -513,28 +513,28 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
                     <div>
                       <h3 className="text-lg font-bold text-white mb-4">Estimativa Nutricional do Prato</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Calorias</p>
+                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 min-w-0">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Calorias</p>
                           <p className="text-2xl font-bold text-white">{result.nutritionEstimate.calories}</p>
                           <p className="text-[10px] text-slate-400">kcal</p>
                         </div>
-                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Proteínas</p>
+                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 min-w-0">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Proteínas</p>
                           <p className="text-2xl font-bold text-emerald-400">{result.nutritionEstimate.protein}g</p>
                           <p className="text-[10px] text-slate-400">construção</p>
                         </div>
-                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Carbos</p>
+                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 min-w-0">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Carbos</p>
                           <p className="text-2xl font-bold text-amber-400">{result.nutritionEstimate.carbs}g</p>
                           <p className="text-[10px] text-slate-400">energia</p>
                         </div>
-                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Gorduras</p>
+                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 min-w-0">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Gorduras</p>
                           <p className="text-2xl font-bold text-blue-400">{result.nutritionEstimate.fat}g</p>
                           <p className="text-[10px] text-slate-400">essenciais</p>
                         </div>
-                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 col-span-2 sm:col-span-1">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Fibras</p>
+                        <div className="bg-slate-800/90 rounded-2xl p-3.5 text-center border border-white/5 col-span-2 sm:col-span-1 min-w-0">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Fibras</p>
                           <p className="text-2xl font-bold text-emerald-300">{result.nutritionEstimate.fiber}g</p>
                           <p className="text-[10px] text-slate-400">saciedade</p>
                         </div>

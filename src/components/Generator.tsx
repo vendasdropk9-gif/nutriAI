@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles, Lightbulb, X, Check, Leaf, ShieldAlert, Info, ArrowRight } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -22,64 +23,55 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
   
+  // Smart Tip Pop-up State
+  const [hasSeenDietTip, setHasSeenDietTip] = useLocalStorage<boolean>('nutri-generator-diet-tip-seen', false);
+  const [showTipModal, setShowTipModal] = useState(false);
+
+  useEffect(() => {
+    if (!hasSeenDietTip) {
+      const timer = setTimeout(() => {
+        setShowTipModal(true);
+        playSfx('crystal');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenDietTip]);
+
+  const handleDismissTip = (permanent = true) => {
+    playSfx('tap');
+    vibrate(15);
+    setShowTipModal(false);
+    if (permanent) {
+      setHasSeenDietTip(true);
+    }
+  };
+
+  const handleToggleTipTag = (tag: string) => {
+    playSfx('pop');
+    vibrate(20);
+    setPreferences(prev => {
+      if (prev.includes(tag)) {
+        return prev.replace(tag, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+      }
+      return prev ? `${prev}, ${tag}` : tag;
+    });
+  };
+  
   const [rating, setRating] = useState<number>(0);
   const [isRated, setIsRated] = useState(false);
 
   const [isListening, setIsListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
 
+  // Clean up speech recognition on unmount
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      setSpeechSupported(true);
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      rec.interimResults = false;
-      rec.lang = 'pt-BR';
-
-      rec.onstart = () => {
-        setIsListening(true);
-        playSfx('pop');
-        vibrate(30);
-      };
-
-      rec.onresult = (event: any) => {
-        const transcript = event.results[event.results.length - 1][0].transcript;
-        if (transcript) {
-          setIngredients(prev => {
-            const trimmed = prev.trim();
-            if (!trimmed) return transcript;
-            if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
-              return `${trimmed} ${transcript}`;
-            }
-            return `${trimmed}, ${transcript}`;
-          });
-          playSfx('success');
-          vibrate([40, 40]);
-        }
-      };
-
-      rec.onerror = (event: any) => {
-        console.warn('Speech recognition error in Generator:', event.error);
-        setIsListening(false);
-        if (event.error !== 'aborted') {
-          playSfx('scratch');
-        }
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = rec;
-    }
-
     return () => {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
         } catch (e) {}
+        recognitionRef.current = null;
       }
     };
   }, []);
@@ -99,18 +91,118 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
     return () => window.removeEventListener('app:searchRecipeOrIngredient', handleSearchRecipe);
   }, []);
 
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
+  const toggleListening = async () => {
     if (isListening) {
-      recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+      setInterimTranscript('');
       playSfx('tap');
       vibrate(20);
-    } else {
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        console.warn('Failed to start speech recognition:', err);
+      return;
+    }
+
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert(
+        'Seu navegador atual não possui suporte nativo ao microfone via Web Speech. Recomendamos utilizar o Google Chrome, Microsoft Edge ou Safari para ditar ingredientes.'
+      );
+      return;
+    }
+
+    // Warmup audio permissions if needed
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
       }
+    } catch (e) {
+      console.warn('Microphone permission check:', e);
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+
+      const rec = new SpeechRecognitionAPI();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'pt-BR';
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setInterimTranscript('');
+        playSfx('pop');
+        vibrate(30);
+      };
+
+      rec.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const trans = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += trans;
+          } else {
+            interim += trans;
+          }
+        }
+
+        if (interim) {
+          setInterimTranscript(interim);
+        }
+
+        if (final) {
+          setInterimTranscript('');
+          setIngredients(prev => {
+            const trimmed = prev.trim();
+            if (!trimmed) return final.trim();
+            if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
+              return `${trimmed} ${final.trim()}`;
+            }
+            return `${trimmed}, ${final.trim()}`;
+          });
+          playSfx('success');
+          vibrate([40, 40]);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.warn('Speech recognition error in Generator:', event.error);
+        setIsListening(false);
+        setInterimTranscript('');
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          alert('Acesso ao microfone bloqueado. Por favor, permita o acesso ao microfone nas configurações do seu navegador para ditar ingredientes.');
+          playSfx('scratch');
+        } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+          playSfx('scratch');
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+        setInterimTranscript('');
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.warn('Failed to start speech recognition:', err);
+      setIsListening(false);
+      setInterimTranscript('');
+      alert('Não foi possível iniciar o microfone neste momento. Verifique as permissões de áudio do seu navegador.');
     }
   };
 
@@ -193,32 +285,30 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                   <label htmlFor="ingredients" className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
                     Ingredientes Disponíveis
                   </label>
-                  {speechSupported && (
-                    <motion.button
-                      type="button"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={toggleListening}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer ${
-                        isListening
-                          ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/25'
-                          : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 shadow-emerald-500/5 dark:bg-emerald-500/10 dark:text-emerald-400'
-                      }`}
-                      id="speech-recognition-toggle-btn"
-                    >
-                      {isListening ? (
-                        <>
-                          <MicOff className="w-3.5 h-3.5 animate-[bounce_1s_infinite]" />
-                          Ouvindo... (Parar)
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="w-3.5 h-3.5" />
-                          Falar Ingredientes
-                        </>
-                      )}
-                    </motion.button>
-                  )}
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={toggleListening}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer ${
+                      isListening
+                        ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-300'
+                        : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 shadow-emerald-500/5 dark:bg-emerald-500/10 dark:text-emerald-400'
+                    }`}
+                    id="speech-recognition-toggle-btn"
+                  >
+                    {isListening ? (
+                      <>
+                        <MicOff className="w-3.5 h-3.5 animate-bounce" />
+                        <span>Ouvindo... (Clique p/ Concluir)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Falar Ingredientes</span>
+                      </>
+                    )}
+                  </motion.button>
                 </div>
                 <div className="relative">
                   <textarea
@@ -227,37 +317,52 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                     onChange={(e) => setIngredients(e.target.value)}
                     placeholder={
                       isListening
-                        ? "Diga os ingredientes (ex: arroz, feijão, frango grelhado)..."
-                        : "Ex: frango, brócolis, arroz... ou use a câmera 👈"
+                        ? "Ouvindo você... Fale seus ingredientes (ex: ovos, tomate, queijo, aveia)..."
+                        : "Ex: frango, brócolis, arroz... ou use a câmera 👈 ou microfone 🎤"
                     }
                     className={`w-full h-32 p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all resize-none shadow-sm pb-10 ${
-                      isListening ? 'border-rose-500/40 ring-2 ring-rose-500/10' : 'border-white/40 dark:border-slate-600/50'
+                      isListening ? 'border-rose-500/50 ring-2 ring-rose-500/20 bg-rose-50/10 dark:bg-rose-950/10' : 'border-white/40 dark:border-slate-600/50'
                     }`}
                   />
-                  {speechSupported && (
-                    <div className="absolute bottom-3 right-3 flex items-center gap-1.5 pointer-events-none select-none">
-                      {isListening ? (
-                        <div className="flex gap-1 items-center justify-center bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
-                          <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate]" />
-                          <span className="w-1 h-3.5 bg-rose-500 rounded-full animate-[pulse_0.3s_infinite_alternate_0.1s]" />
-                          <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate_0.2s]" />
-                          <span className="text-[9px] text-rose-500 font-mono font-bold uppercase ml-1 tracking-wider">Gravando...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 opacity-60">
-                          <Mic className="w-3 h-3 text-emerald-500" />
-                          <span className="text-[9px] text-slate-400 font-mono">Voz Ativa</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5 pointer-events-none select-none max-w-[80%]">
+                    {isListening ? (
+                      <div className="flex gap-1.5 items-center justify-center bg-rose-500/10 dark:bg-rose-950/60 px-3 py-1 rounded-full border border-rose-500/30 shadow-xs">
+                        <span className="w-1.5 h-3 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate]" />
+                        <span className="w-1.5 h-4 bg-rose-500 rounded-full animate-[pulse_0.3s_infinite_alternate_0.1s]" />
+                        <span className="w-1.5 h-3 bg-rose-500 rounded-full animate-[pulse_0.4s_infinite_alternate_0.2s]" />
+                        <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold tracking-tight truncate">
+                          {interimTranscript ? `"${interimTranscript}"` : 'Gravando voz...'}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 opacity-60">
+                        <Mic className="w-3 h-3 text-emerald-500" />
+                        <span className="text-[9px] text-slate-400 font-mono">Microfone Ativo</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
-                  Objetivo / Dieta
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-sans text-sm font-semibold tracking-wide uppercase text-slate-400">
+                    Objetivo / Dieta
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx('pop');
+                      setShowTipModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-all cursor-pointer"
+                    title="Ver dica de restrições alimentares"
+                    id="btn-reopen-diet-smart-tip"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Dica de Restrições (Vegano, Sem Glúten...)</span>
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {[
                     'Emagrecimento', 'Ganho de massa', 'Diabetes', 'Hipertensão', 
@@ -412,6 +517,144 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
           </div>
         </div>
       ) : null}
+
+      {/* Pop-up de Dica Inteligente (Primeiro Acesso / Restrições) */}
+      <AnimatePresence>
+        {showTipModal && (
+          <div 
+            id="generator-smart-tip-overlay"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto select-none"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => handleDismissTip(true)}
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm cursor-pointer"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-emerald-500/30 dark:border-emerald-500/20 z-10 overflow-hidden my-auto"
+            >
+              {/* Top ambient glow */}
+              <div className="absolute -top-20 -right-20 w-44 h-44 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-gradient-to-tr from-amber-500/15 via-emerald-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex items-center justify-between gap-4 mb-4 shrink-0">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Dica Inteligente do Chef IA</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDismissTip(true)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Fechar Dica"
+                  id="btn-close-generator-diet-tip"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Title & Icon */}
+              <div className="flex items-start gap-3.5 mb-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+                  <Leaf className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold font-serif text-slate-900 dark:text-white leading-snug">
+                    Personalize com Restrições!
+                  </h3>
+                  <p className="text-xs sm:text-sm font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    Vegano, Sem Glúten, Sem Lactose, Low Carb e mais.
+                  </p>
+                </div>
+              </div>
+
+              {/* Body explanation */}
+              <div className="space-y-3.5 text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
+                <p>
+                  Você pode incluir qualquer <strong className="text-slate-900 dark:text-white font-bold">intolerância ou restrição alimentar</strong> diretamente na sua solicitação. O Chef IA calcula os macronutrientes ideais e substitui automaticamente ingredientes que você não pode ou não quer consumir.
+                </p>
+
+                {/* Quick Selection Tags */}
+                <div className="pt-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                    Toque para adicionar às suas preferências agora:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'Vegano', icon: '🌿' },
+                      { label: 'Sem glúten', icon: '🌾' },
+                      { label: 'Sem lactose', icon: '🥛' },
+                      { label: 'Vegetariano', icon: '🥦' },
+                      { label: 'Diabetes', icon: '🩸' },
+                      { label: 'Hipertensão', icon: '❤️' }
+                    ].map(item => {
+                      const isSelected = preferences.includes(item.label);
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => handleToggleTipTag(item.label)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm scale-105'
+                              : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Info Callout */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                  <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="leading-snug">
+                    Você também pode digitar restrições personalizadas no campo de texto ou pedir por voz (ex: <em>"sem cebola"</em>, <em>"rico em ferro"</em>).
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleDismissTip(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  Lembrar depois
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDismissTip(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                  id="btn-confirm-generator-diet-tip"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Entendi, Começar!</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

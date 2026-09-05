@@ -575,18 +575,18 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
                   {profile.masterPlan.adaptiveNotes}
                </p>
 
-               <div className="grid grid-cols-3 gap-4 pt-4">
-                  <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
-                     <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Proteína</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.protein || 0}g</p>
+               <div className="grid grid-cols-3 gap-2.5 sm:gap-4 pt-4">
+                  <div className="bg-white/5 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
+                     <p className="text-[10px] sm:text-xs uppercase font-bold tracking-normal text-slate-400 mb-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">Proteína</p>
+                     <p className="text-lg sm:text-2xl font-black text-white tracking-tight">{profile.masterPlan.macros?.protein || 0}g</p>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
-                     <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Carbos</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.carbs || 0}g</p>
+                  <div className="bg-white/5 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
+                     <p className="text-[10px] sm:text-xs uppercase font-bold tracking-normal text-slate-400 mb-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">Carbos</p>
+                     <p className="text-lg sm:text-2xl font-black text-white tracking-tight">{profile.masterPlan.macros?.carbs || 0}g</p>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
-                     <p className="text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Gorduras</p>
-                     <p className="text-xl font-bold text-white">{profile.masterPlan.macros?.fat || 0}g</p>
+                  <div className="bg-white/5 p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
+                     <p className="text-[10px] sm:text-xs uppercase font-bold tracking-normal text-slate-400 mb-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">Gorduras</p>
+                     <p className="text-lg sm:text-2xl font-black text-white tracking-tight">{profile.masterPlan.macros?.fat || 0}g</p>
                   </div>
                </div>
             </div>
