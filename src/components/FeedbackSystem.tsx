@@ -1,10 +1,11 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Star, X, Send, Heart, CheckCircle2, User as UserIcon } from 'lucide-react';
 import { collection, doc, setDoc, serverTimestamp } from '../lib/firebase';
 import { auth, db } from '../lib/firebase';
 import { playSfx, vibrate } from '../lib/sensory';
+import { speak, stopSpeech } from '../lib/speech';
 import { UserProfile } from '../types';
 
 interface FeedbackSystemProps {
@@ -21,6 +22,21 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const closeTimeoutRef = useRef<any>(null);
+  const isSubmittingRef = useRef<boolean>(false);
+  const hasPlayedVoiceRef = useRef<boolean>(false);
+
+  // Stop speech when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      stopSpeech();
+      hasPlayedVoiceRef.current = false;
+      isSubmittingRef.current = false;
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    }
+  }, [isOpen]);
 
   const ratingFaces = [
     { value: 1, label: 'Muito Ruim', emoji: '😕' },
@@ -30,13 +46,45 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
     { value: 5, label: 'Excelente!', emoji: '🤩' },
   ];
 
+  // Function to automatically play Malu's thank-you voice exactly once
+  const playMaluThankYou = (name?: string) => {
+    if (hasPlayedVoiceRef.current) return;
+    hasPlayedVoiceRef.current = true;
+
+    const rawName = name?.trim() || profile?.name?.trim() || '';
+    const firstName = rawName && !['usuário', 'usuario', 'usuário anônimo', 'anonimo', 'anônimo', ''].includes(rawName.toLowerCase())
+      ? rawName.split(' ')[0]
+      : null;
+
+    const speechText = firstName
+      ? `Muito obrigada pelo seu feedback, ${firstName}! Sua opinião nos ajuda muito a melhorar e evoluir o NutriAI para você.`
+      : `Muito obrigada pelo seu feedback! Sua opinião nos ajuda muito a melhorar e evoluir o NutriAI para você.`;
+
+    speak(speechText);
+  };
+
+  const handleCloseModal = () => {
+    stopSpeech();
+    hasPlayedVoiceRef.current = false;
+    isSubmittingRef.current = false;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    setShowSuccess(false);
+    setComment('');
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+
     if (!comment.trim()) {
       setError('Por favor, escreva um pequeno comentário sobre sua experiência.');
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
 
@@ -45,7 +93,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       ? crypto.randomUUID()
       : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-    const finalUserName = userNameInput.trim() || 'Usuário Anônimo';
+    const finalUserName = userNameInput.trim() || profile?.name || 'Usuário Anônimo';
     const finalUserId = auth.currentUser?.uid || profile?.email || 'anonymous';
 
     try {
@@ -71,17 +119,19 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       }
 
       setShowSuccess(true);
-      setTimeout(() => {
-        // Reset and close
-        setShowSuccess(false);
-        setComment('');
-        onClose();
-      }, 2200);
+      // Play Malu voice automatically
+      playMaluThankYou(finalUserName);
+
+      // Schedule auto-close smoothly
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = setTimeout(() => {
+        handleCloseModal();
+      }, 5500);
 
     } catch (err: any) {
       console.warn('Erro ao enviar feedback para o Firestore, tentando salvar localmente:', err);
       
-      // Fallback: Save to LocalStorage so we don't block the user's positive experience!
+      // Fallback: Save to LocalStorage
       try {
         const localFeedbacks = JSON.parse(safeGet('nutriAI-local-feedbacks') || '[]');
         localFeedbacks.push({
@@ -96,11 +146,13 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
         playSfx('success');
         vibrate([100, 50, 100]);
         setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-          setComment('');
-          onClose();
-        }, 2200);
+        // Play Malu voice automatically
+        playMaluThankYou(finalUserName);
+
+        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = setTimeout(() => {
+          handleCloseModal();
+        }, 5500);
       } catch (fallbackErr) {
         setError('Ocorreu um erro ao processar seu feedback. Tente novamente mais tarde.');
       }
@@ -118,7 +170,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleCloseModal}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
             id="feedback-overlay"
           />
@@ -143,7 +195,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 <h3 className="font-serif text-lg font-medium tracking-wide">Deixe seu Feedback</h3>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleCloseModal}
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
                 id="close-feedback-btn"
               >
@@ -151,7 +203,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
               </button>
             </div>
 
-            {/* Render view conditionally to avoid nested AnimatePresence stuck states */}
+            {/* Render view conditionally */}
             {!showSuccess ? (
               <form
                 onSubmit={handleSubmit}
@@ -231,7 +283,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 <div className="flex items-center gap-3 pt-3">
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleCloseModal}
                     className="flex-1 min-h-[48px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer shadow-xs"
                     id="cancel-feedback-form-btn"
                   >
@@ -260,16 +312,16 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 </div>
               </form>
             ) : (
-              /* Success Screen with robust pure CSS and pulse animation */
+              /* Success Screen */
               <div
-                className="mt-8 flex flex-col items-center justify-center text-center py-8"
+                className="mt-6 flex flex-col items-center justify-center text-center py-6"
                 id="feedback-success-container"
               >
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20 animate-transform transform hover:scale-110 duration-300">
-                  <CheckCircle2 className="h-12 w-12 animate-pulse" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20 shadow-inner">
+                  <CheckCircle2 className="h-12 w-12 animate-pulse text-emerald-500" />
                 </div>
 
-                <h4 className="mt-6 font-serif text-2xl font-bold text-slate-800 dark:text-white">
+                <h4 className="mt-5 font-serif text-2xl font-bold text-slate-800 dark:text-white">
                   Obrigado pelo feedback!
                 </h4>
 
@@ -277,22 +329,19 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                   Sua opinião nos motiva a evoluir diariamente e tornar o NutriAI cada vez mais completo e inteligente.
                 </p>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    playSfx('tap');
-                    setShowSuccess(false);
-                    setComment('');
-                    onClose();
-                  }}
-                  className="mt-6 px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
-                  id="dismiss-feedback-success-btn"
-                >
-                  Fechar
-                </motion.button>
+                <div className="mt-6 flex items-center gap-3 w-full max-w-sm">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCloseModal}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
+                    id="dismiss-feedback-success-btn"
+                  >
+                    Fechar
+                  </motion.button>
+                </div>
 
-                <div className="mt-6 flex items-center gap-1.5 text-xs text-rose-500 font-semibold animate-pulse">
+                <div className="mt-5 flex items-center gap-1.5 text-xs text-rose-500 font-semibold">
                   <span>Feito com</span>
                   <Heart className="h-4 w-4 fill-rose-500 text-rose-500 animate-bounce" />
                   <span>para você</span>

@@ -11,25 +11,61 @@ export interface SpeechOptions {
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentSpeechId = 0;
+let isStartingPlayback = false;
+
+export const stopSpeech = () => {
+  currentSpeechId++;
+  isStartingPlayback = false;
+  
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio.src = '';
+    } catch (e) {}
+    currentAudio = null;
+  }
+
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
+};
 
 export const speak = async (text: string, options?: SpeechOptions) => {
   if (!text || !text.trim()) return { method: 'none' as const };
 
-  currentSpeechId++;
-  const speechId = currentSpeechId;
+  const trimmedText = text.trim();
+  const lower = trimmedText.toLowerCase();
 
-  // Stop any currently playing speech globally
+  // Stop any and all previous audio/speech instantly to prevent overlapping voices
   stopSpeech();
 
+  currentSpeechId++;
+  const speechId = currentSpeechId;
+  isStartingPlayback = true;
+
   try {
-    // 1. Fetch high-fidelity Malu (Aoede / Brazilian Portuguese natural voice) from backend
-    const audioUrl = await textToSpeech(text);
+    // 0. Pre-cached authentic Malu (Aoede) recordings for instant single-voice playback
+    let audioUrl: string | null = null;
+    const isSpecialPhrase = lower === 'nutri ai' || lower === 'nutriai' || lower.includes('feedback') || lower.includes('agradecer') || lower.includes('muito obrigada');
+
+    if (lower === 'nutri ai' || lower === 'nutriai') {
+      audioUrl = '/audio/nutri_ai_malu.wav';
+    } else if (lower.includes('feedback') || lower.includes('agradecer') || lower.includes('muito obrigada')) {
+      audioUrl = '/audio/feedback_thankyou_malu.wav';
+    } else {
+      // 1. Fetch high-fidelity Malu (Aoede / Brazilian Portuguese natural voice) from backend
+      audioUrl = await textToSpeech(trimmedText);
+    }
     
+    // If another speech request arrived in the meantime, abort immediately
     if (speechId !== currentSpeechId) return { method: 'none' as const };
 
     if (audioUrl) {
       let url = audioUrl;
-      if (!url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('http')) {
+      if (!url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('http') && !url.startsWith('/')) {
         if (url.startsWith('SUQz') || url.startsWith('//') || url.startsWith('/+')) {
           url = `data:audio/mp3;base64,${url}`;
         } else {
@@ -47,33 +83,53 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       audio.onended = () => {
         if (currentAudio === audio) {
           currentAudio = null;
+          isStartingPlayback = false;
         }
         options?.onEnded?.();
       };
 
       audio.onerror = (e) => {
-        console.warn("Audio element playback error, attempting fallback:", e);
-        if (currentAudio === audio) currentAudio = null;
-        fallbackSpeak(text, options);
+        console.warn("Audio element playback error:", e);
+        if (currentAudio === audio) {
+          currentAudio = null;
+          isStartingPlayback = false;
+        }
+        // Do NOT run robotic fallback for Malu's Aoede phrases
+        if (!isSpecialPhrase) {
+          fallbackSpeak(trimmedText, options);
+        } else {
+          options?.onError?.(e);
+        }
       };
       
       try {
         await audio.play();
+        isStartingPlayback = false;
         return { method: 'gemini' as const, audio };
       } catch (playErr) {
-        console.warn("Audio play blocked or failed, attempting fallback:", playErr);
-        if (currentAudio === audio) currentAudio = null;
-        return fallbackSpeak(text, options);
+        console.warn("Audio play blocked or cancelled:", playErr);
+        if (currentAudio === audio) {
+          currentAudio = null;
+          isStartingPlayback = false;
+        }
+        // Do NOT run robotic fallback for Malu's Aoede phrases to prevent dual voices
+        if (!isSpecialPhrase) {
+          return fallbackSpeak(trimmedText, options);
+        } else {
+          options?.onError?.(playErr);
+          return { method: 'none' as const };
+        }
       }
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
+  } finally {
+    isStartingPlayback = false;
   }
 
-  // If audio generation was cancelled or unavailable, gracefully complete callback
   if (speechId !== currentSpeechId) return { method: 'none' as const };
-  return fallbackSpeak(text, options);
+  return { method: 'none' as const };
 };
 
 export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
@@ -164,18 +220,5 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
     console.error("Failed to play audio url:", e);
     options?.onEnded?.();
     return null;
-  }
-};
-
-export const stopSpeech = () => {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-  }
-  if (currentAudio) {
-    try {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    } catch(e) {}
-    currentAudio = null;
   }
 };

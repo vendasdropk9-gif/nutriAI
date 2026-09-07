@@ -434,6 +434,7 @@ export function LiveAssistant({
   const [transcript, setTranscript] = useState('');
   const [statusText, setStatusText] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'success'>('idle');
+  const [audioVolume, setAudioVolume] = useState<number>(0);
 
   // Conversation history in memory
   const [conversationHistory, setConversationHistory] = useState<{ role: 'user' | 'model', text: string }[]>([]);
@@ -446,6 +447,95 @@ export function LiveAssistant({
   const isSpeakingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const isAssistantActiveRef = useRef(false);
+
+  // Audio Analysis References
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const animFrameIdRef = useRef<number | null>(null);
+
+  // Stop audio visualizer
+  const stopAudioVisualizer = useCallback(() => {
+    if (animFrameIdRef.current) {
+      cancelAnimationFrame(animFrameIdRef.current);
+      animFrameIdRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      try {
+        audioContextRef.current.close();
+      } catch (e) {}
+      audioContextRef.current = null;
+    }
+    setAudioVolume(0);
+  }, []);
+
+  // Start real-time audio volume analyzer
+  const startAudioVisualizer = useCallback(async () => {
+    try {
+      stopAudioVisualizer();
+      if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      mediaStreamRef.current = stream;
+
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      audioContextRef.current = audioCtx;
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.65;
+      analyserRef.current = analyser;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const updateMeter = () => {
+        if (!analyserRef.current || !isListeningRef.current) {
+          setAudioVolume(0);
+          return;
+        }
+
+        analyserRef.current.getByteFrequencyData(dataArray);
+        let sum = 0;
+        const binCount = dataArray.length;
+        for (let i = 0; i < binCount; i++) {
+          sum += dataArray[i];
+        }
+
+        // Calculate average normalized volume (0 to 1) with non-linear boost for speech
+        const avg = sum / binCount / 255;
+        const boosted = Math.min(1, Math.pow(avg * 2.2, 1.2));
+        
+        // Smooth transition
+        setAudioVolume(prev => prev * 0.4 + boosted * 0.6);
+        animFrameIdRef.current = requestAnimationFrame(updateMeter);
+      };
+
+      updateMeter();
+    } catch (err) {
+      console.warn('Microphone audio analyser unavailable, falling back to simulated breathing waves:', err);
+    }
+  }, [stopAudioVisualizer]);
+
+  // Synchronize audio visualizer with listening state
+  useEffect(() => {
+    if (isListening) {
+      startAudioVisualizer();
+    } else {
+      stopAudioVisualizer();
+    }
+    return () => {
+      stopAudioVisualizer();
+    };
+  }, [isListening, startAudioVisualizer, stopAudioVisualizer]);
 
   // Synchronize ref flags
   useEffect(() => {
@@ -857,34 +947,71 @@ export function LiveAssistant({
           <div className="w-full h-full rounded-full bg-transparent" />
         </motion.div>
 
-        {/* Smooth Framer Motion Pulsating Ripple Waves when listening / active */}
+        {/* Real-time Dynamic Voice Reactive Waves when listening */}
         {isListening && (
           <>
+            {/* Outer dynamic voice shockwave */}
             <motion.div
               animate={{
-                scale: [1, 1.6, 1.9],
-                opacity: [0.7, 0.35, 0]
+                scale: 1.25 + audioVolume * 1.55,
+                opacity: 0.15 + audioVolume * 0.75,
               }}
               transition={{
-                duration: 2.2,
-                repeat: Infinity,
-                ease: "easeOut"
+                type: "spring",
+                stiffness: 260,
+                damping: 18,
               }}
-              className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-cyan-500/40 via-teal-400/30 to-emerald-400/20 blur-[2px]"
+              className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-cyan-500/30 via-teal-400/25 to-emerald-400/20 blur-[6px]"
             />
+
+            {/* Middle dynamic voice harmonic wave */}
             <motion.div
               animate={{
-                scale: [1, 1.45, 1.75],
-                opacity: [0.6, 0.25, 0]
+                scale: 1.12 + audioVolume * 1.05,
+                opacity: 0.3 + audioVolume * 0.65,
               }}
               transition={{
-                duration: 2.2,
-                repeat: Infinity,
-                ease: "easeOut",
-                delay: 0.7
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
               }}
-              className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-emerald-500/40 via-cyan-400/30 to-teal-300/20 blur-[1px]"
+              className="absolute inset-0 rounded-full pointer-events-none bg-gradient-to-tr from-emerald-400/35 via-cyan-400/30 to-teal-300/25 blur-[3px]"
             />
+
+            {/* Inner dynamic voice core ring */}
+            <motion.div
+              animate={{
+                scale: 1.04 + audioVolume * 0.6,
+                opacity: 0.5 + audioVolume * 0.5,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 350,
+                damping: 22,
+              }}
+              className="absolute inset-0 rounded-full pointer-events-none border border-cyan-300/60 bg-cyan-400/20 blur-[1px]"
+            />
+
+            {/* Radial Voice Equalizer Sound Bars on 4 Cardinal Axis */}
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, idx) => (
+              <motion.div
+                key={angle}
+                style={{
+                  transformOrigin: 'center center',
+                  transform: `rotate(${angle}deg) translateY(-${30 + (idx % 2 === 0 ? 4 : 0)}px)`,
+                }}
+                animate={{
+                  height: [6, Math.max(6, 6 + audioVolume * 22 * (idx % 2 === 0 ? 1.2 : 0.8)), 6],
+                  opacity: Math.max(0.3, audioVolume * 1.4),
+                  scaleY: 1 + audioVolume * 1.8,
+                }}
+                transition={{
+                  duration: 0.12,
+                  ease: "easeOut",
+                }}
+                className="absolute w-1 rounded-full bg-gradient-to-t from-emerald-400 to-cyan-300 pointer-events-none shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+              />
+            ))}
           </>
         )}
 
@@ -904,7 +1031,7 @@ export function LiveAssistant({
           />
         )}
 
-        {/* Main Floating Voice Button with Framer Motion Breathing Pulse */}
+        {/* Main Floating Voice Button with Framer Motion Breathing & Real-Time Voice Volume Reaction */}
         <motion.button
           id="malu-voice-assistant-central-btn"
           role="button"
@@ -914,12 +1041,8 @@ export function LiveAssistant({
           animate={
             isListening
               ? {
-                  scale: [1, 1.07, 1],
-                  boxShadow: [
-                    "0 10px 25px -5px rgba(6, 182, 212, 0.5), 0 0 15px rgba(16, 185, 129, 0.4)",
-                    "0 14px 35px -3px rgba(6, 182, 212, 0.7), 0 0 30px rgba(16, 185, 129, 0.6)",
-                    "0 10px 25px -5px rgba(6, 182, 212, 0.5), 0 0 15px rgba(16, 185, 129, 0.4)"
-                  ]
+                  scale: 1 + audioVolume * 0.18,
+                  boxShadow: `0 10px 30px -4px rgba(6, 182, 212, ${0.5 + audioVolume * 0.5}), 0 0 ${15 + audioVolume * 35}px rgba(16, 185, 129, ${0.4 + audioVolume * 0.6})`
                 }
               : isSpeaking
               ? {
@@ -938,9 +1061,9 @@ export function LiveAssistant({
           transition={
             isListening
               ? {
-                  duration: 1.8,
-                  repeat: Infinity,
-                  ease: "easeInOut"
+                  type: "spring",
+                  stiffness: 350,
+                  damping: 24,
                 }
               : isSpeaking
               ? {
@@ -976,10 +1099,17 @@ export function LiveAssistant({
             <Waves className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
           ) : isListening ? (
             <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              animate={{
+                scale: 1 + audioVolume * 0.25,
+                filter: `drop-shadow(0 0 ${4 + audioVolume * 12}px rgba(255,255,255,0.95))`
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 20
+              }}
             >
-              <Mic className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+              <Mic className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </motion.div>
           ) : (
             <Mic className="w-6 h-6 sm:w-7 sm:h-7" />

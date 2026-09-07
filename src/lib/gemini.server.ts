@@ -1133,6 +1133,31 @@ const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
 };
 
 export const textToSpeech = async (text: string): Promise<string | null> => {
+  const normalized = (text || '').trim().toLowerCase();
+  
+  // Respostas instantâneas pré-renderizadas com a autêntica voz da Malu (Gemini Aoede)
+  if (normalized === 'nutri ai' || normalized === 'nutriai') {
+    try {
+      const fs = await import('fs');
+      const p = './public/audio/nutri_ai_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
+  if (normalized.includes('feedback') || normalized.includes('agradecer') || normalized.includes('muito obrigada')) {
+    try {
+      const fs = await import('fs');
+      const p = './public/audio/feedback_thankyou_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
   // 1. Try ElevenLabs first if API Key is configured
   try {
     const elevenAudio = await getElevenLabsTTS(text);
@@ -1143,94 +1168,90 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
     console.warn("ElevenLabs error, continuing to next provider:", e);
   }
 
-  // 2. Try Gemini TTS with Aoede voice (Brazilian Portuguese)
+  // 2. Try Gemini TTS with Aoede voice (Brazilian Portuguese natural voice)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
-    try {
-      const ai = new GoogleGenAI({ 
-        apiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-tts-preview",
-        contents: [{ parts: [{ text }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Aoede' },
-            },
-          },
-        },
-      });
+    const cleanText = text
+      .replace(/[*#_~`>\[\]\(\)\{\}]/g, ' ')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\u{1F600}-\u{1F6FF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const wavBytes = wrapPcmInWav(base64Audio, 24000);
-        let binary = '';
-        const len = wavBytes.byteLength;
-        const chunkSize = 8192;
-        for (let i = 0; i < len; i += chunkSize) {
-          const chunk = wavBytes.subarray(i, i + chunkSize);
-          binary += String.fromCharCode.apply(null, Array.from(chunk));
+    if (cleanText) {
+      try {
+        const ai = new GoogleGenAI({ 
+          apiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+        
+        const modelsToTry = [
+          "gemini-2.5-flash-preview-tts",
+          "gemini-3.1-flash-tts-preview"
+        ];
+
+        for (const model of modelsToTry) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: [{ parts: [{ text: cleanText }] }],
+              config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: 'Aoede' },
+                  },
+                },
+              },
+            });
+
+            const parts = response.candidates?.[0]?.content?.parts || [];
+            let base64Audio: string | null = null;
+            for (const p of parts) {
+              if (p.inlineData?.data) {
+                base64Audio = p.inlineData.data;
+                break;
+              }
+            }
+
+            if (base64Audio) {
+              const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
+              const b64 = wavBuf.toString('base64');
+              return `data:audio/wav;base64,${b64}`;
+            }
+          } catch (modelErr) {
+            // try next model
+          }
         }
-        const b64 = safeBtoa(binary);
-        return `data:audio/wav;base64,${b64}`;
-      }
-    } catch (error: any) {
-      // Gracefully catch rate limit / quota / high demand (503) and seamlessly activate high-fidelity natural audio fallback
-      const errorMsg = error?.message || String(error);
-      const isTransientOrSpike = 
-        error?.status === 'RESOURCE_EXHAUSTED' ||
-        error?.status === 'UNAVAILABLE' ||
-        errorMsg.includes('quota') ||
-        errorMsg.includes('429') ||
-        errorMsg.includes('503') ||
-        errorMsg.includes('high demand') ||
-        errorMsg.includes('overloaded');
-
-      if (!isTransientOrSpike) {
-        console.info("[TTS Engine] Alternando para fallback de voz natural:", errorMsg);
+      } catch (error: any) {
+        console.info("[TTS Engine] Erro ao chamar modelo Gemini Aoede:", error?.message || error);
       }
     }
   }
 
-  // 3. Fallback de alta fidelidade com voz feminina natural brasileira (nunca som mecânico ou robótico)
-  return await getNaturalServerTTS(text);
+  // 3. Fallback: retornar null para não utilizar voz mecânica ou robótica
+  return null;
 };
 
-function wrapPcmInWav(pcmBase64: string, sampleRate: number): Uint8Array {
-  const pcmBinaryString = safeAtob(pcmBase64);
-  const pcmLength = pcmBinaryString.length;
-  const pcmBytes = new Uint8Array(pcmLength);
-  for (let i = 0; i < pcmLength; i++) {
-    pcmBytes[i] = pcmBinaryString.charCodeAt(i);
-  }
-
-  const wavHeader = new ArrayBuffer(44);
-  const view = new DataView(wavHeader);
-
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + pcmLength, true);
-  writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(view, 36, 'data');
-  view.setUint32(40, pcmLength, true);
-
-  const combined = new Uint8Array(44 + pcmLength);
-  combined.set(new Uint8Array(wavHeader), 0);
-  combined.set(pcmBytes, 44);
-
-  return combined;
+function wrapPcmInWavBuffer(pcmBase64: string, sampleRate = 24000): Buffer {
+  const pcmBuffer = Buffer.from(pcmBase64, 'base64');
+  const pcmLength = pcmBuffer.length;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcmLength, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM format (1)
+  header.writeUInt16LE(1, 22); // mono channel (1)
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28); // byte rate
+  header.writeUInt16LE(2, 32); // block align
+  header.writeUInt16LE(16, 34); // 16 bits per sample
+  header.write("data", 36);
+  header.writeUInt32LE(pcmLength, 40);
+  return Buffer.concat([header, pcmBuffer]);
 }
 
 function writeString(view: DataView, offset: number, string: string) {
