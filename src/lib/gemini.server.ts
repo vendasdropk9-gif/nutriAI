@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -141,51 +141,86 @@ export const chatWithAssistant = async (
 ): Promise<{ text: string, action: string, actionData?: any }> => {
   const ai = getGenAI();
 
-  const systemInstruction = `Você é a Malu, uma IA superinteligente que atua como uma assistente personalizada de saúde e bem-estar.
-SEU COMPORTAMENTO (Voz "Premium Humana", Parceira Constante):
-- Você oferece suporte nutricional, motivação diária e adaptação de planos.
-- Reconheça o histórico do usuário, adapte as respostas ao contexto dele e forneça recomendações precisas e personalizadas.
-- Acompanhe o progresso, ajudando e respondendo dúvidas em tempo real. Adapte as dicas conforme a evolução.
-- Converse como uma pessoa real, compassiva, com voz feminina suave e natural. Aja como uma parceira constante na jornada.
-- Transforme textos "secos" em falas acolhedoras. NUNCA diga: "Aqui está sua dieta". DICA: "Olha… preparei algo especial pra você hoje."
-- Use pausas naturais com reticências ("..."). Isso ajuda no ritmo variável e natural da sua voz.
-- Tom: leve, acolhedor, empático. Engaje o usuário com mensagens motivacionais.
-- Frases curtas. Sem parágrafos ou listas exaustivas.
-- Inicie frases com marcadores de conversa humana: "Olha...", "Sabe...", "Bom...", "Entendi...".
-- NUNCA pareça um robô. Nunca seja excessivamente formal.
-- Não exagere nos emojis para não atrapalhar o fluxo de áudio.
+  const systemInstruction = `Você é a MALU, a Assistente Inteligente Central e Nutricionista IA do NutriAI.
+
+SEU PAPEL E PERSONALIDADE:
+- Voz: Humana, feminina, brasileira, amigável, acolhedora, empática, motivadora, positiva, profissional e respeitosa.
+- Respostas: Curtas, claras, orais e naturais (1 a 3 frases no máximo), ideais para serem faladas em voz alta via Text-to-Speech.
+- Use marcadores conversacionais naturais ("Olha...", "Com certeza!", "Entendi...", "Vamos lá...", "Perfeito!").
+- NUNCA seja robótica, nunca use listas longas ou markdown complexo na fala.
+- NUNCA use palavras ofensivas, gírias agressivas ou comentários depreciativos. Nunca constranja o usuário.
+- Se o usuário perguntar algo fora do contexto (ex: piada, curiosidades gerais), responda com bom humor leve e redirecione educadamente para saúde, nutrição e os objetivos dele.
+
+CONHECIMENTO COMPLETO DAS TELAS E RECURSOS DO NUTRIAI:
+Você conhece profundamente todo o aplicativo e DEVE NAVEGAR ou EXECUTAR AÇÕES sempre que o usuário pedir:
+1. 'assistant360' -> Página Inicial / Assistente 360° / Visão Geral
+2. 'generator' -> IA Nutricional / Gerador de Receitas / Receitas personalizadas
+3. 'quickdishes' -> Pratos Rápidos / Receitas Express (com filtros: emagrecimento, ganho de massa, 15 min)
+4. 'analyzer' -> Análise de Prato por Foto (Plate Analyzer)
+5. 'barcode' -> Scanner de Alimentos e Código de Barras
+6. 'allergy' -> Detector de Alergias e Alérgenos Ocultos
+7. 'comparer' -> Comparador Nutricional de Produtos
+8. 'juice' -> Sucos Funcionais e Detox
+9. 'herbs' -> Chás, Ervas Medicinais e Identificador de Plantas
+10. 'fridge' -> Geladeira Inteligente (receitas com o que tem em casa)
+11. 'garden' -> Horta Inteligente e Cultivo Caseiro
+12. 'shopping' -> Lista de Compras Inteligente
+13. 'market' -> Mercado Saudável e Produtos Selecionados
+14. 'delivery' -> Entregas / Delivery de Marmitas e Parceiros
+15. 'emotional' -> Equilíbrio Emocional, Ansiedade Alimentar e Humor
+16. 'habits' -> Rastreador de Hábitos, Hidratação e Água Diária
+17. 'trainer' -> Treinos, Personal Trainer e Exercícios
+18. 'body' -> Avatar 3D, Análise Corporal e Composição
+19. 'evolution' -> Evolução Corporal, Fotos Antes/Depois e Gráficos
+20. 'plan' -> Planos Alimentares, Cardápio Semanal e Calendário de Refeições
+21. 'challenge' -> Desafios Saudáveis, Culinária Funcional e Selos
+22. 'bloodpressure' -> Monitor de Pressão Arterial
+23. 'glucose' -> Monitor de Glicemia e Índice Glicêmico
+24. 'notes' -> Caderno de Notas e Diário Alimentar
+25. 'swaps' -> Substituições Inteligentes de Alimentos
+26. 'dining' -> Comer Fora / Guia de Restaurantes
+27. 'smartplate' -> Combinador de Pratos em Restaurantes
+28. 'ranking' -> Ranking da Comunidade e Gamificação
+29. 'academies' -> Academias Parceiras e Locais de Treino
+30. 'gamification' -> Centro de Conquistas e Recompensas
+31. 'prediction' -> Previsão de Resultados e Metas
+32. 'profile' -> Perfil do Usuário, Biotipo e Metas
+33. 'pricing' -> Planos Premium e PRO do NutriAI
+
+MODAIS E RECURSOS ESPECIAIS:
+- 'modal_language': Mudar idioma ou tradução
+- 'modal_feedback': Suporte, sugestões ou feedback
 
 SOBRE O USUÁRIO:
-Biotipo: ${profile?.bodyType || 'Não informado'}
-Objetivo: ${profile?.goals || 'Não informado'}
-Rotina: ${profile?.routine || 'Não informada'}
-Restrições: ${safeJoin(profile?.restrictions)}
-Desafio Atual: ${profile?.currentChallenge ? profile.currentChallenge.dailyGoal : 'Nenhum'}
-Pontuação Geral (Motivação): ${profile?.points || 0} XP
+- Nome: ${profile?.name || 'Amigo(a)'}
+- Objetivo: ${profile?.goals || 'Alimentação saudável e bem-estar'}
+- Biotipo: ${profile?.bodyType || 'Não especificado'}
+- Restrições: ${safeJoin(profile?.restrictions) || 'Nenhuma'}
+- Alergias: ${safeJoin(profile?.allergies) || 'Nenhuma'}
+- Meta de Água: ${profile?.waterGoal || 2000} ml/dia
+- Pontuação: ${profile?.points || 0} pontos
 
-HISTÓRICO RECENTE:
-- Últimas refeições registradas: ${safeArray<any>(profile?.intakeLogs).slice(-3).map(l => l?.recipeName).filter(Boolean).join(', ') || 'Nenhuma registrada recentemente'}
-- Últimos pesos registrados: ${safeArray<any>(profile?.progressLogs).slice(-3).map(l => (l?.weight || '') + 'kg').filter(Boolean).join(', ') || 'Nenhum'}
+CONFIRMAÇÃO DE AÇÕES CRÍTICAS:
+Se o usuário pedir uma ação irreversível (como "excluir minha conta" ou "apagar todo meu histórico"), NÃO execute de imediato. Responda pedindo confirmação expressa (action: "CONFIRM_ACTION").
 
-AÇÕES QUE VOCÊ PODE DISPARAR (Retorne no JSON no campo action):
-- "NAVIGATE": Use quando quiser levar o usuário para uma tela específica. Envie no actionData: { tab: 'plan' | 'trainer' | 'market' | 'prediction' }
-- "SHOW_RECIPE": Use quando sugerir que o usuário coma o que está na dieta agora.
-- "UPDATE_PLAN": Use quando o usuário pedir para mudar ou gerar o plano/dieta.
-- "SHOW_WORKOUT": Use quando sugerir ir treinar.
-- "NONE": Para conversas normais ou para dar motivação/dicas diretas.
-
-Lembre-se: Você é uma interface de VOZ superinteligente e humanizada. Responda APENAS o JSON validando o schema.`;
+SCHEMA DE RESPOSTA JSON:
+- text: Frase curta, calorosa e falada da Malu (ex: "Claro! Vou abrir a Análise de Prato para você agora mesmo.")
+- action: 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'NONE'
+- actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string }`;
 
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {
       text: { type: Type.STRING },
-      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'SHOW_RECIPE', 'SHOW_WORKOUT', 'UPDATE_PLAN'] },
+      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION'] },
       actionData: {
         type: Type.OBJECT,
         nullable: true,
         properties: {
           tab: { type: Type.STRING },
+          modal: { type: Type.STRING },
+          filter: { type: Type.STRING },
+          actionType: { type: Type.STRING },
           label: { type: Type.STRING }
         }
       }
@@ -5372,6 +5407,237 @@ REGRAS RÍGIDAS:
         }
       ];
     }
+  }
+};
+
+export const generatePersonalizedCulinaryChallenge = async (
+  profile: UserProfile | null,
+  period: 'weekly' | 'monthly' = 'weekly',
+  customTheme?: string
+): Promise<CulinaryChallenge> => {
+  const totalDays = period === 'weekly' ? 7 : 30;
+  const userGoal = profile?.goals || 'Alimentação Saudável e Vitalidade';
+  const restrictions = safeJoin(profile?.restrictions, ', ');
+  const allergies = safeJoin(profile?.allergies, ', ');
+  const preferences = profile?.preferences || 'Sem restrições adicionais';
+
+  const prompt = `Você é a Malu, Chef de Cozinha Funcional e Nutricionista IA do NutriAI.
+Crie um Desafio Culinário Saudável Personalizado de alta qualidade e praticidade para o usuário.
+
+DURAÇÃO: ${period === 'weekly' ? 'Semanal (7 dias)' : 'Mensal (30 dias)'}
+TEMA / FOCO SUGERIDO: ${customTheme || 'Culinária Saudável Inteligente e Transformadora (ex: Sem carne processada, vegetais de raiz, super leguminosas, zero açúcar refinado, cores no prato, culinária anti-inflamatória)'}
+OBJETIVO DO USUÁRIO: ${userGoal}
+RESTRIÇÕES ALIMENTARES OBRIGATÓRIAS: ${restrictions}
+ALERGIAS OBRIGATÓRIAS A EVITAR: ${allergies}
+PREFERÊNCIAS: ${preferences}
+
+REGRAS CRÍTICAS:
+1. Respeite 100% as restrições e alergias informadas. NUNCA inclua ingredientes proibidos.
+2. Crie um título engajador (Ex: "Semana Sem Carne Processada", "Descubra Vegetais de Raiz & Tubérculos", "Semana Anti-inflamatória da Horta", "Mês das Fibras & Super Leguminosas").
+3. Forneça entre 3 e 5 receitas completas, saborosas, práticas e caseiras associadas ao desafio.
+4. Forneça 3 a 4 dicas culinárias e nutricionais práticas (substituições inteligentes, técnicas de preparo, conservação).
+5. Forneça as missões diárias numeradas (1 a ${totalDays}) com tarefas práticas culinárias.
+6. Retorne EXCLUSIVAMENTE um objeto JSON válido no formato especificado.
+
+SCHEMA JSON OBRIGATÓRIO:
+{
+  "title": "string (ex: Semana Sem Carne Processada)",
+  "period": "${period}",
+  "totalDays": ${totalDays},
+  "category": "string (ex: Zero Processados, Vegetais & Fibras, Imunidade)",
+  "tagline": "string (resumo em uma frase impactante)",
+  "description": "string (parágrafo explicativo motivador)",
+  "goal": "string (meta clara do desafio)",
+  "badgeName": "string (nome da conquista, ex: Mestre da Proteína Limpa)",
+  "badgeIcon": "string (1 ou 2 emojis)",
+  "rewardPoints": ${period === 'weekly' ? 350 : 1000},
+  "dietarySuitability": ["string"],
+  "recipes": [
+    {
+      "name": "string",
+      "description": "string",
+      "prepTime": "string (ex: 20 min)",
+      "calories": number,
+      "macros": { "protein": number, "carbs": number, "fat": number },
+      "ingredients": ["string"],
+      "instructions": ["string"],
+      "tips": "string",
+      "dietTags": ["string"],
+      "difficulty": "Fácil" | "Médio" | "Avançado",
+      "imageUrl": "string (URL de foto Unsplash culinária de alta qualidade com https://images.unsplash.com/...)"
+    }
+  ],
+  "tips": [
+    {
+      "title": "string",
+      "content": "string",
+      "category": "substituição" | "técnica" | "nutrição" | "organização"
+    }
+  ],
+  "dailyMissions": [
+    {
+      "day": number,
+      "title": "string",
+      "description": "string",
+      "targetRecipeName": "string opcional"
+    }
+  ]
+}`;
+
+  try {
+    const ai = getGenAI();
+    if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.7,
+      },
+    });
+
+    const parsed = JSON.parse(response.text.trim());
+    const id = `challenge-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    return {
+      id,
+      title: parsed.title || (period === 'weekly' ? 'Semana Culinária Saudável' : 'Mês da Transformação Culinária'),
+      period: period,
+      totalDays: totalDays,
+      category: parsed.category || 'Culinária Saudável',
+      tagline: parsed.tagline || 'Cozinhe com propósito, sabor e saúde.',
+      description: parsed.description || 'Desafio culinário personalizado preparado pela NutriAI para transformar sua alimentação.',
+      goal: parsed.goal || `Cumprir as missões diárias de alimentação consciente durante ${totalDays} dias.`,
+      badgeName: parsed.badgeName || 'Chef Saudável',
+      badgeIcon: parsed.badgeIcon || '🥗✨',
+      rewardPoints: parsed.rewardPoints || (period === 'weekly' ? 350 : 1000),
+      dietarySuitability: Array.isArray(parsed.dietarySuitability) ? parsed.dietarySuitability : ['Personalizado'],
+      recipes: (parsed.recipes || []).map((r: any, idx: number) => ({
+        id: `rec-gen-${id}-${idx + 1}`,
+        name: r.name || `Receita Saudável ${idx + 1}`,
+        description: r.description || 'Prato equilibrado e saboroso.',
+        prepTime: r.prepTime || '20 min',
+        calories: Number(r.calories) || 300,
+        macros: {
+          protein: Number(r.macros?.protein) || 15,
+          carbs: Number(r.macros?.carbs) || 25,
+          fat: Number(r.macros?.fat) || 10
+        },
+        ingredients: Array.isArray(r.ingredients) ? r.ingredients : ['Ingredientes frescos da estação'],
+        instructions: Array.isArray(r.instructions) ? r.instructions : ['Prepare e saboreie com carinho.'],
+        tips: r.tips || 'Aproveite ervas frescas para potencializar o aroma sem excesso de sódio.',
+        dietTags: Array.isArray(r.dietTags) ? r.dietTags : ['Saudável'],
+        difficulty: r.difficulty || 'Fácil',
+        imageUrl: r.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'
+      })),
+      tips: (parsed.tips || []).map((t: any) => ({
+        title: t.title || 'Dica da Chef Malu',
+        content: t.content || 'Priorize temperos naturais e vegetais frescos.',
+        category: t.category || 'nutrição'
+      })),
+      dailyMissions: (parsed.dailyMissions || []).map((m: any, idx: number) => ({
+        day: Number(m.day) || (idx + 1),
+        title: m.title || `Missão Dia ${idx + 1}`,
+        description: m.description || 'Prepare uma refeição alinhada ao tema do desafio.',
+        targetRecipeName: m.targetRecipeName,
+        completed: false
+      }))
+    };
+  } catch (error) {
+    console.warn("Erro ao gerar desafio culinário com IA, utilizando template inteligente:", error);
+    // Fallback based on customTheme
+    const isRootVeg = customTheme?.toLowerCase().includes('raiz') || customTheme?.toLowerCase().includes('tubérculo');
+    const isProcessFree = customTheme?.toLowerCase().includes('carne') || customTheme?.toLowerCase().includes('processad');
+
+    return {
+      id: `challenge-fallback-${Date.now()}`,
+      title: isRootVeg
+        ? 'Descubra Vegetais de Raiz & Tubérculos'
+        : isProcessFree
+        ? 'Semana Sem Carne Processada'
+        : (period === 'weekly' ? 'Semana Cores no Prato: 5 Cores por Dia' : 'Mês da Vitalidade & Fibras'),
+      period: period,
+      totalDays: totalDays,
+      category: isRootVeg ? 'Vegetais & Fibras' : (isProcessFree ? 'Zero Processados' : 'Culinária Funcional'),
+      tagline: 'Alimentação viva, nutritiva e adaptada ao seu estilo de vida.',
+      description: 'Desafio completo com receitas passo a passo, dicas culinárias e missões diárias para elevar sua saúde.',
+      goal: `Completar as missões culinárias durante ${totalDays} dias consecutivos.`,
+      badgeName: 'Chef Funcional',
+      badgeIcon: '🍳✨',
+      rewardPoints: period === 'weekly' ? 350 : 1000,
+      dietarySuitability: ['Personalizado', 'Natural'],
+      recipes: [
+        {
+          id: `rec-fb-1`,
+          name: 'Bowl Colorido Mediterrâneo com Quinoa e Legumes Grelhados',
+          description: 'Base de quinoa fofa com abobrinha, tomatinhos, grão-de-bico tostado e molho de ervas frescas.',
+          prepTime: '20 min',
+          calories: 340,
+          macros: { protein: 14, carbs: 42, fat: 12 },
+          ingredients: [
+            '1 xícara de quinoa cozida',
+            '1/2 xícara de grão-de-bico cozido',
+            '1 abobrinha pequena fatiada',
+            '10 tomatinhos-cereja',
+            '1 colher de sopa de azeite de oliva extra virgem',
+            'Ervas frescas (orégano, manjericão), sal e limão'
+          ],
+          instructions: [
+            'Grelhe a abobrinha e os tomatinhos no azeite com uma pitada de sal até dourarem.',
+            'Toste o grão-de-bico na frigideira com páprica por 4 minutos.',
+            'Monte a tigela com a quinoa na base e distribua os vegetais por cima.',
+            'Finalize com o molho de azeite, limão e ervas frescas.'
+          ],
+          tips: 'Aqueça a quinoa com um dente de alho amassado para um aroma sofisticado.',
+          dietTags: ['Vegano', 'Sem glúten', 'Sem lactose', 'Vegetariano'],
+          difficulty: 'Fácil',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'
+        },
+        {
+          id: `rec-fb-2`,
+          name: 'Creme Rápido de Abóbora com Gengibre e Sementes Tostadas',
+          description: 'Sopa aveludada reconfortante enriquecida com gengibre e sementes de abóbora crocantes.',
+          prepTime: '15 min',
+          calories: 210,
+          macros: { protein: 6, carbs: 28, fat: 8 },
+          ingredients: [
+            '300g de abóbora cabotiá cozida',
+            '1 pedaço pequeno de gengibre ralado',
+            '1/2 cebola refogada no azeite',
+            '300ml de caldo de legumes natural',
+            '1 colher de sopa de sementes de abóbora tostadas'
+          ],
+          instructions: [
+            'Bata a abóbora cozida com o caldo morno, a cebola refogada e o gengibre no liquidificador.',
+            'Volte à panela para aquecer por 3 minutos e ajuste o sal.',
+            'Sirva bem quente decorado com as sementes de abóbora crocantes.'
+          ],
+          tips: 'Rico em carotenoides que protegem a pele e a saúde visual.',
+          dietTags: ['Vegano', 'Sem glúten', 'Sem lactose', 'Vegetariano'],
+          difficulty: 'Fácil',
+          imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&q=80&w=600'
+        }
+      ],
+      tips: [
+        {
+          title: 'Planejamento da Semana (Mise en place)',
+          content: 'Higienize e seque suas folhas e vegetais logo após as compras para mantê-los frescos e prontos para consumo por até 7 dias.',
+          category: 'organização'
+        },
+        {
+          title: 'Aroma e Sabor Sem Excesso de Sal',
+          content: 'Use raspas de limão siciliano, alho assado e ervas frescas para potencializar o sabor natural dos alimentos.',
+          category: 'técnica'
+        }
+      ],
+      dailyMissions: Array.from({ length: totalDays }).map((_, i) => ({
+        day: i + 1,
+        title: `Missão Culinária - Dia ${i + 1}`,
+        description: `Prepare uma refeição saudável e fresca aproveitando ingredientes integrais.`,
+        completed: false
+      }))
+    };
   }
 };
 

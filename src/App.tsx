@@ -32,7 +32,6 @@ import { Pricing } from './components/Pricing';
 import { PartnerPortal } from './components/PartnerPortal';
 import { FreshnessMap } from './components/FreshnessMap';
 import { AdaptiveCoach } from './components/AdaptiveCoach';
-import { SmartChat } from './components/SmartChat';
 import { BodyAnalyzer } from './components/BodyAnalyzer';
 import { SplashScreen } from './components/SplashScreen';
 import { PartnerBanner } from './components/PartnerBanner';
@@ -772,8 +771,11 @@ export default function App() {
             {activeTab === 'challenge' && (
               <ChallengeView 
                 profile={profile} 
+                onUpdateProfile={updateProfile}
                 onUpdateChallenge={(challenge) => updateProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
                 onAwardPoints={awardPoints}
+                onNavigate={(tab) => setActiveTab(tab as any)}
+                onSaveRecipe={handleSaveRecipe}
               />
             )}
             {activeTab === 'swaps' && (
@@ -811,8 +813,15 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <SmartChat profile={profile} onNavigate={(tab) => setActiveTab(tab as any)} />
-      <LiveAssistant profile={profile} />
+      <LiveAssistant 
+        profile={profile} 
+        activeTab={activeTab}
+        onNavigate={(tab) => setActiveTab(tab as any)}
+        onOpenLanguage={() => setIsLanguageOpen(true)}
+        onOpenFeedback={() => setIsFeedbackOpen(true)}
+        onAwardPoints={awardPoints}
+        onUpdateProfile={updateProfile}
+      />
       <MagicRecipeFAB profile={profile} />
       
       <FeedbackSystem 

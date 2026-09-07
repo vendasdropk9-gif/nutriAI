@@ -108,6 +108,8 @@ export interface UserProfile {
   emotionalLogs?: EmotionalLog[];
   currentChallenge?: Challenge;
   weeklyChallenges?: WeeklyChallenge[];
+  culinaryChallenges?: CulinaryChallenge[];
+  activeCulinaryChallengeId?: string;
   waterGoal?: number; // in ml
   hydrationLogs?: HydrationLog[];
   waterReminderEnabled?: boolean;
@@ -323,6 +325,64 @@ export interface Challenge {
     completed: boolean;
     feedback?: string;
   }[];
+}
+
+export interface CulinaryChallengeRecipe {
+  id: string;
+  name: string;
+  description: string;
+  prepTime: string;
+  calories: number;
+  macros: {
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  ingredients: string[];
+  instructions: string[];
+  tips: string;
+  dietTags: string[];
+  imageUrl?: string;
+  difficulty: 'Fácil' | 'Médio' | 'Avançado';
+}
+
+export interface CulinaryChallengeTip {
+  title: string;
+  content: string;
+  category: 'substituição' | 'técnica' | 'nutrição' | 'organização';
+  icon?: string;
+}
+
+export interface CulinaryChallengeDailyMission {
+  day: number;
+  title: string;
+  description: string;
+  targetRecipeName?: string;
+  completed: boolean;
+  completedAt?: string;
+  notes?: string;
+}
+
+export interface CulinaryChallenge {
+  id: string;
+  title: string;
+  period: 'weekly' | 'monthly'; // 'weekly' = 7 dias, 'monthly' = 30 dias
+  totalDays: number; // 7 ou 30
+  category: string;
+  tagline: string;
+  description: string;
+  goal: string;
+  badgeName: string;
+  badgeIcon: string;
+  rewardPoints: number;
+  dietarySuitability: string[];
+  recipes: CulinaryChallengeRecipe[];
+  tips: CulinaryChallengeTip[];
+  dailyMissions: CulinaryChallengeDailyMission[];
+  startDate?: string;
+  isActive?: boolean;
+  completed?: boolean;
+  completedDays?: number;
 }
 
 export interface SmartSwap {

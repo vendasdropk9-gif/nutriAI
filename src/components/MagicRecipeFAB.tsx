@@ -49,19 +49,26 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
 
   return (
     <>
-      <div className="fixed bottom-[72px] right-4 md:bottom-[76px] md:right-6 z-40">
+      <div 
+        className="fixed bottom-5 right-5 z-40 select-none"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         <motion.button
           id="chef-magic-fab-btn"
+          role="button"
+          tabIndex={0}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(true)}
-          className="p-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-center gap-2 relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-amber-200/50 dark:border-amber-500/20 text-amber-500 hover:text-amber-600 transition-all font-serif"
-          aria-label="Assistente Culinário"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={() => { setIsOpen(true); playSfx('tap'); vibrate(15); }}
+          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden bg-slate-900/95 dark:bg-slate-950/95 border-2 border-amber-500/50 hover:border-amber-400 text-amber-500 hover:text-amber-400 transition-all duration-300 cursor-pointer shadow-black/50 hover:shadow-amber-500/20 group focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          aria-label="Assistente Culinário e Receitas Mágicas"
+          title="Assistente Culinário (Receitas Rápidas & Fit)"
         >
-          <div className="absolute inset-0 bg-amber-500/10 rounded-full" />
-          <ChefHat className="w-5 h-5" />
+          {/* Subtle ambient inner tint on hover */}
+          <div className="absolute inset-0 rounded-full bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors pointer-events-none" />
+          <ChefHat className="w-7 h-7 sm:w-8 sm:h-8 relative z-10 transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]" />
         </motion.button>
       </div>
 

@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge } from "../types";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
   const controller = new AbortController();
@@ -960,3 +960,41 @@ export const combineSmartPlate = async (
 ): Promise<any | null> => {
   return callGeminiEndpoint('combineSmartPlate', [images, goal, profile]);
 };
+
+import { getFilteredCulinaryChallenges, DEFAULT_CULINARY_CHALLENGES } from "../data/culinaryChallengesData";
+
+export const generatePersonalizedCulinaryChallenge = async (
+  profile: UserProfile | null,
+  period: 'weekly' | 'monthly' = 'weekly',
+  customTheme?: string
+): Promise<CulinaryChallenge> => {
+  try {
+    const result = await callGeminiEndpoint('generatePersonalizedCulinaryChallenge', [profile, period, customTheme], 25000);
+    if (result && result.title && Array.isArray(result.recipes) && result.recipes.length > 0) {
+      return result;
+    }
+  } catch (err) {
+    console.warn("Aviso ao gerar desafio culinário com IA, carregando motor local:", err);
+  }
+
+  // Fallback to curated local challenges filtered for user profile
+  const filtered = getFilteredCulinaryChallenges(profile);
+  const matching = filtered.find(c => {
+    if (customTheme) {
+      const kw = customTheme.toLowerCase();
+      if (kw.includes('raiz') && c.id.includes('raiz')) return true;
+      if ((kw.includes('carne') || kw.includes('processad')) && c.id.includes('carne')) return true;
+      if (kw.includes('fibra') && c.id.includes('fibra')) return true;
+      if (kw.includes('açúcar') && c.id.includes('acucar')) return true;
+    }
+    return c.period === period;
+  }) || filtered[0] || DEFAULT_CULINARY_CHALLENGES[0];
+
+  return {
+    ...matching,
+    id: `challenge-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    startDate: new Date().toISOString(),
+    completedDays: 0
+  };
+};
+

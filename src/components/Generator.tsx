@@ -5,6 +5,7 @@ import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles, Lightb
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
+import { ExpertTips } from './ExpertTips';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -244,8 +245,34 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
     setIngredients(newList.join(', '));
   };
 
+  const handleApplyExpertSuggestion = (suggestion: { ingredient?: string; preference?: string }) => {
+    if (suggestion.ingredient) {
+      setIngredients(prev => {
+        const trimmed = prev.trim();
+        if (!trimmed) return suggestion.ingredient!;
+        if (trimmed.toLowerCase().includes(suggestion.ingredient!.toLowerCase())) return prev;
+        if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
+          return `${trimmed} ${suggestion.ingredient}`;
+        }
+        return `${trimmed}, ${suggestion.ingredient}`;
+      });
+    }
+
+    if (suggestion.preference) {
+      setPreferences(prev => {
+        const trimmed = prev.trim();
+        if (!trimmed) return suggestion.preference!;
+        if (trimmed.toLowerCase().includes(suggestion.preference!.toLowerCase())) return prev;
+        if (trimmed.endsWith(',') || trimmed.endsWith(';')) {
+          return `${trimmed} ${suggestion.preference}`;
+        }
+        return `${trimmed}, ${suggestion.preference}`;
+      });
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-4">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Descubra Novas Refeições
@@ -271,6 +298,13 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
           </button>
         </div>
       </div>
+
+      {/* Seção 'Dicas de Especialista' */}
+      <ExpertTips
+        profile={profile}
+        activePreferences={preferences}
+        onApplySuggestion={handleApplyExpertSuggestion}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 space-y-6">
