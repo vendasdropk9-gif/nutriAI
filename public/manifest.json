@@ -1,28 +1,33 @@
 {
-  "name": "NutriAI - Mapa de Frescor e Saúde",
+  "id": "/",
+  "name": "NutriAI - Nutrição & Inteligência",
   "short_name": "NutriAI",
-  "description": "Seu mapa inteligente de frescor, nutrição proativa e saúde integrada.",
+  "description": "Seu assistente inteligente de nutrição, saúde, treinos e longevidade com a Malu.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f9f6",
-  "theme_color": "#10b981",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "categories": ["health", "fitness", "food", "lifestyle"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/pwa-192x192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/icon.png",
+      "src": "/pwa-maskable-512x512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

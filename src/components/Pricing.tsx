@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Star, Zap, Crown, ShieldCheck, ArrowRight, Volume2, Info, Sparkles, TrendingUp, Lock } from 'lucide-react';
+import { Check, Star, Zap, Crown, ShieldCheck, ArrowRight, Volume2, Info, Sparkles, TrendingUp, Lock, CheckCircle2 } from 'lucide-react';
 import { speak } from '../lib/speech';
+import { CheckoutModal } from './CheckoutModal';
+import { PWAInstallButton } from './PWAInstallButton';
+import { UserProfile } from '../types';
+
+interface PricingProps {
+  profile?: UserProfile | null;
+  onUpgradeSuccess?: (planId: string, cycle: 'monthly' | 'annual') => void;
+}
 
 const PLANS = [
   {
@@ -49,9 +57,25 @@ const PLANS = [
   }
 ];
 
-export function Pricing() {
+export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<typeof PLANS[0] | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const isUserPremium = profile?.isPremium === true;
+  const currentPlanName = profile?.plan || (isUserPremium ? 'NutriAI Premium' : 'Plano Gratuito');
+
+  const handleOpenCheckout = (plan: typeof PLANS[0]) => {
+    setSelectedPlanForCheckout(plan);
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutSuccess = (planId: string, cycle: 'monthly' | 'annual') => {
+    if (onUpgradeSuccess) {
+      onUpgradeSuccess(planId, cycle);
+    }
+  };
 
   const handleSpeak = async (text: string) => {
     if (isPlaying) return;
@@ -97,6 +121,29 @@ export function Pricing() {
   return (
     <div className="max-w-6xl mx-auto px-4 pt-8 pb-36 space-y-12 animate-in fade-in duration-700">
       
+      {/* Active VIP Status if already subscribed */}
+      {isUserPremium && (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-slate-900/40 border border-[#D8B14A]/40 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#D8B14A]/20 border border-[#D8B14A]/40 flex items-center justify-center text-[#D8B14A]">
+              <Crown className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-white flex items-center gap-2">
+                Sua Assinatura VIP está Ativa!
+              </h4>
+              <p className="text-xs text-[#B5BDC9]">
+                Plano atual: <strong className="text-[#D8B14A]">{currentPlanName}</strong> • Recursos ilimitados liberados
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#D8B14A]/15 border border-[#D8B14A]/30 text-[#D8B14A] text-xs font-bold">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Membro Ativo</span>
+          </div>
+        </div>
+      )}
+
       {/* Header Banner - Dark Luxury Atmosphere */}
       <div className="relative rounded-[32px] p-8 sm:p-12 bg-gradient-to-br from-[#151B23] via-[#1A222C] to-[#0B0F14] border border-[#232C39] text-center space-y-6 overflow-hidden shadow-2xl">
         <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#D8B14A]/10 rounded-full blur-[100px] pointer-events-none" />
@@ -226,6 +273,7 @@ export function Pricing() {
 
               {/* CTA Button */}
               <motion.button
+                onClick={() => handleOpenCheckout(plan)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`w-full py-4 rounded-full font-display font-extrabold text-sm uppercase tracking-wider shadow-xl flex items-center justify-center gap-3 cursor-pointer transition-all ${
@@ -234,13 +282,16 @@ export function Pricing() {
                     : 'bg-gradient-to-r from-[#16C784] to-[#10B981] text-white shadow-[0_8px_30px_rgba(22,199,132,0.35)] hover:opacity-95'
                 }`}
               >
-                <span>{plan.cta}</span>
+                <span>{isUserPremium ? 'Alterar Assinatura' : plan.cta}</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </motion.div>
           );
         })}
       </div>
+
+      {/* PWA App Install Callout */}
+      <PWAInstallButton variant="banner" />
 
       {/* Trust & Guarantee Section */}
       <div className="pt-8 border-t border-[#232C39]">
@@ -264,6 +315,19 @@ export function Pricing() {
           </div>
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      {selectedPlanForCheckout && (
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          plan={selectedPlanForCheckout}
+          billingCycle={billingCycle}
+          userEmail={profile?.email}
+          userName={profile?.name}
+          onSuccess={handleCheckoutSuccess}
+        />
+      )}
 
     </div>
   );

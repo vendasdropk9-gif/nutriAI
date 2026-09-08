@@ -65,6 +65,8 @@ import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 import { LanguageModal } from './components/LanguageModal';
 import { AutoTranslator } from './components/AutoTranslator';
 import { GlobalSearch } from './components/GlobalSearch';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
@@ -556,6 +558,9 @@ export default function App() {
                 )}
               </motion.button>
 
+              {/* PWA Install Button */}
+              <PWAInstallButton variant="header" />
+
               {/* Language Switcher Button */}
               <motion.button 
                 whileHover={{ scale: 1.06 }} 
@@ -785,7 +790,33 @@ export default function App() {
               <DiningOut profile={profile} onAwardPoints={awardPoints} />
             )}
             {activeTab === 'pricing' && (
-              <Pricing />
+              <Pricing
+                profile={profile}
+                onUpgradeSuccess={(planId) => {
+                  const planTitle = planId === 'pro' ? 'NutriAI Elite PRO' : 'NutriAI Premium';
+                  const updatedProfile: UserProfile = {
+                    ...(profile || {
+                      name: user?.displayName || 'Usuário VIP',
+                      restrictions: [],
+                      allergies: [],
+                      goals: 'Saúde, Longevidade e IA',
+                      equipment: []
+                    }),
+                    plan: 'Premium',
+                    isPremium: true,
+                    subscriptionStatus: 'active'
+                  };
+                  setProfile(updatedProfile);
+                  if (user) {
+                    syncToFirestore(updatedProfile);
+                  }
+                  addNotification({
+                    title: 'Assinatura VIP Ativada!',
+                    message: `Parabéns! Seu plano ${planTitle} foi ativado com sucesso com IA ilimitada.`,
+                    type: 'success'
+                  });
+                }}
+              />
             )}
             {activeTab === 'partner' && (
               <PartnerPortal />
@@ -857,6 +888,7 @@ export default function App() {
   return (
     <>
       <AutoTranslator />
+      <OfflineIndicator />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </>

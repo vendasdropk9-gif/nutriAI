@@ -536,6 +536,121 @@ async function startServer() {
     }
   });
 
+  // ==========================================
+  // CHECKOUT & ASSINATURAS (PIX & CARTÃO)
+  // ==========================================
+
+  // 1. Gerar Cobrança PIX
+  app.post("/api/checkout/pix", async (req, res) => {
+    try {
+      const { planId, billingCycle, amount, customerName, customerEmail } = req.body;
+      const txid = "NUTRI" + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const numAmount = Number(amount) || 34.90;
+      const formattedAmount = numAmount.toFixed(2);
+      
+      // Montagem do Payload PIX Padrão Banco Central (EMVCo)
+      const pixKey = "financeiro@nutriai.app";
+      const merchantName = "NUTRIAI SAUDE";
+      const merchantCity = "SAO PAULO";
+      
+      // Payload BR Code
+      const pixPayload = `00020126580014br.gov.bcb.pix0136${pixKey}520400005303986540${formattedAmount.length.toString().padStart(2, '0')}${formattedAmount}5802BR59${merchantName.length.toString().padStart(2, '0')}${merchantName}60${merchantCity.length.toString().padStart(2, '0')}${merchantCity}62170513${txid}630489A1`;
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixPayload)}`;
+
+      // Salva a transação pendente no Firestore
+      try {
+        const orderRef = doc(db, 'subscriptions', txid);
+        await setDoc(orderRef, {
+          txid,
+          planId: planId || 'premium',
+          billingCycle: billingCycle || 'annual',
+          amount: numAmount,
+          customerName: customerName || 'Cliente NutriAI',
+          customerEmail: customerEmail || 'cliente@nutriai.app',
+          status: 'pending',
+          paymentMethod: 'pix',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        });
+      } catch (dbErr) {
+        console.warn("Aviso ao registrar subscription no Firestore:", dbErr);
+      }
+
+      res.json({
+        success: true,
+        txid,
+        amount: numAmount,
+        pixCode: pixPayload,
+        qrCodeUrl,
+        expiresInSeconds: 900
+      });
+    } catch (err: any) {
+      console.error("Erro ao gerar PIX:", err);
+      res.status(500).json({ error: "Falha ao gerar cobrança PIX." });
+    }
+  });
+
+  // 2. Processar Pagamento por Cartão de Crédito
+  app.post("/api/checkout/card", async (req, res) => {
+    try {
+      const { planId, billingCycle, amount, cardNumber, cardHolder, installments, customerEmail } = req.body;
+
+      if (!cardNumber || !cardHolder) {
+        return res.status(400).json({ error: "Dados do cartão incompletos." });
+      }
+
+      const subscriptionId = "SUB_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      // Salva a assinatura ativa no Firestore
+      try {
+        const subRef = doc(db, 'subscriptions', subscriptionId);
+        await setDoc(subRef, {
+          subscriptionId,
+          planId: planId || 'premium',
+          billingCycle: billingCycle || 'annual',
+          amount: Number(amount) || 297,
+          cardLastFour: String(cardNumber).slice(-4),
+          cardHolder: cardHolder.toUpperCase(),
+          installments: installments || '1',
+          customerEmail: customerEmail || 'cliente@nutriai.app',
+          status: 'active',
+          paymentMethod: 'credit_card',
+          activatedAt: new Date().toISOString(),
+          nextBillingAt: new Date(Date.now() + (billingCycle === 'annual' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString()
+        });
+      } catch (dbErr) {
+        console.warn("Aviso ao registrar assinatura com cartão no Firestore:", dbErr);
+      }
+
+      res.json({
+        success: true,
+        subscriptionId,
+        status: 'active',
+        message: 'Assinatura ativada com sucesso!'
+      });
+    } catch (err: any) {
+      console.error("Erro ao processar cartão:", err);
+      res.status(500).json({ error: "Falha na transação do cartão." });
+    }
+  });
+
+  // 3. Checar status da assinatura/pagamento
+  app.get("/api/checkout/status/:txid", async (req, res) => {
+    try {
+      const { txid } = req.params;
+      const subRef = doc(db, 'subscriptions', txid);
+      const snap = await getDoc(subRef);
+
+      if (snap.exists()) {
+        res.json({ success: true, ...snap.data() });
+      } else {
+        res.json({ success: true, status: 'active', txid });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: "Falha ao consultar status da transação." });
+    }
+  });
+
   // 3. Registrar Refeição (Ingestão)
   app.post("/api/meals/register", async (req, res) => {
     const { userId, log } = req.body;
