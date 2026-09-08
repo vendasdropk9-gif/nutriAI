@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { chatWithAssistant } from '../lib/gemini';
-import { speak, stopSpeech } from '../lib/speech';
+import { speak, stopSpeech, unlockAudio } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 
 export interface LiveAssistantProps {
@@ -854,6 +854,7 @@ export function LiveAssistant({
 
   // Toggle button click (1st touch: Activate with greeting, 2nd touch: Deactivate with goodbye)
   const handleToggleClick = () => {
+    unlockAudio();
     playSfx('tap');
     vibrate(20);
 

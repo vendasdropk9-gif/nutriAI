@@ -1134,12 +1134,52 @@ const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
 
 export const textToSpeech = async (text: string): Promise<string | null> => {
   const normalized = (text || '').trim().toLowerCase();
+  const fs = await import('fs');
   
   // Respostas instantâneas pré-renderizadas com a autêntica voz da Malu (Gemini Aoede)
   if (normalized === 'nutri ai' || normalized === 'nutriai') {
     try {
-      const fs = await import('fs');
       const p = './public/audio/nutri_ai_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
+  if (normalized.includes('bom dia')) {
+    try {
+      const p = './public/audio/greeting_morning_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
+  if (normalized.includes('boa tarde')) {
+    try {
+      const p = './public/audio/greeting_afternoon_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
+  if (normalized.includes('boa noite')) {
+    try {
+      const p = './public/audio/greeting_evening_malu.wav';
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:audio/wav;base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+  }
+
+  if (normalized.includes('vou ficar por aqui') || normalized.includes('quando precisar')) {
+    try {
+      const p = './public/audio/goodbye_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
         return `data:audio/wav;base64,${buf.toString('base64')}`;
@@ -1149,7 +1189,6 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
 
   if (normalized.includes('feedback') || normalized.includes('agradecer') || normalized.includes('muito obrigada')) {
     try {
-      const fs = await import('fs');
       const p = './public/audio/feedback_thankyou_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
@@ -1158,17 +1197,17 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
     } catch (e) {}
   }
 
-  // 1. Try ElevenLabs first if API Key is configured
+  // 1. Try ElevenLabs first if API Key is configured and permitted
   try {
     const elevenAudio = await getElevenLabsTTS(text);
     if (elevenAudio) {
       return elevenAudio;
     }
   } catch (e) {
-    console.warn("ElevenLabs error, continuing to next provider:", e);
+    // continue to Gemini
   }
 
-  // 2. Try Gemini TTS with Aoede voice (Brazilian Portuguese natural voice)
+  // 2. Synthesize with Gemini Live Aoede (Natural Brazilian Portuguese voice)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
@@ -1180,6 +1219,7 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
       .trim();
 
     if (cleanText) {
+      // Direct generateContent with Aoede voice
       try {
         const ai = new GoogleGenAI({ 
           apiKey,
@@ -1216,13 +1256,24 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
             }
 
             if (base64Audio) {
+              const pcmBuf = Buffer.from(base64Audio, 'base64');
+              if (pcmBuf.length < 24000) {
+                continue; // Too short (< 0.5s), try next model
+              }
               const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
               const b64 = wavBuf.toString('base64');
               return `data:audio/wav;base64,${b64}`;
             }
-          } catch (modelErr) {
+          } catch (modelErr: any) {
+            console.warn(`[TTS Engine] Error with model ${model}:`, modelErr?.message || modelErr);
             // try next model
           }
+        }
+
+        // 3. Fallback to Live API Aoede if generateContent TTS models are rate-limited (429)
+        const liveAudio = await synthesizeLiveAoede(cleanText, apiKey);
+        if (liveAudio) {
+          return liveAudio;
         }
       } catch (error: any) {
         console.info("[TTS Engine] Erro ao chamar modelo Gemini Aoede:", error?.message || error);
@@ -1230,9 +1281,101 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
     }
   }
 
-  // 3. Fallback: retornar null para não utilizar voz mecânica ou robótica
   return null;
 };
+
+async function synthesizeLiveAoede(cleanText: string, apiKey: string): Promise<string | null> {
+  const ai = new GoogleGenAI({ 
+    apiKey,
+    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+  });
+
+  return new Promise((resolve) => {
+    let audioBuffers: Buffer[] = [];
+    let timeout: any = null;
+    let liveSession: any = null;
+    let resolved = false;
+
+    const finalize = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      try { liveSession?.close(); } catch (e) {}
+
+      if (audioBuffers.length > 0) {
+        const combined = Buffer.concat(audioBuffers);
+        // If generated audio is less than 12000 bytes (~0.25 seconds of 24kHz 16-bit PCM), it's likely an empty or aborted response.
+        if (combined.length < 12000) {
+          resolve(null);
+          return;
+        }
+        const header = Buffer.alloc(44);
+        header.write("RIFF", 0);
+        header.writeUInt32LE(36 + combined.length, 4);
+        header.write("WAVE", 8);
+        header.write("fmt ", 12);
+        header.writeUInt32LE(16, 16);
+        header.writeUInt16LE(1, 20); // PCM
+        header.writeUInt16LE(1, 22); // mono
+        header.writeUInt32LE(24000, 24); // sample rate 24kHz
+        header.writeUInt32LE(24000 * 2, 28);
+        header.writeUInt16LE(2, 32);
+        header.writeUInt16LE(16, 34);
+        header.write("data", 36);
+        header.writeUInt32LE(combined.length, 40);
+        const fullWav = Buffer.concat([header, combined]);
+        resolve(`data:audio/wav;base64,${fullWav.toString('base64')}`);
+      } else {
+        resolve(null);
+      }
+    };
+
+    timeout = setTimeout(() => {
+      finalize();
+    }, 7000);
+
+    ai.live.connect({
+      model: "gemini-3.1-flash-live-preview",
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
+        },
+        systemInstruction: "Você é a Malu, assistente do NutriAI. Fale estritamente o texto solicitado em português brasileiro natural com voz feminina suave, amigável e expressiva, sem acréscimos."
+      },
+      callbacks: {
+        onmessage: (msg: any) => {
+          const parts = msg.serverContent?.modelTurn?.parts;
+          if (parts) {
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                audioBuffers.push(Buffer.from(part.inlineData.data, "base64"));
+              }
+            }
+          }
+          if (msg.serverContent?.turnComplete || msg.serverContent?.generationComplete) {
+            finalize();
+          }
+        },
+        onerror: (err: any) => {
+          console.info("[Live Aoede] Session error:", err?.message || err);
+          finalize();
+        },
+        onclose: () => {
+          finalize();
+        }
+      }
+    }).then((session) => {
+      liveSession = session;
+      session.sendRealtimeInput({
+        text: `Diga com clareza e voz suave da Malu: ${cleanText}`
+      });
+    }).catch((err) => {
+      console.info("[Live Aoede] Connection err:", err?.message || err);
+      finalize();
+    });
+  });
+}
 
 function wrapPcmInWavBuffer(pcmBase64: string, sampleRate = 24000): Buffer {
   const pcmBuffer = Buffer.from(pcmBase64, 'base64');

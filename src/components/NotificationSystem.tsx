@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, X, Trophy, Star, Flame } from 'lucide-react';
+import { Bell, X, Trophy, Star, Flame, CheckCircle2 } from 'lucide-react';
 
 export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'achievement' | 'point' | 'streak' | 'info';
+  type: 'achievement' | 'point' | 'streak' | 'info' | 'success';
 }
 
 interface NotificationSystemProps {
@@ -57,12 +57,13 @@ export function NotificationSystem({ notifications, onDismiss }: NotificationSys
             <div className={`p-3 rounded-2xl ${
               notif.type === 'achievement' ? 'bg-amber-100 text-amber-600' :
               notif.type === 'streak' ? 'bg-orange-100 text-orange-600' :
-              notif.type === 'point' ? 'bg-emerald-100 text-emerald-600' :
+              notif.type === 'point' || notif.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
               'bg-blue-100 text-blue-600'
             }`}>
               {notif.type === 'achievement' && <Trophy className="w-5 h-5" />}
               {notif.type === 'streak' && <Flame className="w-5 h-5" />}
               {notif.type === 'point' && <Star className="w-5 h-5" />}
+              {notif.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
               {notif.type === 'info' && <Bell className="w-5 h-5" />}
             </div>
             
