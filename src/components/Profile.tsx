@@ -6,7 +6,7 @@ import { UserProfile } from '../types';
 import { 
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
-  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye
+  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';

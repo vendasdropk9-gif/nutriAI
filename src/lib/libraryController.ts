@@ -6,7 +6,12 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || ''
+  apiKey: process.env.GEMINI_API_KEY || '',
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
 });
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
@@ -76,7 +81,7 @@ export async function handleLibraryUpload(req: any, res: any) {
           const chunk = allChunks[i];
           try {
             const embedResponse = await ai.models.embedContent({
-              model: 'text-embedding-004',
+              model: 'gemini-embedding-2-preview',
               contents: chunk.content
             });
             const embedding = embedResponse.embeddings?.[0]?.values;
@@ -137,7 +142,7 @@ export async function searchScientificLibrary(query: string) {
   
   try {
     const embedResponse = await ai.models.embedContent({
-      model: 'text-embedding-004',
+      model: 'gemini-embedding-2-preview',
       contents: query
     });
     const embedding = embedResponse.embeddings?.[0]?.values;
