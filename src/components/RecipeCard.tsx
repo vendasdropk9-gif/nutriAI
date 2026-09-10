@@ -2,7 +2,8 @@ import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare } from 'lucide-react';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff } from 'lucide-react';
+import { isRecipeSavedOffline, toggleRecipeOffline } from '../lib/offlineRecipes';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -221,6 +222,33 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       setScheduledReminder(null);
     } catch (e) {
       console.warn(e);
+    }
+  };
+
+  // Offline Recipe Storage State
+  const [isSavedOffline, setIsSavedOffline] = useState<boolean>(() => {
+    return isRecipeSavedOffline(recipe.id, recipe.name);
+  });
+
+  useEffect(() => {
+    const handleOfflineSync = () => {
+      setIsSavedOffline(isRecipeSavedOffline(recipe.id, recipe.name));
+    };
+    handleOfflineSync();
+    window.addEventListener('app:offline-recipes-updated', handleOfflineSync);
+    return () => {
+      window.removeEventListener('app:offline-recipes-updated', handleOfflineSync);
+    };
+  }, [recipe.id, recipe.name]);
+
+  const handleToggleOffline = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    playSfx('tap');
+    vibrate(15);
+    const nowSaved = toggleRecipeOffline(recipe);
+    setIsSavedOffline(nowSaved);
+    if (nowSaved) {
+      playSfx('crystal');
     }
   };
 
@@ -1015,6 +1043,31 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               </button>
             </div>
 
+            {/* Save Offline Button in Reading Mode */}
+            <button
+              type="button"
+              onClick={handleToggleOffline}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${
+                isSavedOffline
+                  ? 'bg-emerald-600 text-white font-black'
+                  : activeContrast.buttonSecondary
+              }`}
+              title={isSavedOffline ? "Receita salva no dispositivo (acesso offline)" : "Salvar receita para ler mesmo sem conexão à internet"}
+              id={`btn-save-offline-reading-${recipe.id}`}
+            >
+              {isSavedOffline ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Salvo Offline</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-4 h-4" />
+                  <span>Salvar para Offline</span>
+                </>
+              )}
+            </button>
+
             {/* Exit Reading Mode Button */}
             <button
               type="button"
@@ -1493,6 +1546,31 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             >
               <BookOpen className="w-4 h-4" />
               <span>Modo de Leitura</span>
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={handleToggleOffline}
+              className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer border ${
+                isSavedOffline
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                  : 'bg-slate-500/10 hover:bg-slate-500/15 border-slate-400/20 hover:border-slate-400/35 text-slate-700 dark:text-slate-300'
+              }`}
+              title={isSavedOffline ? "Receita salva no dispositivo para acesso offline (clique para gerenciar)" : "Salvar esta receita para acessar o passo a passo sem internet"}
+              id={`btn-save-offline-${recipe.id}`}
+            >
+              {isSavedOffline ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Salvo para Offline</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <span>Salvar para Offline</span>
+                </>
+              )}
             </button>
           )}
 

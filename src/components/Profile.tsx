@@ -487,6 +487,14 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         </p>
       </div>
 
+      {/* Admin Panel Link */}
+      <div className="mb-6 flex justify-center">
+        <button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: "admin_library" }))} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium shadow-md hover:bg-slate-800 transition-colors text-sm">
+          <Database className="w-4 h-4" />
+          Área Admin: Biblioteca Científica
+        </button>
+      </div>
+
       {/* Main Form Card */}
       <div className="clay-card p-6 sm:p-10">
         {/* Photo & Identity Hero Section */}

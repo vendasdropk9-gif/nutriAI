@@ -9,6 +9,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, up
 import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
 import firebaseConfig from "./firebase-applet-config.json";
 import { DEFAULT_MEDICINAL_HERBS } from "./src/data/medicinalHerbsData";
+import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController.ts";
 
 async function startServer() {
   const firebaseApp = initializeApp(firebaseConfig);
@@ -439,6 +440,9 @@ async function startServer() {
   });
 
   // Secure API Proxy for all Gemini queries
+  app.post("/api/admin/library/upload", upload.single("file"), handleLibraryUpload);
+  app.get("/api/admin/library/stats", getLibraryStats);
+
   app.post("/api/gemini", async (req, res) => {
     console.log(`Received request for: ${req.body.functionName}`);
     const { functionName, args } = req.body;
@@ -1295,7 +1299,10 @@ async function startServer() {
     // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

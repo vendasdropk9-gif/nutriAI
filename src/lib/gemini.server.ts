@@ -1,3 +1,4 @@
+import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission } from "../types";
@@ -230,12 +231,22 @@ SCHEMA DE RESPOSTA JSON:
 
   try {
     const stringifiedHistory = (history || []).map(h => `${h.role === 'user' ? 'Usuário' : 'Você'}: ${h.text}`).join('\n');
+    // RAG Search for context
+    let libraryContext = "";
+    try {
+      const chunks = await searchScientificLibrary(userMessage);
+      if (chunks && chunks.length > 0) {
+        libraryContext = "\n\nBIBLIOTECA CIENTÍFICA (RESULTADOS RECUPERADOS):\n" + 
+          chunks.map((c) => `DOCUMENTO: ${c.title || 'Desconhecido'} (Autor: ${c.author || '-'}, Instituição: ${c.institution || '-'}, Ano: ${c.year || '-'})
+` +
+          `PÁGINA: ${c.page_number || '-'}\nTRECHO: ${c.content}\n`).join('\n') +
+          "\n\nINSTRUÇÃO RAG (PRIORIDADE MÁXIMA): Responda utilizando SOMENTE o contexto recuperado acima se a pergunta for sobre saúde, medicamentos, fitoterapia ou referências. SEMPRE cite a fonte e a página exata (Ex: 'Segundo [Fonte], pág [X]...'). Se a informação solicitada NÃO estiver no contexto recuperado, NÃO INVENTE FATOS, responda EXATAMENTE: 'Não encontrei informação suficiente na Biblioteca Científica da Malu para responder isso com segurança.'";
+      }
+    } catch (e) {
+      console.error("RAG fetch failed:", e);
+    }
     
-    const finalPrompt = `HISTÓRICO DA CONVERSA:
-${stringifiedHistory}
-
-O usuário acabou de dizer: "${userMessage}"
-RESPONDA EM JSON.`;
+    const finalPrompt = `HISTÓRICO DA CONVERSA:\n${stringifiedHistory}\nO usuário acabou de dizer: "${userMessage}"${libraryContext}\n\nRESPONDA EM JSON.`;
 
     const response = await callWithModelFallback(ai, {
       contents: finalPrompt,

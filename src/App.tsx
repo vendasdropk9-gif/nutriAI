@@ -34,6 +34,7 @@ import { FreshnessMap } from './components/FreshnessMap';
 import { AdaptiveCoach } from './components/AdaptiveCoach';
 import { BodyAnalyzer } from './components/BodyAnalyzer';
 import { SplashScreen } from './components/SplashScreen';
+import { ScientificLibraryAdmin } from './components/ScientificLibraryAdmin';
 import { PartnerBanner } from './components/PartnerBanner';
 import { DeliveryPartnerPortal } from './components/DeliveryPartnerPortal';
 import { GamificationCenter } from './components/GamificationCenter';
@@ -71,6 +72,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 const TAB_ORDER = [
+  "admin_library",
   'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
   'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'evolution', 
@@ -110,6 +112,12 @@ export default function App() {
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
   // Auto-detect language on first execution and keep in sync with Profile/Supabase/LocalStorage
+  useEffect(() => {
+    const handleNav = (e: any) => setActiveTab(e.detail);
+    window.addEventListener("navigate", handleNav);
+    return () => window.removeEventListener("navigate", handleNav);
+  }, []);
+
   useEffect(() => {
     const detectedLng = window.localStorage.getItem('language') || window.localStorage.getItem('i18nextLng') || navigator.language?.split('-')[0] || 'pt-BR';
     const targetLng = detectedLng.startsWith('pt') ? 'pt-BR' : detectedLng;
@@ -153,7 +161,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
@@ -179,6 +187,12 @@ export default function App() {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
   };
+
+  useEffect(() => {
+    const handleNav = (e: any) => setActiveTab(e.detail);
+    window.addEventListener("navigate", handleNav);
+    return () => window.removeEventListener("navigate", handleNav);
+  }, []);
 
   useEffect(() => {
     const handleNavigate = (e: any) => {
@@ -281,6 +295,12 @@ export default function App() {
   useMealPushNotifications(profile, addNotification);
 
   useEffect(() => {
+    const handleNav = (e: any) => setActiveTab(e.detail);
+    window.addEventListener("navigate", handleNav);
+    return () => window.removeEventListener("navigate", handleNav);
+  }, []);
+
+  useEffect(() => {
     if (!profile) return;
     const today = new Date().toISOString().split('T')[0];
     const hasSleepToday = profile.sleepLogs?.some(log => log.date.startsWith(today));
@@ -315,12 +335,24 @@ export default function App() {
   };
 
   useEffect(() => {
+    const handleNav = (e: any) => setActiveTab(e.detail);
+    window.addEventListener("navigate", handleNav);
+    return () => window.removeEventListener("navigate", handleNav);
+  }, []);
+
+  useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleNav = (e: any) => setActiveTab(e.detail);
+    window.addEventListener("navigate", handleNav);
+    return () => window.removeEventListener("navigate", handleNav);
+  }, []);
 
   useEffect(() => {
     const storedContrast = window.localStorage.getItem('nutri-high-contrast') === 'true';
