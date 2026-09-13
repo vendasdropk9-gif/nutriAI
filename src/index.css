@@ -432,4 +432,33 @@ html.high-contrast button:focus-visible {
   outline-offset: 2px !important;
 }
 
+/* RTL (Right to Left) Layout Support for Arabic */
+html[dir="rtl"],
+body.rtl-layout {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+html[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+html[dir="rtl"] input,
+html[dir="rtl"] textarea {
+  text-align: right;
+}
+
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="password"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="tel"] {
+  direction: ltr;
+  text-align: left;
+}
+
+
 

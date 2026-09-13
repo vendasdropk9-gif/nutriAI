@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { localesMap } from '../i18n/locales';
 
 // Comprehensive runtime translation mapping for elements not covered by direct translation keys
 const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
@@ -13,7 +14,10 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ja": "フィードバックを残す",
     "ko": "피드백을 남겨주세요",
     "zh": "留下您的反馈",
-    "ar": "اترك ملاحظاتك"
+    "ar": "اترك ملاحظاتك",
+    "ru": "Оставить отзыв",
+    "tr": "Geri bildirim bırakın",
+    "hi": "अपनी प्रतिक्रिया दें"
   },
   "feedback": {
     "en": "Feedback",
@@ -24,7 +28,24 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ja": "フィードバック",
     "ko": "피드백",
     "zh": "反馈",
-    "ar": "ملاحظات"
+    "ar": "ملاحظات",
+    "ru": "Отзыв",
+    "tr": "Geri bildirim",
+    "hi": "प्रतिक्रिया"
+  },
+  "mudar idioma": {
+    "en": "Change Language",
+    "es": "Cambiar idioma",
+    "fr": "Changer de langue",
+    "it": "Cambia lingua",
+    "de": "Sprache ändern",
+    "ja": "言語を変更",
+    "ko": "언어 변경",
+    "zh": "更改语言",
+    "ar": "تغيير اللغة",
+    "ru": "Изменить язык",
+    "tr": "Dili değiştir",
+    "hi": "भाषा बदलें"
   },
   "mudar idioma / change language": {
     "en": "Change Language",
@@ -35,7 +56,10 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ja": "言語を変更",
     "ko": "언어 변경",
     "zh": "更改语言",
-    "ar": "تغيير اللغة"
+    "ar": "تغيير اللغة",
+    "ru": "Изменить язык",
+    "tr": "Dili değiştir",
+    "hi": "भाषा बदलें"
   },
   "mudar para modo claro": {
     "en": "Switch to light mode",
@@ -46,7 +70,10 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ja": "ライトモードに切り替え",
     "ko": "라이트 모드로 전환",
     "zh": "切换到浅色模式",
-    "ar": "التبديل إلى الوضع الفاتح"
+    "ar": "التبديل إلى الوضع الفاتح",
+    "ru": "Переключить на светлую тему",
+    "tr": "Açık moda geç",
+    "hi": "लाइट मोड पर स्विच करें"
   },
   "mudar para modo escuro": {
     "en": "Switch to dark mode",
@@ -57,7 +84,1534 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ja": "ダークモードに切り替え",
     "ko": "다크 모드로 전환",
     "zh": "切换到深色模式",
-    "ar": "التبديل إلى الوضع الداكن"
+    "ar": "التبديل إلى الوضع الداكن",
+    "ru": "Переключить на темную тему",
+    "tr": "Karanlık moda geç",
+    "hi": "डार्क मोड पर स्विच करें"
+  },
+  "ativar modo de leitura": {
+    "en": "Enable reading mode",
+    "es": "Activar modo de lectura",
+    "fr": "Activer le mode lecture",
+    "it": "Attiva modalità lettura",
+    "de": "Lesemodus aktivieren",
+    "ja": "閲覧モードを有効化",
+    "ko": "읽기 모드 활성화",
+    "zh": "启用阅读模式",
+    "ar": "تفعيل وضع القراءة",
+    "ru": "Включить режим чтения",
+    "tr": "Okuma modunu etkinleştir",
+    "hi": "रीडिंग मोड सक्षम करें"
+  },
+  "desativar modo de leitura": {
+    "en": "Disable reading mode",
+    "es": "Desactivar modo de lectura",
+    "fr": "Désactiver le mode lecture",
+    "it": "Disattiva modalità lettura",
+    "de": "Lesemodus deaktivieren",
+    "ja": "閲覧モードを無効化",
+    "ko": "읽기 모드 비활성화",
+    "zh": "禁用阅读模式",
+    "ar": "تعطيل وضع القراءة",
+    "ru": "Отключить режим чтения",
+    "tr": "Okuma modunu devre dışı bırak",
+    "hi": "रीडिंग मोड अक्षम करें"
+  },
+
+  // Common UI Actions & Verbs
+  "salvar": {
+    "en": "Save",
+    "es": "Guardar",
+    "fr": "Enregistrer",
+    "it": "Salva",
+    "de": "Speichern",
+    "ja": "保存",
+    "ko": "저장",
+    "zh": "保存",
+    "ar": "حفظ",
+    "ru": "Сохранить",
+    "tr": "Kaydet",
+    "hi": "सहेजें"
+  },
+  "cancelar": {
+    "en": "Cancel",
+    "es": "Cancelar",
+    "fr": "Annuler",
+    "it": "Annulla",
+    "de": "Abbrechen",
+    "ja": "キャンセル",
+    "ko": "취소",
+    "zh": "取消",
+    "ar": "إلغاء",
+    "ru": "Отмена",
+    "tr": "İptal",
+    "hi": "रद्द करें"
+  },
+  "voltar": {
+    "en": "Back",
+    "es": "Volver",
+    "fr": "Retour",
+    "it": "Indietro",
+    "de": "Zurück",
+    "ja": "戻る",
+    "ko": "뒤로",
+    "zh": "返回",
+    "ar": "رجوع",
+    "ru": "Назад",
+    "tr": "Geri",
+    "hi": "वापस"
+  },
+  "próximo": {
+    "en": "Next",
+    "es": "Siguiente",
+    "fr": "Suivant",
+    "it": "Avanti",
+    "de": "Weiter",
+    "ja": "次へ",
+    "ko": "다음",
+    "zh": "下一步",
+    "ar": "التالي",
+    "ru": "Далее",
+    "tr": "İleri",
+    "hi": "अगला"
+  },
+  "continuar": {
+    "en": "Continue",
+    "es": "Continuar",
+    "fr": "Continuer",
+    "it": "Continua",
+    "de": "Weiter",
+    "ja": "続ける",
+    "ko": "계속",
+    "zh": "继续",
+    "ar": "متابعة",
+    "ru": "Продолжить",
+    "tr": "Devam et",
+    "hi": "जारी रखें"
+  },
+  "fechar": {
+    "en": "Close",
+    "es": "Cerrar",
+    "fr": "Fermer",
+    "it": "Chiudi",
+    "de": "Schließen",
+    "ja": "閉じる",
+    "ko": "닫기",
+    "zh": "关闭",
+    "ar": "إغلاق",
+    "ru": "Закрыть",
+    "tr": "Kapat",
+    "hi": "बंद करें"
+  },
+  "confirmar": {
+    "en": "Confirm",
+    "es": "Confirmar",
+    "fr": "Confirmer",
+    "it": "Conferma",
+    "de": "Bestätigen",
+    "ja": "確認",
+    "ko": "확인",
+    "zh": "确认",
+    "ar": "تأكيد",
+    "ru": "Подтвердить",
+    "tr": "Onayla",
+    "hi": "पुष्टि करें"
+  },
+  "excluir": {
+    "en": "Delete",
+    "es": "Eliminar",
+    "fr": "Supprimer",
+    "it": "Elimina",
+    "de": "Löschen",
+    "ja": "削除",
+    "ko": "삭제",
+    "zh": "删除",
+    "ar": "حذف",
+    "ru": "Удалить",
+    "tr": "Sil",
+    "hi": "हटाएं"
+  },
+  "remover": {
+    "en": "Remove",
+    "es": "Eliminar",
+    "fr": "Supprimer",
+    "it": "Rimuovi",
+    "de": "Entfernen",
+    "ja": "削除",
+    "ko": "제거",
+    "zh": "移除",
+    "ar": "إزالة",
+    "ru": "Удалить",
+    "tr": "Kaldır",
+    "hi": "हटाएं"
+  },
+  "editar": {
+    "en": "Edit",
+    "es": "Editar",
+    "fr": "Modifier",
+    "it": "Modifica",
+    "de": "Bearbeiten",
+    "ja": "編集",
+    "ko": "수정",
+    "zh": "编辑",
+    "ar": "تعديل",
+    "ru": "Редактировать",
+    "tr": "Düzenle",
+    "hi": "संपादित करें"
+  },
+  "adicionar": {
+    "en": "Add",
+    "es": "Añadir",
+    "fr": "Ajouter",
+    "it": "Aggiungi",
+    "de": "Hinzufügen",
+    "ja": "追加",
+    "ko": "추가",
+    "zh": "添加",
+    "ar": "إضافة",
+    "ru": "Добавить",
+    "tr": "Ekle",
+    "hi": "जोड़ें"
+  },
+  "atualizar": {
+    "en": "Update",
+    "es": "Actualizar",
+    "fr": "Mettre à jour",
+    "it": "Aggiorna",
+    "de": "Aktualisieren",
+    "ja": "更新",
+    "ko": "업데이트",
+    "zh": "更新",
+    "ar": "تحديث",
+    "ru": "Обновить",
+    "tr": "Güncelle",
+    "hi": "अद्यतन करें"
+  },
+  "carregando...": {
+    "en": "Loading...",
+    "es": "Cargando...",
+    "fr": "Chargement...",
+    "it": "Caricamento...",
+    "de": "Laden...",
+    "ja": "読み込み中...",
+    "ko": "로딩 중...",
+    "zh": "加载中...",
+    "ar": "جاري التحميل...",
+    "ru": "Загрузка...",
+    "tr": "Yükleniyor...",
+    "hi": "लोड हो रहा है..."
+  },
+  "gerar": {
+    "en": "Generate",
+    "es": "Generar",
+    "fr": "Générer",
+    "it": "Genera",
+    "de": "Generieren",
+    "ja": "生成",
+    "ko": "생성",
+    "zh": "生成",
+    "ar": "إنشاء",
+    "ru": "Сгенерировать",
+    "tr": "Oluştur",
+    "hi": "उत्पन्न करें"
+  },
+  "gerando...": {
+    "en": "Generating...",
+    "es": "Generando...",
+    "fr": "Génération...",
+    "it": "Generazione...",
+    "de": "Wird generiert...",
+    "ja": "生成中...",
+    "ko": "생성 중...",
+    "zh": "正在生成...",
+    "ar": "جاري التوليد...",
+    "ru": "Генерация...",
+    "tr": "Oluşturuluyor...",
+    "hi": "उत्पन्न हो रहा है..."
+  },
+  "escanear": {
+    "en": "Scan",
+    "es": "Escanear",
+    "fr": "Scanner",
+    "it": "Scansiona",
+    "de": "Scannen",
+    "ja": "スキャン",
+    "ko": "스캔",
+    "zh": "扫描",
+    "ar": "مسح",
+    "ru": "Сканировать",
+    "tr": "Tara",
+    "hi": "स्कैन करें"
+  },
+  "escaneando...": {
+    "en": "Scanning...",
+    "es": "Escaneando...",
+    "fr": "Numérisation...",
+    "it": "Scansione...",
+    "de": "Wird gescannt...",
+    "ja": "スキャン中...",
+    "ko": "스캔 중...",
+    "zh": "正在扫描...",
+    "ar": "جاري المسح...",
+    "ru": "Сканирование...",
+    "tr": "Taranıyor...",
+    "hi": "स्कैन हो रहा है..."
+  },
+  "compartilhar": {
+    "en": "Share",
+    "es": "Compartir",
+    "fr": "Partager",
+    "it": "Condividi",
+    "de": "Teilen",
+    "ja": "共有",
+    "ko": "공유",
+    "zh": "分享",
+    "ar": "مشاركة",
+    "ru": "Поделиться",
+    "tr": "Paylaş",
+    "hi": "साझा करें"
+  },
+  "copiar": {
+    "en": "Copy",
+    "es": "Copiar",
+    "fr": "Copier",
+    "it": "Copia",
+    "de": "Kopieren",
+    "ja": "コピー",
+    "ko": "복사",
+    "zh": "复制",
+    "ar": "نسخ",
+    "ru": "Копировать",
+    "tr": "Kopyala",
+    "hi": "कॉपी करें"
+  },
+  "copiado!": {
+    "en": "Copied!",
+    "es": "¡Copiado!",
+    "fr": "Copié !",
+    "it": "Copiato!",
+    "de": "Kopiert!",
+    "ja": "コピーしました！",
+    "ko": "복사됨!",
+    "zh": "已复制！",
+    "ar": "تم النسخ!",
+    "ru": "Скопировано!",
+    "tr": "Kopyalandı!",
+    "hi": "कॉपी किया गया!"
+  },
+  "comprar": {
+    "en": "Buy",
+    "es": "Comprar",
+    "fr": "Acheter",
+    "it": "Acquista",
+    "de": "Kaufen",
+    "ja": "購入",
+    "ko": "구매",
+    "zh": "购买",
+    "ar": "شراء",
+    "ru": "Купить",
+    "tr": "Satın al",
+    "hi": "खरीदें"
+  },
+  "assinar": {
+    "en": "Subscribe",
+    "es": "Suscribirse",
+    "fr": "S'abonner",
+    "it": "Abbonati",
+    "de": "Abonnieren",
+    "ja": "購読する",
+    "ko": "구독하기",
+    "zh": "订阅",
+    "ar": "اشتراك",
+    "ru": "Подписаться",
+    "tr": "Abone ol",
+    "hi": "सब्सक्राइब करें"
+  },
+  "todos": {
+    "en": "All",
+    "es": "Todos",
+    "fr": "Tous",
+    "it": "Tutti",
+    "de": "Alle",
+    "ja": "すべて",
+    "ko": "전체",
+    "zh": "全部",
+    "ar": "الكل",
+    "ru": "Все",
+    "tr": "Tümü",
+    "hi": "सभी"
+  },
+  "nenhum": {
+    "en": "None",
+    "es": "Ninguno",
+    "fr": "Aucun",
+    "it": "Nessuno",
+    "de": "Keine",
+    "ja": "なし",
+    "ko": "없음",
+    "zh": "无",
+    "ar": "لا شيء",
+    "ru": "Нет",
+    "tr": "Yok",
+    "hi": "कोई नहीं"
+  },
+  "detalhes": {
+    "en": "Details",
+    "es": "Detalles",
+    "fr": "Détails",
+    "it": "Dettagli",
+    "de": "Details",
+    "ja": "詳細",
+    "ko": "상세",
+    "zh": "详情",
+    "ar": "التفاصيل",
+    "ru": "Детали",
+    "tr": "Detaylar",
+    "hi": "विवरण"
+  },
+  "ações": {
+    "en": "Actions",
+    "es": "Acciones",
+    "fr": "Actions",
+    "it": "Azioni",
+    "de": "Aktionen",
+    "ja": "アクション",
+    "ko": "작업",
+    "zh": "操作",
+    "ar": "إجراءات",
+    "ru": "Действия",
+    "tr": "Eylemler",
+    "hi": "कार्रवाई"
+  },
+  "limpar": {
+    "en": "Clear",
+    "es": "Limpiar",
+    "fr": "Effacer",
+    "it": "Cancella",
+    "de": "Löschen",
+    "ja": "クリア",
+    "ko": "지우기",
+    "zh": "清除",
+    "ar": "مسح",
+    "ru": "Очистить",
+    "tr": "Temizle",
+    "hi": "साफ़ करें"
+  },
+  "filtrar": {
+    "en": "Filter",
+    "es": "Filtrar",
+    "fr": "Filtrer",
+    "it": "Filtra",
+    "de": "Filtern",
+    "ja": "フィルター",
+    "ko": "필터",
+    "zh": "筛选",
+    "ar": "تصفية",
+    "ru": "Фильтр",
+    "tr": "Filtrele",
+    "hi": "फ़िल्टर"
+  },
+  "buscar": {
+    "en": "Search",
+    "es": "Buscar",
+    "fr": "Rechercher",
+    "it": "Cerca",
+    "de": "Suchen",
+    "ja": "検索",
+    "ko": "검색",
+    "zh": "搜索",
+    "ar": "بحث",
+    "ru": "Поиск",
+    "tr": "Ara",
+    "hi": "खोजें"
+  },
+
+  // Nutrition, Metrics & Ingredients
+  "tempo de preparo": {
+    "en": "Prep Time",
+    "es": "Tiempo de preparación",
+    "fr": "Temps de préparation",
+    "it": "Tempo di preparazione",
+    "de": "Zubereitungszeit",
+    "ja": "調理時間",
+    "ko": "준비 시간",
+    "zh": "准备时间",
+    "ar": "وقت التحضير",
+    "ru": "Время приготовления",
+    "tr": "Hazırlık süresi",
+    "hi": "तैयारी का समय"
+  },
+  "dificuldade": {
+    "en": "Difficulty",
+    "es": "Dificultad",
+    "fr": "Difficulté",
+    "it": "Difficoltà",
+    "de": "Schwierigkeit",
+    "ja": "難易度",
+    "ko": "난이도",
+    "zh": "难度",
+    "ar": "الصعوبة",
+    "ru": "Сложность",
+    "tr": "Zorluk",
+    "hi": "कठिनाई"
+  },
+  "calorias": {
+    "en": "Calories",
+    "es": "Calorías",
+    "fr": "Calories",
+    "it": "Calorie",
+    "de": "Kalorien",
+    "ja": "カロリー",
+    "ko": "칼로리",
+    "zh": "卡路里",
+    "ar": "السعرات الحرارية",
+    "ru": "Калории",
+    "tr": "Kalori",
+    "hi": "कैलोरी"
+  },
+  "proteínas": {
+    "en": "Proteins",
+    "es": "Proteínas",
+    "fr": "Protéines",
+    "it": "Proteine",
+    "de": "Proteine",
+    "ja": "タンパク質",
+    "ko": "단백질",
+    "zh": "蛋白质",
+    "ar": "البروتينات",
+    "ru": "Белки",
+    "tr": "Protein",
+    "hi": "प्रोटीन"
+  },
+  "carboidratos": {
+    "en": "Carbs",
+    "es": "Carbohidratos",
+    "fr": "Glucides",
+    "it": "Carboidrati",
+    "de": "Kohlenhydrate",
+    "ja": "炭水化物",
+    "ko": "탄수화물",
+    "zh": "碳水化合物",
+    "ar": "الكربوهيدرات",
+    "ru": "Углеводы",
+    "tr": "Karbonhidrat",
+    "hi": "कार्बोहाइड्रेट"
+  },
+  "gorduras": {
+    "en": "Fats",
+    "es": "Grasas",
+    "fr": "Lipides",
+    "it": "Grassi",
+    "de": "Fette",
+    "ja": "脂質",
+    "ko": "지방",
+    "zh": "脂肪",
+    "ar": "الدهون",
+    "ru": "Жиры",
+    "tr": "Yağlar",
+    "hi": "वसा"
+  },
+  "fibras": {
+    "en": "Fibers",
+    "es": "Fibras",
+    "fr": "Fibres",
+    "it": "Fibre",
+    "de": "Ballaststoffe",
+    "ja": "食物繊維",
+    "ko": "식이섬유",
+    "zh": "膳食纤维",
+    "ar": "الألياف",
+    "ru": "Клетчатка",
+    "tr": "Lifler",
+    "hi": "फाइबर"
+  },
+  "ingredientes": {
+    "en": "Ingredients",
+    "es": "Ingredientes",
+    "fr": "Ingrédients",
+    "it": "Ingredienti",
+    "de": "Zutaten",
+    "ja": "材料",
+    "ko": "재료",
+    "zh": "食材",
+    "ar": "المكونات",
+    "ru": "Ингредиенты",
+    "tr": "Malzemeler",
+    "hi": "सामग्री"
+  },
+  "modo de preparo": {
+    "en": "Instructions",
+    "es": "Modo de preparación",
+    "fr": "Instructions de préparation",
+    "it": "Istruzioni",
+    "de": "Zubereitung",
+    "ja": "作り方",
+    "ko": "조리법",
+    "zh": "制作方法",
+    "ar": "طريقة التحضير",
+    "ru": "Способ приготовления",
+    "tr": "Hazırlanışı",
+    "hi": "बनाने की विधि"
+  },
+  "porções": {
+    "en": "Servings",
+    "es": "Porciones",
+    "fr": "Portions",
+    "it": "Porzioni",
+    "de": "Portionen",
+    "ja": "人前",
+    "ko": "인분",
+    "zh": "份数",
+    "ar": "الحصص",
+    "ru": "Порции",
+    "tr": "Porsiyon",
+    "hi": "सर्विंग्स"
+  },
+  "fácil": {
+    "en": "Easy",
+    "es": "Fácil",
+    "fr": "Facile",
+    "it": "Facile",
+    "de": "Einfach",
+    "ja": "簡単",
+    "ko": "쉬움",
+    "zh": "简单",
+    "ar": "سهل",
+    "ru": "Легко",
+    "tr": "Kolay",
+    "hi": "आसान"
+  },
+  "médio": {
+    "en": "Medium",
+    "es": "Medio",
+    "fr": "Moyen",
+    "it": "Medio",
+    "de": "Mittel",
+    "ja": "普通",
+    "ko": "보통",
+    "zh": "中等",
+    "ar": "متوسط",
+    "ru": "Средне",
+    "tr": "Orta",
+    "hi": "मध्यम"
+  },
+  "avançado": {
+    "en": "Advanced",
+    "es": "Avanzado",
+    "fr": "Avancé",
+    "it": "Avanzato",
+    "de": "Fortgeschritten",
+    "ja": "上級",
+    "ko": "고급",
+    "zh": "高级",
+    "ar": "متقدم",
+    "ru": "Сложно",
+    "tr": "İleri",
+    "hi": "उन्नत"
+  },
+  "café da manhã": {
+    "en": "Breakfast",
+    "es": "Desayuno",
+    "fr": "Petit-déjeuner",
+    "it": "Colazione",
+    "de": "Frühstück",
+    "ja": "朝食",
+    "ko": "아침 식사",
+    "zh": "早餐",
+    "ar": "الإفطار",
+    "ru": "Завтрак",
+    "tr": "Kahvaltı",
+    "hi": "नाश्ता"
+  },
+  "almoço": {
+    "en": "Lunch",
+    "es": "Almuerzo",
+    "fr": "Déjeuner",
+    "it": "Pranzo",
+    "de": "Mittagessen",
+    "ja": "昼食",
+    "ko": "점심 식사",
+    "zh": "午餐",
+    "ar": "الغداء",
+    "ru": "Обед",
+    "tr": "Öğle yemeği",
+    "hi": "दोपहर का भोजन"
+  },
+  "lanche": {
+    "en": "Snack",
+    "es": "Merienda",
+    "fr": "Collation",
+    "it": "Spuntino",
+    "de": "Snack",
+    "ja": "軽食",
+    "ko": "간식",
+    "zh": "小吃",
+    "ar": "وجبة خفيفة",
+    "ru": "Перекус",
+    "tr": "Atıştırmalık",
+    "hi": "स्नैक"
+  },
+  "jantar": {
+    "en": "Dinner",
+    "es": "Cena",
+    "fr": "Dîner",
+    "it": "Cena",
+    "de": "Abendessen",
+    "ja": "夕食",
+    "ko": "저녁 식사",
+    "zh": "晚餐",
+    "ar": "العشاء",
+    "ru": "Ужин",
+    "tr": "Akşam yemeği",
+    "hi": "रात का खाना"
+  },
+
+  // Goals & Metrics
+  "quero emagrecer": {
+    "en": "Lose Weight",
+    "es": "Quiero Perder Peso",
+    "fr": "Perdre du poids",
+    "it": "Perdere peso",
+    "de": "Abnehmen",
+    "ja": "減量したい",
+    "ko": "체중 감량",
+    "zh": "我想减肥",
+    "ar": "إنقاص الوزن",
+    "ru": "Похудеть",
+    "tr": "Kilo vermek istiyorum",
+    "hi": "वजन कम करना"
+  },
+  "quero ganhar massa": {
+    "en": "Gain Muscle",
+    "es": "Ganar Masa Muscular",
+    "fr": "Prendre du muscle",
+    "it": "Aumentare massa",
+    "de": "Muskeln aufbauen",
+    "ja": "筋肉を増やしたい",
+    "ko": "근육량 증가",
+    "zh": "我想增肌",
+    "ar": "بناء العضلات",
+    "ru": "Набрать массу",
+    "tr": "Kas kazanmak istiyorum",
+    "hi": "मांसपेशियां बढ़ाना"
+  },
+  "ganhar massa": {
+    "en": "Gain Muscle",
+    "es": "Ganar Masa",
+    "fr": "Prendre du muscle",
+    "it": "Aumentare massa",
+    "de": "Muskelaufbau",
+    "ja": "筋肉増量",
+    "ko": "근육 증가",
+    "zh": "增肌",
+    "ar": "بناء العضلات",
+    "ru": "Набор массы",
+    "tr": "Kas kazanımı",
+    "hi": "मांसपेशियां बढ़ाना"
+  },
+  "alimentação saudável e longevidade": {
+    "en": "Healthy Eating & Longevity",
+    "es": "Alimentación Saludable y Longevidad",
+    "fr": "Alimentation saine et longévité",
+    "it": "Alimentazione sana e longevità",
+    "de": "Gesunde Ernährung & Langlebigkeit",
+    "ja": "健康的な食事と長寿",
+    "ko": "건강한 식단과 장수",
+    "zh": "健康饮食与长寿",
+    "ar": "تغذية صحية وطول العمر",
+    "ru": "Здоровое питание и долголетие",
+    "tr": "Sağlıklı beslenme ve uzun ömür",
+    "hi": "स्वस्थ खान-पान और दीर्घायु"
+  },
+  "definição corporal": {
+    "en": "Body Definition",
+    "es": "Definición Corporal",
+    "fr": "Définition corporelle",
+    "it": "Definizione corporea",
+    "de": "Körperdefinition",
+    "ja": "ボディメイク",
+    "ko": "바디 데피니션",
+    "zh": "塑造身形",
+    "ar": "تحديد القوام",
+    "ru": "Рельеф тела",
+    "tr": "Vücut belirginleştirme",
+    "hi": "शारीरिक परिभाषा"
+  },
+  "meu progresso": {
+    "en": "My Progress",
+    "es": "Mi Progreso",
+    "fr": "Mon Progrès",
+    "it": "I miei progressi",
+    "de": "Mein Fortschritt",
+    "ja": "進捗状況",
+    "ko": "내 진행 상황",
+    "zh": "我的进度",
+    "ar": "تقدمي",
+    "ru": "Мой прогресс",
+    "tr": "İlerlemem",
+    "hi": "मेरी प्रगति"
+  },
+  "meta de água": {
+    "en": "Water Goal",
+    "es": "Meta de Agua",
+    "fr": "Objectif d'eau",
+    "it": "Obiettivo acqua",
+    "de": "Wasserziel",
+    "ja": "水分の目標",
+    "ko": "수분 섭취 목표",
+    "zh": "饮水目标",
+    "ar": "هدف شرب الماء",
+    "ru": "Цель по воде",
+    "tr": "Su hedefi",
+    "hi": "पानी का लक्ष्य"
+  },
+  "meta de calorias": {
+    "en": "Calorie Goal",
+    "es": "Meta de Calorías",
+    "fr": "Objectif de calories",
+    "it": "Obiettivo calorie",
+    "de": "Kalorienziel",
+    "ja": "カロリー目標",
+    "ko": "칼로리 목표",
+    "zh": "卡路里目标",
+    "ar": "هدف السعرات",
+    "ru": "Цель по калориям",
+    "tr": "Kalori hedefi",
+    "hi": "कैलोरी लक्ष्य"
+  },
+  "peso & classificação": {
+    "en": "Weight & Status",
+    "es": "Peso y Clasificación",
+    "fr": "Poids & Statut",
+    "it": "Peso e Classificazione",
+    "de": "Gewicht & Einstufung",
+    "ja": "体重と分類",
+    "ko": "체중 및 분류",
+    "zh": "体重与评估",
+    "ar": "الوزن والتصنيف",
+    "ru": "Вес и статус",
+    "tr": "Kilo ve durum",
+    "hi": "वजन और स्थिति"
+  },
+  "sono & humor": {
+    "en": "Sleep & Mood",
+    "es": "Sueño y Estado de Ánimo",
+    "fr": "Sommeil & Humeur",
+    "it": "Sonno e Umore",
+    "de": "Schlaf & Stimmung",
+    "ja": "睡眠と気分",
+    "ko": "수면 및 기분",
+    "zh": "睡眠与心情",
+    "ar": "النوم والمزاج",
+    "ru": "Сон и настроение",
+    "tr": "Uyku ve ruh hali",
+    "hi": "नींद और मनोदशा"
+  },
+  "painel do seu dia": {
+    "en": "Your Daily Dashboard",
+    "es": "Panel de su Día",
+    "fr": "Tableau de votre journée",
+    "it": "Pannello del tuo giorno",
+    "de": "Dein Tages-Dashboard",
+    "ja": "今日のダッシュボード",
+    "ko": "오늘의 대시보드",
+    "zh": "今日概览",
+    "ar": "لوحة يومك",
+    "ru": "Панель вашего дня",
+    "tr": "Günlük paneliniz",
+    "hi": "आपका दैनिक डैशबोर्ड"
+  },
+  "recursos inteligentes": {
+    "en": "Smart Features",
+    "es": "Funciones Inteligentes",
+    "fr": "Fonctionnalités intelligentes",
+    "it": "Funzioni intelligenti",
+    "de": "Smarte Funktionen",
+    "ja": "スマート機能",
+    "ko": "스마트 기능",
+    "zh": "智能功能",
+    "ar": "الميزات الذكية",
+    "ru": "Умные функции",
+    "tr": "Akıllı özellikler",
+    "hi": "स्मार्ट सुविधाएं"
+  },
+  "conversar com a malu": {
+    "en": "Talk to Malu",
+    "es": "Hablar con Malu",
+    "fr": "Parler avec Malu",
+    "it": "Parla con Malu",
+    "de": "Mit Malu sprechen",
+    "ja": "Maluと話す",
+    "ko": "Malu와 대화하기",
+    "zh": "与 Malu 对话",
+    "ar": "تحدث مع مالو",
+    "ru": "Поговорить с Малу",
+    "tr": "Malu ile konuş",
+    "hi": "मालू से बात करें"
+  },
+  "ia por voz ativa": {
+    "en": "Active Voice AI",
+    "es": "IA por Voz Activa",
+    "fr": "IA vocale active",
+    "it": "IA vocale attiva",
+    "de": "Aktive Sprach-KI",
+    "ja": "アクティブ音声AI",
+    "ko": "음성 AI 활성화",
+    "zh": "语音 AI 已激活",
+    "ar": "الذكاء الاصطناعي الصوتي مفعل",
+    "ru": "Голосовой ИИ активен",
+    "tr": "Sesli Yapay Zeka Aktif",
+    "hi": "ध्वनि एआई सक्रिय"
+  },
+
+  // Quick Dishes
+  "inteligência culinária instantânea": {
+    "en": "Instant Culinary Intelligence",
+    "es": "Inteligencia Culinaria Instantánea",
+    "fr": "Intelligence culinaire instantanée",
+    "it": "Intelligenza culinaria istantanea",
+    "de": "Sofortige kulinarische Intelligenz",
+    "ja": "インスタント料理AI",
+    "ko": "즉석 요리 인공지능",
+    "zh": "即时烹饪智能",
+    "ar": "ذكاء الطهي الفوري",
+    "ru": "Мгновенный кулинарный ИИ",
+    "tr": "Anında Mutfak Zekası",
+    "hi": "त्वरित पाक बुद्धिमत्ता"
+  },
+  "pratos rápidos com ia": {
+    "en": "Quick Dishes with AI",
+    "es": "Platos Rápidos con IA",
+    "fr": "Plats rapides avec l'IA",
+    "it": "Piatti veloci con IA",
+    "de": "Schnelle Gerichte mit KI",
+    "ja": "AIクイックディッシュ",
+    "ko": "AI 간편 요리",
+    "zh": "AI 快捷菜肴",
+    "ar": "أطباق سريعة مع الذكاء الاصطناعي",
+    "ru": "Быстрые блюда с ИИ",
+    "tr": "Yapay Zeka ile Hızlı Yemekler",
+    "hi": "एआई के साथ त्वरित व्यंजन"
+  },
+  "gerar outras 3": {
+    "en": "Generate 3 More",
+    "es": "Generar otras 3",
+    "fr": "Générer 3 autres",
+    "it": "Genera altre 3",
+    "de": "3 weitere generieren",
+    "ja": "別の3品を生成",
+    "ko": "다른 3가지 생성",
+    "zh": "生成另外3道",
+    "ar": "إنشاء 3 خيارات أخرى",
+    "ru": "Сгенерировать еще 3",
+    "tr": "Başka 3 tane oluştur",
+    "hi": "3 और उत्पन्न करें"
+  },
+  "ver modo preparo": {
+    "en": "View Instructions",
+    "es": "Ver preparación",
+    "fr": "Voir les instructions",
+    "it": "Vedi preparazione",
+    "de": "Zubereitung ansehen",
+    "ja": "作り方を見る",
+    "ko": "조리법 보기",
+    "zh": "查看制作方法",
+    "ar": "عرض طريقة التحضير",
+    "ru": "Посмотреть рецепт",
+    "tr": "Hazırlanışı gör",
+    "hi": "विधि देखें"
+  },
+  "adicionar ingredientes": {
+    "en": "Add Ingredients",
+    "es": "Añadir ingredientes",
+    "fr": "Ajouter les ingrédients",
+    "it": "Aggiungi ingredienti",
+    "de": "Zutaten hinzufügen",
+    "ja": "材料を追加",
+    "ko": "재료 추가",
+    "zh": "添加食材",
+    "ar": "إضافة المكونات",
+    "ru": "Добавить ингредиенты",
+    "tr": "Malzemeleri ekle",
+    "hi": "सामग्री जोड़ें"
+  },
+  "salvar receita": {
+    "en": "Save Recipe",
+    "es": "Guardar receta",
+    "fr": "Enregistrer la recette",
+    "it": "Salva ricetta",
+    "de": "Rezept speichern",
+    "ja": "レシピを保存",
+    "ko": "레시피 저장",
+    "zh": "保存菜谱",
+    "ar": "حفظ الوصفة",
+    "ru": "Сохранить рецепт",
+    "tr": "Tarifi kaydet",
+    "hi": "रेसिपी सहेजें"
+  },
+
+  // Smart Fridge & Garden & Herbs
+  "geladeira inteligente": {
+    "en": "Smart Fridge",
+    "es": "Nevera Inteligente",
+    "fr": "Frigo Intelligent",
+    "it": "Frigorifero Intelligente",
+    "de": "Smarter Kühlschrank",
+    "ja": "スマート冷蔵庫",
+    "ko": "스마트 냉장고",
+    "zh": "智能冰箱",
+    "ar": "الثلاجة الذكية",
+    "ru": "Умный холодильник",
+    "tr": "Akıllı Buzdolabı",
+    "hi": "स्मार्ट फ्रिज"
+  },
+  "geladeira": {
+    "en": "Fridge",
+    "es": "Nevera",
+    "fr": "Réfrigérateur",
+    "it": "Frigorifero",
+    "de": "Kühlschrank",
+    "ja": "冷蔵庫",
+    "ko": "냉장고",
+    "zh": "冰箱",
+    "ar": "ثلاجة",
+    "ru": "Холодильник",
+    "tr": "Buzdolabı",
+    "hi": "फ्रिज"
+  },
+  "instrutor 3d": {
+    "en": "3D Coach",
+    "es": "Entrenador 3D",
+    "fr": "Coach 3D",
+    "it": "Coach 3D",
+    "de": "3D-Trainer",
+    "ja": "3Dコーチ",
+    "ko": "3D 코치",
+    "zh": "3D 教练",
+    "ar": "مدرب ثلاثي الأبعاد",
+    "ru": "3D Тренер",
+    "tr": "3D Antrenör",
+    "hi": "3D कोच"
+  },
+  "guia 3d": {
+    "en": "3D Guide",
+    "es": "Guía 3D",
+    "fr": "Guide 3D",
+    "it": "Guida 3D",
+    "de": "3D-Anleitung",
+    "ja": "3Dガイド",
+    "ko": "3D 가이드",
+    "zh": "3D 指南",
+    "ar": "دليل ثلاثي الأبعاد",
+    "ru": "3D Гид",
+    "tr": "3D Rehber",
+    "hi": "3D गाइड"
+  },
+  "anatomia 3d": {
+    "en": "3D Anatomy",
+    "es": "Anatomía 3D",
+    "fr": "Anatomie 3D",
+    "it": "Anatomia 3D",
+    "de": "3D-Anatomie",
+    "ja": "3D解剖学",
+    "ko": "3D 해부학",
+    "zh": "3D 解剖学",
+    "ar": "تشريح ثلاثي الأبعاد",
+    "ru": "3D Анатомия",
+    "tr": "3D Anatomi",
+    "hi": "3D एनाटॉमी"
+  },
+  "simulador 3d": {
+    "en": "3D Simulator",
+    "es": "Simulador 3D",
+    "fr": "Simulateur 3D",
+    "it": "Simulatore 3D",
+    "de": "3D-Simulator",
+    "ja": "3Dシミュレーター",
+    "ko": "3D 시뮬레이터",
+    "zh": "3D 身材模拟",
+    "ar": "محاكي ثلاثي الأبعاد",
+    "ru": "3D Симулятор",
+    "tr": "3D Simülatör",
+    "hi": "3D सिम्युलेटर"
+  },
+  "projeção 3d inteligente": {
+    "en": "Smart 3D Projection",
+    "es": "Proyección 3D Inteligente",
+    "fr": "Projection 3D Intelligente",
+    "it": "Proiezione 3D Intelligente",
+    "de": "Intelligente 3D-Projektion",
+    "ja": "スマート3Dプロジェクション",
+    "ko": "스마트 3D 투영",
+    "zh": "智能 3D 投影",
+    "ar": "إسقاط ذكي ثلاثي الأبعاد",
+    "ru": "Умная 3D-проекция",
+    "tr": "Akıllı 3D Projeksiyon",
+    "hi": "स्मार्ट 3D प्रक्षेपण"
+  },
+  "simulação evolutiva": {
+    "en": "Evolutionary Simulation",
+    "es": "Simulación Evolutiva",
+    "fr": "Simulation Évolutive",
+    "it": "Simulazione Evolutiva",
+    "de": "Evolutionssimulation",
+    "ja": "進化シミュレーション",
+    "ko": "진화 시뮬레이션",
+    "zh": "身材演化模拟",
+    "ar": "المحاكاة التطورية",
+    "ru": "Эволюционная симуляция",
+    "tr": "Gelişim Simülasyonu",
+    "hi": "विकासवादी सिमुलेशन"
+  },
+  "simulação 3d em tempo real": {
+    "en": "Real-time 3D Simulation",
+    "es": "Simulación 3D en Tiempo Real",
+    "fr": "Simulation 3D en Temps Réel",
+    "it": "Simulazione 3D in Tempo Reale",
+    "de": "Echtzeit-3D-Simulation",
+    "ja": "リアルタイム3Dシミュレーション",
+    "ko": "실시간 3D 시뮬레이션",
+    "zh": "实时 3D 模拟",
+    "ar": "محاكاة ثلاثية الأبعاد في الوقت الحقيقي",
+    "ru": "3D-симуляция в реальном времени",
+    "tr": "Gerçek Zamanlı 3D Simülasyon",
+    "hi": "रीयल-टाइम 3D सिमुलेशन"
+  },
+  "ajustar meu plano": {
+    "en": "Adjust My Plan",
+    "es": "Ajustar Mi Plan",
+    "fr": "Ajuster Mon Plan",
+    "it": "Modifica Il Mio Piano",
+    "de": "Meinen Plan Anpassen",
+    "ja": "プランを調整",
+    "ko": "내 계획 수정",
+    "zh": "调整我的计划",
+    "ar": "تعديل خطتي",
+    "ru": "Настроить мой план",
+    "tr": "Planımı Düzenle",
+    "hi": "मेरी योजना समायोजित करें"
+  },
+  "relatório pdf": {
+    "en": "PDF Report",
+    "es": "Informe PDF",
+    "fr": "Rapport PDF",
+    "it": "Report PDF",
+    "de": "PDF-Bericht",
+    "ja": "PDFレポート",
+    "ko": "PDF 보고서",
+    "zh": "PDF 报告",
+    "ar": "تقرير PDF",
+    "ru": "PDF Отчет",
+    "tr": "PDF Raporu",
+    "hi": "पीडीएफ रिपोर्ट"
+  },
+  "horta": {
+    "en": "Garden",
+    "es": "Huerto",
+    "fr": "Potager",
+    "it": "Orto",
+    "de": "Garten",
+    "ja": "菜園",
+    "ko": "텃밭",
+    "zh": "果蔬园",
+    "ar": "حديقة",
+    "ru": "Огород",
+    "tr": "Bahçe",
+    "hi": "बगीचा"
+  },
+  "ervas": {
+    "en": "Herbs",
+    "es": "Hierbas",
+    "fr": "Herbes",
+    "it": "Erbe",
+    "de": "Kräuter",
+    "ja": "ハーブ",
+    "ko": "허브",
+    "zh": "草本",
+    "ar": "أعشاب",
+    "ru": "Травы",
+    "tr": "Otlar",
+    "hi": "जड़ी-बूटियाँ"
+  },
+  "horta inteligente": {
+    "en": "Smart Garden",
+    "es": "Huerto Inteligente",
+    "fr": "Potager Intelligent",
+    "it": "Orto Intelligente",
+    "de": "Smarter Garten",
+    "ja": "スマート菜園",
+    "ko": "스마트 텃밭",
+    "zh": "智能果蔬园",
+    "ar": "الحديقة الذكية",
+    "ru": "Умный сад",
+    "tr": "Akıllı Bahçe",
+    "hi": "स्मार्ट गार्डन"
+  },
+  "minha horta inteligente": {
+    "en": "My Smart Garden",
+    "es": "Mi Huerto Inteligente",
+    "fr": "Mon Potager Intelligent",
+    "it": "Il Mio Orto Intelligente",
+    "de": "Mein Smarter Garten",
+    "ja": "マイスマート菜園",
+    "ko": "나의 스마트 텃밭",
+    "zh": "我的智能果蔬园",
+    "ar": "حديقتي الذكية",
+    "ru": "Мой умный сад",
+    "tr": "Akıllı Bahçem",
+    "hi": "मेरा स्मार्ट गार्डन"
+  },
+  "horta caseira inteligente": {
+    "en": "Smart Home Garden",
+    "es": "Huerto Casero Inteligente",
+    "fr": "Potager Maison Intelligent",
+    "it": "Orto Domestico Intelligente",
+    "de": "Smarter Hausgarten",
+    "ja": "スマート家庭菜園",
+    "ko": "스마트 홈 텃밭",
+    "zh": "智能家庭果蔬园",
+    "ar": "الحديقة المنزلية الذكية",
+    "ru": "Умный домашний сад",
+    "tr": "Akıllı Ev Bahçesi",
+    "hi": "स्मार्ट होम गार्डन"
+  },
+  "guia de plantio": {
+    "en": "Planting Guide",
+    "es": "Guía de Siembra",
+    "fr": "Guide de Plantation",
+    "it": "Guida alla Semina",
+    "de": "Pflanzanleitung",
+    "ja": "栽培ガイド",
+    "ko": "재배 가이드",
+    "zh": "种植指南",
+    "ar": "دليل الزراعة",
+    "ru": "Руководство по посадке",
+    "tr": "Ekim Rehberi",
+    "hi": "रोपण गाइड"
+  },
+  "minha horta": {
+    "en": "My Garden",
+    "es": "Mi Huerto",
+    "fr": "Mon Jardin",
+    "it": "Il Mio Orto",
+    "de": "Mein Garten",
+    "ja": "私の菜園",
+    "ko": "나의 텃밭",
+    "zh": "我的果蔬园",
+    "ar": "حديقتي",
+    "ru": "Мой сад",
+    "tr": "Bahçem",
+    "hi": "मेरा बगीचा"
+  },
+  "diagnóstico botânico": {
+    "en": "Botanical Diagnosis",
+    "es": "Diagnóstico Botánico",
+    "fr": "Diagnostic Botanique",
+    "it": "Diagnosi Botanica",
+    "de": "Botanische Diagnose",
+    "ja": "植物診断",
+    "ko": "식물 진단",
+    "zh": "植物诊断",
+    "ar": "التشخيص النباتي",
+    "ru": "Ботаническая диагностика",
+    "tr": "Bitki Teşhisi",
+    "hi": "वानस्पतिक निदान"
+  },
+  "diagnóstico ia": {
+    "en": "AI Diagnosis",
+    "es": "Diagnóstico IA",
+    "fr": "Diagnostic IA",
+    "it": "Diagnosi IA",
+    "de": "KI-Diagnose",
+    "ja": "AI診断",
+    "ko": "AI 진단",
+    "zh": "AI 诊断",
+    "ar": "تشخيص الذكاء الاصطناعي",
+    "ru": "ИИ-диагностика",
+    "tr": "Yapay Zeka Teşhisi",
+    "hi": "एआई निदान"
+  },
+  "ervas medicinais": {
+    "en": "Medicinal Herbs",
+    "es": "Hierbas Medicinales",
+    "fr": "Herbes Médicinales",
+    "it": "Erbe Medicinali",
+    "de": "Heilkräuter",
+    "ja": "薬用ハーブ",
+    "ko": "약초 및 허브",
+    "zh": "草本植物",
+    "ar": "الأعشاب الطبية",
+    "ru": "Лекарственные травы",
+    "tr": "Şifalı Otlar",
+    "hi": "औषधीय जड़ी-बूटियाँ"
+  },
+  "adicionar alimento": {
+    "en": "Add Food",
+    "es": "Añadir Alimento",
+    "fr": "Ajouter un aliment",
+    "it": "Aggiungi cibo",
+    "de": "Lebensmittel hinzufügen",
+    "ja": "食材を追加",
+    "ko": "식품 추가",
+    "zh": "添加食材",
+    "ar": "إضافة طعام",
+    "ru": "Добавить продукт",
+    "tr": "Yiyecek ekle",
+    "hi": "भोजन जोड़ें"
+  },
+  "validade": {
+    "en": "Expiration Date",
+    "es": "Fecha de caducidad",
+    "fr": "Date de péremption",
+    "it": "Scadenza",
+    "de": "Haltbarkeit",
+    "ja": "賞味期限",
+    "ko": "유통기한",
+    "zh": "保质期",
+    "ar": "تاريخ الانتهاء",
+    "ru": "Срок годности",
+    "tr": "Son kullanma tarihi",
+    "hi": "समाप्ति तिथि"
+  },
+  "quantidade": {
+    "en": "Quantity",
+    "es": "Cantidad",
+    "fr": "Quantité",
+    "it": "Quantità",
+    "de": "Menge",
+    "ja": "数量",
+    "ko": "수량",
+    "zh": "数量",
+    "ar": "الكمية",
+    "ru": "Количество",
+    "tr": "Miktar",
+    "hi": "मात्रा"
+  },
+  "categoria": {
+    "en": "Category",
+    "es": "Categoría",
+    "fr": "Catégorie",
+    "it": "Categoria",
+    "de": "Kategorie",
+    "ja": "カテゴリー",
+    "ko": "카테고리",
+    "zh": "类别",
+    "ar": "الفئة",
+    "ru": "Категория",
+    "tr": "Kategori",
+    "hi": "श्रेणी"
+  },
+  "fresco": {
+    "en": "Fresh",
+    "es": "Fresco",
+    "fr": "Frais",
+    "it": "Fresco",
+    "de": "Frisch",
+    "ja": "新鮮",
+    "ko": "신선함",
+    "zh": "新鲜",
+    "ar": "طازج",
+    "ru": "Свежий",
+    "tr": "Taze",
+    "hi": "ताज़ा"
+  },
+  "vence em breve": {
+    "en": "Expiring Soon",
+    "es": "Vence pronto",
+    "fr": "Expire bientôt",
+    "it": "In scadenza",
+    "de": "Läuft bald ab",
+    "ja": "期限間近",
+    "ko": "곧 만료됨",
+    "zh": "即将过期",
+    "ar": "ينتهي قريباً",
+    "ru": "Скоро испортится",
+    "tr": "Yakında bitiyor",
+    "hi": "जल्द समाप्त होने वाला"
+  },
+  "vencido": {
+    "en": "Expired",
+    "es": "Vencido",
+    "fr": "Expiré",
+    "it": "Scaduto",
+    "de": "Abgelaufen",
+    "ja": "期限切れ",
+    "ko": "만료됨",
+    "zh": "已过期",
+    "ar": "منتهي الصلاحية",
+    "ru": "Истек срок",
+    "tr": "Süresi doldu",
+    "hi": "समाप्त"
+  },
+  "vegetais": {
+    "en": "Vegetables",
+    "es": "Vegetales",
+    "fr": "Légumes",
+    "it": "Verdure",
+    "de": "Gemüse",
+    "ja": "野菜",
+    "ko": "채소",
+    "zh": "蔬菜",
+    "ar": "الخضروات",
+    "ru": "Овощи",
+    "tr": "Sebzeler",
+    "hi": "सब्जियां"
+  },
+  "laticínios": {
+    "en": "Dairy",
+    "es": "Lácteos",
+    "fr": "Produits laitiers",
+    "it": "Latticini",
+    "de": "Milchprodukte",
+    "ja": "乳製品",
+    "ko": "유제품",
+    "zh": "乳制品",
+    "ar": "منتجات الألبان",
+    "ru": "Молочные продукты",
+    "tr": "Süt ürünleri",
+    "hi": "डेयरी"
+  },
+  "bebidas": {
+    "en": "Beverages",
+    "es": "Bebidas",
+    "fr": "Boissons",
+    "it": "Bevande",
+    "de": "Getränke",
+    "ja": "飲み物",
+    "ko": "음료",
+    "zh": "饮料",
+    "ar": "المشروبات",
+    "ru": "Напитки",
+    "tr": "İçecekler",
+    "hi": "पेय पदार्थ"
+  },
+  "frutas": {
+    "en": "Fruits",
+    "es": "Frutas",
+    "fr": "Fruits",
+    "it": "Frutta",
+    "de": "Früchte",
+    "ja": "果物",
+    "ko": "과일",
+    "zh": "水果",
+    "ar": "الفواكه",
+    "ru": "Фрукты",
+    "tr": "Meyveler",
+    "hi": "फल"
+  },
+  "condimentos": {
+    "en": "Condiments",
+    "es": "Condimentos",
+    "fr": "Condiments",
+    "it": "Condimenti",
+    "de": "Gewürze",
+    "ja": "調味料",
+    "ko": "양념 및 소스",
+    "zh": "调味料",
+    "ar": "التوابل",
+    "ru": "Приправы",
+    "tr": "Baharatlar",
+    "hi": "मसाले"
+  },
+  "outros": {
+    "en": "Others",
+    "es": "Otros",
+    "fr": "Autres",
+    "it": "Altri",
+    "de": "Andere",
+    "ja": "その他",
+    "ko": "기타",
+    "zh": "其他",
+    "ar": "أخرى",
+    "ru": "Другое",
+    "tr": "Diğer",
+    "hi": "अन्य"
+  },
+
+  // Subscriptions & VIP
+  "planos & assinaturas": {
+    "en": "Plans & Subscriptions",
+    "es": "Planes y Suscripciones",
+    "fr": "Forfaits & Abonnements",
+    "it": "Piani e Abbonamenti",
+    "de": "Pläne & Abonnements",
+    "ja": "プランとサブスクリプション",
+    "ko": "요금제 및 구독",
+    "zh": "方案与订阅",
+    "ar": "الخطط والاشتراكات",
+    "ru": "Тарифы и подписки",
+    "tr": "Planlar ve Abonelikler",
+    "hi": "योजनाएं और सदस्यता"
+  },
+  "cancele quando quiser": {
+    "en": "Cancel anytime",
+    "es": "Cancele cuando desee",
+    "fr": "Annulez quand vous voulez",
+    "it": "Annulla quando vuoi",
+    "de": "Jederzeit kündbar",
+    "ja": "いつでもキャンセル可能",
+    "ko": "언제든지 취소 가능",
+    "zh": "随时可以取消",
+    "ar": "إلغاء في أي وقت",
+    "ru": "Отмена в любой момент",
+    "tr": "İstediğiniz zaman iptal edin",
+    "hi": "कभी भी रद्द करें"
+  },
+  "teste grátis": {
+    "en": "Free Trial",
+    "es": "Prueba Gratis",
+    "fr": "Essai Gratuit",
+    "it": "Prova Gratuita",
+    "de": "Kostenlose Testversion",
+    "ja": "無料トライアル",
+    "ko": "무료 체험",
+    "zh": "免费试用",
+    "ar": "تجربة مجانية",
+    "ru": "Бесплатная пробная версия",
+    "tr": "Ücretsiz Deneme",
+    "hi": "मुफ्त परीक्षण"
+  },
+  "plano pro": {
+    "en": "PRO Plan",
+    "es": "Plan PRO",
+    "fr": "Plan PRO",
+    "it": "Piano PRO",
+    "de": "PRO-Plan",
+    "ja": "PROプラン",
+    "ko": "PRO 요금제",
+    "zh": "PRO 方案",
+    "ar": "خطة برو",
+    "ru": "Тариф PRO",
+    "tr": "PRO Plan",
+    "hi": "प्रो योजना"
+  },
+  "plano premium": {
+    "en": "Premium Plan",
+    "es": "Plan Premium",
+    "fr": "Plan Premium",
+    "it": "Piano Premium",
+    "de": "Premium-Plan",
+    "ja": "プレミアムプラン",
+    "ko": "프리미엄 요금제",
+    "zh": "高级方案",
+    "ar": "الخطة المميزة",
+    "ru": "Премиум тариф",
+    "tr": "Premium Plan",
+    "hi": "प्रीमियम योजना"
+  },
+  "economia real": {
+    "en": "Real Savings",
+    "es": "Ahorro Real",
+    "fr": "Économie réelle",
+    "it": "Risparmio reale",
+    "de": "Echte Ersparnis",
+    "ja": "確実な節約",
+    "ko": "실질적 절약",
+    "zh": "真实节省",
+    "ar": "توفير حقيقي",
+    "ru": "Реальная экономия",
+    "tr": "Gerçek Tasarruf",
+    "hi": "वास्तविक बचत"
   },
 
   // Auth, Login, Registration
@@ -218,16 +1772,7 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ar": "الطماطم، السبانخ الطازجة، الجزر، صدر الدجاج، الليمون والأفوكادو."
   },
   "todas": { "en": "All", "es": "Todas", "fr": "Toutes", "it": "Tutte", "de": "Alle", "ja": "すべて", "ko": "전체", "zh": "全部", "ar": "الكل" },
-  "todos": { "en": "All", "es": "Todos", "fr": "Tous", "it": "Tutti", "de": "Alle", "ja": "すべて", "ko": "전체", "zh": "全部", "ar": "الكل" },
-  "vegetais": { "en": "Vegetables", "es": "Vegetales", "fr": "Légumes", "it": "Verdure", "de": "Gemüse", "ja": "野菜", "ko": "채소", "zh": "蔬菜", "ar": "خضروات" },
-  "proteínas": { "en": "Proteins", "es": "Proteínas", "fr": "Protéines", "it": "Proteine", "de": "Proteine", "ja": "タンパク質", "ko": "단백질", "zh": "蛋白质", "ar": "بروتينات" },
-  "laticínios": { "en": "Dairy", "es": "Lácteos", "fr": "Laitages", "it": "Latticini", "de": "Milchprodukte", "ja": "乳製品", "ko": "유제품", "zh": "乳制品", "ar": "منتجات الألبان" },
-  "bebidas": { "en": "Drinks", "es": "Bebidas", "fr": "Boissons", "it": "Bevande", "de": "Getränke", "ja": "飲み物", "ko": "음료", "zh": "饮料", "ar": "مشروبات" },
-  "condimentos": { "en": "Condiments", "es": "Condimentos", "fr": "Condiments", "it": "Condimenti", "de": "Gewürze", "ja": "調味料", "ko": "조미료", "zh": "调味品", "ar": "توابل" },
-  "outros": { "en": "Others", "es": "Otros", "fr": "Autres", "it": "Altri", "de": "Andere", "ja": "その他", "ko": "기타", "zh": "其他", "ar": "أخرى" },
-  "fresco": { "en": "Fresh", "es": "Fresco", "fr": "Frais", "it": "Fresco", "de": "Frisch", "ja": "新鮮", "ko": "신선함", "zh": "新鲜", "ar": "طازج" },
   "perto_vencimento": { "en": "Expiring Soon", "es": "Pronto a vencer", "fr": "Expire bientôt", "it": "In scadenza", "de": "Bald ablaufend", "ja": "まもなく賞味期限", "ko": "만료 임박", "zh": "即将过期", "ar": "قريب الانتهاء" },
-  "vencido": { "en": "Expired", "es": "Vencido", "fr": "Expiré", "it": "Scaduto", "de": "Abgelaufen", "ja": "賞味期限切れ", "ko": "만료됨", "zh": "已过期", "ar": "منتهي الصلاحية" },
 
   // Banners, Market & Cards
   "cesta fresh da semana": {
@@ -361,99 +1906,63 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ko": "일상에 편리함과 건강을 더하세요.",
     "zh": "日常生活中的便利与健康。",
     "ar": "العملية والصحة في حياتك اليومية."
-  },
-
-  // Premium / Pricing Modal
-  "economia real": {
-    "en": "Real Savings",
-    "es": "Ahorro Real",
-    "fr": "Économies Réelles",
-    "it": "Risparmio Reale",
-    "de": "Echte Ersparnisse",
-    "ja": "本物の節約",
-    "ko": "실제 비용 절감",
-    "zh": "真实节省",
-    "ar": "توفير حقيقي"
-  },
-  "cancelar quando quiser": {
-    "en": "Cancel anytime",
-    "es": "Cancele cuando desee",
-    "fr": "Annuler quand vous voulez",
-    "it": "Annulla quando vuoi",
-    "de": "Jederzeit kündbar",
-    "ja": "いつでもキャンセル可能",
-    "ko": "언제든지 취소 가능",
-    "zh": "随时可以取消",
-    "ar": "إلغاء في أي وقت"
-  },
-  "teste grátis": {
-    "en": "Free Trial",
-    "es": "Prueba Gratis",
-    "fr": "Essai Gratuit",
-    "it": "Prova Gratuita",
-    "de": "Kostenlose Testversion",
-    "ja": "無料トライアル",
-    "ko": "무료 체험",
-    "zh": "免费试用",
-    "ar": "تجربة مجانية"
-  },
-  "plano pro": {
-    "en": "PRO Plan",
-    "es": "Plan PRO",
-    "fr": "Plan PRO",
-    "it": "Piano PRO",
-    "de": "PRO-Plan",
-    "ja": "PROプラン",
-    "ko": "PRO 요금제",
-    "zh": "PRO 计划",
-    "ar": "خطة برو"
-  },
-  "plano premium": {
-    "en": "Premium Plan",
-    "es": "Plan Premium",
-    "fr": "Plan Premium",
-    "it": "Piano Premium",
-    "de": "Premium-Plan",
-    "ja": "プレミアムプラン",
-    "ko": "프리미엄 요금제",
-    "zh": "高级计划",
-    "ar": "الخطة المميزة"
   }
 };
 
 export function AutoTranslator() {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
 
-  // Load standard translation dictionary from common.json files inside i18n bundles
+  // Load comprehensive bidirectional translation dictionary across all languages
   const translationMap = useMemo(() => {
     const currentLang = i18n.language || 'pt-BR';
     const cleanLang = currentLang.split('-')[0];
-    
-    // Retrieve Portuguese bundle as the source keys
-    const ptBundle = i18n.getResourceBundle('pt-BR', 'common') || {};
-    
-    // Retrieve active bundle
-    const activeBundle = i18n.getResourceBundle(currentLang, 'common') || 
-                         i18n.getResourceBundle(cleanLang, 'common') || 
-                         i18n.getResourceBundle('en', 'common') || {};
+    const isPortuguese = currentLang.startsWith('pt');
 
     const map = new Map<string, string>();
 
-    // 1. Map standard i18n keys
-    for (const key of Object.keys(ptBundle)) {
-      const ptText = ptBundle[key];
-      const activeText = activeBundle[key];
-      if (ptText && activeText && ptText !== activeText) {
-        map.set(ptText.toLowerCase().trim(), activeText);
+    // 1. Process all entries in RUNTIME_DICTIONARY
+    for (const rawPtKey of Object.keys(RUNTIME_DICTIONARY)) {
+      const translations = RUNTIME_DICTIONARY[rawPtKey];
+      const targetText = isPortuguese 
+        ? rawPtKey 
+        : (translations[cleanLang] || translations[currentLang] || translations['en'] || rawPtKey);
+
+      if (targetText && typeof targetText === 'string') {
+        // Map Portuguese key to target language
+        map.set(rawPtKey.toLowerCase().trim(), targetText);
+
+        // Map every translation variant across all languages directly to target language
+        for (const langCode of Object.keys(translations)) {
+          const otherLangText = translations[langCode];
+          if (otherLangText && typeof otherLangText === 'string') {
+            map.set(otherLangText.toLowerCase().trim(), targetText);
+          }
+        }
       }
     }
 
-    // 2. Overlay runtime custom dictionary overrides
-    for (const rawPtKey of Object.keys(RUNTIME_DICTIONARY)) {
-      const translations = RUNTIME_DICTIONARY[rawPtKey];
-      const activeText = translations[cleanLang] || translations[currentLang] || translations['en'];
-      if (activeText) {
-        map.set(rawPtKey.toLowerCase().trim(), activeText);
+    // 2. Process all locale bundles in localesMap
+    const targetBundle = localesMap[currentLang] || localesMap[cleanLang] || localesMap['pt-BR'] || {};
+    const ptBundle = localesMap['pt-BR'] || {};
+
+    const allKeys = new Set<string>();
+    for (const bundle of Object.values(localesMap)) {
+      if (bundle && typeof bundle === 'object') {
+        Object.keys(bundle).forEach(k => allKeys.add(k));
+      }
+    }
+
+    for (const key of allKeys) {
+      const targetText = isPortuguese 
+        ? (ptBundle[key] || key)
+        : (targetBundle[key] || localesMap['en-US']?.[key] || ptBundle[key] || key);
+
+      if (targetText && typeof targetText === 'string') {
+        for (const bundle of Object.values(localesMap)) {
+          if (bundle && bundle[key] && typeof bundle[key] === 'string') {
+            map.set(bundle[key].toLowerCase().trim(), targetText);
+          }
+        }
       }
     }
 
@@ -476,26 +1985,59 @@ export function AutoTranslator() {
       document.body.classList.remove('rtl-layout');
     }
 
-    // If active language is Portuguese, do not trigger heavy translation scans
-    if (currentLang.startsWith('pt')) return;
-
-    // Helper to translate single string safely
+    // Helper to translate single string safely with smart punctuation and emoji preservation
     const translateString = (str: string): string => {
-      const clean = str.trim();
-      if (!clean) return str;
+      if (!str || typeof str !== 'string') return str;
+      const trimmed = str.trim();
+      if (!trimmed) return str;
 
-      const lower = clean.toLowerCase();
-      
-      // Match exact phrases
+      const prefix = str.slice(0, str.indexOf(trimmed));
+      const suffix = str.slice(str.indexOf(trimmed) + trimmed.length);
+
+      // 1. Check exact match
+      const lower = trimmed.toLowerCase();
       if (translationMap.has(lower)) {
         const match = translationMap.get(lower)!;
-        // Keep original trailing spacing if any
-        const prefix = str.startsWith(' ') ? ' ' : '';
-        const suffix = str.endsWith(' ') ? ' ' : '';
         return prefix + match + suffix;
       }
 
-      // If no exact match, return original
+      // 2. Check for surrounding emojis or leading/trailing symbols (e.g., "🍳 Hora de cozinhar!", "✨ Receitas", "🌱 智能果蔬园")
+      const emojiRegex = /^([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)(.*?)([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)?$/u;
+      const matchEmoji = trimmed.match(emojiRegex);
+      if (matchEmoji && matchEmoji[2] && matchEmoji[2].trim().length > 0) {
+        const coreText = matchEmoji[2].trim();
+        const coreLower = coreText.toLowerCase();
+        if (translationMap.has(coreLower)) {
+          const translatedCore = translationMap.get(coreLower)!;
+          const lead = matchEmoji[1] || '';
+          const trail = matchEmoji[3] || '';
+          return prefix + lead + translatedCore + trail + suffix;
+        }
+      }
+
+      // 3. Check for trailing punctuation (e.g., "Calorias:", "Salvo com sucesso!", "Esqueceu sua senha?")
+      const punctRegex = /^(.+?)([:!?,.;]+)$/;
+      const matchPunct = trimmed.match(punctRegex);
+      if (matchPunct && matchPunct[1]) {
+        const coreText = matchPunct[1].trim();
+        const coreLower = coreText.toLowerCase();
+        if (translationMap.has(coreLower)) {
+          const translatedCore = translationMap.get(coreLower)!;
+          return prefix + translatedCore + matchPunct[2] + suffix;
+        }
+      }
+
+      // 4. Check for parentheses (e.g., "(Fácil)", "(35g+)")
+      if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+        const inner = trimmed.slice(1, -1).trim();
+        const innerLower = inner.toLowerCase();
+        if (translationMap.has(innerLower)) {
+          const translatedInner = translationMap.get(innerLower)!;
+          return prefix + `(${translatedInner})` + suffix;
+        }
+      }
+
+      // If no match, return original text safely
       return str;
     };
 
@@ -509,34 +2051,33 @@ export function AutoTranslator() {
           return;
         }
 
-        // Translate inputs and placeholder attributes
+        // Translate attributes if applicable
         const placeholder = el.getAttribute('placeholder');
         if (placeholder) {
           const trans = translateString(placeholder);
-          if (trans !== placeholder) el.setAttribute('placeholder', trans);
+          if (trans && trans !== placeholder) el.setAttribute('placeholder', trans);
         }
 
         const title = el.getAttribute('title');
         if (title) {
           const trans = translateString(title);
-          if (trans !== title) el.setAttribute('title', trans);
+          if (trans && trans !== title) el.setAttribute('title', trans);
         }
 
-        // Translate alt texts on images
         const alt = el.getAttribute('alt');
         if (alt) {
           const trans = translateString(alt);
-          if (trans !== alt) el.setAttribute('alt', trans);
+          if (trans && trans !== alt) el.setAttribute('alt', trans);
         }
       }
 
       // Translate text nodes
       if (node.nodeType === Node.TEXT_NODE) {
-        const val = node.nodeValue;
-        if (val && val.trim().length > 0) {
-          const translated = translateString(val);
-          if (translated !== val) {
-            node.nodeValue = translated;
+        const currentVal = node.nodeValue;
+        if (currentVal && currentVal.trim().length > 0) {
+          const targetText = translateString(currentVal);
+          if (targetText && targetText !== currentVal) {
+            node.nodeValue = targetText;
           }
         }
       }
@@ -563,12 +2104,12 @@ export function AutoTranslator() {
             walkAndTranslate(node);
           });
         } else if (mutation.type === 'characterData') {
-          // Check text data mutation
-          const val = mutation.target.nodeValue;
-          if (val && val.trim().length > 0) {
-            const translated = translateString(val);
-            if (translated !== val) {
-              mutation.target.nodeValue = translated;
+          const targetNode = mutation.target;
+          const currentVal = targetNode.nodeValue;
+          if (currentVal && currentVal.trim().length > 0) {
+            const targetText = translateString(currentVal);
+            if (targetText && targetText !== currentVal) {
+              targetNode.nodeValue = targetText;
             }
           }
         } else if (mutation.type === 'attributes') {
@@ -578,7 +2119,7 @@ export function AutoTranslator() {
             const val = el.getAttribute(attr);
             if (val) {
               const trans = translateString(val);
-              if (trans !== val) el.setAttribute(attr, trans);
+              if (trans && trans !== val) el.setAttribute(attr, trans);
             }
           }
         }

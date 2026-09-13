@@ -3,6 +3,7 @@ import { textToSpeech } from './gemini';
 
 export interface SpeechOptions {
   voice?: string;
+  lang?: string;
   rate?: number;
   pitch?: number;
   onEnded?: () => void;
@@ -37,6 +38,11 @@ export const stopSpeech = () => {
       activeAudio = null;
     } catch (e) {}
   }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
 };
 
 export const speak = async (text: string, options?: SpeechOptions) => {
@@ -48,6 +54,10 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   const trimmedText = text.trim();
   const lower = trimmedText.toLowerCase();
 
+  // Active language resolution
+  const activeLang = options?.lang || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+  const isPt = activeLang.toLowerCase().startsWith('pt');
+
   // Stop any and all previous audio/speech instantly to prevent overlapping voices
   stopSpeech();
 
@@ -55,24 +65,24 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   const speechId = currentSpeechId;
 
   try {
-    // 0. Pre-cached authentic Malu (Aoede) recordings for instant 0ms single-voice playback
+    // 0. Pre-cached authentic Malu (Aoede) recordings for instant 0ms playback (PT-BR only)
     let audioUrl: string | null = null;
 
-    if (lower === 'nutri ai' || lower === 'nutriai') {
+    if (isPt && (lower === 'nutri ai' || lower === 'nutriai')) {
       audioUrl = '/audio/nutri_ai_malu.wav';
-    } else if (lower.includes('bom dia')) {
+    } else if (isPt && lower.includes('bom dia')) {
       audioUrl = '/audio/greeting_morning_malu.wav';
-    } else if (lower.includes('boa tarde')) {
+    } else if (isPt && lower.includes('boa tarde')) {
       audioUrl = '/audio/greeting_afternoon_malu.wav';
-    } else if (lower.includes('boa noite')) {
+    } else if (isPt && lower.includes('boa noite')) {
       audioUrl = '/audio/greeting_evening_malu.wav';
-    } else if (lower.includes('vou ficar por aqui') || lower.includes('quando precisar') || lower.includes('é só chamar')) {
+    } else if (isPt && (lower.includes('vou ficar por aqui') || lower.includes('quando precisar') || lower.includes('é só chamar'))) {
       audioUrl = '/audio/goodbye_malu.wav';
-    } else if (lower.includes('feedback') || lower.includes('agradecer') || lower.includes('muito obrigada')) {
+    } else if (isPt && (lower.includes('feedback') || lower.includes('agradecer') || lower.includes('muito obrigada'))) {
       audioUrl = '/audio/feedback_thankyou_malu.wav';
     } else {
-      // 1. Fetch high-fidelity Malu (Aoede / Brazilian Portuguese natural voice) from backend
-      audioUrl = await textToSpeech(trimmedText);
+      // 1. Fetch high-fidelity Malu (Aoede voice in active language) from backend
+      audioUrl = await textToSpeech(trimmedText, activeLang);
     }
     
     // If another speech request arrived in the meantime, abort immediately
@@ -103,12 +113,11 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
 
       audio.onerror = (e) => {
-        console.warn("Audio element playback error:", e);
+        console.warn("Audio element playback error, attempting localized browser fallback:", e);
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        options?.onError?.(e);
-        options?.onEnded?.();
+        fallbackSpeak(trimmedText, { ...options, lang: activeLang });
       };
       
       try {
@@ -119,38 +128,45 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        options?.onError?.(playErr);
-        options?.onEnded?.();
-        return { method: 'none' as const };
+        return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
       }
     } else {
-      // Backend returned null - silence (per user rules to avoid mismatched robotic fallback)
-      options?.onEnded?.();
-      return { method: 'none' as const };
+      // Backend returned null - try localized browser fallback in active language
+      return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
-    options?.onError?.(error);
-    options?.onEnded?.();
-    return { method: 'none' as const };
+    return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
   }
 };
 
 export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
+  const activeLang = options?.lang || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+  const normLang = activeLang.toLowerCase().replace('_', '-');
+  const basePrefix = normLang.split('-')[0];
+
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     const voices = window.speechSynthesis.getVoices();
-    const ptVoice =
-      voices.find(v => {
-        const nameLower = v.name.toLowerCase();
-        const isPtBr = v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt');
-        return isPtBr && (nameLower.includes('natural') || nameLower.includes('neural') || nameLower.includes('online') || nameLower.includes('maria') || nameLower.includes('francisca') || nameLower.includes('female') || nameLower.includes('mulher') || nameLower.includes('luciana'));
-      }) ||
-      voices.find(v => v.lang.replace('_', '-').startsWith('pt-BR') || v.lang.startsWith('pt')) ||
-      voices[0];
+    
+    // 1. Exact match with preferred female/natural voice for the selected language
+    let matchedVoice = voices.find(v => {
+      const vLang = v.lang.toLowerCase().replace('_', '-');
+      const vName = v.name.toLowerCase();
+      return (vLang === normLang) && (vName.includes('natural') || vName.includes('neural') || vName.includes('online') || vName.includes('female') || vName.includes('google') || vName.includes('siri') || vName.includes('maria') || vName.includes('samantha') || vName.includes('monica') || vName.includes('victoria'));
+    }) || voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(normLang));
 
-    if (ptVoice || voices.length > 0) {
-      return executeBrowserTTS(text, options, ptVoice);
+    // 2. Base prefix match (e.g., 'es', 'en', 'fr', 'de', 'it', 'zh', 'ja', 'ko', 'hi', 'ar', 'tr', 'pt')
+    if (!matchedVoice) {
+      matchedVoice = voices.find(v => {
+        const vLang = v.lang.toLowerCase().replace('_', '-');
+        const vName = v.name.toLowerCase();
+        return (vLang.startsWith(basePrefix)) && (vName.includes('natural') || vName.includes('neural') || vName.includes('online') || vName.includes('female') || vName.includes('google'));
+      }) || voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(basePrefix));
+    }
+
+    if (matchedVoice || voices.length > 0) {
+      return executeBrowserTTS(text, { ...options, lang: activeLang }, matchedVoice || voices[0]);
     }
   }
 
@@ -161,13 +177,14 @@ export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
 const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?: SpeechSynthesisVoice) => {
   if (!('speechSynthesis' in window)) {
     options?.onError?.("Not supported");
-    return;
+    options?.onEnded?.();
+    return { method: 'none' as const };
   }
 
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'pt-BR';
+  utterance.lang = options?.lang || 'pt-BR';
   utterance.rate = options?.rate ?? 1.0; 
   utterance.pitch = options?.pitch ?? 1.0; 
   utterance.volume = 1.0;
@@ -177,15 +194,24 @@ const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?
   }
 
   if (options?.onEnded) {
-    utterance.onend = options.onEnded;
+    utterance.onend = () => options.onEnded?.();
   }
   
   if (options?.onError) {
-    utterance.onerror = (e) => options.onError?.(e);
+    utterance.onerror = (e) => {
+      options.onError?.(e);
+      options.onEnded?.();
+    };
   }
 
-  window.speechSynthesis.speak(utterance);
-  return { method: 'browser' as const, utterance };
+  try {
+    window.speechSynthesis.speak(utterance);
+    return { method: 'browser' as const, utterance };
+  } catch (e) {
+    console.warn("Browser TTS failed:", e);
+    options?.onEnded?.();
+    return { method: 'none' as const };
+  }
 };
 
 export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions) => {

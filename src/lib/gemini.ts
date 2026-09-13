@@ -1,16 +1,31 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison } from "../types";
+import { generateFallbackComparison } from "../data/foodNutritionDatabase";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const currentLang = (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+
+  const processedArgs = (args || []).map(arg => {
+    if (arg && typeof arg === 'object' && !Array.isArray(arg) && ('goals' in arg || 'restrictions' in arg || 'language' in arg || 'bodyType' in arg)) {
+      return {
+        ...arg,
+        language: currentLang,
+        preferred_language: currentLang
+      };
+    }
+    return arg;
+  });
 
   try {
     const response = await fetch('/api/gemini', {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-app-language": currentLang,
       },
-      body: JSON.stringify({ functionName, args }),
+      body: JSON.stringify({ functionName, args: processedArgs, language: currentLang }),
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
@@ -99,10 +114,11 @@ export const generateQuickDishes = async (
 
 import { safeGet, safeSet } from './storage';
 
-export const textToSpeech = async (text: string): Promise<string | null> => {
+export const textToSpeech = async (text: string, language?: string): Promise<string | null> => {
   if (!text || !text.trim()) return null;
+  const currentLang = language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
   const cleanKey = text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 40);
-  const cacheKey = `tts_v3_${cleanKey}`;
+  const cacheKey = `tts_v4_${currentLang}_${cleanKey}`;
   
   try {
     const cached = safeGet(cacheKey);
@@ -113,7 +129,7 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
 
   // 1. Try /api/gemini proxy
   try {
-    const res = await callGeminiEndpoint('textToSpeech', [text]);
+    const res = await callGeminiEndpoint('textToSpeech', [text, currentLang]);
     const audioData = typeof res === 'string' ? res : res?.audio || null;
     if (audioData) {
       safeSet(cacheKey, audioData);
@@ -127,8 +143,11 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
   try {
     const response = await fetch('/api/tts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-app-language': currentLang
+      },
+      body: JSON.stringify({ text, language: currentLang }),
     });
     if (response.ok) {
       const data = await response.json();
@@ -608,6 +627,23 @@ export const generateSmartSwap = async (
     ],
     assistantMessage: `Essa substituição para ${cleanFood} é uma escolha inteligente e saborosa! Pequenas mudanças consistentes transformam totalmente a sua saúde e disposição.`
   };
+};
+
+export const compareFoodsNutrition = async (
+  foodA: string,
+  foodB: string,
+  profile?: UserProfile | null
+): Promise<FoodNutritionComparison> => {
+  try {
+    const result = await callGeminiEndpoint('compareFoodsNutrition', [foodA, foodB, profile]);
+    if (result && result.foodA && result.foodB) {
+      return result;
+    }
+  } catch (err) {
+    console.warn('compareFoodsNutrition endpoint failed, using client fallback:', err);
+  }
+
+  return generateFallbackComparison(foodA, foodB);
 };
 
 export const generateGoalPrediction = async (

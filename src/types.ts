@@ -85,6 +85,7 @@ export interface UserProfile {
   photoURL?: string;
   id?: string;
   language?: string;
+  preferred_language?: string;
   address?: string;
   preferences?: string;
   restrictions: string[];
@@ -385,12 +386,34 @@ export interface CulinaryChallenge {
   completedDays?: number;
 }
 
+export interface FoodNutrientProfile {
+  name: string;
+  portion: string; // ex: "100g", "1 unidade (50g)", "1 porção (150g)"
+  calories: number; // kcal
+  protein: number; // g
+  carbs: number; // g
+  fat: number; // g
+  fiber: number; // g
+  sugar?: number; // g
+  sodium?: number; // mg
+}
+
+export interface FoodNutritionComparison {
+  foodA: FoodNutrientProfile;
+  foodB: FoodNutrientProfile;
+  winner?: 'A' | 'B' | 'tie';
+  verdict: string;
+  keyDifferences: string[];
+  assistantMessage?: string;
+}
+
 export interface SmartSwap {
   original: string;
   substitute: string;
   reason: string;
   benefits: string[];
   assistantMessage: string;
+  nutritionComparison?: FoodNutritionComparison;
 }
 
 export interface DiningOutAnalysis {

@@ -17,20 +17,18 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
   const { i18n, t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleLanguageChange = async (code: string) => {
+  const handleLanguageChange = async (targetLng: string) => {
     playSfx('success');
     vibrate(30);
     
-    // Normalize code for pt
-    const normalizedCode = code.startsWith('pt') ? 'pt-BR' : code;
-    
     // Use the comprehensive i18n change language helper
-    await changeLanguage(normalizedCode, supabase, profile?.id);
+    await changeLanguage(targetLng, supabase, profile?.id);
     
     if (profile && onSaveProfile) {
       onSaveProfile({
         ...profile,
-        language: normalizedCode
+        language: targetLng,
+        preferred_language: targetLng
       });
     }
   };
@@ -44,12 +42,13 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
   const hasResults = filtered.length > 0;
 
   const renderLanguageButton = (lng: LanguageOption) => {
-    // Check if selected. Respect subtags for variants (pt-BR vs pt-PT, en-US vs en-GB, es-ES vs es-MX)
-    const isSelected = i18n.language === lng.subtag || 
-                       (lng.subtag === 'pt-BR' && (i18n.language === 'pt' || i18n.language?.startsWith('pt-BR'))) ||
-                       (lng.subtag === 'en-US' && (i18n.language === 'en' || i18n.language?.startsWith('en-US'))) ||
-                       (lng.subtag === 'es-ES' && (i18n.language === 'es' || i18n.language?.startsWith('es-ES'))) ||
-                       (!['pt-BR', 'pt-PT', 'en-US', 'en-GB', 'en-CA', 'en-AU', 'es-ES', 'es-MX', 'es-AR', 'es-CL', 'es-CO', 'es-PE', 'es-UY', 'es-VE'].includes(lng.subtag) && i18n.language?.startsWith(lng.code));
+    const currentLang = i18n.language || 'pt-BR';
+    const isSelected = 
+      currentLang === lng.subtag ||
+      (lng.subtag === 'pt-BR' && currentLang === 'pt') ||
+      (lng.subtag === 'es-ES' && currentLang === 'es') ||
+      (lng.subtag === 'en-US' && currentLang === 'en') ||
+      (currentLang === lng.code && !lng.subtag);
 
     return (
       <motion.button
@@ -57,7 +56,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
         whileTap={{ scale: 0.99 }}
         key={lng.subtag}
         type="button"
-        onClick={() => handleLanguageChange(lng.code)}
+        onClick={() => handleLanguageChange(lng.subtag || lng.code)}
         className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all text-left outline-none cursor-pointer ${
           isSelected
             ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold'

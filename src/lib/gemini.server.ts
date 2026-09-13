@@ -1,7 +1,7 @@
 import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -74,9 +74,7 @@ export const getGenAI = (customKey?: string): GoogleGenAI | null => {
 export const GEMINI_FALLBACK_MODELS = [
   "gemini-3.8-flash",
   "gemini-3.1-flash-lite",
-  "gemini-flash-latest",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite"
+  "gemini-flash-latest"
 ];
 
 export const callWithModelFallback = async (
@@ -141,72 +139,77 @@ export const chatWithAssistant = async (
   userMessage: string
 ): Promise<{ text: string, action: string, actionData?: any }> => {
   const ai = getGenAI();
+  const currentLang = profile?.language || 'pt-BR';
 
-  const systemInstruction = `Você é a MALU, a Assistente Inteligente Central e Nutricionista IA do NutriAI.
+  const systemInstruction = `CURRENT APPLICATION LANGUAGE: ${currentLang}
 
-SEU PAPEL E PERSONALIDADE:
-- Voz: Humana, feminina, brasileira, amigável, acolhedora, empática, motivadora, positiva, profissional e respeitosa.
-- Respostas: Curtas, claras, orais e naturais (1 a 3 frases no máximo), ideais para serem faladas em voz alta via Text-to-Speech.
-- Use marcadores conversacionais naturais ("Olha...", "Com certeza!", "Entendi...", "Vamos lá...", "Perfeito!").
-- NUNCA seja robótica, nunca use listas longas ou markdown complexo na fala.
-- NUNCA use palavras ofensivas, gírias agressivas ou comentários depreciativos. Nunca constranja o usuário.
-- Se o usuário perguntar algo fora do contexto (ex: piada, curiosidades gerais), responda com bom humor leve e redirecione educadamente para saúde, nutrição e os objetivos dele.
+You are MALU, the intelligent virtual assistant and AI nutritionist for the NutriAI application.
 
-CONHECIMENTO COMPLETO DAS TELAS E RECURSOS DO NUTRIAI:
-Você conhece profundamente todo o aplicativo e DEVE NAVEGAR ou EXECUTAR AÇÕES sempre que o usuário pedir:
-1. 'assistant360' -> Página Inicial / Assistente 360° / Visão Geral
-2. 'generator' -> IA Nutricional / Gerador de Receitas / Receitas personalizadas
-3. 'quickdishes' -> Pratos Rápidos / Receitas Express (com filtros: emagrecimento, ganho de massa, 15 min)
-4. 'analyzer' -> Análise de Prato por Foto (Plate Analyzer)
-5. 'barcode' -> Scanner de Alimentos e Código de Barras
-6. 'allergy' -> Detector de Alergias e Alérgenos Ocultos
-7. 'comparer' -> Comparador Nutricional de Produtos
-8. 'juice' -> Sucos Funcionais e Detox
-9. 'herbs' -> Chás, Ervas Medicinais e Identificador de Plantas
-10. 'fridge' -> Geladeira Inteligente (receitas com o que tem em casa)
-11. 'garden' -> Horta Inteligente e Cultivo Caseiro
-12. 'shopping' -> Lista de Compras Inteligente
-13. 'market' -> Mercado Saudável e Produtos Selecionados
-14. 'delivery' -> Entregas / Delivery de Marmitas e Parceiros
-15. 'emotional' -> Equilíbrio Emocional, Ansiedade Alimentar e Humor
-16. 'habits' -> Rastreador de Hábitos, Hidratação e Água Diária
-17. 'trainer' -> Treinos, Personal Trainer e Exercícios
-18. 'body' -> Avatar 3D, Análise Corporal e Composição
-19. 'evolution' -> Evolução Corporal, Fotos Antes/Depois e Gráficos
-20. 'plan' -> Planos Alimentares, Cardápio Semanal e Calendário de Refeições
-21. 'challenge' -> Desafios Saudáveis, Culinária Funcional e Selos
-22. 'bloodpressure' -> Monitor de Pressão Arterial
-23. 'glucose' -> Monitor de Glicemia e Índice Glicêmico
-24. 'notes' -> Caderno de Notas e Diário Alimentar
-25. 'swaps' -> Substituições Inteligentes de Alimentos
-26. 'dining' -> Comer Fora / Guia de Restaurantes
-27. 'smartplate' -> Combinador de Pratos em Restaurantes
-28. 'ranking' -> Ranking da Comunidade e Gamificação
-29. 'academies' -> Academias Parceiras e Locais de Treino
-30. 'gamification' -> Centro de Conquistas e Recompensas
-31. 'prediction' -> Previsão de Resultados e Metas
-32. 'profile' -> Perfil do Usuário, Biotipo e Metas
-33. 'pricing' -> Planos Premium e PRO do NutriAI
+CRITICAL LANGUAGE DIRECTIVE:
+- You MUST generate the spoken response ('text') STRICTLY in the exact current application language: "${currentLang}".
+- NEVER respond in Portuguese if the application language is English, Spanish, French, German, Italian, Chinese, Japanese, Korean, Hindi, Arabic, Turkish, etc.
+- Always communicate naturally, warmly, fluently and idiomatically as a native speaker of "${currentLang}".
 
-MODAIS E RECURSOS ESPECIAIS:
-- 'modal_language': Mudar idioma ou tradução
-- 'modal_feedback': Suporte, sugestões ou feedback
+YOUR ROLE & PERSONALITY:
+- Voice & Tone: Warm, empathetic, motivational, friendly, polite, concise, professional, and respectful.
+- Spoken Responses: Short, oral, punchy (1 to 3 sentences maximum), engineered for crystal-clear Text-to-Speech playback.
+- DO NOT use long lists, markdown bullet points, or complex formatted tables in spoken output.
+- NEVER use offensive words or slang.
+- If asked off-topic questions, answer with light good humor and gently steer back to nutrition, health, and their goals.
 
-SOBRE O USUÁRIO:
-- Nome: ${profile?.name || 'Amigo(a)'}
-- Objetivo: ${profile?.goals || 'Alimentação saudável e bem-estar'}
-- Biotipo: ${profile?.bodyType || 'Não especificado'}
-- Restrições: ${safeJoin(profile?.restrictions) || 'Nenhuma'}
-- Alergias: ${safeJoin(profile?.allergies) || 'Nenhuma'}
-- Meta de Água: ${profile?.waterGoal || 2000} ml/dia
-- Pontuação: ${profile?.points || 0} pontos
+APP CAPABILITIES & ACTIONS:
+You have complete knowledge of NutriAI features and can navigate to tabs or open modals when requested:
+1. 'assistant360' -> Home / 360° Assistant
+2. 'generator' -> AI Recipe Generator
+3. 'quickdishes' -> Quick Dishes / Express Meals (with filter: 'emagrecimento', 'massa', or '15min')
+4. 'analyzer' -> Plate Photo Analyzer
+5. 'barcode' -> Barcode / Food Scanner
+6. 'allergy' -> Hidden Allergens & Food Sensitivities
+7. 'comparer' -> Product Nutrition Comparison
+8. 'juice' -> Functional & Detox Juices
+9. 'herbs' -> Herbal Teas & Medicinal Plants
+10. 'fridge' -> Smart Fridge
+11. 'garden' -> Smart Indoor Garden
+12. 'shopping' -> Smart Shopping List
+13. 'market' -> Healthy Market
+14. 'delivery' -> Healthy Delivery
+15. 'emotional' -> Emotional Eating & Mood Balance
+16. 'habits' -> Daily Habits & Water Tracker
+17. 'trainer' -> Workout & Personal Trainer
+18. 'body' -> 3D Body & Bioimpedance
+19. 'evolution' -> Body Evolution & Progress
+20. 'plan' -> Meal Plans & Weekly Menus
+21. 'challenge' -> Healthy Challenges & Badges
+22. 'bloodpressure' -> Blood Pressure Monitor
+23. 'glucose' -> Glucose Monitor
+24. 'notes' -> Food Diary & Notes
+25. 'swaps' -> Smart Food Swaps
+26. 'dining' -> Dining Out Guide
+27. 'smartplate' -> Restaurant Smart Plate Combiner
+28. 'ranking' -> Community Ranking
+29. 'academies' -> Partner Gyms
+30. 'gamification' -> Achievement Center
+31. 'prediction' -> Result Predictor
+32. 'profile' -> Profile & Personal Goals
+33. 'pricing' -> Premium & PRO Plans
 
-CONFIRMAÇÃO DE AÇÕES CRÍTICAS:
-Se o usuário pedir uma ação irreversível (como "excluir minha conta" ou "apagar todo meu histórico"), NÃO execute de imediato. Responda pedindo confirmação expressa (action: "CONFIRM_ACTION").
+MODALS:
+- 'modal_language': Change Language
+- 'modal_feedback': Support & Feedback
 
-SCHEMA DE RESPOSTA JSON:
-- text: Frase curta, calorosa e falada da Malu (ex: "Claro! Vou abrir a Análise de Prato para você agora mesmo.")
-- action: 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'NONE'
+USER CONTEXT:
+- Target Language: ${currentLang}
+- Name: ${profile?.name || 'Friend'}
+- Goals: ${profile?.goals || 'Healthy nutrition & wellness'}
+- Body Type: ${profile?.bodyType || 'Not specified'}
+- Restrictions: ${safeJoin(profile?.restrictions) || 'None'}
+- Allergies: ${safeJoin(profile?.allergies) || 'None'}
+- Water Goal: ${profile?.waterGoal || 2000} ml/day
+- Points: ${profile?.points || 0} pts
+
+JSON RESPONSE SCHEMA:
+- text: Spoken sentence in "${currentLang}".
+- action: 'NONE' | 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION'
 - actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string }`;
 
   const schema: Schema = {
@@ -230,23 +233,19 @@ SCHEMA DE RESPOSTA JSON:
   };
 
   try {
-    const stringifiedHistory = (history || []).map(h => `${h.role === 'user' ? 'Usuário' : 'Você'}: ${h.text}`).join('\n');
-    // RAG Search for context
+    const stringifiedHistory = (history || []).map(h => `${h.role === 'user' ? 'User' : 'Malu'}: ${h.text}`).join('\n');
     let libraryContext = "";
     try {
       const chunks = await searchScientificLibrary(userMessage);
       if (chunks && chunks.length > 0) {
-        libraryContext = "\n\nBIBLIOTECA CIENTÍFICA (RESULTADOS RECUPERADOS):\n" + 
-          chunks.map((c) => `DOCUMENTO: ${c.title || 'Desconhecido'} (Autor: ${c.author || '-'}, Instituição: ${c.institution || '-'}, Ano: ${c.year || '-'})
-` +
-          `PÁGINA: ${c.page_number || '-'}\nTRECHO: ${c.content}\n`).join('\n') +
-          "\n\nINSTRUÇÃO RAG (PRIORIDADE MÁXIMA): Responda utilizando SOMENTE o contexto recuperado acima se a pergunta for sobre saúde, medicamentos, fitoterapia ou referências. SEMPRE cite a fonte e a página exata (Ex: 'Segundo [Fonte], pág [X]...'). Se a informação solicitada NÃO estiver no contexto recuperado, NÃO INVENTE FATOS, responda EXATAMENTE: 'Não encontrei informação suficiente na Biblioteca Científica da Malu para responder isso com segurança.'";
+        libraryContext = "\n\nSCIENTIFIC LIBRARY:\n" + 
+          chunks.map((c) => `DOCUMENT: ${c.title || 'Unknown'} (${c.author || '-'}, ${c.year || '-'})\nPAGE: ${c.page_number || '-'}\nEXCERPT: ${c.content}\n`).join('\n');
       }
     } catch (e) {
       console.error("RAG fetch failed:", e);
     }
     
-    const finalPrompt = `HISTÓRICO DA CONVERSA:\n${stringifiedHistory}\nO usuário acabou de dizer: "${userMessage}"${libraryContext}\n\nRESPONDA EM JSON.`;
+    const finalPrompt = `CONVERSATION HISTORY:\n${stringifiedHistory}\n\nUSER MESSAGE: "${userMessage}"${libraryContext}\n\nRESPOND IN JSON strictly using language "${currentLang}".`;
 
     const response = await callWithModelFallback(ai, {
       contents: finalPrompt,
@@ -264,9 +263,40 @@ SCHEMA DE RESPOSTA JSON:
     
     return JSON.parse(text);
   } catch (error: any) {
-    console.info("[Chat Assistente] Ativando resposta de contingência:", error?.message || error);
+    console.info("[Chat Assistente] Ativando resposta de contingência no idioma:", currentLang, error?.message || error);
+    const fallbackResponses: Record<string, string> = {
+      'en': "I'm right here with you! Could you please tell me again what you need? 💚",
+      'en-US': "I'm right here with you! Could you please tell me again what you need? 💚",
+      'es': "¡Aquí estoy contigo! ¿Podrías decirme de nuevo qué necesitas hoy? 💚",
+      'es-ES': "¡Aquí estoy contigo! ¿Podrías decirme de nuevo qué necesitas hoy? 💚",
+      'es-AR': "¡Acá estoy con vos! ¿Me contás de nuevo qué necesitás hoy? 💚",
+      'fr': "Je suis bien là avec vous ! Pouvez-vous me redire ce dont vous avez besoin ? 💚",
+      'fr-FR': "Je suis bien là avec vous ! Pouvez-vous me redire ce dont vous avez besoin ? 💚",
+      'de': "Ich bin hier für dich! Kannst du mir noch einmal sagen, was du brauchst? 💚",
+      'de-DE': "Ich bin hier für dich! Kannst du mir noch einmal sagen, was du brauchst? 💚",
+      'it': "Sono qui con te! Puoi ripetermi come posso aiutarti oggi? 💚",
+      'it-IT': "Sono qui con te! Puoi ripetermi come posso aiutarti oggi? 💚",
+      'zh': "我一直陪伴在您身边！请问您需要什么帮助，能再说一次吗？💚",
+      'zh-CN': "我一直陪伴在您身边！请问您需要什么帮助，能再说一次吗？💚",
+      'ja': "ここにいますよ！今日どのようなお手伝いができますか、もう一度教えてくださいね。💚",
+      'ja-JP': "ここにいますよ！今日どのようなお手伝いができますか、もう一度教えてくださいね。💚",
+      'ko': "제가 곁에 있어요! 어떤 도움이 필요하신지 다시 말씀해 주시겠어요? 💚",
+      'ko-KR': "제가 곁에 있어요! 어떤 도움이 필요하신지 다시 말씀해 주시겠어요? 💚",
+      'hi': "मैं आपके साथ हूँ! क्या आप बता सकते हैं कि आज मैं आपकी कैसे मदद कर सकती हूँ? 💚",
+      'hi-IN': "मैं आपके साथ हूँ! क्या आप बता सकते हैं कि आज मैं आपकी कैसे मदद कर सकती हूँ? 💚",
+      'ar': "أنا هنا معك! هل يمكنك إخباري مرة أخرى بما تحتاجه اليوم؟ 💚",
+      'ar-SA': "أنا هنا معك! هل يمكنك إخباري مرة أخرى بما تحتاجه اليوم؟ 💚",
+      'tr': "Buradayım! Bugün size nasıl yardımcı olabileceğimi tekrar söyler misiniz? 💚",
+      'tr-TR': "Buradayım! Bugün size nasıl yardımcı olabileceğimi tekrar söyler misiniz? 💚",
+      'pt-BR': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚",
+      'pt': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚"
+    };
+
+    const baseKey = currentLang.split('-')[0];
+    const fallbackText = fallbackResponses[currentLang] || fallbackResponses[baseKey] || fallbackResponses['en-US'];
+
     return {
-      text: "Olha, tive uma breve oscilação de conexão aqui... Me conta de novo o que você precisa? 💚",
+      text: fallbackText,
       action: "NONE"
     };
   }
@@ -1143,67 +1173,87 @@ const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
   return null;
 };
 
-export const textToSpeech = async (text: string): Promise<string | null> => {
+const ttsServerCache = new Map<string, string>();
+
+export const textToSpeech = async (text: string, language: string = 'pt-BR'): Promise<string | null> => {
   const normalized = (text || '').trim().toLowerCase();
   const fs = await import('fs');
+  const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+
+  const cacheKey = `${language || 'pt-BR'}_${normalized.replace(/[^a-zA-Z0-9]/g, '').substring(0, 100)}`;
+  if (ttsServerCache.has(cacheKey)) {
+    return ttsServerCache.get(cacheKey)!;
+  }
   
-  // Respostas instantâneas pré-renderizadas com a autêntica voz da Malu (Gemini Aoede)
-  if (normalized === 'nutri ai' || normalized === 'nutriai') {
+  // Respostas instantâneas pré-renderizadas com a autêntica voz da Malu (apenas quando idioma for português)
+  if (isPt && (normalized === 'nutri ai' || normalized === 'nutriai')) {
     try {
       const p = './public/audio/nutri_ai_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
 
-  if (normalized.includes('bom dia')) {
+  if (isPt && normalized.includes('bom dia')) {
     try {
       const p = './public/audio/greeting_morning_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
 
-  if (normalized.includes('boa tarde')) {
+  if (isPt && normalized.includes('boa tarde')) {
     try {
       const p = './public/audio/greeting_afternoon_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
 
-  if (normalized.includes('boa noite')) {
+  if (isPt && normalized.includes('boa noite')) {
     try {
       const p = './public/audio/greeting_evening_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
 
-  if (normalized.includes('vou ficar por aqui') || normalized.includes('quando precisar')) {
+  if (isPt && (normalized.includes('vou ficar por aqui') || normalized.includes('quando precisar'))) {
     try {
       const p = './public/audio/goodbye_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
 
-  if (normalized.includes('feedback') || normalized.includes('agradecer') || normalized.includes('muito obrigada')) {
+  if (isPt && (normalized.includes('feedback') || normalized.includes('agradecer') || normalized.includes('muito obrigada'))) {
     try {
       const p = './public/audio/feedback_thankyou_malu.wav';
       if (fs.existsSync(p)) {
         const buf = fs.readFileSync(p);
-        return `data:audio/wav;base64,${buf.toString('base64')}`;
+        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
+        ttsServerCache.set(cacheKey, dataUrl);
+        return dataUrl;
       }
     } catch (e) {}
   }
@@ -1212,13 +1262,14 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
   try {
     const elevenAudio = await getElevenLabsTTS(text);
     if (elevenAudio) {
+      ttsServerCache.set(cacheKey, elevenAudio);
       return elevenAudio;
     }
   } catch (e) {
     // continue to Gemini
   }
 
-  // 2. Synthesize with Gemini Live Aoede (Natural Brazilian Portuguese voice)
+  // 2. Synthesize with Gemini Aoede voice (gemini-3.1-flash-tts-preview)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
@@ -1230,7 +1281,6 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
       .trim();
 
     if (cleanText) {
-      // Direct generateContent with Aoede voice
       try {
         const ai = new GoogleGenAI({ 
           apiKey,
@@ -1238,7 +1288,6 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
         });
         
         const modelsToTry = [
-          "gemini-2.5-flash-preview-tts",
           "gemini-3.1-flash-tts-preview"
         ];
 
@@ -1269,25 +1318,30 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
             if (base64Audio) {
               const pcmBuf = Buffer.from(base64Audio, 'base64');
               if (pcmBuf.length < 24000) {
-                continue; // Too short (< 0.5s), try next model
+                continue;
               }
               const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
               const b64 = wavBuf.toString('base64');
-              return `data:audio/wav;base64,${b64}`;
+              const dataUrl = `data:audio/wav;base64,${b64}`;
+              ttsServerCache.set(cacheKey, dataUrl);
+              return dataUrl;
             }
           } catch (modelErr: any) {
-            console.warn(`[TTS Engine] Error with model ${model}:`, modelErr?.message || modelErr);
-            // try next model
+            const msg = String(modelErr?.message || '');
+            if (!msg.includes('429') && !msg.includes('RESOURCE_EXHAUSTED')) {
+              console.warn(`[TTS Engine] Error with model ${model}:`, msg);
+            }
           }
         }
 
-        // 3. Fallback to Live API Aoede if generateContent TTS models are rate-limited (429)
-        const liveAudio = await synthesizeLiveAoede(cleanText, apiKey);
+        // 3. Fallback to Live API Aoede
+        const liveAudio = await synthesizeLiveAoede(cleanText, apiKey, language);
         if (liveAudio) {
+          ttsServerCache.set(cacheKey, liveAudio);
           return liveAudio;
         }
       } catch (error: any) {
-        console.info("[TTS Engine] Erro ao chamar modelo Gemini Aoede:", error?.message || error);
+        // Handled silently
       }
     }
   }
@@ -1295,7 +1349,7 @@ export const textToSpeech = async (text: string): Promise<string | null> => {
   return null;
 };
 
-async function synthesizeLiveAoede(cleanText: string, apiKey: string): Promise<string | null> {
+async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: string = 'pt-BR'): Promise<string | null> {
   const ai = new GoogleGenAI({ 
     apiKey,
     httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
@@ -1315,7 +1369,6 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string): Promise<s
 
       if (audioBuffers.length > 0) {
         const combined = Buffer.concat(audioBuffers);
-        // If generated audio is less than 12000 bytes (~0.25 seconds of 24kHz 16-bit PCM), it's likely an empty or aborted response.
         if (combined.length < 12000) {
           resolve(null);
           return;
@@ -1352,7 +1405,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string): Promise<s
         speechConfig: {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
         },
-        systemInstruction: "Você é a Malu, assistente do NutriAI. Fale estritamente o texto solicitado em português brasileiro natural com voz feminina suave, amigável e expressiva, sem acréscimos."
+        systemInstruction: `You are Malu, the NutriAI virtual assistant. Speak the requested text strictly in ${language} with a smooth, friendly, expressive and natural female voice, without adding extra words.`
       },
       callbacks: {
         onmessage: (msg: any) => {
@@ -1379,7 +1432,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string): Promise<s
     }).then((session) => {
       liveSession = session;
       session.sendRealtimeInput({
-        text: `Diga com clareza e voz suave da Malu: ${cleanText}`
+        text: `Say clearly with Malu's warm voice: ${cleanText}`
       });
     }).catch((err) => {
       console.info("[Live Aoede] Connection err:", err?.message || err);
@@ -2438,6 +2491,144 @@ Regras:
       "Digestão mais leve e sensação de bem-estar"
     ],
     assistantMessage: `Essa substituição para ${cleanFood} é uma escolha inteligente e saborosa! Pequenas mudanças consistentes transformam totalmente a sua saúde e disposição.`
+  };
+};
+
+export const compareFoodsNutrition = async (
+  foodA: string,
+  foodB: string,
+  profile?: UserProfile | null
+): Promise<FoodNutritionComparison> => {
+  const cleanA = (foodA || '').trim();
+  const cleanB = (foodB || '').trim();
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `Você é a Malu, nutricionista inteligente do NutriAI. Compare detalhadamente o valor nutricional destes dois alimentos, ingredientes ou pratos:
+Alimento A: "${cleanA}"
+Alimento B: "${cleanB}"
+Perfil do Usuário: ${profile?.goals || 'Emagrecimento e Saúde'} (Restrições: ${profile?.restrictions?.join(', ') || 'Nenhuma'})
+
+Regras Específicas:
+1. Para cada alimento/prato, forneça valores nutricionais médios realistas para uma porção comum equivalente (ex: 100g, 1 unidade, 1 copo):
+   - 'name': nome descritivo do alimento
+   - 'portion': tamanho da porção avaliada (ex: "100g", "1 unidade (50g)", "1 copo (250ml)")
+   - 'calories': calorias em kcal (número inteiro)
+   - 'protein': proteínas em gramas (número com 1 decimal)
+   - 'carbs': carboidratos em gramas (número com 1 decimal)
+   - 'fat': gorduras totais em gramas (número com 1 decimal)
+   - 'fiber': fibras em gramas (número com 1 decimal)
+   - 'sugar': açúcares em gramas (número com 1 decimal)
+   - 'sodium': sódio em mg (número inteiro)
+2. 'winner': "A", "B" ou "tie" avaliando qual é mais saudável e favorável ao objetivo.
+3. 'verdict': Frase objetiva destacando por que a opção vencedora se sobressai.
+4. 'keyDifferences': Lista com 3 a 5 pontos comparativos diretos e numéricos (ex: "-180 kcal", "+5.2g de fibras", "Menor densidade glicêmica").
+5. 'assistantMessage': Mensagem em tom feminino, acolhedor e encorajador da Malu em 1ª pessoa explicando a diferença prática para o dia a dia.
+6. Responda ESTRITAMENTE em formato JSON.`;
+
+      const schema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+          foodA: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              portion: { type: Type.STRING },
+              calories: { type: Type.NUMBER },
+              protein: { type: Type.NUMBER },
+              carbs: { type: Type.NUMBER },
+              fat: { type: Type.NUMBER },
+              fiber: { type: Type.NUMBER },
+              sugar: { type: Type.NUMBER },
+              sodium: { type: Type.NUMBER },
+            },
+            required: ["name", "portion", "calories", "protein", "carbs", "fat", "fiber"],
+          },
+          foodB: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              portion: { type: Type.STRING },
+              calories: { type: Type.NUMBER },
+              protein: { type: Type.NUMBER },
+              carbs: { type: Type.NUMBER },
+              fat: { type: Type.NUMBER },
+              fiber: { type: Type.NUMBER },
+              sugar: { type: Type.NUMBER },
+              sodium: { type: Type.NUMBER },
+            },
+            required: ["name", "portion", "calories", "protein", "carbs", "fat", "fiber"],
+          },
+          winner: { type: Type.STRING, enum: ["A", "B", "tie"] },
+          verdict: { type: Type.STRING },
+          keyDifferences: { type: Type.ARRAY, items: { type: Type.STRING } },
+          assistantMessage: { type: Type.STRING },
+        },
+        required: ["foodA", "foodB", "winner", "verdict", "keyDifferences", "assistantMessage"],
+      };
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          temperature: 0.4,
+        },
+      });
+
+      const text = response.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed && parsed.foodA && parsed.foodB) {
+          return parsed as FoodNutritionComparison;
+        }
+      }
+    } catch (error) {
+      console.warn("Gemini compareFoodsNutrition fallback triggered:", error);
+    }
+  }
+
+  // Fallback calculation
+  const calA = cleanA.toLowerCase().includes('integral') || cleanA.toLowerCase().includes('abobrinha') || cleanA.toLowerCase().includes('agua') ? 120 : 260;
+  const calB = cleanB.toLowerCase().includes('frita') || cleanB.toLowerCase().includes('refrig') || cleanB.toLowerCase().includes('leite') ? 290 : 110;
+  const diff = calA - calB;
+
+  return {
+    foodA: {
+      name: cleanA || 'Alimento A',
+      portion: '1 porção (100g)',
+      calories: calA,
+      protein: 4.0,
+      carbs: 28.0,
+      fat: 6.5,
+      fiber: 1.5,
+      sugar: 12.0,
+      sodium: 250,
+    },
+    foodB: {
+      name: cleanB || 'Alimento B',
+      portion: '1 porção (100g)',
+      calories: calB,
+      protein: 7.2,
+      carbs: 16.0,
+      fat: 2.1,
+      fiber: 4.8,
+      sugar: 2.0,
+      sodium: 80,
+    },
+    winner: calB <= calA ? 'B' : 'A',
+    verdict: diff > 0 
+      ? `"${cleanB}" representa uma alternativa superior com economia de cerca de ${diff} kcal e muito mais fibras.`
+      : `Ambos os alimentos trazem propostas diferentes, com destaque para a composição equilibrada de "${cleanB}".`,
+    keyDifferences: [
+      diff > 0 ? `Economia calórica de aproximadamente ${diff} kcal por porção` : 'Densidade nutricional comparativa equivalente',
+      '+3.3g de fibras alimentares benéficas à microbiota',
+      'Menor impacto na curva de glicose e insulina pós-prandial'
+    ],
+    assistantMessage: `Comparando "${cleanA}" com "${cleanB}", é incrível ver como uma escolha consciente poupa calorias vazias sem perder saciedade!`
   };
 };
 

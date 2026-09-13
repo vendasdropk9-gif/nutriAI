@@ -47,6 +47,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'plan', label: 'Plano', icon: <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'shopping', label: 'Compras', icon: <ShoppingBasket className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'journey', label: 'Simulador 3D', icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-emerald-500 to-indigo-500' },
+  { id: 'exercise3d', label: 'Guia 3D', icon: <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />, color: 'from-emerald-500 to-teal-600', isSpecial: true },
   { id: 'evolution', label: 'Evolução', icon: <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-indigo-400 to-purple-600' },
   { id: 'challenge', label: 'Desafio', icon: <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-orange-500 to-amber-500' },
   { id: 'swaps', label: 'Trocas', icon: <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> },
@@ -73,22 +74,13 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const getLabel = (item: NavItem): string => {
-    switch (item.id) {
-      case 'assistant360': return t('assistant_ai', item.label) as string;
-      case 'quickdishes': return 'Pratos Rápidos';
-      case 'generator': return t('recipes', item.label) as string;
-      case 'fridge': return t('smart_fridge', item.label) as string;
-      case 'herbs': return t('herbs', item.label) as string;
-      case 'juice': return t('juices', item.label) as string;
-      case 'habits': return t('habits', item.label) as string;
-      case 'analyzer': return t('plate_analysis', item.label) as string;
-      case 'plan': return t('meal_planning', item.label) as string;
-      case 'shopping': return t('shopping_list', item.label) as string;
-      case 'market': return t('market', item.label) as string;
-      case 'profile': return t('profile', item.label) as string;
-      case 'pricing': return t('premium_plan', item.label) as string;
-      default: return t(item.id, item.label) as string;
-    }
+    // Check specific translation keys first, fallback to item.id, then nav.item.id, then item.label
+    const translated = t(item.id, { 
+      defaultValue: t(`nav.${item.id}`, { 
+        defaultValue: item.label 
+      }) 
+    });
+    return (translated as string) || item.label;
   };
 
   // Adaptive Navigation Items based on time of day
@@ -172,13 +164,20 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
 
   // Center active tab on tab change and on resize
   useEffect(() => {
-    scrollToActive(true);
-    const timer = setTimeout(() => {
+    scrollToActive(false);
+    const timer1 = setTimeout(() => {
       scrollToActive(true);
       updateScrollIndicators();
-    }, 120);
+    }, 60);
+    const timer2 = setTimeout(() => {
+      scrollToActive(true);
+      updateScrollIndicators();
+    }, 220);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
   }, [activeTab, scrollToActive, updateScrollIndicators]);
 
   // Handle resize & scroll events

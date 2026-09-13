@@ -445,7 +445,8 @@ async function startServer() {
 
   app.post("/api/gemini", async (req, res) => {
     console.log(`Received request for: ${req.body.functionName}`);
-    const { functionName, args } = req.body;
+    const { functionName, args, language } = req.body;
+    const reqLang = language || req.headers['x-app-language'] || 'pt-BR';
     
     if (!functionName || typeof functionName !== "string") {
       return res.status(400).json({ error: "Nome de função inválido ou ausente." });
@@ -457,7 +458,17 @@ async function startServer() {
     }
 
     try {
-      const result = await func(...(args || []));
+      const finalArgs = (args || []).map((arg: any) => {
+        if (arg && typeof arg === 'object' && !Array.isArray(arg) && ('goals' in arg || 'restrictions' in arg || 'name' in arg || 'bodyType' in arg || 'language' in arg)) {
+          return {
+            ...arg,
+            language: arg.language || reqLang
+          };
+        }
+        return arg;
+      });
+
+      const result = await func(...finalArgs);
       res.status(200).json(result !== undefined ? result : null);
     } catch (err: any) {
       console.error(`Erro na execução da API Gemini '${functionName}':`, err);
@@ -466,11 +477,12 @@ async function startServer() {
   });
 
   app.post("/api/tts", express.json(), async (req, res) => {
-    const { text } = req.body || {};
+    const { text, language } = req.body || {};
+    const reqLang = language || req.headers['x-app-language'] || 'pt-BR';
     if (!text) return res.status(400).json({ error: "No text provided" });
 
     try {
-      const audio = await geminiServer.textToSpeech(text);
+      const audio = await geminiServer.textToSpeech(text, String(reqLang));
       res.status(200).json({
         audio: audio || null,
         audioBase64: audio || null,

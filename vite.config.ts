@@ -164,8 +164,8 @@ export default defineConfig(({mode}) => {
           ],
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,wav,mp3}'],
+          maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+          globPatterns: ['**/*.{js,css,html}'],
           navigateFallback: 'index.html',
           runtimeCaching: [
             {
@@ -211,6 +211,12 @@ export default defineConfig(({mode}) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      target: 'esnext',
+      sourcemap: false,
+      minify: false,
+      chunkSizeWarningLimit: 5000,
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

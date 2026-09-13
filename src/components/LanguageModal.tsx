@@ -19,25 +19,27 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
   const { i18n, t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleLanguageChange = async (code: string) => {
+  const currentLanguage = i18n.language || 'pt-BR';
+
+  const handleLanguageChange = async (targetLng: string) => {
     playSfx('success');
     vibrate(30);
     
-    // Normalize code for pt
-    const normalizedCode = code.startsWith('pt') ? 'pt-BR' : code;
-    
-    // Call the comprehensive i18n helper
-    await changeLanguage(normalizedCode, supabase, profile?.id);
+    // Call the centralized i18n helper which updates i18next, localStorage (nutriai_language),
+    // document.documentElement (lang & dir for RTL), window events, Supabase, and Firestore
+    await changeLanguage(targetLng, supabase, profile?.id);
     
     if (profile && onUpdateProfile) {
       onUpdateProfile({
         ...profile,
-        language: normalizedCode
+        language: targetLng,
+        preferred_language: targetLng
       });
     }
+    
     setTimeout(() => {
       onClose();
-    }, 300);
+    }, 250);
   };
 
   const filtered = searchLanguages(searchQuery);
@@ -49,12 +51,15 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
   const hasResults = filtered.length > 0;
 
   const renderLanguageButton = (lng: LanguageOption) => {
-    // Check if selected. Respect subtags for variants (pt-BR vs pt-PT, en-US vs en-GB, es-ES vs es-MX)
-    const isSelected = i18n.language === lng.subtag || 
-                       (lng.subtag === 'pt-BR' && (i18n.language === 'pt' || i18n.language?.startsWith('pt-BR'))) ||
-                       (lng.subtag === 'en-US' && (i18n.language === 'en' || i18n.language?.startsWith('en-US'))) ||
-                       (lng.subtag === 'es-ES' && (i18n.language === 'es' || i18n.language?.startsWith('es-ES'))) ||
-                       (!['pt-BR', 'pt-PT', 'en-US', 'en-GB', 'en-CA', 'en-AU', 'es-ES', 'es-MX', 'es-AR', 'es-CL', 'es-CO', 'es-PE', 'es-UY', 'es-VE'].includes(lng.subtag) && i18n.language?.startsWith(lng.code));
+    // Single source of truth: compare with i18n.language
+    const isSelected = 
+      currentLanguage === lng.subtag ||
+      (lng.subtag === 'pt-BR' && currentLanguage === 'pt') ||
+      (lng.subtag === 'es-ES' && currentLanguage === 'es') ||
+      (lng.subtag === 'en-US' && currentLanguage === 'en') ||
+      (currentLanguage === lng.code && !lng.subtag);
+
+    const countryCode = (lng.subtag.split('-')[1] || lng.code).toUpperCase();
 
     return (
       <motion.button
@@ -62,32 +67,41 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
         whileTap={{ scale: 0.99 }}
         key={lng.subtag}
         type="button"
-        onClick={() => handleLanguageChange(lng.code)}
-        className={`w-full flex items-center gap-3.5 p-4 rounded-2xl border transition-all text-left outline-none cursor-pointer ${
+        onClick={() => handleLanguageChange(lng.subtag || lng.code)}
+        className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all text-left outline-none cursor-pointer ${
           isSelected
-            ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold'
-            : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/40'
+            ? 'bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)] text-emerald-400 font-bold'
+            : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700'
         }`}
       >
-        <span className="text-2xl select-none" role="img" aria-label={lng.translatedName}>
-          {lng.flag}
-        </span>
-        <div className="flex-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+        {/* Country Badge matching screenshot */}
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-mono font-bold tracking-wider shrink-0 transition-colors ${
+          isSelected
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+            : 'bg-slate-800 text-slate-300 border border-slate-700/60'
+        }`}>
+          {countryCode}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-bold uppercase tracking-wider truncate ${
+            isSelected ? 'text-emerald-400' : 'text-slate-200'
+          }`}>
             {lng.originalName}
           </p>
-          <p className="text-[10px] opacity-70 font-normal text-slate-550 dark:text-slate-400">
-            {lng.translatedName} • <span className="italic opacity-90">{lng.country}</span>
+          <p className="text-[11px] opacity-75 font-normal text-slate-400 truncate">
+            {lng.translatedName} • <span className="opacity-90">{lng.country}</span>
           </p>
         </div>
         
-        <div className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+        {/* Circular indicator radio button */}
+        <div className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
           isSelected
-            ? 'border-emerald-500 bg-emerald-500 text-white shadow-[0_0_8px_#10b981]'
-            : 'border-slate-300 dark:border-slate-600'
+            ? 'border-emerald-400 bg-emerald-950 text-white shadow-[0_0_8px_#10b981]'
+            : 'border-slate-600 bg-transparent'
         }`}>
           {isSelected && (
-            <div className="w-1.5 h-1.5 rounded-full bg-white animate-scale-up" />
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-scale-up shadow-[0_0_6px_#10b981]" />
           )}
         </div>
       </motion.button>

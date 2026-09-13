@@ -49,6 +49,7 @@ import { SmartPlateCombiner } from './components/SmartPlateCombiner';
 import { SmartGarden } from './components/SmartGarden';
 import { WellnessHub } from './components/WellnessHub';
 import { PhotoEvolution } from './components/PhotoEvolution';
+import { AnatomyWorkoutGuide } from './components/AnatomyWorkoutGuide';
 import { Assistant360 } from './components/Assistant360';
 import { QuickDishes } from './components/QuickDishes';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
@@ -75,7 +76,7 @@ const TAB_ORDER = [
   "admin_library",
   'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
-  'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'evolution', 
+  'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'exercise3d', 'evolution', 
   'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
   'academies', 'gamification', 'prediction', 'profile', 'pricing', 'partner', 'delivery'
 ];
@@ -103,7 +104,7 @@ const slideVariants = {
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
@@ -118,29 +119,46 @@ export default function App() {
     return () => window.removeEventListener("navigate", handleNav);
   }, []);
 
+  // Synchronize language changes seamlessly with Profile & Firestore
   useEffect(() => {
-    const detectedLng = window.localStorage.getItem('language') || window.localStorage.getItem('i18nextLng') || navigator.language?.split('-')[0] || 'pt-BR';
-    const targetLng = detectedLng.startsWith('pt') ? 'pt-BR' : detectedLng;
-    
-    if (profile) {
-      if (!profile.language) {
-        const updated = { ...profile, language: targetLng };
-        setProfile(updated);
+    const handleLangChange = (lng: string) => {
+      let targetLng = lng;
+      if (targetLng === 'pt') targetLng = 'pt-BR';
+      if (targetLng === 'en') targetLng = 'en-US';
+
+      setProfile((prev) => {
+        if (!prev) return prev;
+        if (prev.language === targetLng && prev.preferred_language === targetLng) return prev;
+        const updated = { ...prev, language: targetLng, preferred_language: targetLng };
         if (user) {
           syncToFirestore(updated);
         }
-        if (i18n.language !== targetLng) {
-          changeAppLanguage(targetLng);
-        }
-      } else if (profile.language && i18n.language !== profile.language) {
-        changeAppLanguage(profile.language);
-      }
-    } else {
+        return updated;
+      });
+    };
+
+    i18n.on('languageChanged', handleLangChange);
+    return () => {
+      i18n.off('languageChanged', handleLangChange);
+    };
+  }, [user, syncToFirestore, i18n, setProfile]);
+
+  // Initial language check & synchronization
+  useEffect(() => {
+    const saved = localStorage.getItem('nutriai_language') || 
+                  localStorage.getItem('language') || 
+                  localStorage.getItem('i18nextLng') || 
+                  profile?.preferred_language || 
+                  profile?.language;
+    if (saved) {
+      let targetLng = saved;
+      if (targetLng === 'pt') targetLng = 'pt-BR';
+      if (targetLng === 'en') targetLng = 'en-US';
       if (i18n.language !== targetLng) {
         changeAppLanguage(targetLng);
       }
     }
-  }, [profile?.language, user?.uid]);
+  }, [profile?.preferred_language, profile?.language]);
 
   const [isLocked, setIsLocked] = useState(() => {
     try {
@@ -161,7 +179,7 @@ export default function App() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'exercise3d' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
@@ -221,6 +239,12 @@ export default function App() {
       }
     };
     window.addEventListener('app:notification', handleNotification);
+
+    const handleOpenLanguage = () => {
+      setIsLanguageOpen(true);
+    };
+    window.addEventListener('app:openLanguageModal', handleOpenLanguage);
+    window.addEventListener('app:openLanguage', handleOpenLanguage);
 
     // Checker for scheduled recipe preparation reminders
     const checkRemindersInterval = setInterval(() => {
@@ -288,6 +312,8 @@ export default function App() {
       window.removeEventListener('app:changeTab', handleNavigate);
       window.removeEventListener('app:openQuickDishes', handleOpenQuickDishes);
       window.removeEventListener('app:notification', handleNotification);
+      window.removeEventListener('app:openLanguageModal', handleOpenLanguage);
+      window.removeEventListener('app:openLanguage', handleOpenLanguage);
       clearInterval(checkRemindersInterval);
     };
   }, []);
@@ -394,7 +420,7 @@ export default function App() {
       };
       
       addNotification({
-        title: 'Pontos Adquiridos!',
+        title: t('points_acquired', 'Pontos Adquiridos!'),
         message: `${reason} (+${amount} XP)`,
         type: 'point'
       });
@@ -553,7 +579,7 @@ export default function App() {
                   setIsFeedbackOpen(true);
                 }}
                 className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-[1.5px] overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none cursor-pointer flex items-center justify-center"
-                title="Deixe seu feedback"
+                title={t('leave_feedback', 'Deixe seu feedback')}
                 id="header-feedback-trigger-btn"
               >
                 {/* Sleek pulsing ambient ring */}
@@ -581,7 +607,7 @@ export default function App() {
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-400' 
                     : 'text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800'
                 }`}
-                title={isReadingMode ? "Desativar Modo de Leitura" : "Ativar Modo de Leitura (Alto Contraste e Letras Grandes)"}
+                title={isReadingMode ? t('reading_mode_disable', 'Desativar Modo de Leitura') : t('reading_mode_enable', 'Ativar Modo de Leitura')}
                 id="header-reading-mode-toggle-btn"
               >
                 <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -603,7 +629,7 @@ export default function App() {
                   setIsLanguageOpen(true);
                 }}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
-                title="Mudar idioma / Change language"
+                title={t('change_language', 'Mudar idioma / Change language')}
                 id="header-language-trigger-btn"
               >
                 <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -615,7 +641,7 @@ export default function App() {
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-300 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
-                title={isDarkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
+                title={isDarkMode ? t('switch_light_mode', 'Mudar para modo claro') : t('switch_dark_mode', 'Mudar para modo escuro')}
               >
                 {isDarkMode ? (
                   <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
@@ -800,7 +826,13 @@ export default function App() {
               />
             )}
             {activeTab === 'journey' && (
-              <JourneyVisualizer profile={profile} />
+              <JourneyVisualizer 
+                profile={profile} 
+                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+              />
+            )}
+            {activeTab === 'exercise3d' && (
+              <AnatomyWorkoutGuide />
             )}
             {activeTab === 'evolution' && (
               <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />

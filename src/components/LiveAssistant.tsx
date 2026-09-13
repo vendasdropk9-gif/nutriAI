@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   Mic, 
   Loader2, 
@@ -29,31 +30,271 @@ export interface LiveAssistantProps {
 // Inactivity timeout in milliseconds (8 seconds of silence closes the session)
 const INACTIVITY_TIMEOUT_MS = 8000;
 
-// Compute time-appropriate greeting in Brazilian Portuguese:
-// "Bom dia! ☀️ Como posso ajudar você hoje?" / "Boa tarde! 🌤️ Como posso ajudar você hoje?" / "Boa noite! 🌙 Como posso ajudar você hoje?"
-function getTimeGreeting(profile?: UserProfile | null): { spoken: string; display: string } {
+// Compute time-appropriate greeting in active language
+function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): { spoken: string; display: string } {
   const currentHour = new Date().getHours();
+  const baseLang = (lang || 'pt-BR').split('-')[0].toLowerCase();
+  
   let timeGreeting = "Boa noite";
   let icon = "🌙";
+  let question = "Como posso ajudar você hoje?";
 
-  if (currentHour >= 5 && currentHour < 12) {
-    timeGreeting = "Bom dia";
-    icon = "☀️";
-  } else if (currentHour >= 12 && currentHour < 18) {
-    timeGreeting = "Boa tarde";
-    icon = "🌤️";
+  if (baseLang === 'en') {
+    question = "How can I help you today?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "Good morning";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "Good afternoon";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "Good evening";
+    }
+  } else if (baseLang === 'es') {
+    question = "¿Cómo puedo ayudarte hoy?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "¡Buenos días";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "¡Buenas tardes";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "¡Buenas noches";
+    }
+  } else if (baseLang === 'de') {
+    question = "Wie kann ich dir heute helfen?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "Guten Morgen";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "Guten Tag";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "Guten Abend";
+    }
+  } else if (baseLang === 'fr') {
+    question = "Comment puis-je vous aider aujourd'hui ?";
+    if (currentHour >= 5 && currentHour < 18) {
+      timeGreeting = "Bonjour";
+      icon = "☀️";
+    } else {
+      timeGreeting = "Bonsoir";
+    }
+  } else if (baseLang === 'it') {
+    question = "Come posso aiutarti oggi?";
+    if (currentHour >= 5 && currentHour < 17) {
+      timeGreeting = "Buongiorno";
+      icon = "☀️";
+    } else {
+      timeGreeting = "Buonasera";
+    }
+  } else if (baseLang === 'zh') {
+    question = "今天我可以怎样帮助你？";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "早上好";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "下午好";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "晚上好";
+    }
+  } else if (baseLang === 'ja') {
+    question = "今日はどのようにお手伝いできますか？";
+    if (currentHour >= 5 && currentHour < 11) {
+      timeGreeting = "おはようございます";
+      icon = "☀️";
+    } else if (currentHour >= 11 && currentHour < 18) {
+      timeGreeting = "こんにちは";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "こんばんは";
+    }
+  } else if (baseLang === 'ko') {
+    question = "오늘 어떻게 도와드릴까요?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "좋은 아침이에요";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "좋은 오후예요";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "좋은 저녁이에요";
+    }
+  } else if (baseLang === 'hi') {
+    question = "आज मैं आपकी कैसे मदद कर सकती हूँ?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "शुभ प्रभात";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "शुभ दोपहर";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "शुभ संध्या";
+    }
+  } else if (baseLang === 'ar') {
+    question = "كيف يمكنني مساعدتك اليوم؟";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "صباح الخير";
+      icon = "☀️";
+    } else {
+      timeGreeting = "مساء الخير";
+      icon = "🌙";
+    }
+  } else if (baseLang === 'tr') {
+    question = "Bugün size nasıl yardımcı olabilirim?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "Günaydın";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "İyi günler";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "İyi akşamlar";
+    }
+  } else {
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "Bom dia";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 18) {
+      timeGreeting = "Boa tarde";
+      icon = "🌤️";
+    }
   }
 
   const rawName = profile?.name?.trim();
-  const firstName = rawName && !['usuário', 'usuario', 'amigo', 'amiga', 'amigo(a)', ''].includes(rawName.toLowerCase())
+  const firstName = rawName && !['usuário', 'usuario', 'user', 'amigo', 'amiga', 'amigo(a)', ''].includes(rawName.toLowerCase())
     ? rawName.split(' ')[0]
     : null;
 
   const nameGreeting = firstName ? `, ${firstName}` : '';
-  const spoken = `${timeGreeting}${nameGreeting}! Como posso ajudar você hoje?`;
-  const display = `${timeGreeting}${nameGreeting}! ${icon} Como posso ajudar você hoje?`;
+  const spoken = `${timeGreeting}${nameGreeting}! ${question}`;
+  const display = `${timeGreeting}${nameGreeting}! ${icon} ${question}`;
 
   return { spoken, display };
+}
+
+function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
+  const base = (lang || 'pt-BR').split('-')[0].toLowerCase();
+  const map: Record<string, {
+    listening: string;
+    thinking: string;
+    speaking: string;
+    goodbye: string;
+    tryAgain: string;
+    micError: string;
+    unsupported: string;
+  }> = {
+    pt: {
+      listening: "Estou ouvindo...",
+      thinking: "Pensando...",
+      speaking: "Respondendo...",
+      goodbye: "Vou ficar por aqui. Quando precisar, é só me chamar.",
+      tryAgain: "Tente novamente.",
+      micError: "Não consegui acessar seu microfone. Verifique a permissão do navegador.",
+      unsupported: "Reconhecimento de voz indisponível neste navegador."
+    },
+    en: {
+      listening: "Listening...",
+      thinking: "Thinking...",
+      speaking: "Speaking...",
+      goodbye: "I'll be right here whenever you need me. Just tap to talk!",
+      tryAgain: "Please try again.",
+      micError: "Could not access microphone. Please check browser permissions.",
+      unsupported: "Speech recognition is not available on this browser."
+    },
+    es: {
+      listening: "Escuchando...",
+      thinking: "Pensando...",
+      speaking: "Hablando...",
+      goodbye: "Estaré aquí cuando me necesites. ¡Solo tienes que llamarme!",
+      tryAgain: "Inténtalo de nuevo.",
+      micError: "No se pudo acceder al micrófono. Verifica los permisos del navegador.",
+      unsupported: "Reconocimiento de voz no disponible en este navegador."
+    },
+    fr: {
+      listening: "À votre écoute...",
+      thinking: "Réflexion...",
+      speaking: "En train de parler...",
+      goodbye: "Je reste là si vous avez besoin. N'hésitez pas à me solliciter !",
+      tryAgain: "Veuillez réessayer.",
+      micError: "Impossible d'accéder au microphone. Vérifiez les autorisations.",
+      unsupported: "Reconnaissance vocale non disponible sur ce navigateur."
+    },
+    de: {
+      listening: "Höre zu...",
+      thinking: "Nachdenken...",
+      speaking: "Spreche...",
+      goodbye: "Ich bin hier, wenn du mich brauchst. Ruf mich einfach!",
+      tryAgain: "Bitte versuche es erneut.",
+      micError: "Mikrofonzugriff nicht möglich. Bitte Berechtigungen prüfen.",
+      unsupported: "Spracherkennung in diesem Browser nicht verfügbar."
+    },
+    it: {
+      listening: "Sto ascoltando...",
+      thinking: "Sto pensando...",
+      speaking: "Sto rispondendo...",
+      goodbye: "Rimango qui a disposizione. Quando hai bisogno, chiamami pure!",
+      tryAgain: "Riprova per favore.",
+      micError: "Impossibile accedere al microfono. Controlla i permessi.",
+      unsupported: "Riconoscimento vocale non disponibile in questo browser."
+    },
+    zh: {
+      listening: "正在倾听...",
+      thinking: "正在思考...",
+      speaking: "正在回答...",
+      goodbye: "我随时在此等候。需要时请随时叫我！",
+      tryAgain: "请重试。",
+      micError: "无法访问麦克风，请检查浏览器权限。",
+      unsupported: "此浏览器不支持语音识别。"
+    },
+    ja: {
+      listening: "聞いています...",
+      thinking: "考えています...",
+      speaking: "話しています...",
+      goodbye: "いつでもお呼びください。またお話ししましょう！",
+      tryAgain: "もう一度お試しください。",
+      micError: "マイクにアクセスできませんでした。権限を確認してください。",
+      unsupported: "このブラウザでは音声認識がサポートされていません。"
+    },
+    ko: {
+      listening: "듣고 있어요...",
+      thinking: "생각 중...",
+      speaking: "말씀드리는 중...",
+      goodbye: "필요하실 때 언제든 불러주세요. 언제나 곁에 있을게요!",
+      tryAgain: "다시 시도해 주세요.",
+      micError: "마이크에 접근할 수 없습니다. 권한을 확인해 주세요.",
+      unsupported: "이 브라우저에서는 음성 인식을 지원하지 않습니다."
+    },
+    hi: {
+      listening: "सुन रही हूँ...",
+      thinking: "सोच रही हूँ...",
+      speaking: "बोल रही हूँ...",
+      goodbye: "जब भी ज़रूरत हो, बस मुझे बुला लीजिएगा। मैं यहीं हूँ!",
+      tryAgain: "कृपया पुनः प्रयास करें।",
+      micError: "माइक्रोफ़ोन तक पहुँच नहीं मिली। कृपया अनुमति जाँचें।",
+      unsupported: "इस ब्राउज़र में ध्वनि पहचान उपलब्ध नहीं है।"
+    },
+    ar: {
+      listening: "أستمع إليك...",
+      thinking: "جارٍ التفكير...",
+      speaking: "أتحدث...",
+      goodbye: "سأكون هنا متى احتجتني. فقط اضغط للتحدث!",
+      tryAgain: "يرجى المحاولة مرة أخرى.",
+      micError: "تعذر الوصول إلى الميكروفون. يرجى التحقق من أذونات المتصفح.",
+      unsupported: "التعرف على الصوت غير مدعوم في هذا المتصفح."
+    },
+    tr: {
+      listening: "Dinliyorum...",
+      thinking: "Düşünüyor...",
+      speaking: "Konuşuyor...",
+      goodbye: "İhtiyacınız olduğunda buradayım. İstediğiniz an seslenebilirsiniz!",
+      tryAgain: "Lütfen tekrar deneyin.",
+      micError: "Mikrofona erişilemedi. Lütfen tarayıcı izinlerini kontrol edin.",
+      unsupported: "Bu tarayıcıda ses tanıma desteklenmiyor."
+    }
+  };
+  return map[base] || map['pt'];
 }
 
 // Local fast-intent classifier for zero-latency instant navigation & actions
@@ -428,6 +669,9 @@ export function LiveAssistant({
   onAwardPoints,
   onUpdateProfile
 }: LiveAssistantProps) {
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language || profile?.language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') : null) || 'pt-BR';
+
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -577,10 +821,13 @@ export function LiveAssistant({
       try { recognitionRef.current.abort(); } catch (e) {}
     }
 
+    const locStrings = getLocalizedAssistantStrings(currentLanguage);
+
     if (options?.goodbye) {
-      const goodbyeMsg = "Vou ficar por aqui. Quando precisar, é só me chamar.";
+      const goodbyeMsg = t('malu_goodbye', locStrings.goodbye);
       showStatus(goodbyeMsg, 'speaking', 4000);
       speak(goodbyeMsg, {
+        lang: currentLanguage,
         onEnded: () => {
           showStatus("Malu", 'idle', 2000);
         }
@@ -588,7 +835,7 @@ export function LiveAssistant({
     } else if (!options?.silent) {
       showStatus("Malu", 'idle', 2000);
     }
-  }, [clearInactivityTimer, showStatus]);
+  }, [clearInactivityTimer, currentLanguage, showStatus, t]);
 
   // Execute navigation or actions safely
   const executeAppAction = useCallback((action: string, actionData?: any) => {
@@ -625,15 +872,18 @@ export function LiveAssistant({
     setIsSpeaking(false);
     setIsListening(false);
     setIsProcessing(true);
-    showStatus('Pensando...', 'processing', 0);
+
+    const locStrings = getLocalizedAssistantStrings(currentLanguage);
+    showStatus(t('malu_thinking', locStrings.thinking), 'processing', 0);
 
     // Add user query to conversation history
     const updatedHistory = [...conversationHistory, { role: 'user' as const, text: cleanQuery }];
     setConversationHistory(updatedHistory);
 
     try {
-      // 1. Fast local classification check for instant, flawless app navigation
-      const localMatch = classifyLocalIntent(cleanQuery, profile);
+      // 1. Fast local classification check for instant, flawless app navigation (PT only or fallback)
+      const isPt = currentLanguage.toLowerCase().startsWith('pt');
+      const localMatch = isPt ? classifyLocalIntent(cleanQuery, profile) : null;
 
       let replyText = "";
       let actionToRun = "NONE";
@@ -644,7 +894,7 @@ export function LiveAssistant({
         actionToRun = localMatch.action;
         actionDataToRun = localMatch.actionData;
       } else {
-        // 2. Call Gemini Assistant backend with full app awareness and context
+        // 2. Call Gemini Assistant backend with full app awareness, profile, and current language context
         const defaultProfile: UserProfile = profile || {
           name: 'Amigo(a)',
           age: 30,
@@ -663,8 +913,15 @@ export function LiveAssistant({
           badges: []
         };
 
-        const res = await chatWithAssistant(defaultProfile, conversationHistory, cleanQuery);
-        replyText = res?.text || "Estou aqui com você! Como posso te ajudar na sua alimentação hoje?";
+        const effectiveProfile = {
+          ...defaultProfile,
+          language: currentLanguage
+        };
+
+        const res = await chatWithAssistant(effectiveProfile, conversationHistory, cleanQuery);
+        replyText = res?.text || (isPt 
+          ? "Estou aqui com você! Como posso te ajudar na sua alimentação hoje?" 
+          : "I'm right here with you! How can I help you with your nutrition today?");
         actionToRun = res?.action || "NONE";
         actionDataToRun = res?.actionData;
       }
@@ -679,18 +936,19 @@ export function LiveAssistant({
 
       setIsProcessing(false);
       setIsSpeaking(true);
-      showStatus('Respondendo...', 'speaking', 0);
+      showStatus(t('malu_speaking', locStrings.speaking), 'speaking', 0);
 
-      // Play natural Brazilian Portuguese voice ('Aoede')
+      // Play voice in the current active language
       await speak(replyText, {
+        lang: currentLanguage,
         onEnded: () => {
           setIsSpeaking(false);
-          showStatus('Estou ouvindo...', 'listening', 0);
+          showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
           startListeningRef.current();
         },
         onError: () => {
           setIsSpeaking(false);
-          showStatus('Estou ouvindo...', 'listening', 0);
+          showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
           startListeningRef.current();
         }
       });
@@ -699,7 +957,7 @@ export function LiveAssistant({
       console.warn("Malu voice processing error:", err);
       setIsProcessing(false);
       setIsSpeaking(false);
-      showStatus('Tente novamente.', 'error', 3000);
+      showStatus(t('malu_try_again', locStrings.tryAgain), 'error', 3000);
       // Restart listening after brief pause
       setTimeout(() => {
         if (isAssistantActiveRef.current) {
@@ -707,7 +965,7 @@ export function LiveAssistant({
         }
       }, 1500);
     }
-  }, [clearInactivityTimer, conversationHistory, profile, showStatus, executeAppAction]);
+  }, [clearInactivityTimer, conversationHistory, currentLanguage, executeAppAction, profile, showStatus, t]);
 
   // Handler for inactivity timeout
   const handleInactivityTimeout = useCallback(() => {
@@ -716,15 +974,18 @@ export function LiveAssistant({
         try { recognitionRef.current.stop(); } catch (e) {}
       }
       setIsListening(false);
-      showStatus('Vou ficar por aqui. Quando precisar, é só me chamar.', 'speaking', 3500);
-      speak("Vou ficar por aqui. Quando precisar, é só me chamar.", {
+      const locStrings = getLocalizedAssistantStrings(currentLanguage);
+      const goodbyeMsg = t('malu_goodbye', locStrings.goodbye);
+      showStatus(goodbyeMsg, 'speaking', 3500);
+      speak(goodbyeMsg, {
+        lang: currentLanguage,
         onEnded: () => {
           showStatus('Malu', 'idle', 1500);
         }
       });
       playSfx('pop');
     }
-  }, [showStatus]);
+  }, [currentLanguage, showStatus, t]);
 
   // Start or reset the inactivity timer
   const resetInactivityTimer = useCallback(() => {
@@ -742,14 +1003,16 @@ export function LiveAssistant({
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = 'pt-BR';
+      recognition.lang = currentLanguage;
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      const locStrings = getLocalizedAssistantStrings(currentLanguage);
+
       recognition.onstart = () => {
         setIsListening(true);
-        showStatus('Estou ouvindo...', 'listening', 0);
+        showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
         setTranscript('');
         resetInactivityTimer();
       };
@@ -772,11 +1035,11 @@ export function LiveAssistant({
       recognition.onerror = (event: any) => {
         clearInactivityTimer();
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          showStatus('Não consegui acessar seu microfone. Verifique a permissão do navegador.', 'error', 4500);
+          showStatus(t('malu_mic_error', locStrings.micError), 'error', 4500);
         } else if (event.error === 'no-speech') {
           // Handled by inactivity or loop
         } else if (event.error !== 'aborted') {
-          showStatus('Tente novamente.', 'error', 3000);
+          showStatus(t('malu_try_again', locStrings.tryAgain), 'error', 3000);
         }
         setIsListening(false);
       };
@@ -791,7 +1054,7 @@ export function LiveAssistant({
       console.warn('Speech recognition init error:', e);
       return null;
     }
-  }, [clearInactivityTimer, resetInactivityTimer, showStatus]);
+  }, [clearInactivityTimer, currentLanguage, resetInactivityTimer, showStatus, t]);
 
   // Start listening
   const startListening = useCallback(() => {
@@ -803,9 +1066,12 @@ export function LiveAssistant({
       recognitionRef.current = initSpeechRecognition();
     }
 
+    const locStrings = getLocalizedAssistantStrings(currentLanguage);
+
     if (recognitionRef.current) {
       try {
         setTranscript('');
+        recognitionRef.current.lang = currentLanguage;
         recognitionRef.current.start();
         playSfx('pop');
         vibrate(15);
@@ -813,44 +1079,49 @@ export function LiveAssistant({
       } catch (err) {
         recognitionRef.current = initSpeechRecognition();
         try {
-          recognitionRef.current?.start();
+          if (recognitionRef.current) {
+            recognitionRef.current.lang = currentLanguage;
+            recognitionRef.current.start();
+          }
           resetInactivityTimer();
         } catch (e) {
-          showStatus('Estou ouvindo...', 'listening', 2000);
+          showStatus(t('malu_listening', locStrings.listening), 'listening', 2000);
         }
       }
     } else {
-      showStatus('Reconhecimento de voz indisponível neste navegador.', 'error', 3500);
+      showStatus(t('malu_unsupported', locStrings.unsupported), 'error', 3500);
     }
-  }, [clearInactivityTimer, initSpeechRecognition, resetInactivityTimer, showStatus]);
+  }, [clearInactivityTimer, currentLanguage, initSpeechRecognition, resetInactivityTimer, showStatus, t]);
 
   startListeningRef.current = startListening;
 
-  // Greet user on first tap, speak greeting with Aoede voice, then open mic
+  // Greet user on first tap, speak greeting with Malu voice, then open mic
   const activateAssistantWithGreeting = useCallback(async () => {
     clearInactivityTimer();
     setIsProcessing(false);
     setIsListening(false);
     setIsSpeaking(true);
 
-    const { spoken, display } = getTimeGreeting(profile);
+    const { spoken, display } = getTimeGreeting(profile, currentLanguage);
+    const locStrings = getLocalizedAssistantStrings(currentLanguage);
     showStatus(display, 'speaking', 0);
     playSfx('crystal');
     vibrate([20, 40, 20]);
 
     await speak(spoken, {
+      lang: currentLanguage,
       onEnded: () => {
         setIsSpeaking(false);
-        showStatus('Estou ouvindo...', 'listening', 0);
+        showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
         startListening();
       },
       onError: () => {
         setIsSpeaking(false);
-        showStatus('Estou ouvindo...', 'listening', 0);
+        showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
         startListening();
       }
     });
-  }, [clearInactivityTimer, profile, showStatus, startListening]);
+  }, [clearInactivityTimer, currentLanguage, profile, showStatus, startListening, t]);
 
   // Toggle button click (1st touch: Activate with greeting, 2nd touch: Deactivate with goodbye)
   const handleToggleClick = () => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
@@ -21,6 +22,7 @@ const PROACTIVE_TIPS = [
 ];
 
 export function Assistant360({ profile, onNavigate }: Assistant360Props) {
+  const { t } = useTranslation();
   const [activeTip, setActiveTip] = useState(0);
 
   useEffect(() => {
@@ -52,11 +54,11 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
   const heightInM = (profile?.height || 175) / 100;
   const bmi = (currentWeight / (heightInM * heightInM)).toFixed(1);
   
-  let bmiCategory = 'Normal';
+  let bmiCategory = t('normal', 'Normal');
   const bmiNum = parseFloat(bmi);
-  if (bmiNum < 18.5) bmiCategory = 'Abaixo do peso';
-  else if (bmiNum >= 25 && bmiNum < 30) bmiCategory = 'Sobrepeso';
-  else if (bmiNum >= 30) bmiCategory = 'Obesidade';
+  if (bmiNum < 18.5) bmiCategory = t('underweight', 'Abaixo do peso');
+  else if (bmiNum >= 25 && bmiNum < 30) bmiCategory = t('overweight', 'Sobrepeso');
+  else if (bmiNum >= 30) bmiCategory = t('obesity', 'Obesidade');
 
   // Sleep
   const sleepLogs = profile?.sleepLogs?.filter(s => s.date.startsWith(today)) || [];
@@ -64,19 +66,19 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
 
   // Mood
   const moodLogs = profile?.emotionalLogs?.filter(m => m.date.startsWith(today)) || [];
-  const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : 'Ótimo';
+  const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : t('great', 'Ótimo');
 
   const features = [
-    { id: 'quickdishes', label: 'Pratos Rápidos IA', icon: <Flame className="w-5 h-5 text-orange-500" />, desc: '3 opções em 1 toque' },
-    { id: 'generator', label: 'Receitas com IA', icon: <Utensils className="w-5 h-5 text-emerald-500" />, desc: 'Geradas sob medida' },
-    { id: 'coach', label: 'NutriCoach IA', icon: <Zap className="w-5 h-5 text-emerald-400" />, desc: 'Análise de dieta 24/7' },
-    { id: 'analyzer', label: 'Scanner de Prato', icon: <Camera className="w-5 h-5 text-emerald-500" />, desc: 'Fotografe e analise' },
-    { id: 'smartplate', label: 'Restaurante Inteligente', icon: <Camera className="w-5 h-5 text-emerald-400" />, desc: 'Combine opções de fora' },
-    { id: 'trainer', label: 'Treino Personalizado', icon: <Dumbbell className="w-5 h-5 text-emerald-500" />, desc: 'Exercícios guiados' },
-    { id: 'fridge', label: 'Geladeira Inteligente', icon: <Sparkles className="w-5 h-5 text-emerald-400" />, desc: 'Aproveitamento 100%' },
-    { id: 'habits', label: 'Hábitos & Sono', icon: <Moon className="w-5 h-5 text-indigo-400" />, desc: 'Ritmo circadiano' },
-    { id: 'herbs', label: 'Ervas & Fitoterapia', icon: <Leaf className="w-5 h-5 text-emerald-500" />, desc: 'Infusões e remédios' },
-    { id: 'market', label: 'Marketplace Orgânico', icon: <ShoppingBag className="w-5 h-5 text-amber-500" />, desc: 'Insumos selecionados' },
+    { id: 'quickdishes', labelKey: 'feature_quickdishes', descKey: 'desc_quickdishes', defaultLabel: 'Pratos Rápidos IA', defaultDesc: '3 opções em 1 toque', icon: <Flame className="w-5 h-5 text-orange-500" /> },
+    { id: 'generator', labelKey: 'feature_generator', descKey: 'desc_generator', defaultLabel: 'Receitas com IA', defaultDesc: 'Geradas sob medida', icon: <Utensils className="w-5 h-5 text-emerald-500" /> },
+    { id: 'coach', labelKey: 'feature_coach', descKey: 'desc_coach', defaultLabel: 'NutriCoach IA', defaultDesc: 'Análise de dieta 24/7', icon: <Zap className="w-5 h-5 text-emerald-400" /> },
+    { id: 'analyzer', labelKey: 'feature_analyzer', descKey: 'desc_analyzer', defaultLabel: 'Scanner de Prato', defaultDesc: 'Fotografe e analise', icon: <Camera className="w-5 h-5 text-emerald-500" /> },
+    { id: 'smartplate', labelKey: 'feature_smartplate', descKey: 'desc_smartplate', defaultLabel: 'Restaurante Inteligente', defaultDesc: 'Combine opções de fora', icon: <Camera className="w-5 h-5 text-emerald-400" /> },
+    { id: 'trainer', labelKey: 'feature_trainer', descKey: 'desc_trainer', defaultLabel: 'Treino Personalizado', defaultDesc: 'Exercícios guiados', icon: <Dumbbell className="w-5 h-5 text-emerald-500" /> },
+    { id: 'fridge', labelKey: 'feature_fridge', descKey: 'desc_fridge', defaultLabel: 'Geladeira Inteligente', defaultDesc: 'Aproveitamento 100%', icon: <Sparkles className="w-5 h-5 text-emerald-400" /> },
+    { id: 'habits', labelKey: 'feature_habits', descKey: 'desc_habits', defaultLabel: 'Hábitos & Sono', defaultDesc: 'Ritmo circadiano', icon: <Moon className="w-5 h-5 text-indigo-400" /> },
+    { id: 'herbs', labelKey: 'feature_herbs', descKey: 'desc_herbs', defaultLabel: 'Ervas & Fitoterapia', defaultDesc: 'Infusões e remédios', icon: <Leaf className="w-5 h-5 text-emerald-500" /> },
+    { id: 'market', labelKey: 'feature_market', descKey: 'desc_market', defaultLabel: 'Marketplace Orgânico', defaultDesc: 'Insumos selecionados', icon: <ShoppingBag className="w-5 h-5 text-amber-500" /> },
   ];
 
   return (
@@ -138,11 +140,11 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
-                Olá, {profile?.name?.split(' ')[0] || 'Usuário'}!
+                {t('greeting_hello', 'Olá')}, {profile?.name?.split(' ')[0] || t('user', 'Usuário')}!
               </h2>
 
               <p className="text-sm text-[#B5BDC9] max-w-md leading-relaxed font-sans">
-                "Seu metabolismo está operando em padrão ótimo hoje. Lembre-se de manter a hidratação contínua."
+                "{t('today_overview_quote', 'Seu metabolismo está operando em padrão ótimo hoje. Lembre-se de manter a hidratação contínua.')}"
               </p>
             </div>
           </div>
@@ -163,7 +165,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>Falar com NutriAI</span>
+            <span>{t('btn_talk_malu', 'Falar com NutriAI')}</span>
           </motion.button>
         </div>
       </div>
@@ -261,7 +263,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">Meta de Água</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_water_goal', 'Meta de Água')}</span>
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
                 {waterCurrent} <span className="text-xs font-normal text-slate-400">/ {waterTarget}ml</span>
               </div>
@@ -286,7 +288,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">Meta de Calorias</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_calories_goal', 'Meta de Calorias')}</span>
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
                 {caloriesCurrent} <span className="text-xs font-normal text-slate-400">/ {caloriesTarget} kcal</span>
               </div>
@@ -311,7 +313,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">Peso & Classificação</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_weight_bmi', 'Peso & Classificação')}</span>
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
                 {currentWeight} <span className="text-xs font-normal text-slate-400">kg</span>
               </div>
@@ -332,12 +334,12 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">Sono & Humor</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_sleep_mood', 'Sono & Humor')}</span>
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
-                {sleepHours}h <span className="text-xs font-normal text-slate-400">dormidas</span>
+                {sleepHours}h <span className="text-xs font-normal text-slate-400">{t('hours_slept', 'dormidas')}</span>
               </div>
               <span className="text-[11px] font-semibold text-emerald-500 block mt-0.5">
-                Recuperação Alta
+                {t('high_recovery', 'Recuperação Alta')}
               </span>
             </div>
           </div>
@@ -370,7 +372,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
               NOVIDADE EXCLUSIVA
             </div>
             <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 dark:text-white mb-2">
-              Restaurante Inteligente
+              {t('feature_smartplate', 'Restaurante Inteligente')}
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg">
               Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo.
@@ -379,7 +381,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
           <div className="shrink-0 mt-4 sm:mt-0">
             <div className={`px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 ${isPremium ? 'bg-[#D8B14A] text-slate-900' : 'bg-emerald-500 text-white'}`}>
               <Utensils className="w-4 h-4" />
-              Combinar Prato
+              {t('combine_plate', 'Combinar Prato')}
             </div>
           </div>
         </div>
@@ -388,7 +390,7 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
       {/* 4. Grid de Funcionalidades Principais */}
       <div className="space-y-4">
         <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white px-1">
-          Recursos Inteligentes
+          {t('smart_resources', 'Recursos Inteligentes')}
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -410,10 +412,10 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
 
               <div>
                 <h4 className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight mb-0.5 group-hover:text-[#16C784] transition-colors">
-                  {item.label}
+                  {t(item.labelKey, item.defaultLabel)}
                 </h4>
                 <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 dark:text-[#B5BDC9]">
-                  {item.desc}
+                  {t(item.descKey, item.defaultDesc)}
                 </p>
               </div>
 

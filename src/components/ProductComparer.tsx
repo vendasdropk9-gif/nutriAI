@@ -8,9 +8,18 @@ import {
   Scale, Camera, Upload, Sparkles, CheckCircle2, AlertTriangle, 
   Trash2, Flame, Droplets, ShieldAlert, Zap, ArrowLeftRight,
   TrendingDown, TrendingUp, Info, HelpCircle, Utensils, Apple,
-  Bookmark, RefreshCcw, X, Check, Award
+  Bookmark, RefreshCcw, X, Check, Award, BarChart2
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+
+// Helper to extract numeric values from strings like "115 kcal", "6.2g", "5690mg"
+function parseNutrientValue(val: string | number | undefined): number {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(',', '.');
+  const match = cleaned.match(/(\d+(\.\d+)?)/);
+  return match ? parseFloat(match[1]) : 0;
+}
 
 // Mock/Preset comparisons for quick testing
 const COMPARISON_PRESETS = [
@@ -327,6 +336,140 @@ export function ProductComparer() {
       setHistory(list);
     }
   };
+
+  // Dynamic comparison key to re-trigger smooth entrance animations whenever comparison changes or loads
+  const comparisonKey = comparisonResult
+    ? `${comparisonResult.productA?.name || ''}-${comparisonResult.productB?.name || ''}-${comparisonResult.productA?.calories || ''}-${comparisonResult.productB?.calories || ''}`
+    : '';
+
+  // Parse numerical values to compute relative proportions and percentages for animated bars
+  const calValA = comparisonResult ? parseNutrientValue(comparisonResult.productA?.calories) : 0;
+  const calValB = comparisonResult ? parseNutrientValue(comparisonResult.productB?.calories) : 0;
+  const maxCal = Math.max(calValA, calValB, 1);
+  const ratioCalA = Math.round((calValA / maxCal) * 100);
+  const ratioCalB = Math.round((calValB / maxCal) * 100);
+
+  const sugValA = comparisonResult ? parseNutrientValue(comparisonResult.productA?.sugars) : 0;
+  const sugValB = comparisonResult ? parseNutrientValue(comparisonResult.productB?.sugars) : 0;
+  const maxSug = Math.max(sugValA, sugValB, 1);
+  const ratioSugA = Math.round((sugValA / maxSug) * 100);
+  const ratioSugB = Math.round((sugValB / maxSug) * 100);
+
+  const fatValA = comparisonResult ? parseNutrientValue(comparisonResult.productA?.fats) : 0;
+  const fatValB = comparisonResult ? parseNutrientValue(comparisonResult.productB?.fats) : 0;
+  const maxFat = Math.max(fatValA, fatValB, 1);
+  const ratioFatA = Math.round((fatValA / maxFat) * 100);
+  const ratioFatB = Math.round((fatValB / maxFat) * 100);
+
+  const sodValA = comparisonResult ? parseNutrientValue(comparisonResult.productA?.sodium) : 0;
+  const sodValB = comparisonResult ? parseNutrientValue(comparisonResult.productB?.sodium) : 0;
+  const maxSod = Math.max(sodValA, sodValB, 1);
+  const ratioSodA = Math.round((sodValA / maxSod) * 100);
+  const ratioSodB = Math.round((sodValB / maxSod) * 100);
+
+  const proValA = comparisonResult ? parseNutrientValue(comparisonResult.productA?.proteins) : 0;
+  const proValB = comparisonResult ? parseNutrientValue(comparisonResult.productB?.proteins) : 0;
+  const maxPro = Math.max(proValA, proValB, 1);
+  const ratioProA = Math.round((proValA / maxPro) * 100);
+  const ratioProB = Math.round((proValB / maxPro) * 100);
+
+  const comparisonBarsData = comparisonResult ? [
+    {
+      id: 'calories',
+      name: 'Calorias',
+      unit: 'kcal',
+      icon: Flame,
+      iconColor: 'text-orange-500',
+      valA: calValA,
+      valB: calValB,
+      rawA: comparisonResult.productA?.calories || '0 kcal',
+      rawB: comparisonResult.productB?.calories || '0 kcal',
+      ratioA: ratioCalA,
+      ratioB: ratioCalB,
+      higherIsBetter: false,
+      deltaText: calValA > calValB
+        ? `Opção B economiza ${Math.round(calValA - calValB)} kcal (-${Math.round(((calValA - calValB) / calValA) * 100)}%)`
+        : calValB > calValA
+        ? `Opção A economiza ${Math.round(calValB - calValA)} kcal (-${Math.round(((calValB - calValA) / calValB) * 100)}%)`
+        : 'Mesmo valor calórico',
+    },
+    {
+      id: 'proteins',
+      name: 'Proteínas',
+      unit: 'g',
+      icon: Utensils,
+      iconColor: 'text-blue-500',
+      valA: proValA,
+      valB: proValB,
+      rawA: comparisonResult.productA?.proteins || '0g',
+      rawB: comparisonResult.productB?.proteins || '0g',
+      ratioA: ratioProA,
+      ratioB: ratioProB,
+      higherIsBetter: true,
+      deltaText: proValA > proValB
+        ? `Opção A tem +${(proValA - proValB).toFixed(1)}g de proteína (+${proValB > 0 ? Math.round(((proValA - proValB) / proValB) * 100) : 100}%)`
+        : proValB > proValA
+        ? `Opção B tem +${(proValB - proValA).toFixed(1)}g de proteína (+${proValA > 0 ? Math.round(((proValB - proValA) / proValA) * 100) : 100}%)`
+        : 'Mesmo teor de proteína',
+    },
+    {
+      id: 'sugars',
+      name: 'Açúcares',
+      unit: 'g',
+      icon: Droplets,
+      iconColor: 'text-amber-500',
+      valA: sugValA,
+      valB: sugValB,
+      rawA: comparisonResult.productA?.sugars || '0g',
+      rawB: comparisonResult.productB?.sugars || '0g',
+      ratioA: ratioSugA,
+      ratioB: ratioSugB,
+      higherIsBetter: false,
+      deltaText: sugValA > sugValB
+        ? `Opção B economiza ${(sugValA - sugValB).toFixed(1)}g de açúcar`
+        : sugValB > sugValA
+        ? `Opção A economiza ${(sugValB - sugValA).toFixed(1)}g de açúcar`
+        : 'Teor de açúcares equivalente',
+    },
+    {
+      id: 'fats',
+      name: 'Gorduras Totais',
+      unit: 'g',
+      icon: Info,
+      iconColor: 'text-yellow-500',
+      valA: fatValA,
+      valB: fatValB,
+      rawA: comparisonResult.productA?.fats || '0g',
+      rawB: comparisonResult.productB?.fats || '0g',
+      ratioA: ratioFatA,
+      ratioB: ratioFatB,
+      higherIsBetter: false,
+      deltaText: fatValA > fatValB
+        ? `Opção B tem ${(fatValA - fatValB).toFixed(1)}g a menos de gordura`
+        : fatValB > fatValA
+        ? `Opção A tem ${(fatValB - fatValA).toFixed(1)}g a menos de gordura`
+        : 'Mesmo teor de gorduras',
+    },
+    {
+      id: 'sodium',
+      name: 'Sódio',
+      unit: 'mg',
+      icon: ShieldAlert,
+      iconColor: 'text-red-500',
+      valA: sodValA,
+      valB: sodValB,
+      rawA: comparisonResult.productA?.sodium || '0mg',
+      rawB: comparisonResult.productB?.sodium || '0mg',
+      ratioA: ratioSodA,
+      ratioB: ratioSodB,
+      higherIsBetter: false,
+      deltaText: sodValA > sodValB
+        ? `Opção B tem ${Math.round(((sodValA - sodValB) / sodValA) * 100)}% menos sódio (-${Math.round(sodValA - sodValB)}mg)`
+        : sodValB > sodValA
+        ? `Opção A tem ${Math.round(((sodValB - sodValA) / sodValB) * 100)}% menos sódio (-${Math.round(sodValB - sodValA)}mg)`
+        : 'Teor de sódio idêntico',
+    },
+  ] : [];
 
   return (
     <div className="space-y-6 animate-fade-in" id="product_comparer_tab">
@@ -667,39 +810,94 @@ export function ProductComparer() {
 
                     {/* Nutrient list for A */}
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Flame className="w-3.5 h-3.5 text-orange-500" /> Calorias
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.calories}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Flame className="w-3.5 h-3.5 text-orange-500" /> Calorias
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.calories}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-a-cal-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioCalA}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Droplets className="w-3.5 h-3.5 text-amber-500" /> Açúcares
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.sugars}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Droplets className="w-3.5 h-3.5 text-amber-500" /> Açúcares
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.sugars}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-a-sug-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioSugA}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Info className="w-3.5 h-3.5 text-yellow-500" /> Gorduras
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.fats}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Info className="w-3.5 h-3.5 text-yellow-500" /> Gorduras
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.fats}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-a-fat-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioFatA}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Sódio
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.sodium}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Sódio
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.sodium}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-a-sod-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioSodA}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Utensils className="w-3.5 h-3.5 text-blue-500" /> Proteínas
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.proteins}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Utensils className="w-3.5 h-3.5 text-blue-500" /> Proteínas
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productA.proteins}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-a-pro-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioProA}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
                       {/* Processing badge */}
@@ -738,39 +936,94 @@ export function ProductComparer() {
 
                     {/* Nutrient list for B */}
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Flame className="w-3.5 h-3.5 text-orange-500" /> Calorias
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.calories}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Flame className="w-3.5 h-3.5 text-orange-500" /> Calorias
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.calories}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-b-cal-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioCalB}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Droplets className="w-3.5 h-3.5 text-amber-500" /> Açúcares
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.sugars}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Droplets className="w-3.5 h-3.5 text-amber-500" /> Açúcares
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.sugars}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-b-sug-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioSugB}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Info className="w-3.5 h-3.5 text-yellow-500" /> Gorduras
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.fats}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Info className="w-3.5 h-3.5 text-yellow-500" /> Gorduras
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.fats}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-b-fat-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioFatB}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Sódio
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.sodium}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <ShieldAlert className="w-3.5 h-3.5 text-red-500" /> Sódio
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.sodium}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-b-sod-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioSodB}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs pb-1.5 border-b border-gray-50 dark:border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Utensils className="w-3.5 h-3.5 text-blue-500" /> Proteínas
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.proteins}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-xs pb-1">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Utensils className="w-3.5 h-3.5 text-blue-500" /> Proteínas
+                          </span>
+                          <span className="font-extrabold text-gray-800 dark:text-gray-200">{comparisonResult.productB.proteins}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                          <motion.div
+                            key={`mini-bar-b-pro-${comparisonKey}`}
+                            initial={{ width: 0, opacity: 0, x: -12 }}
+                            animate={{ width: `${ratioProB}%`, opacity: 1, x: 0 }}
+                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                          />
+                        </div>
                       </div>
 
                       {/* Processing badge */}
@@ -797,6 +1050,123 @@ export function ProductComparer() {
                     </div>
                   </div>
 
+                </div>
+
+                {/* Dedicated Interactive Comparative Bar Chart with Slide-in & Fade-in Animations */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <BarChart2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          Gráfico Comparativo em Barras
+                        </h4>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                          Visualização gráfica proporcional com animação dinâmica ao carregar ou alterar dados
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap items-center gap-4 text-xs font-medium self-start sm:self-center">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 inline-block shadow-xs shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 font-bold max-w-[140px] truncate" title={comparisonResult.productA.name}>
+                          Opção A: {comparisonResult.productA.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 inline-block shadow-xs shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 font-bold max-w-[140px] truncate" title={comparisonResult.productB.name}>
+                          Opção B: {comparisonResult.productB.name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List of animated comparative bars */}
+                  <div className="space-y-3.5 pt-1">
+                    {comparisonBarsData.map((metric, idx) => (
+                      <motion.div
+                        key={`chart-bar-row-${metric.id}-${comparisonKey}`}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.5,
+                          delay: idx * 0.08,
+                          ease: [0.16, 1, 0.3, 1],
+                        }}
+                        className="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/60 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <metric.icon className={`w-4 h-4 ${metric.iconColor}`} />
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                              {metric.name}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800/50">
+                            {metric.deltaText}
+                          </span>
+                        </div>
+
+                        {/* Head to head comparative animated bars */}
+                        <div className="space-y-2 pt-0.5">
+                          {/* Option A Bar */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="font-semibold text-rose-600 dark:text-rose-400 truncate max-w-[240px]">
+                                Opção A ({comparisonResult.productA.name})
+                              </span>
+                              <span className="font-extrabold text-gray-800 dark:text-gray-200">
+                                {metric.rawA}
+                              </span>
+                            </div>
+                            <div className="h-3 bg-gray-200/70 dark:bg-gray-700/60 rounded-full overflow-hidden relative">
+                              <motion.div
+                                key={`bar-fill-A-${metric.id}-${comparisonKey}`}
+                                initial={{ width: 0, opacity: 0, x: -24 }}
+                                animate={{ width: `${metric.ratioA}%`, opacity: 1, x: 0 }}
+                                transition={{
+                                  duration: 0.8,
+                                  delay: idx * 0.08 + 0.05,
+                                  ease: [0.16, 1, 0.3, 1],
+                                }}
+                                className="h-full bg-gradient-to-r from-rose-500 via-rose-400 to-pink-500 rounded-full shadow-xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Option B Bar */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[240px]">
+                                Opção B ({comparisonResult.productB.name})
+                              </span>
+                              <span className="font-extrabold text-gray-800 dark:text-gray-200">
+                                {metric.rawB}
+                              </span>
+                            </div>
+                            <div className="h-3 bg-gray-200/70 dark:bg-gray-700/60 rounded-full overflow-hidden relative">
+                              <motion.div
+                                key={`bar-fill-B-${metric.id}-${comparisonKey}`}
+                                initial={{ width: 0, opacity: 0, x: -24 }}
+                                animate={{ width: `${metric.ratioB}%`, opacity: 1, x: 0 }}
+                                transition={{
+                                  duration: 0.8,
+                                  delay: idx * 0.08 + 0.1,
+                                  ease: [0.16, 1, 0.3, 1],
+                                }}
+                                className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-full shadow-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Detailed Analysis Markdown */}
