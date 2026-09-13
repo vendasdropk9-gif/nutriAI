@@ -1,5 +1,6 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
@@ -59,6 +60,7 @@ interface FirestoreErrorInfo {
 }
 
 export function SmartFridge() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping'>('fridge');
   
@@ -506,7 +508,7 @@ export function SmartFridge() {
       <div className="text-center space-y-4 mb-8">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-medium text-xs md:text-sm border border-emerald-200 dark:border-emerald-800 max-w-full select-none shadow-sm">
           <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 animate-pulse shrink-0" />
-          <span className="truncate">Nutrição Sem Desperdício</span>
+          <span className="truncate">{t('fridge_hero_title', 'Nutrição Sem Desperdício')}</span>
         </div>
         <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
           Geladeira Inteligente
@@ -820,7 +822,7 @@ export function SmartFridge() {
 
                   {/* Preset option */}
                   <div className="space-y-3">
-                    <h4 className="font-serif text-lg font-medium text-slate-700 dark:text-slate-300 text-center">Ou teste rápido com um exemplo:</h4>
+                    <h4 className="font-serif text-lg font-medium text-slate-700 dark:text-slate-300 text-center">{t('fridge_quick_test', 'Ou teste rápido com um exemplo:')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {PRESET_FRIDGES.map((preset, idx) => (
                         <div 
@@ -884,7 +886,7 @@ export function SmartFridge() {
                     <Sparkles className="w-6 h-6 text-emerald-500 absolute inset-0 m-auto animate-bounce" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="font-serif text-2xl font-medium text-slate-700 dark:text-slate-300">A Inteligência Artificial está analisando...</h3>
+                    <h3 className="font-serif text-2xl font-medium text-slate-700 dark:text-slate-300">{t('fridge_analyzing', 'A Inteligência Artificial está analisando...')}</h3>
                     <p className="font-sans text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                       Identificando ingredientes, deduzindo data estimada de vencimento e criando sugestões de receitas exclusivas.
                     </p>

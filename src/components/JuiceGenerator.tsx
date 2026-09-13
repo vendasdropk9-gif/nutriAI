@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { generateJuiceRecipe } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { GlassWater, Loader2, Sparkles, Plus, Leaf, Flame, HeartPulse, PiggyBank, Clock, CheckCircle2, Image as ImageIcon, Maximize2, X } from 'lucide-react';
@@ -18,7 +19,8 @@ const SUGGESTIONS = [
   { label: '🟣 Beterraba & Morango', text: 'beterraba, morango e água de coco' },
 ];
 
-export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) {
+export function JuiceGenerator({ profile, onAwardPoints }: { profile: any; onAwardPoints?: (points: number, reason: string) => void }) {
+  const { t } = useTranslation();
   const [ingredients, setIngredients] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedJuice, setGeneratedJuice] = useState<any | null>(null);
@@ -77,7 +79,7 @@ export function JuiceGenerator({ profile, onAwardPoints }: JuiceGeneratorProps) 
 
             {/* Sugestões rápidas */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Sugestões:</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{t('juice_suggestions', 'Sugestões:')}</span>
               {SUGGESTIONS.map((sug, idx) => (
                 <button
                   key={idx}

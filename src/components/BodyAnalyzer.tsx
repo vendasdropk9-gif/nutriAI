@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse } from 'lucide-react';
 import { analyzeBodyImage, getGeneralBodyTips } from '../lib/gemini';
 import { UserProfile } from '../types';
@@ -11,7 +12,9 @@ interface BodyAnalyzerProps {
   onAwardPoints?: (amount: number, reason: string) => void;
 }
 
-export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAnalyzerProps) {
+import { UserProfile } from '../types';
+export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: { profile: UserProfile | null; onUpdateProfile: (p: Partial<UserProfile>) => void; onAwardPoints?: (points: number, reason: string) => void }) {
+  const { t } = useTranslation();
   const [bodySubTab, setBodySubTab] = useState<'biometrics' | 'shape'>('biometrics');
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -176,7 +179,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
       {/* Premium sub-tab top navigation controls */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div className="text-center md:text-left">
-          <span className="font-mono text-[10px] text-emerald-500 font-bold uppercase tracking-widest block">Portal Clínico Corporal</span>
+          <span className="font-mono text-[10px] text-emerald-500 font-bold uppercase tracking-widest block">{t('body_portal_title', 'Portal Clínico Corporal')}</span>
           <h3 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm">Selecione a abordagem corporal por sensoriamento eletrônico</h3>
         </div>
         <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/30 w-full md:w-auto md:flex md:flex-row gap-0.5">
@@ -244,7 +247,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Camera className="w-8 h-8" />
                 </div>
-                <h4 className="text-slate-800 dark:text-white font-bold text-lg mb-3">Análise por Foto</h4>
+                <h4 className="text-slate-800 dark:text-white font-bold text-lg mb-3">{t('body_photo_analysis', 'Análise por Foto')}</h4>
                 <p className="text-slate-500 dark:text-slate-400 text-center text-xs sm:text-sm mb-6 max-w-xs leading-relaxed">
                   Tire uma foto frontal com roupas de treino ou envie da galeria para receber recomendações de evolução.
                 </p>
@@ -426,7 +429,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                     <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center">
                        <Heart className="w-5 h-5" />
                     </div>
-                    <h5 className="font-bold text-orange-800 dark:text-orange-400">Nutrição</h5>
+                    <h5 className="font-bold text-orange-800 dark:text-orange-400">{t('body_nutrition', 'Nutrição')}</h5>
                  </div>
                  <ul className="space-y-3">
                     {analysisResult.recommendations?.food?.map((tip: string, idx: number) => (
@@ -443,7 +446,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                     <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
                        <Droplet className="w-5 h-5" />
                     </div>
-                    <h5 className="font-bold text-blue-800 dark:text-blue-400">Rotina & Hidratação</h5>
+                    <h5 className="font-bold text-blue-800 dark:text-blue-400">{t('body_routine_hydration', 'Rotina & Hidratação')}</h5>
                  </div>
                  <ul className="space-y-3">
                     {analysisResult.recommendations?.hydration?.map((tip: string, idx: number) => (

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
 import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
@@ -33,6 +34,7 @@ const MEALS = [
 ];
 
 export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake, profile, onGeneratingChange }: MealPlanProps) {
+  const { t } = useTranslation();
   const [selectedDay, setSelectedDay] = useState<string>(DAYS_OF_WEEK[0]);
   const [addingTo, setAddingTo] = useState<{day: string, meal: string} | null>(null);
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
@@ -357,7 +359,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
           <div className="flex justify-between items-center clay-card p-8 shadow-sm">
             <div>
               <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">{selectedDay}</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Planeje suas 3 principais refeições.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{t('mealplan_plan_hint', 'Planeje suas 3 principais refeições.')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
@@ -421,7 +423,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Calories radial progress representation */}
               <div className="lg:col-span-4 flex flex-col items-center justify-center p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md rounded-[24px] border border-white/60 dark:border-slate-700/40 shadow-sm text-center">
-                <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-2">Calorias Diárias</span>
+                <span className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold mb-2">{t('mealplan_daily_calories', 'Calorias Diárias')}</span>
                 <div className="relative w-36 h-36 flex items-center justify-center">
                   {/* SVG ring */}
                   <svg className="w-full h-full transform -rotate-90">
@@ -525,14 +527,14 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
             {/* Micronutrients breakdown inside tracker */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 dark:border-slate-700/40 text-sm">
               <div>
-                <h5 className="font-bold text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Fibras e Açúcares</h5>
+                <h5 className="font-bold text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">{t('mealplan_fiber_sugar', 'Fibras e Açúcares')}</h5>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
                     <p className="text-xs text-slate-400 dark:text-slate-500">Fibras Totais</p>
                     <p className="text-base font-bold text-slate-700 dark:text-slate-200 font-mono mt-0.5">{currentNutrition.fiber}g <span className="text-xs text-slate-400 font-normal">/ {recommendedNutrition.fiber}g</span></p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Açúcares Diários</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{t('mealplan_daily_sugar', 'Açúcares Diários')}</p>
                     <p className="text-base font-bold text-slate-700 dark:text-slate-200 font-mono mt-0.5">{currentNutrition.sugar}g <span className="text-xs text-slate-400 font-normal">/ max {recommendedNutrition.sugar}g</span></p>
                   </div>
                 </div>
@@ -542,7 +544,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                 <h5 className="font-bold text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Minerais e Vitaminas Ingeridos</h5>
                 <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 min-h-[4.5rem] flex flex-wrap gap-1.5 items-start content-start">
                   {currentNutrition.vitamins.length === 0 && currentNutrition.minerals.length === 0 ? (
-                    <p className="text-xs text-slate-400 dark:text-slate-500 italic mt-2">Nenhum micronutriente registrado para as refeições deste dia.</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 italic mt-2">{t('mealplan_no_micronutrients', 'Nenhum micronutriente registrado para as refeições deste dia.')}</p>
                   ) : (
                     <>
                       {currentNutrition.vitamins.map((v, i) => (
@@ -600,7 +602,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">Proteínas</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">{t('mealplan_proteins', 'Proteínas')}</label>
                       <input
                         type="number"
                         min="0"

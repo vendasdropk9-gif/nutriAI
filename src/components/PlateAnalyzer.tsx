@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain, 
@@ -20,7 +21,8 @@ interface PlateAnalyzerProps {
 type CardTheme = 'emerald' | 'obsidian' | 'sunset' | 'clean';
 type CardFormat = 'card' | 'story' | 'square';
 
-export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
+export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwardPoints?: (points: number, reason: string) => void }) {
+  const { t } = useTranslation();
   // Main sub-tabs: 'scanner' (analysis) or 'share' (dedicated social card studio)
   const [activeSubTab, setActiveSubTab] = useState<'scanner' | 'share'>('scanner');
 
@@ -763,7 +765,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
                     className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 hover:border-slate-500 backdrop-blur-md transition-all duration-200 shadow-md active:scale-95 text-center"
                   >
                     <X className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Cancelar análise</span>
+                    <span>{t('analyzer_cancel', 'Cancelar análise')}</span>
                   </button>
                 </div>
 
@@ -857,7 +859,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: PlateAnalyzerProps) {
                   <p className="text-2xl font-serif font-black text-orange-700 dark:text-orange-300">{analysisResult.nutrition.calories} <span className="text-xs font-sans font-normal">kcal</span></p>
                 </div>
                 <div className="bg-red-50 dark:bg-red-950/30 p-4 rounded-2xl text-center border border-red-200/50 dark:border-red-900/30">
-                  <p className="text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider mb-1">Proteína</p>
+                  <p className="text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider mb-1">{t('analyzer_protein', 'Proteína')}</p>
                   <p className="text-2xl font-serif font-black text-red-700 dark:text-red-300">{analysisResult.nutrition.protein} <span className="text-xs font-sans font-normal">g</span></p>
                 </div>
                 <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl text-center border border-amber-200/50 dark:border-amber-900/30">

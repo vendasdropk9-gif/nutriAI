@@ -1,6 +1,7 @@
 import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
@@ -189,6 +190,7 @@ function createFullExercise3D(name: string, quantity: { reps?: number; duration?
 }
 
 export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: PersonalTrainerProps) {
+  const { t } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'plan' | 'training'>('plan');
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyWorkoutPlan | null>(null);
   const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
@@ -580,7 +582,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   <div className="p-1.5 bg-emerald-500/15 rounded-lg">
                     <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span>Sincronização de IA Ativa</span>
+                  <span>{t('trainer_sync_active', 'Sincronização de IA Ativa')}</span>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
                   Seu plano de calistenia foi sincronizado com seu objetivo de{' '}
@@ -757,7 +759,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         >
             <Trophy className="w-20 h-20 md:w-32 md:h-32 mx-auto animate-bounce" />
             <div className="space-y-3 md:space-y-4">
-               <h3 className="text-3xl md:text-4xl font-serif font-bold">Vença a si mesma!</h3>
+               <h3 className="text-3xl md:text-4xl font-serif font-bold">{t('trainer_beat_yourself', 'Vença a si mesma!')}</h3>
                <p className="text-emerald-50 text-base md:text-xl font-medium">Você completou o treino de hoje com sucesso.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1004,7 +1006,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                      </div>
 
                      <div className="space-y-3 md:space-y-4">
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Músculos Ativados:</h4>
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('trainer_activated_muscles', 'Músculos Ativados:')}</h4>
                         <div className="flex flex-wrap gap-2">
                            {currentExercise?.muscleGroups.map(m => (
                              <span key={m} className="px-2.5 py-1 md:px-3 md:py-1 bg-white/60 dark:bg-slate-700 rounded-full text-[10px] md:text-xs text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-600/50">
@@ -1126,7 +1128,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 <Sparkles className="w-12 h-12 md:w-16 md:h-16 text-emerald-500 mx-auto animate-pulse" />
                 <div className="relative z-10">
                    <h3 className="text-3xl md:text-4xl font-serif font-bold text-slate-800 dark:text-white mb-2">Excepcional!</h3>
-                   <p className="text-slate-500 dark:text-slate-400 font-medium">Olha só como a execução foi perfeita.</p>
+                   <p className="text-slate-500 dark:text-slate-400 font-medium">{t('trainer_perfect_execution', 'Olha só como a execução foi perfeita.')}</p>
                 </div>
                 
                 <div className="relative w-full aspect-square rounded-[24px] overflow-hidden border border-emerald-100 dark:border-emerald-800/50 shadow-inner bg-slate-50 dark:bg-slate-800">

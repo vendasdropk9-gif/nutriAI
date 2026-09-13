@@ -1,5 +1,6 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
 import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff } from 'lucide-react';
@@ -56,6 +57,7 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
+  const { t } = useTranslation();
   const [isNutritionExpanded, setIsNutritionExpanded] = useState(false);
   const [prepTips, setPrepTips] = useState<RecipePreparationTips | null>(null);
   const [loadingPrepTips, setLoadingPrepTips] = useState(false);
@@ -956,7 +958,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           <div className="flex items-center gap-3">
             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${activeContrast.badge}`}>
               <BookOpen className="w-5 h-5" />
-              <span>Modo de Leitura Acessível</span>
+              <span>{t('recipe_accessible_reading', 'Modo de Leitura Acessível')}</span>
             </span>
             <span className="hidden sm:inline-block text-xs font-bold opacity-80">
               Fontes ampliadas • Alto contraste
@@ -1117,7 +1119,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 <Utensils className="w-6 h-6" />
               </div>
               <div>
-                <span className={activeFont.statLabel}>Proteínas & Macros</span>
+                <span className={activeFont.statLabel}>{t('recipe_proteins_macros', 'Proteínas & Macros')}</span>
                 <div className={`${activeFont.statValue} leading-none mt-1`}>
                   {recipe.nutrition.protein}g <span className="text-sm font-normal">({recipe.nutrition.carbs}g C / {recipe.nutrition.fat}g G)</span>
                 </div>
@@ -1132,8 +1134,8 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 <Volume2 className="w-5 h-5" />
               </span>
               <div>
-                <h4 className="font-bold text-sm sm:text-base leading-tight">Narração em Áudio Completa</h4>
-                <p className="text-xs opacity-80 mt-0.5">Ouça toda a receita narrada pela voz da NutriAI Malu</p>
+                <h4 className="font-bold text-sm sm:text-base leading-tight">{t('recipe_full_audio_narration', 'Narração em Áudio Completa')}</h4>
+                <p className="text-xs opacity-80 mt-0.5">{t('recipe_audio_hint', 'Ouça toda a receita narrada pela voz da NutriAI Malu')}</p>
               </div>
             </div>
 
@@ -1148,7 +1150,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 {isNarratingFull ? (
                   <>
                     <Square className="w-4 h-4 fill-current" />
-                    <span>Pausar Áudio da Receita</span>
+                    <span>{t('recipe_pause_audio', 'Pausar Áudio da Receita')}</span>
                   </>
                 ) : (
                   <>

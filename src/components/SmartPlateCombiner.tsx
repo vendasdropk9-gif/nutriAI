@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertTriangle, Info, History, ArrowLeft, ArrowRight, Upload, X, CheckCircle2, ChevronRight, Scale, Zap, Flame, Target, Eye, Maximize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { combineSmartPlate } from '../lib/gemini';
@@ -14,7 +15,8 @@ interface HistoryItem {
   imagesCount: number;
 }
 
-export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; profile?: UserProfile }) {
+export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; profile?: any }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   
   const [images, setImages] = useState<{ url: string; file: File; base64: string; mimeType: string }[]>([]);
@@ -191,12 +193,12 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
       <div className="max-w-4xl mx-auto p-4 pb-32">
         {showHistory ? (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white mb-6">Histórico de Refeições Fora de Casa</h2>
+            <h2 className="text-xl font-bold text-white mb-6">{t('spc_history_title', 'Histórico de Refeições Fora de Casa')}</h2>
             
             {history.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum histórico encontrado.</p>
+                <p>{t('spc_no_history', 'Nenhum histórico encontrado.')}</p>
               </div>
             ) : (
               history.map((item) => (
@@ -275,7 +277,7 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Camera className="w-8 h-8 text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Fotografe as opções</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{t('spc_photo_options', 'Fotografe as opções')}</h3>
               <p className="text-slate-400 mb-8 max-w-md mx-auto">
                 Tire fotos do buffet, das travessas, ou do cardápio do restaurante. (Máx. 5 fotos)
               </p>
@@ -333,7 +335,7 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
 
             {images.length > 0 && !result && (
               <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
-                <h3 className="text-lg font-bold text-white mb-4">Qual o seu objetivo nesta refeição?</h3>
+                <h3 className="text-lg font-bold text-white mb-4">{t('spc_goal_question', 'Qual o seu objetivo nesta refeição?')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {goals.map(goal => (
                     <button

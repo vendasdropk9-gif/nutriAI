@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -829,6 +830,51 @@ function HandDumbbell({ position, rotation }: { position: [number, number, numbe
   );
 }
 
+// 3D Barbell Half (Extends outwards to look like a full barbell when both hands hold it)
+function HandBarbell({ position, isLeft }: { position: [number, number, number], isLeft: boolean }) {
+  const chromeMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#cbd5e1', roughness: 0.2, metalness: 0.95
+  }), []);
+  const plateMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#0f172a', roughness: 0.35, metalness: 0.8
+  }), []);
+
+  const dir = isLeft ? -1 : 1;
+  return (
+    <group position={position}>
+      {/* Bar shaft */}
+      <mesh material={chromeMat} position={[dir * 0.4, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.015, 0.015, 1.2, 16]} />
+      </mesh>
+      {/* Plates */}
+      <mesh material={plateMat} position={[dir * 0.7, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+      </mesh>
+      <mesh material={plateMat} position={[dir * 0.75, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+      </mesh>
+    </group>
+  );
+}
+
+// 3D Cable Handle
+function HandCable({ position }: { position: [number, number, number] }) {
+  const darkMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#111827', roughness: 0.6, metalness: 0.2
+  }), []);
+  
+  return (
+    <group position={position}>
+      <mesh material={darkMat} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.016, 0.016, 0.14, 16]} />
+      </mesh>
+      <mesh material={darkMat} position={[0, 0.05, 0]} castShadow>
+        <boxGeometry args={[0.12, 0.02, 0.02]} />
+      </mesh>
+    </group>
+  );
+}
+
 // 3D Mannequin Anatomy Muscle Part with Glowing Highlight
 function AnatomicalMuscleMesh({
   geometry,
@@ -888,13 +934,13 @@ function AnatomicalMuscleMesh({
       });
     }
 
-    // Default Mannequin Skin (Sculpted anatomical clay/muscle aesthetic)
+    // Default Anatomy Skin (Dark Clay / Charcoal for Bodybuilder Shading)
     return new THREE.MeshPhysicalMaterial({
-      color: '#8b93a0',
-      roughness: 0.45,
-      metalness: 0.2,
-      clearcoat: 0.15,
-      clearcoatRoughness: 0.3,
+      color: '#1a1d26',
+      roughness: 0.5,
+      metalness: 0.4,
+      clearcoat: 0.2,
+      clearcoatRoughness: 0.4,
     });
   }, [isTarget, isSecondary, colorOverride]);
 
@@ -950,10 +996,10 @@ function AnimatedMannequin3D({
   const geo = useMemo(() => ({
     head: new THREE.SphereGeometry(0.18, 32, 32),
     neck: new THREE.CylinderGeometry(0.1, 0.13, 0.18, 24),
-    chest: new THREE.CapsuleGeometry(0.16, 0.28, 24, 24), // Wider, thicker chest
-    deltoid: new THREE.SphereGeometry(0.14, 24, 24), // Larger shoulders
+    chest: new THREE.CapsuleGeometry(0.16, 0.28, 24, 24),
+    deltoid: new THREE.SphereGeometry(0.14, 24, 24),
     sideDeltCap: new THREE.CapsuleGeometry(0.08, 0.14, 16, 16),
-    bicep: new THREE.CapsuleGeometry(0.085, 0.2, 16, 16), // Thicker arms
+    bicep: new THREE.CapsuleGeometry(0.085, 0.2, 16, 16),
     tricep: new THREE.CapsuleGeometry(0.08, 0.18, 16, 16),
     forearm: new THREE.CapsuleGeometry(0.07, 0.22, 16, 16),
     hand: new THREE.CapsuleGeometry(0.045, 0.09, 12, 12),
@@ -961,14 +1007,14 @@ function AnimatedMannequin3D({
     absMid: new THREE.CapsuleGeometry(0.06, 0.09, 16, 16),
     absLower: new THREE.CapsuleGeometry(0.06, 0.08, 16, 16),
     oblique: new THREE.CapsuleGeometry(0.065, 0.18, 16, 16),
-    lat: new THREE.CapsuleGeometry(0.1, 0.26, 24, 24), // Wider back (V-taper)
+    lat: new THREE.CapsuleGeometry(0.1, 0.26, 24, 24),
     shorts: new THREE.CapsuleGeometry(0.17, 0.28, 24, 24),
-    quadMain: new THREE.CapsuleGeometry(0.12, 0.36, 24, 24), // Huge quads
+    quadMain: new THREE.CapsuleGeometry(0.12, 0.36, 24, 24),
     quadTear: new THREE.CapsuleGeometry(0.07, 0.16, 16, 16),
     hamstring: new THREE.CapsuleGeometry(0.1, 0.32, 24, 24),
     glute: new THREE.SphereGeometry(0.15, 24, 24),
     knee: new THREE.SphereGeometry(0.06, 16, 16),
-    calf: new THREE.CapsuleGeometry(0.09, 0.3, 24, 24), // Bigger calves
+    calf: new THREE.CapsuleGeometry(0.09, 0.3, 24, 24),
     foot: new THREE.CapsuleGeometry(0.06, 0.18, 16, 16),
   }), []);
 
@@ -995,6 +1041,7 @@ function AnimatedMannequin3D({
     // Position root for Seated vs Standing
     if (isSeated) {
       rootGroup.current.position.set(0, 0.1, 0.02);
+      rootGroup.current.rotation.set(0, 0, 0);
       // Seated hips & thighs forward
       if (leftLegGroup.current) {
         leftLegGroup.current.position.set(-0.16, 0.08, 0.05);
@@ -1006,8 +1053,22 @@ function AnimatedMannequin3D({
       }
       if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(1.48, 0, 0);
       if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(1.48, 0, 0);
+    } else if (isLying) {
+      rootGroup.current.position.set(0, 0.25, -0.4);
+      rootGroup.current.rotation.set(Math.PI / 2, 0, 0);
+      if (leftLegGroup.current) {
+        leftLegGroup.current.position.set(-0.16, 0.08, -0.1);
+        leftLegGroup.current.rotation.set(-1.2, 0, -0.1);
+      }
+      if (rightLegGroup.current) {
+        rightLegGroup.current.position.set(0.16, 0.08, -0.1);
+        rightLegGroup.current.rotation.set(-1.2, 0, 0.1);
+      }
+      if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(1.4, 0, 0);
+      if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(1.4, 0, 0);
     } else {
       rootGroup.current.position.set(0, 0.35, 0);
+      rootGroup.current.rotation.set(0, 0, 0);
       if (leftLegGroup.current) {
         leftLegGroup.current.position.set(-0.15, 0.08, 0);
         leftLegGroup.current.rotation.set(0, 0, -0.05);
@@ -1022,60 +1083,95 @@ function AnimatedMannequin3D({
 
     // Exercise Biomechanical Movements
     if (exercise.id === 'seated_lateral_raises' || exercise.id === 'cable_lateral_raise') {
-      // SEATED LATERAL RAISES: Exact pose from user's image!
-      const raiseAngle = cycle * 1.35; // 0 to ~78 degrees abduction
-      
-      if (leftShoulderGroup.current) {
-        leftShoulderGroup.current.rotation.set(0.15, 0, raiseAngle);
-      }
-      if (rightShoulderGroup.current) {
-        rightShoulderGroup.current.rotation.set(0.15, 0, -raiseAngle);
-      }
-      if (leftElbowGroup.current) {
-        leftElbowGroup.current.rotation.set(-0.35, 0.2, 0.25);
-      }
-      if (rightElbowGroup.current) {
-        rightElbowGroup.current.rotation.set(-0.35, -0.2, -0.25);
-      }
-      if (spineGroup.current) {
-        spineGroup.current.rotation.set(0.04, 0, 0);
-      }
+      const raiseAngle = cycle * 1.35;
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(0.15, 0, raiseAngle);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(0.15, 0, -raiseAngle);
+      if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(-0.35, 0.2, 0.25);
+      if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(-0.35, -0.2, -0.25);
+      if (spineGroup.current) spineGroup.current.rotation.set(0.04, 0, 0);
+
     } else if (exercise.id === 'standing_dumbbell_press') {
-      // SHOULDER PRESS
       const pressAngle = cycle * 1.1;
-      if (leftShoulderGroup.current) {
-        leftShoulderGroup.current.rotation.set(0.8 - pressAngle * 0.4, 0, 0.8 + pressAngle * 0.5);
-      }
-      if (rightShoulderGroup.current) {
-        rightShoulderGroup.current.rotation.set(0.8 - pressAngle * 0.4, 0, -0.8 - pressAngle * 0.5);
-      }
-      if (leftElbowGroup.current) {
-        leftElbowGroup.current.rotation.set(-1.4 + pressAngle * 1.2, 0, 0);
-      }
-      if (rightElbowGroup.current) {
-        rightElbowGroup.current.rotation.set(-1.4 + pressAngle * 1.2, 0, 0);
-      }
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(0.8 - pressAngle * 0.4, 0, 0.8 + pressAngle * 0.5);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(0.8 - pressAngle * 0.4, 0, -0.8 - pressAngle * 0.5);
+      if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(-1.4 + pressAngle * 1.2, 0, 0);
+      if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(-1.4 + pressAngle * 1.2, 0, 0);
+
     } else if (exercise.id.includes('curl')) {
-      // BICEPS CURL
       const curlAngle = cycle * 1.55;
       if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(0.15, 0, 0.1);
       if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(0.15, 0, -0.1);
       if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(curlAngle, 0, 0);
       if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(curlAngle, 0, 0);
-    } else if (exercise.id.includes('bench_press')) {
-      // BENCH PRESS
+
+    } else if (exercise.id.includes('bench_press') || exercise.id.includes('incline_dumbbell_press')) {
       const pressDepth = cycle * 0.9;
       if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(1.2 - pressDepth * 0.3, 0, 0.4 + pressDepth * 0.4);
       if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(1.2 - pressDepth * 0.3, 0, -0.4 - pressDepth * 0.4);
       if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(-pressDepth * 1.2, 0, 0);
       if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(-pressDepth * 1.2, 0, 0);
+
+    } else if (exercise.id.includes('tricep') || exercise.id.includes('skull')) {
+      const pushdownAngle = cycle * 1.4;
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(-0.2, 0, 0.1);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(-0.2, 0, -0.1);
+      if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(-1.4 + pushdownAngle, 0, 0);
+      if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(-1.4 + pushdownAngle, 0, 0);
+
+    } else if (exercise.id.includes('row') || exercise.id.includes('pulldown')) {
+      const pullDepth = cycle * 1.0;
+      const isPulldown = exercise.id.includes('pulldown');
+      const shoulderBase = isPulldown ? 2.0 : 0.8;
+      
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(shoulderBase - pullDepth * 0.8, 0.2, 0.2);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(shoulderBase - pullDepth * 0.8, -0.2, -0.2);
+      if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(pullDepth * 1.2, 0, 0);
+      if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(pullDepth * 1.2, 0, 0);
+
+    } else if (exercise.id.includes('crunch')) {
+      const crunchDepth = cycle * 0.6;
+      if (spineGroup.current) spineGroup.current.rotation.set(crunchDepth, 0, 0);
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(1.5, 0, 0.2);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(1.5, 0, -0.2);
+      if (leftElbowGroup.current) leftElbowGroup.current.rotation.set(1.5, 0, 0);
+      if (rightElbowGroup.current) rightElbowGroup.current.rotation.set(1.5, 0, 0);
+
+    } else if (exercise.id.includes('extension')) {
+      const extAngle = cycle * 1.3;
+      if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(1.48 - extAngle, 0, 0);
+      if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(1.48 - extAngle, 0, 0);
+
     } else if (exercise.id.includes('squat')) {
-      // SQUAT
       const squatDepth = cycle * 0.8;
       if (leftLegGroup.current) leftLegGroup.current.rotation.set(-squatDepth * 1.1, 0, -0.1);
       if (rightLegGroup.current) rightLegGroup.current.rotation.set(-squatDepth * 1.1, 0, 0.1);
-      if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(squatDepth * 1.3, 0, 0);
-      if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(squatDepth * 1.3, 0, 0);
+      if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(squatDepth * 1.5, 0, 0);
+      if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(squatDepth * 1.5, 0, 0);
+      if (rootGroup.current) rootGroup.current.position.set(0, 0.35 - squatDepth * 0.25, 0);
+      if (spineGroup.current) spineGroup.current.rotation.set(squatDepth * 0.4, 0, 0);
+
+    } else if (exercise.id.includes('deadlift')) {
+      const hingeDepth = cycle * 1.2;
+      if (spineGroup.current) spineGroup.current.rotation.set(hingeDepth * 0.9, 0, 0);
+      if (leftLegGroup.current) leftLegGroup.current.rotation.set(-0.1, 0, -0.05);
+      if (rightLegGroup.current) rightLegGroup.current.rotation.set(-0.1, 0, 0.05);
+      if (leftKneeGroup.current) leftKneeGroup.current.rotation.set(hingeDepth * 0.2, 0, 0);
+      if (rightKneeGroup.current) rightKneeGroup.current.rotation.set(hingeDepth * 0.2, 0, 0);
+      if (leftShoulderGroup.current) leftShoulderGroup.current.rotation.set(-hingeDepth * 0.9, 0, 0.1);
+      if (rightShoulderGroup.current) rightShoulderGroup.current.rotation.set(-hingeDepth * 0.9, 0, -0.1);
+
+    } else if (exercise.id.includes('calf')) {
+      const calfRaise = cycle * 0.3;
+      if (rootGroup.current) rootGroup.current.position.set(0, 0.35 + calfRaise, 0);
+      if (leftKneeGroup.current) {
+        // Find foot and rotate it down (plantar flexion)
+        const leftFoot = leftKneeGroup.current.children[2];
+        if (leftFoot) leftFoot.rotation.x = Math.PI / 2 + calfRaise * 1.5;
+      }
+      if (rightKneeGroup.current) {
+        const rightFoot = rightKneeGroup.current.children[2];
+        if (rightFoot) rightFoot.rotation.x = Math.PI / 2 + calfRaise * 1.5;
+      }
     } else {
       // Standard rhythmic execution
       const genRaise = cycle * 0.6;
@@ -1178,7 +1274,7 @@ function AnimatedMannequin3D({
 
         {/* Left Arm & Deltoid */}
         <group ref={leftShoulderGroup} position={[-0.30, 0.43, 0]}>
-          {/* Deltoid Ball / Side Delts (Glowing Orange if side_delts selected!) */}
+          {/* Deltoid Ball */}
           <AnatomicalMuscleMesh
             geometry={geo.deltoid}
             position={[0, 0.02, 0]}
@@ -1215,16 +1311,16 @@ function AnimatedMannequin3D({
               muscleGroupKey="none"
               selectedMuscleKey={selectedMuscleKey}
             />
-            {/* Dumbbell in Left Hand */}
-            {exercise.equipment === 'dumbbells' && (
-              <HandDumbbell position={[0, -0.28, 0]} />
-            )}
+            {/* Equipment in Left Hand */}
+            {exercise.equipment === 'dumbbells' && <HandDumbbell position={[0, -0.28, 0]} />}
+            {exercise.equipment === 'barbell' && <HandBarbell position={[0, -0.28, 0]} isLeft={true} />}
+            {exercise.equipment === 'cable' && <HandCable position={[0, -0.28, 0]} />}
           </group>
         </group>
 
         {/* Right Arm & Deltoid */}
         <group ref={rightShoulderGroup} position={[0.30, 0.43, 0]}>
-          {/* Deltoid Ball / Side Delts (Glowing Orange if side_delts selected!) */}
+          {/* Deltoid Ball */}
           <AnatomicalMuscleMesh
             geometry={geo.deltoid}
             position={[0, 0.02, 0]}
@@ -1261,10 +1357,10 @@ function AnimatedMannequin3D({
               muscleGroupKey="none"
               selectedMuscleKey={selectedMuscleKey}
             />
-            {/* Dumbbell in Right Hand */}
-            {exercise.equipment === 'dumbbells' && (
-              <HandDumbbell position={[0, -0.28, 0]} />
-            )}
+            {/* Equipment in Right Hand */}
+            {exercise.equipment === 'dumbbells' && <HandDumbbell position={[0, -0.28, 0]} />}
+            {exercise.equipment === 'barbell' && <HandBarbell position={[0, -0.28, 0]} isLeft={false} />}
+            {exercise.equipment === 'cable' && <HandCable position={[0, -0.28, 0]} />}
           </group>
         </group>
       </group>
@@ -1351,6 +1447,7 @@ function AnimatedMannequin3D({
 
 // Interactive 3D Anatomy Guide Tab Component
 export function AnatomyWorkoutGuide() {
+  const { t } = useTranslation();
   const [selectedMuscleId, setSelectedMuscleId] = useState<string>('side_delts');
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -1515,7 +1612,7 @@ export function AnatomyWorkoutGuide() {
               title="Alternar rotação automática da barra de músculos"
             >
               <Zap className={`w-3.5 h-3.5 ${isAutoCycle ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
-              <span className="hidden sm:inline">Automático:</span>
+              <span className="hidden sm:inline">{t('anatomy_automatic', 'Automático:')}</span>
               <span>{isAutoCycle ? 'LIGADO' : 'PAUSADO'}</span>
               
               {/* Mini Circular / Linear Progress indicator in Auto Mode */}
@@ -1864,7 +1961,7 @@ export function AnatomyWorkoutGuide() {
           <div className="space-y-4 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <Target className="w-5 h-5 shrink-0" />
-              <h4 className="font-bold text-base sm:text-lg">Biomecânica & Músculo Alvo</h4>
+              <h4 className="font-bold text-base sm:text-lg">{t('anatomy_biomechanics_target', 'Biomecânica & Músculo Alvo')}</h4>
             </div>
             
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -1873,17 +1970,17 @@ export function AnatomyWorkoutGuide() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/40">
-                <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Músculo Alvo Primário</span>
+                <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">{t('anatomy_primary_target', 'Músculo Alvo Primário')}</span>
                 <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200 mt-0.5">{currentExercise.targetMuscle}</p>
               </div>
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Sinérgicos / Auxiliares</span>
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">{t('anatomy_synergists', 'Sinérgicos / Auxiliares')}</span>
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-0.5">{currentExercise.secondaryMuscles.join(', ')}</p>
               </div>
             </div>
 
-            <h5 className="font-bold text-sm text-slate-800 dark:text-slate-100 pt-3">Passo a Passo da Repetição Perfeita:</h5>
+            <h5 className="font-bold text-sm text-slate-800 dark:text-slate-100 pt-3">{t('anatomy_step_by_step', 'Passo a Passo da Repetição Perfeita:')}</h5>
             <div className="space-y-2.5">
               {currentExercise.steps.map((step, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
