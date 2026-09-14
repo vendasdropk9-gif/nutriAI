@@ -45,6 +45,8 @@ export const setVoiceVolume = (volume: number): void => {
 };
 
 let activeAudio: HTMLAudioElement | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+let speechResumeInterval: any = null;
 let currentSpeechId = 0;
 
 // Pre-unlock audio on user click for iOS/Safari/Chrome autoplay restrictions
@@ -64,6 +66,11 @@ export const unlockAudio = () => {
 
 export const stopSpeech = () => {
   currentSpeechId++;
+  if (speechResumeInterval) {
+    clearInterval(speechResumeInterval);
+    speechResumeInterval = null;
+  }
+  activeUtterance = null;
   if (activeAudio) {
     try {
       activeAudio.pause();
@@ -99,23 +106,15 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   const speechId = currentSpeechId;
 
   try {
-    // 0. Pre-cached authentic Malu (Aoede) recordings for instant 0ms playback (PT-BR only)
+    // 0. Pre-cached authentic Malu (Aoede) recordings ONLY for exact standalone brand sound ("Nutri AI" only)
     let audioUrl: string | null = null;
+    const cleanLower = lower.replace(/[!.,?]/g, '').trim();
 
-    if (isPt && (lower === 'nutri ai' || lower === 'nutriai')) {
+    if (isPt && (cleanLower === 'nutri ai' || cleanLower === 'nutriai')) {
       audioUrl = '/audio/nutri_ai_malu.wav';
-    } else if (isPt && lower.includes('bom dia')) {
-      audioUrl = '/audio/greeting_morning_malu.wav';
-    } else if (isPt && lower.includes('boa tarde')) {
-      audioUrl = '/audio/greeting_afternoon_malu.wav';
-    } else if (isPt && lower.includes('boa noite')) {
-      audioUrl = '/audio/greeting_evening_malu.wav';
-    } else if (isPt && (lower.includes('vou ficar por aqui') || lower.includes('quando precisar') || lower.includes('é só chamar'))) {
-      audioUrl = '/audio/goodbye_malu.wav';
-    } else if (isPt && (trimmedText.length <= 18 && (lower === 'muito obrigado' || lower === 'muito obrigada'))) {
-      audioUrl = '/audio/feedback_thankyou_malu.wav';
     } else {
-      // 1. Fetch high-fidelity Malu (Aoede voice in active language) from backend
+      // For all full sentences, thank-you notes, greetings with names, recipes, advice:
+      // Synthesize through high-fidelity Gemini Aoede engine so every sentence is read in full!
       audioUrl = await textToSpeech(trimmedText, activeLang);
     }
     
@@ -223,6 +222,8 @@ const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
+  activeUtterance = utterance;
+
   utterance.lang = options?.lang || 'pt-BR';
   utterance.rate = options?.rate ?? 1.0; 
   utterance.pitch = options?.pitch ?? 1.0; 
@@ -235,21 +236,46 @@ const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?
     utterance.voice = selectedVoice;
   }
 
-  if (options?.onEnded) {
-    utterance.onend = () => options.onEnded?.();
-  }
+  const cleanupUtterance = () => {
+    if (speechResumeInterval) {
+      clearInterval(speechResumeInterval);
+      speechResumeInterval = null;
+    }
+    if (activeUtterance === utterance) {
+      activeUtterance = null;
+    }
+  };
+
+  utterance.onend = () => {
+    cleanupUtterance();
+    options?.onEnded?.();
+  };
   
-  if (options?.onError) {
-    utterance.onerror = (e) => {
-      options.onError?.(e);
-      options.onEnded?.();
-    };
+  utterance.onerror = (e) => {
+    cleanupUtterance();
+    options?.onError?.(e);
+    options?.onEnded?.();
+  };
+
+  // Chromium Web Speech API Keep-Alive: Chrome pauses or stops long utterances (>15s)
+  // or garbage collects them unless kept in module reference and pulsed periodically.
+  if (speechResumeInterval) {
+    clearInterval(speechResumeInterval);
   }
+  speechResumeInterval = setInterval(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }
+  }, 4000);
 
   try {
     window.speechSynthesis.speak(utterance);
     return { method: 'browser' as const, utterance };
   } catch (e) {
+    cleanupUtterance();
     console.warn("Browser TTS failed:", e);
     options?.onEnded?.();
     return { method: 'none' as const };

@@ -188,11 +188,18 @@ export interface FreshnessStore extends MarketPartner {
 export interface MarketPartner {
   id: string;
   name: string;
+  type?: 'sacolao' | 'hortifruti' | 'mercado';
+  typeLabel?: string;
   rating: number;
   deliveryTime: string;
   minOrder: number;
   image: string;
   distance: string;
+  distanceKm?: number; // for precision sorting by proximity
+  address?: string;
+  freshnessScore?: number;
+  highlight?: string;
+  inStockCount?: number;
 }
 
 export interface ProductReview {
@@ -205,14 +212,19 @@ export interface ProductReview {
 
 export interface Product {
   id: string;
+  partnerId?: string; // Links product to local store inventory
   name: string;
   category: 'Frutas' | 'Verduras' | 'Legumes' | 'Kits';
   price: number;
   unit: string;
+  saleType?: 'kg' | 'unidade'; // Explicit sale modality
+  saleTypeLabel?: string; // e.g. 'Vendido por Quilo (kg)' ou 'Vendido por Unidade (un)'
   image: string;
   isOrganic?: boolean;
   isSeasonal?: boolean;
+  stockStatus?: 'in_stock' | 'low_stock' | 'fresh_today';
   description: string;
+  origin?: string;
   rating?: number;
   reviewCount?: number;
   reviews?: ProductReview[];

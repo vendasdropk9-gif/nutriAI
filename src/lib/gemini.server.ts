@@ -1187,7 +1187,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
     return ttsServerCache.get(cacheKey)!;
   }
   
-  // Respostas instantâneas pré-renderizadas com a autêntica voz da Malu (apenas quando idioma for português)
+  // Resposta instantânea pré-renderizada com a autêntica voz da Malu (apenas quando for exclusivamente o áudio de marca "Nutri AI")
   if (isPt && (normalized === 'nutri ai' || normalized === 'nutriai')) {
     try {
       const p = './public/audio/nutri_ai_malu.wav';
@@ -1200,78 +1200,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
     } catch (e) {}
   }
 
-  if (isPt && normalized.includes('bom dia')) {
-    try {
-      const p = './public/audio/greeting_morning_malu.wav';
-      if (fs.existsSync(p)) {
-        const buf = fs.readFileSync(p);
-        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
-        ttsServerCache.set(cacheKey, dataUrl);
-        return dataUrl;
-      }
-    } catch (e) {}
-  }
-
-  if (isPt && normalized.includes('boa tarde')) {
-    try {
-      const p = './public/audio/greeting_afternoon_malu.wav';
-      if (fs.existsSync(p)) {
-        const buf = fs.readFileSync(p);
-        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
-        ttsServerCache.set(cacheKey, dataUrl);
-        return dataUrl;
-      }
-    } catch (e) {}
-  }
-
-  if (isPt && normalized.includes('boa noite')) {
-    try {
-      const p = './public/audio/greeting_evening_malu.wav';
-      if (fs.existsSync(p)) {
-        const buf = fs.readFileSync(p);
-        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
-        ttsServerCache.set(cacheKey, dataUrl);
-        return dataUrl;
-      }
-    } catch (e) {}
-  }
-
-  if (isPt && (normalized.includes('vou ficar por aqui') || normalized.includes('quando precisar'))) {
-    try {
-      const p = './public/audio/goodbye_malu.wav';
-      if (fs.existsSync(p)) {
-        const buf = fs.readFileSync(p);
-        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
-        ttsServerCache.set(cacheKey, dataUrl);
-        return dataUrl;
-      }
-    } catch (e) {}
-  }
-
-  if (isPt && (text.trim().length <= 18 && (normalized === 'muito obrigado' || normalized === 'muito obrigada'))) {
-    try {
-      const p = './public/audio/feedback_thankyou_malu.wav';
-      if (fs.existsSync(p)) {
-        const buf = fs.readFileSync(p);
-        const dataUrl = `data:audio/wav;base64,${buf.toString('base64')}`;
-        ttsServerCache.set(cacheKey, dataUrl);
-        return dataUrl;
-      }
-    } catch (e) {}
-  }
-
-  // 1. Try ElevenLabs first if API Key is configured and permitted
-  try {
-    const elevenAudio = await getElevenLabsTTS(text);
-    if (elevenAudio) {
-      ttsServerCache.set(cacheKey, elevenAudio);
-      return elevenAudio;
-    }
-  } catch (e) {
-    // continue to Gemini
-  }
-
-  // 2. Synthesize with Gemini Aoede voice (gemini-3.1-flash-tts-preview)
+  // 1. Synthesize with Gemini Aoede voice (gemini-3.1-flash-tts-preview / Live Aoede)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
@@ -1364,7 +1293,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
           }
         }
 
-        // 3. Fallback to Live API Aoede
+        // 2. Fallback to Live API Aoede
         const liveAudio = await synthesizeLiveAoede(cleanText, apiKey, language);
         if (liveAudio) {
           ttsServerCache.set(cacheKey, liveAudio);
@@ -1374,6 +1303,17 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
         // Handled silently
       }
     }
+  }
+
+  // 3. Fallback to ElevenLabs if configured and permitted
+  try {
+    const elevenAudio = await getElevenLabsTTS(text);
+    if (elevenAudio) {
+      ttsServerCache.set(cacheKey, elevenAudio);
+      return elevenAudio;
+    }
+  } catch (e) {
+    // Handled silently
   }
 
   return null;
@@ -1388,6 +1328,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
   return new Promise((resolve) => {
     let audioBuffers: Buffer[] = [];
     let timeout: any = null;
+    let inactivityTimeout: any = null;
     let liveSession: any = null;
     let resolved = false;
 
@@ -1395,6 +1336,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
       if (resolved) return;
       resolved = true;
       clearTimeout(timeout);
+      clearTimeout(inactivityTimeout);
       try { liveSession?.close(); } catch (e) {}
 
       if (audioBuffers.length > 0) {
@@ -1424,9 +1366,12 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
       }
     };
 
+    // Generous total safety timeout (minimum 40s or scaled with text length)
+    // to ensure complete reading of all sentences without early truncation
+    const maxTimeoutMs = Math.max(40000, cleanText.length * 300);
     timeout = setTimeout(() => {
       finalize();
-    }, 7000);
+    }, maxTimeoutMs);
 
     ai.live.connect({
       model: "gemini-3.1-flash-live-preview",
@@ -1435,7 +1380,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
         speechConfig: {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } }
         },
-        systemInstruction: `You are Malu, the NutriAI virtual assistant. Speak the requested text strictly in ${language} with a smooth, friendly, expressive and natural female voice, without adding extra words.`
+        systemInstruction: `You are Malu, the NutriAI virtual assistant. Speak the requested text strictly in ${language} with a smooth, friendly, expressive and natural female voice, reading all sentences and words completely to the end without adding extra words.`
       },
       callbacks: {
         onmessage: (msg: any) => {
@@ -1444,11 +1389,19 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
             for (const part of parts) {
               if (part.inlineData?.data) {
                 audioBuffers.push(Buffer.from(part.inlineData.data, "base64"));
+                // Reset inactivity timeout when audio chunks keep streaming
+                clearTimeout(inactivityTimeout);
+                inactivityTimeout = setTimeout(() => {
+                  finalize();
+                }, 4000);
               }
             }
           }
           if (msg.serverContent?.turnComplete || msg.serverContent?.generationComplete) {
-            finalize();
+            // Small grace period for any last audio buffer flush before closing
+            setTimeout(() => {
+              finalize();
+            }, 300);
           }
         },
         onerror: (err: any) => {
@@ -1462,7 +1415,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
     }).then((session) => {
       liveSession = session;
       session.sendRealtimeInput({
-        text: `Say clearly with Malu's warm voice: ${cleanText}`
+        text: `Por favor, leia integralmente com a voz calorosa da Malu todas as frases deste texto: ${cleanText}`
       });
     }).catch((err) => {
       console.info("[Live Aoede] Connection err:", err?.message || err);

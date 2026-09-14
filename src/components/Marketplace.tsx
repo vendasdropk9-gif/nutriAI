@@ -28,44 +28,16 @@ import {
   X
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
+import { PARTNER_ESTABLISHMENTS, LOCAL_PRODUCTS_CATALOG } from '../data/marketPartnersData';
 import bannerImage1 from '../assets/images/regenerated_image_1781049540812.jpg';
 import productImage1 from '../assets/images/regenerated_image_1779398315958.jpg';
-import storeImage1 from '../assets/images/store_vida_verde_1779398853750.png';
-import storeImage2 from '../assets/images/store_premium_hortifruti_1779398868799.png';
 import { speak } from '../lib/speech';
 import { vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
 
-const MARKET_PARTNERS: MarketPartner[] = [
-  {
-    id: 'm1',
-    name: 'Sacolão Vida Verde',
-    rating: 4.8,
-    deliveryTime: '30-45 min',
-    minOrder: 20,
-    image: storeImage1,
-    distance: '1.2 km'
-  },
-  {
-    id: 'm2',
-    name: 'Hortifruti Premium',
-    rating: 4.9,
-    deliveryTime: '20-35 min',
-    minOrder: 35,
-    image: storeImage2,
-    distance: '2.5 km'
-  }
-];
-
-const PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Morango Orgânico', category: 'Frutas', price: 12.90, unit: 'bandeja', image: productImage1, isOrganic: true, description: 'Morangos frescos direto do produtor.', rating: 4.8, reviewCount: 24, reviews: [{ id: 'r1', userName: 'Ana Paula', rating: 5, comment: 'Maravilhosos e muito doces!', date: '2024-04-20' }] },
-  { id: 'p2', name: 'Kit Salada Prática', category: 'Kits', price: 19.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=1200', isSeasonal: true, description: 'Mix de folhas limpas e higienizadas.', rating: 4.5, reviewCount: 15, reviews: [{ id: 'r2', userName: 'Carlos M.', rating: 4, comment: 'Muito prático para o dia a dia.', date: '2024-04-18' }] },
-  { id: 'p3', name: 'Banana Nanica', category: 'Frutas', price: 5.50, unit: 'kg', image: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&q=80&w=1200', description: 'Rica em potássio para seu treino.', rating: 4.9, reviewCount: 56, reviews: [{ id: 'r3', userName: 'Marcos R.', rating: 5, comment: 'Sempre fresquinhas.', date: '2024-04-15' }] },
-  { id: 'p4', name: 'Brócolis Ninja', category: 'Verduras', price: 8.90, unit: 'unid', image: 'https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=1200', isOrganic: true, description: 'Superalimento rico em ferro.', rating: 4.7, reviewCount: 32 },
-  { id: 'p5', name: 'Abóbora Cabotiá', category: 'Legumes', price: 4.20, unit: 'kg', image: 'https://images.unsplash.com/photo-1570586437263-ab629fccc818?auto=format&fit=crop&q=80&w=1200', description: 'Perfeita para sopas e purês.', rating: 4.6, reviewCount: 18 },
-  { id: 'p6', name: 'Combo Emagrecimento', category: 'Kits', price: 89.00, unit: 'kit', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1200', description: 'Seleção especial da nossa IA.', rating: 5.0, reviewCount: 8 },
-];
+const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
+const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
 
 const BANNERS = [
   { id: 'b1', title: 'Cesta Fresh da Semana', subtitle: 'Direto do produtor', price: 'R$ 19,90', image: bannerImage1, tip: "Essas frutas estão fresquinhas hoje 💚" },
@@ -87,6 +59,10 @@ interface MarketplaceProps {
 
 export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap, addNotification }: MarketplaceProps) {
   const [activeCategory, setActiveCategory] = useState<string>('Tudo');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('all');
+  const [saleTypeFilter, setSaleTypeFilter] = useState<'all' | 'kg' | 'unidade'>('all');
+  const [sortBy, setSortBy] = useState<'proximity' | 'rating' | 'speed'>('proximity');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeMarket, setActiveMarket] = useState(MARKET_PARTNERS[0]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -188,8 +164,6 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         date: new Date().toISOString().split('T')[0]
       };
 
-      // In a real app, we would update the DB. 
-      // Here we update the local object (mocking persistence)
       if (selectedProductReview.reviews) {
         selectedProductReview.reviews = [newReview, ...selectedProductReview.reviews];
       } else {
@@ -219,8 +193,26 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deliveryFee = deliveryMethod === 'moto' ? 5.90 : deliveryMethod === 'bicicleta' ? 3.90 : 0;
   const finalTotal = cartTotal + deliveryFee;
-  
-  const filteredProducts = activeCategory === 'Tudo' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory);
+
+  // Sorted Partners by selected criteria (default Proximity)
+  const sortedPartners = [...MARKET_PARTNERS].sort((a, b) => {
+    if (sortBy === 'proximity') return (a.distanceKm || 99) - (b.distanceKm || 99);
+    if (sortBy === 'rating') return b.rating - a.rating;
+    if (sortBy === 'speed') return parseInt(a.deliveryTime) - parseInt(b.deliveryTime);
+    return 0;
+  });
+
+  // Filtered products based on category, active partner, sale modality, and search
+  const filteredProducts = PRODUCTS.filter(p => {
+    const matchesCategory = activeCategory === 'Tudo' || p.category === activeCategory;
+    const matchesPartner = selectedPartnerId === 'all' || p.partnerId === selectedPartnerId;
+    const matchesSaleType = saleTypeFilter === 'all' || p.saleType === saleTypeFilter;
+    const matchesSearch = !searchQuery.trim() || 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.origin && p.origin.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesPartner && matchesSaleType && matchesSearch;
+  });
 
   if (isTracking) {
     return (
@@ -281,28 +273,122 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             </button>
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-row flex-wrap items-center justify-center gap-4 pb-4 w-full">
-          {MARKET_PARTNERS.map(market => (
-            <button
-              key={market.id}
-              onClick={() => setActiveMarket(market)}
-              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all w-full max-w-[280px] sm:w-[280px] h-[72px] justify-start ${
-                activeMarket.id === market.id 
-                ? 'clay-panel border-emerald-500 shadow-[inset_2px_2px_4px_rgba(255,255,255,0.8),inset_-2px_-2px_4px_rgba(0,0,0,0.05),2px_2px_8px_rgba(16,185,129,0.2)]' 
-                : 'clay-btn opacity-80 hover:opacity-100 border-none'
-              }`}
-            >
-              <img src={market.image} className="w-10 h-10 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
-              <div className="text-left flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{market.name}</p>
-                <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
-                  <span>{market.rating} • {market.distance}</span>
-                </div>
+      {/* Partner Establishments Bar - Tabs with Proximity & Store details */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Store className="w-5 h-5 text-emerald-600" />
+              Estabelecimentos Parceiros Próximos
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Selecione uma loja para navegar pelo estoque local em tempo real
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ordenar:</span>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button
+                onClick={() => setSortBy('proximity')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                  sortBy === 'proximity' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-xs' : 'text-slate-500'
+                }`}
+              >
+                Proximidade
+              </button>
+              <button
+                onClick={() => setSortBy('rating')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                  sortBy === 'rating' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-xs' : 'text-slate-500'
+                }`}
+              >
+                Avaliação
+              </button>
+              <button
+                onClick={() => setSortBy('speed')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                  sortBy === 'speed' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-xs' : 'text-slate-500'
+                }`}
+              >
+                Mais Rápido
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Store Tabs Slider */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 'All Stores' Tab */}
+          <button
+            onClick={() => setSelectedPartnerId('all')}
+            className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+              selectedPartnerId === 'all'
+                ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20 shadow-sm'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                ALL
               </div>
-            </button>
-          ))}
+              <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300">
+                {PRODUCTS.length} itens
+              </span>
+            </div>
+            <div>
+              <p className="font-bold text-sm text-slate-800 dark:text-slate-100">Todos os Mercados</p>
+              <p className="text-[11px] text-slate-500">Estoque integrado por raio</p>
+            </div>
+          </button>
+
+          {/* Individual Store Tabs */}
+          {sortedPartners.map(market => {
+            const isSelected = selectedPartnerId === market.id;
+            return (
+              <button
+                key={market.id}
+                onClick={() => {
+                  setSelectedPartnerId(market.id);
+                  setActiveMarket(market);
+                }}
+                className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                  isSelected
+                    ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 mb-2">
+                  <img
+                    src={market.image}
+                    alt={market.name}
+                    className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{market.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      <MapPin className="w-2.5 h-2.5 shrink-0" />
+                      <span>{market.distance}</span>
+                      <span className="text-slate-400 font-normal">· {market.deliveryTime}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] border-t border-slate-100 dark:border-slate-800/80 pt-2 mt-1">
+                  <span className="text-slate-500 truncate max-w-[130px]">{market.typeLabel || 'Sacolão Local'}</span>
+                  <div className="flex items-center gap-0.5 font-bold text-amber-500">
+                    <Star className="w-2.5 h-2.5 fill-current" />
+                    <span>{market.rating}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -394,7 +480,8 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         </div>
         <button 
           onClick={() => {
-            addToCart(PRODUCTS[5]);
+            const kitProduct = PRODUCTS.find(p => p.category === 'Kits') || PRODUCTS[0];
+            addToCart(kitProduct);
             setAddingAI(true);
             setTimeout(() => {
               setAddingAI(false);
@@ -408,106 +495,190 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         </button>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex justify-center flex-wrap items-center gap-2 sm:gap-4 pb-4 w-full">
-        {['Tudo', 'Frutas', 'Verduras', 'Legumes', 'Kits'].map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-sm transition-all whitespace-nowrap shrink-0 ${
-              activeCategory === cat 
-              ? 'bg-slate-900 text-white shadow-xl' 
-              : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* Search & Modality Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Search Input */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar fruta, legume, produtor..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-slate-800 dark:text-slate-100"
+            />
+          </div>
+
+          {/* Modalidade de Venda Selector: Por Quilo (kg) vs Por Unidade (un) */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl w-full sm:w-auto justify-center">
+            <button
+              onClick={() => setSaleTypeFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                saleTypeFilter === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Todas Modalidades
+            </button>
+            <button
+              onClick={() => setSaleTypeFilter('kg')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                saleTypeFilter === 'kg'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              Por Quilo (kg)
+            </button>
+            <button
+              onClick={() => setSaleTypeFilter('unidade')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                saleTypeFilter === 'unidade'
+                  ? 'bg-teal-600 text-white shadow-xs'
+                  : 'text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/20'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-teal-400" />
+              Por Unidade (un)
+            </button>
+          </div>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex justify-center flex-wrap items-center gap-2 sm:gap-3 pb-2 w-full">
+          {['Tudo', 'Frutas', 'Verduras', 'Legumes', 'Kits'].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                activeCategory === cat 
+                ? 'bg-slate-900 text-white shadow-md' 
+                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 hover:border-slate-300'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 box-border w-full justify-items-stretch">
-        {filteredProducts.map(product => (
-          <motion.div
-            layout
-            key={product.id}
-            className="bg-white dark:bg-slate-900/40 p-5 rounded-[32px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-xl transition-all group flex flex-col items-center text-center justify-between h-full w-full max-w-[600px] mx-auto gap-4 box-border"
-          >
-            <div className="relative w-full h-40 rounded-2xl overflow-hidden shrink-0">
-              {!failedImages[product.id] ? (
-                <img 
-                  src={product.image} 
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                  referrerPolicy="no-referrer"
-                  onError={() => {
-                    setFailedImages(prev => ({ ...prev, [product.id]: true }));
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center text-4xl select-none">
-                  {product.category === 'Frutas' ? '🍎' : product.category === 'Verduras' ? '🥬' : product.category === 'Legumes' ? '🥕' : '🥗'}
+      {/* Product Grid with Crisp Real Images & Sale Modality */}
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 box-border w-full justify-items-stretch">
+        {filteredProducts.map(product => {
+          const partner = MARKET_PARTNERS.find(m => m.id === product.partnerId);
+          return (
+            <motion.div
+              layout
+              key={product.id}
+              className="bg-white dark:bg-slate-900/60 p-4 sm:p-5 rounded-[28px] clay-card border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-xl transition-all group flex flex-col items-center text-center justify-between h-full w-full max-w-[600px] mx-auto gap-3.5 box-border"
+            >
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
+                {!failedImages[product.id] ? (
+                  <img 
+                    src={product.image} 
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500" 
+                    referrerPolicy="no-referrer"
+                    onError={() => {
+                      setFailedImages(prev => ({ ...prev, [product.id]: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center text-4xl select-none">
+                    {product.category === 'Frutas' ? '🍎' : product.category === 'Verduras' ? '🥬' : product.category === 'Legumes' ? '🥕' : '🥗'}
+                  </div>
+                )}
+
+                {/* Badges Overlay */}
+                <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                  {/* Modalidade de Venda Tag */}
+                  <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider shadow-sm text-white ${
+                    product.saleType === 'kg' 
+                      ? 'bg-emerald-600' 
+                      : 'bg-teal-700'
+                  }`}>
+                    {product.saleType === 'kg' ? 'Venda p/ Quilo (kg)' : 'Venda p/ Unidade'}
+                  </span>
+
+                  {product.isOrganic && (
+                    <span className="px-2 py-0.5 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest shadow-sm">
+                      Orgânico
+                    </span>
+                  )}
+                  {product.stockStatus === 'fresh_today' && (
+                    <span className="px-2 py-0.5 bg-amber-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest shadow-sm">
+                      Colhido Hoje
+                    </span>
+                  )}
                 </div>
-              )}
-              {product.isOrganic && (
-                <div className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
-                  Orgânico
-                </div>
-              )}
-              {product.isSeasonal && (
-                <div className="absolute top-3 right-3 px-2 py-1 bg-amber-500 text-white rounded-lg text-[8px] font-bold uppercase tracking-widest">
-                  Estação
-                </div>
-              )}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite(product.id);
-                }}
-                className={`absolute bottom-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all ${
-                  favorites.includes(product.id)
-                  ? 'bg-red-500 text-white shadow-lg'
-                  : 'bg-white/40 text-white hover:bg-white/60'
-                }`}
-              >
-                <Heart className={`w-4 h-4 ${favorites.includes(product.id) ? 'fill-current' : ''}`} />
-              </button>
-            </div>
-            
-            <div className="space-y-2 flex flex-col items-center text-center w-full">
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.category}</p>
-                <div 
+
+                <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedProductReview(product);
+                    toggleFavorite(product.id);
                   }}
-                  className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded-full cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all border border-transparent hover:border-emerald-200"
+                  className={`absolute bottom-2.5 right-2.5 p-2 rounded-xl backdrop-blur-md transition-all ${
+                    favorites.includes(product.id)
+                    ? 'bg-red-500 text-white shadow-lg'
+                    : 'bg-black/30 hover:bg-black/50 text-white'
+                  }`}
                 >
-                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{product.rating || 'N/A'}</span>
-                  <span className="text-slate-400">({product.reviewCount || 0})</span>
-                </div>
+                  <Heart className={`w-4 h-4 ${favorites.includes(product.id) ? 'fill-current' : ''}`} />
+                </button>
               </div>
-              <h5 className="font-serif text-lg font-bold text-slate-900 dark:text-white leading-snug">{product.name}</h5>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] line-clamp-2">{product.description}</p>
-            </div>
+              
+              <div className="space-y-1.5 flex flex-col items-center text-center w-full">
+                {partner && (
+                  <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    <Store className="w-3 h-3 shrink-0" />
+                    <span className="truncate max-w-[150px]">{partner.name}</span>
+                    <span className="text-slate-400 font-normal">({partner.distance})</span>
+                  </div>
+                )}
 
-            <div className="flex flex-col items-center gap-2 w-full mt-auto pt-2">
-              <div className="text-center">
-                <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
-                <p className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">por {product.unit}</p>
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.category}</p>
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProductReview(product);
+                    }}
+                    className="flex items-center gap-1 text-[10px] bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded-full cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all border border-transparent hover:border-emerald-200"
+                  >
+                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{product.rating || 'N/A'}</span>
+                    <span className="text-slate-400">({product.reviewCount || 0})</span>
+                  </div>
+                </div>
+
+                <h5 className="font-serif text-base font-bold text-slate-900 dark:text-white leading-snug">{product.name}</h5>
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{product.description}</p>
+                {product.origin && (
+                  <p className="text-[10px] text-slate-400 font-medium italic">Origem: {product.origin}</p>
+                )}
               </div>
-              <button 
-                onClick={() => addToCart(product)}
-                className="w-full py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-full font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-sm mt-1 border-none cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Adicionar
-              </button>
-            </div>
-          </motion.div>
-        ))}
+
+              <div className="flex flex-col items-center gap-2 w-full mt-auto pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                <div className="text-center">
+                  <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">R$ {product.price.toFixed(2)}</p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                    {product.saleTypeLabel || `por ${product.unit}`}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => addToCart(product)}
+                  className="w-full py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm border-none cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar ao Sacolão
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Floating Cart Button */}

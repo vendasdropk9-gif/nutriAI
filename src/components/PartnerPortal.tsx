@@ -4,7 +4,8 @@ import {
   Store, ShoppingBasket, MapPin, Truck, Clock, CreditCard, 
   ChevronRight, ChevronLeft, CheckCircle2, Upload, Plus, 
   Trash2, Package, TrendingUp, Inbox, Settings, Volume2, 
-  Sparkles, Smartphone, LayoutDashboard, Utensils, Search, Edit, Check
+  Sparkles, Smartphone, LayoutDashboard, Utensils, Search, Edit, Check,
+  Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw
 } from 'lucide-react';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -66,7 +67,9 @@ const getMockAddress = (lat: number, lng: number) => {
   }
 };
 
-type Step = 'onboarding' | 'business' | 'location' | 'service' | 'products' | 'hours' | 'payment' | 'pending' | 'dashboard';
+type Step = 'onboarding' | 'business' | 'location' | 'service' | 'products' | 'hours' | 'plans' | 'payment' | 'pending' | 'dashboard';
+
+export type MonetizationModel = 'monthly' | 'annual' | 'commission';
 
 interface PartnerForm {
   businessName: string;
@@ -82,6 +85,7 @@ interface PartnerForm {
   radius: string;
   fee: string;
   time: string;
+  monetizationModel: MonetizationModel;
   products: { id: string; name: string; price: string; unit: string; description: string; image: string; category: string }[];
   hours: { day: string; open: string; close: string }[];
   payments: string[];
@@ -89,7 +93,7 @@ interface PartnerForm {
 
 export function PartnerPortal() {
   const [step, setStep] = useState<Step>('onboarding');
-  const [dashboardTab, setDashboardTab] = useState<'panel' | 'orders' | 'stock' | 'sales' | 'settings'>('panel');
+  const [dashboardTab, setDashboardTab] = useState<'panel' | 'orders' | 'stock' | 'sales' | 'monetization' | 'settings'>('panel');
   const [orders, setOrders] = useState([
     { id: '#4401', user: 'Ana Maria', items: 'Combo Detox + 5kg Laranja', total: 'R$ 89,90', status: 'Novo', time: '14:23' },
     { id: '#4402', user: 'Pedro S.', items: 'Abacaxi, Melancia, Uva', total: 'R$ 45,00', status: 'Preparando', time: '13:50' },
@@ -100,6 +104,8 @@ export function PartnerPortal() {
   const [stockSearch, setStockSearch] = useState('');
   const [stockCategory, setStockCategory] = useState('all');
   const [showSettingsSuccess, setShowSettingsSuccess] = useState(false);
+  const [showInstructionalGuide, setShowInstructionalGuide] = useState(true);
+  const [simulatorRevenue, setSimulatorRevenue] = useState<number>(5000);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; price: string; unit: string; description: string; image: string; category: string } | null>(null);
@@ -121,6 +127,7 @@ export function PartnerPortal() {
     radius: '5',
     fee: '5.00',
     time: '45-60 min',
+    monetizationModel: 'monthly',
     products: [
       { 
         id: 'p1', 
@@ -130,6 +137,24 @@ export function PartnerPortal() {
         description: 'Uma seleção premium de frutas frescas colhidas hoje.',
         image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200',
         category: 'Cestas'
+      },
+      {
+        id: 'p2',
+        name: 'Banana Prata Orgânica',
+        price: '8.90',
+        unit: 'kg',
+        description: 'Bananas doces e selecionadas da agricultura familiar local.',
+        image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=1200',
+        category: 'Frutas'
+      },
+      {
+        id: 'p3',
+        name: 'Alface Americana Hidropônica',
+        price: '4.50',
+        unit: 'unid',
+        description: 'Folhas crocantes e lavadas, cultivo sem agrotóxicos.',
+        image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&q=80&w=1200',
+        category: 'Verduras'
       }
     ],
     hours: [{ day: 'Segunda-Sexta', open: '08:00', close: '19:00' }],
@@ -329,6 +354,7 @@ export function PartnerPortal() {
                 { icon: Inbox, label: 'Pedidos', value: 'orders', count: newOrders.length > 0 ? String(newOrders.length) : undefined },
                 { icon: Package, label: 'Estoque', value: 'stock' },
                 { icon: TrendingUp, label: 'Vendas', value: 'sales' },
+                { icon: DollarSign, label: 'Monetização & Repasses', value: 'monetization' },
                 { icon: Settings, label: 'Configurações', value: 'settings' }
               ].map((item, i) => (
                 <button 
@@ -823,6 +849,355 @@ export function PartnerPortal() {
             </div>
           )}
 
+          {/* MONETIZAÇÃO & MODELOS DE PARCERIA */}
+          {dashboardTab === 'monetization' && (
+            <div className="space-y-6 animate-fade">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-3xl font-serif font-bold text-slate-900 dark:text-white">Modelos de Monetização & Repasses</h3>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Escolha o modelo de parceria ideal para o volume de vendas do seu sacolão ou hortifruti.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full">
+                  <ShieldCheck className="w-4 h-4" />
+                  Plano Ativo: {form.monetizationModel === 'monthly' ? 'Assinatura Mensal' : form.monetizationModel === 'annual' ? 'Assinatura Anual' : 'Comissão por Venda'}
+                </div>
+              </div>
+
+              {/* Status & Financial Metrics */}
+              <div className="grid sm:grid-cols-3 gap-6">
+                <div className="clay-card p-6 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Modelo Atual</span>
+                    <Award className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-slate-900 dark:text-white">
+                    {form.monetizationModel === 'monthly' && 'Plano Mensal Pro'}
+                    {form.monetizationModel === 'annual' && 'Plano Anual Ouro'}
+                    {form.monetizationModel === 'commission' && 'Plano Flex Comissão'}
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {form.monetizationModel === 'monthly' && 'R$ 99,90 / mês • 0% taxa s/ pedidos'}
+                    {form.monetizationModel === 'annual' && 'R$ 899,00 / ano (R$ 74,90/mês) • 0% taxa'}
+                    {form.monetizationModel === 'commission' && 'R$ 0 mensalidade • 10% por venda entregue'}
+                  </p>
+                </div>
+
+                <div className="clay-card p-6 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Repasse Líquido Estimado</span>
+                    <DollarSign className="w-5 h-5 text-teal-500" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-slate-900 dark:text-white">R$ 4.401,00</p>
+                  <p className="text-xs text-slate-400">Repasses automáticos semanais via Pix</p>
+                </div>
+
+                <div className="clay-card p-6 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Economia em Taxas</span>
+                    <TrendingUp className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-emerald-600 dark:text-emerald-400">
+                    {form.monetizationModel === 'commission' ? 'R$ 0,00' : 'R$ 389,10'}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {form.monetizationModel === 'commission' ? 'Pague apenas pelo que vender' : 'Economizado comparado a taxas percentuais'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Model Cards for Switch/Upgrade */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-serif font-bold text-slate-900 dark:text-white">
+                  Comparativo dos 3 Modelos de Monetização
+                </h4>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Model 1: Mensal */}
+                  <div className={`p-6 rounded-[28px] clay-card border-2 transition-all flex flex-col justify-between ${
+                    form.monetizationModel === 'monthly'
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-lg shadow-emerald-500/10'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                  }`}>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold uppercase tracking-wider">
+                          Recorrência Mensal
+                        </span>
+                        {form.monetizationModel === 'monthly' && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <Check className="w-4 h-4" /> Atual
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-900 dark:text-white">Assinatura Mensal</h5>
+                        <p className="text-xs text-slate-500 mt-1">Ideal para hortifrutis e quitandas com fluxo constante de clientes locais.</p>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">R$ 99,90</span>
+                          <span className="text-xs text-slate-400">/mês</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">0% de comissão sobre suas vendas</p>
+                      </div>
+
+                      <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Faturamento 100% livre de comissões</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Catálogo ilimitado de hortifruti</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Selo de Loja Parceira Verificada</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Sem fidelidade — Cancele quando quiser</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        vibrate(15);
+                        playSfx('success');
+                        setForm({ ...form, monetizationModel: 'monthly' });
+                      }}
+                      className={`w-full mt-6 py-3.5 rounded-2xl font-bold text-xs transition-all cursor-pointer ${
+                        form.monetizationModel === 'monthly'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-500 hover:text-white'
+                      }`}
+                    >
+                      {form.monetizationModel === 'monthly' ? 'Plano Selecionado' : 'Mudar para Mensal'}
+                    </button>
+                  </div>
+
+                  {/* Model 2: Anual */}
+                  <div className={`p-6 rounded-[28px] clay-card border-2 transition-all flex flex-col justify-between relative overflow-hidden ${
+                    form.monetizationModel === 'annual'
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-lg shadow-emerald-500/10'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                  }`}>
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[10px] font-bold px-4 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm">
+                      25% OFF • Mais Popular
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-bold uppercase tracking-wider">
+                          Plano Anual Ouro
+                        </span>
+                        {form.monetizationModel === 'annual' && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <Check className="w-4 h-4" /> Atual
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-900 dark:text-white">Assinatura Anual</h5>
+                        <p className="text-xs text-slate-500 mt-1">Máxima visibilidade com banner rotativo em destaque e economia anual.</p>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">R$ 899,00</span>
+                          <span className="text-xs text-slate-400">/ano</span>
+                        </div>
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-1">
+                          Equivale a R$ 74,90/mês • 0% taxa de comissão
+                        </p>
+                      </div>
+
+                      <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                        <li className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span className="font-semibold text-slate-900 dark:text-white">Destaque no Banner Rotativo de Ofertas</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Prioridade no raio de busca por proximidade</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Faturamento 100% livre de comissão</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Economia de R$ 299,80 ao ano</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        vibrate(15);
+                        playSfx('success');
+                        setForm({ ...form, monetizationModel: 'annual' });
+                      }}
+                      className={`w-full mt-6 py-3.5 rounded-2xl font-bold text-xs transition-all cursor-pointer ${
+                        form.monetizationModel === 'annual'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'
+                      }`}
+                    >
+                      {form.monetizationModel === 'annual' ? 'Plano Selecionado' : 'Mudar para Anual Ouro'}
+                    </button>
+                  </div>
+
+                  {/* Model 3: Comissão */}
+                  <div className={`p-6 rounded-[28px] clay-card border-2 transition-all flex flex-col justify-between ${
+                    form.monetizationModel === 'commission'
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-lg shadow-emerald-500/10'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                  }`}>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-xs font-bold uppercase tracking-wider">
+                          Sem Mensalidade Fixa
+                        </span>
+                        {form.monetizationModel === 'commission' && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <Check className="w-4 h-4" /> Atual
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-900 dark:text-white">Comissão por Venda</h5>
+                        <p className="text-xs text-slate-500 mt-1">Comece sem risco: pague apenas uma taxa percentual sobre os pedidos entregues.</p>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">10%</span>
+                          <span className="text-xs text-slate-400">por venda realizada</span>
+                        </div>
+                        <p className="text-[11px] text-teal-600 dark:text-teal-400 font-bold mt-1">
+                          R$ 0,00 de mensalidade fixa
+                        </p>
+                      </div>
+
+                      <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Sem custo se não houver vendas</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Ideal para testar a plataforma</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Repasse com desconto automático</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Migre para plano fixo a qualquer momento</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        vibrate(15);
+                        playSfx('success');
+                        setForm({ ...form, monetizationModel: 'commission' });
+                      }}
+                      className={`w-full mt-6 py-3.5 rounded-2xl font-bold text-xs transition-all cursor-pointer ${
+                        form.monetizationModel === 'commission'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-500 hover:text-white'
+                      }`}
+                    >
+                      {form.monetizationModel === 'commission' ? 'Plano Selecionado' : 'Mudar para Comissão'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Simulator */}
+              <div className="clay-card p-6 md:p-8 space-y-6 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl">
+                <div>
+                  <h4 className="text-xl font-serif font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-500" />
+                    Simulador de Rentabilidade para o Estabelecimento
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Arraste a barra para estimar seu faturamento mensal no NutriAI e veja quanto você economiza nos planos de assinatura.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-slate-600 dark:text-slate-300">Faturamento Mensal Estimado:</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-serif text-xl">
+                      R$ {simulatorRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1000"
+                    max="30000"
+                    step="500"
+                    value={simulatorRevenue}
+                    onChange={(e) => setSimulatorRevenue(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>R$ 1.000</span>
+                    <span>R$ 15.000</span>
+                    <span>R$ 30.000</span>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4 pt-2">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">No Modelo Comissão (10%)</span>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">
+                      R$ {(simulatorRevenue * 0.10).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} /mês em taxas
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Você recebe R$ {(simulatorRevenue * 0.90).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Na Assinatura Mensal</span>
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                      R$ 99,90 fixo /mês
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                      Economia de R$ {Math.max(0, simulatorRevenue * 0.10 - 99.9).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">Na Assinatura Anual Ouro</span>
+                    <p className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                      R$ 74,90/mês equivalente
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                      Economia de R$ {Math.max(0, simulatorRevenue * 0.10 - 74.9).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês + Destaques
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* STEP 5: CONFIGURAÇÕES */}
           {dashboardTab === 'settings' && (
             <div className="space-y-6 animate-fade">
@@ -963,14 +1338,14 @@ export function PartnerPortal() {
       <div className="clay-card overflow-hidden !rounded-none sm:!rounded-[32px] !border-x-0 sm:!border-x">
         {/* Progress Bar */}
         <div className="h-2 bg-slate-100 dark:bg-slate-800 flex">
-           {[ 'business', 'location', 'service', 'products', 'hours', 'payment'].map((s, i) => {
-             const stepsArr: Step[] = ['business', 'location', 'service', 'products', 'hours', 'payment'];
+           {['business', 'location', 'service', 'products', 'hours', 'plans', 'payment'].map((s, i) => {
+             const stepsArr: Step[] = ['business', 'location', 'service', 'products', 'hours', 'plans', 'payment'];
              const currentIdx = stepsArr.indexOf(step as any);
              return (
                <div 
                  key={s} 
                  className={`h-full transition-all duration-500 ${i <= currentIdx ? 'bg-emerald-500' : 'bg-transparent'}`}
-                 style={{ width: '16.66%' }}
+                 style={{ width: '14.28%' }}
                />
              )
            })}
@@ -986,15 +1361,21 @@ export function PartnerPortal() {
                    {step === 'service' && 'Como você atende?'}
                    {step === 'products' && 'Seus Melhores Produtos'}
                    {step === 'hours' && 'Horários de Venda'}
+                   {step === 'plans' && 'Modelo de Monetização & Parceria'}
                    {step === 'payment' && 'Formas de Receber'}
                  </h2>
                  <div className="flex items-center gap-2 text-emerald-500 font-bold text-xs uppercase tracking-widest">
                     <Sparkles className="w-4 h-4" />
-                    Guia IA de Cadastro
+                    Guia IA de Cadastro NutriAI
                  </div>
               </div>
               <button 
-                onClick={() => handleSpeak("Vou te ajudar nesta etapa.")}
+                onClick={() => {
+                  let text = "Vou te ajudar nesta etapa.";
+                  if (step === 'plans') text = "O NutriAI oferece três modelos de monetização para estabelecimentos parceiros: Assinatura Mensal, Assinatura Anual com desconto e destaque em banner, ou Comissão por venda realizada.";
+                  if (step === 'products') text = "Cadastre produtos com fotos nítidas e reais, categorização correta e especifique se a venda é por quilo ou unidade.";
+                  handleSpeak(text);
+                }}
                 className={`w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-white hover:bg-emerald-500 dark:hover:bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' : ''}`}
                 title="Ouvir instrução por voz"
               >
@@ -1153,6 +1534,67 @@ export function PartnerPortal() {
 
               {step === 'products' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
+                   {/* PAINEL INSTRUCIONAL NO PRIMEIRO CADASTRO */}
+                   <div className="clay-card p-6 rounded-3xl border border-emerald-200 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 space-y-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                               <Camera className="w-5 h-5" />
+                            </div>
+                            <div>
+                               <h4 className="font-serif font-bold text-slate-900 dark:text-white text-base">
+                                 Painel Instrucional: Boas Práticas para o Comércio
+                               </h4>
+                               <p className="text-xs text-slate-500 dark:text-slate-400">
+                                 Requisitos de qualidade para fotos nítidas, categorização correta e precificação.
+                               </p>
+                            </div>
+                         </div>
+                         <button
+                           type="button"
+                           onClick={() => setShowInstructionalGuide(!showInstructionalGuide)}
+                           className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-3 py-1 bg-emerald-100 dark:bg-emerald-950/50 rounded-full cursor-pointer"
+                         >
+                           {showInstructionalGuide ? 'Ocultar Dicas' : 'Ver Guia Completo'}
+                         </button>
+                      </div>
+
+                      {showInstructionalGuide && (
+                        <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-emerald-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 animate-in fade-in">
+                           <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                                 <Camera className="w-4 h-4" />
+                                 <span>1. Fotos Reais e Nítidas</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                 Use luz natural e fundo limpo. Fotografe os produtos frescos colhidos no dia sem filtros ou sombras excessivas.
+                              </p>
+                           </div>
+
+                           <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400 font-bold">
+                                 <Layers className="w-4 h-4" />
+                                 <span>2. Categorização Precisa</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                 Separe em <strong>Frutas</strong>, <strong>Legumes</strong>, <strong>Verduras</strong> e <strong>Cestas</strong> para facilitar a busca por proximidade.
+                              </p>
+                           </div>
+
+                           <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold">
+                                 <Tag className="w-4 h-4" />
+                                 <span>3. Modalidade (kg vs un)</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                                 Especifique claramente se o valor é por <strong>Quilo (kg)</strong> ou <strong>Unidade (un/maço/bandeja/cesta)</strong>.
+                              </p>
+                           </div>
+                        </div>
+                      )}
+                   </div>
+
+                   {/* Products Grid */}
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {form.products.map((p) => (
                         <div key={p.id} className="bg-slate-50 dark:bg-slate-950 rounded-[32px] clay-card border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden group shadow-sm hover:shadow-md transition-all">
@@ -1188,60 +1630,224 @@ export function PartnerPortal() {
                       ))}
                       <button 
                         onClick={startAddProduct}
-                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] clay-card flex flex-col items-center justify-center space-y-4 min-h-[220px] hover:bg-slate-50 dark:hover:bg-slate-950 transition-all group"
+                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] clay-card flex flex-col items-center justify-center space-y-4 min-h-[220px] hover:bg-slate-50 dark:hover:bg-slate-950 transition-all group cursor-pointer"
                       >
                          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                            <Plus className="w-8 h-8" />
                          </div>
                          <div className="text-center">
                             <span className="block font-bold text-slate-900 dark:text-white">Adicionar Produto</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fruta, Verdura ou Combo</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fruta, Verdura ou Cesta</span>
                          </div>
                       </button>
-                   </div>
-                   
-                   <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-3xl border border-amber-100 dark:border-amber-900/30 flex items-center gap-4">
-                      <Sparkles className="w-8 h-8 text-amber-500" />
-                      <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                        <strong>Dica IA:</strong> Sacolões que utilizam fotos de alta qualidade e descrições detalhadas vendem até 55% mais no NutriAI.
-                      </p>
                    </div>
                 </div>
               )}
 
-              {(step === 'hours' || step === 'payment') && (
+              {step === 'hours' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
-                  {step === 'hours' ? (
-                    <div className="space-y-4">
-                       {form.hours.map((h, i) => (
-                         <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
-                           <Clock className="w-5 h-5 text-emerald-500" />
-                           <div className="flex-1 font-bold text-sm text-slate-700 dark:text-slate-200">{h.day}</div>
-                           <div className="text-sm text-slate-500">{h.open} às {h.close}</div>
+                   <div className="space-y-4">
+                      {form.hours.map((h, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
+                          <Clock className="w-5 h-5 text-emerald-500" />
+                          <div className="flex-1 font-bold text-sm text-slate-700 dark:text-slate-200">{h.day}</div>
+                          <div className="text-sm text-slate-500">{h.open} às {h.close}</div>
+                        </div>
+                      ))}
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          vibrate(10);
+                          setForm({
+                            ...form,
+                            hours: [...form.hours, { day: 'Sábado-Domingo', open: '08:00', close: '14:00' }]
+                          });
+                        }}
+                        className="text-emerald-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Adicionar Horário Diferenciado
+                      </button>
+                   </div>
+                </div>
+              )}
+
+              {step === 'plans' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4">
+                   <div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                         O NutriAI oferece três modelos de monetização para parceiros. Selecione o que melhor atende sua operação:
+                      </p>
+                   </div>
+
+                   <div className="grid md:grid-cols-3 gap-6">
+                      {/* Plano 1: Mensal */}
+                      <div 
+                        onClick={() => {
+                          vibrate(15);
+                          playSfx('tap');
+                          setForm({...form, monetizationModel: 'monthly'});
+                        }}
+                        className={`p-6 rounded-[28px] clay-card border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                          form.monetizationModel === 'monthly'
+                            ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-xl shadow-emerald-500/10'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                        }`}
+                      >
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                               <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold uppercase">
+                                 Recorrência
+                               </span>
+                               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                 form.monetizationModel === 'monthly' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300'
+                               }`}>
+                                 {form.monetizationModel === 'monthly' && <Check className="w-3.5 h-3.5" />}
+                               </div>
+                            </div>
+                            <div>
+                               <h4 className="text-xl font-bold text-slate-900 dark:text-white">Assinatura Mensal</h4>
+                               <p className="text-xs text-slate-500 mt-1">Sem fidelidade, cancele a qualquer momento.</p>
+                            </div>
+                            <div className="pt-2">
+                               <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">R$ 99,90</span>
+                               <span className="text-xs text-slate-400">/mês</span>
+                               <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-1">0% de comissão por venda</p>
+                            </div>
+                            <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Sem comissão por pedido</li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Selo Parceiro Verificado</li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Suporte prioritário via WhatsApp</li>
+                            </ul>
                          </div>
-                       ))}
-                       <button className="text-emerald-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                         <Plus className="w-4 h-4" />
-                         Adicionar Horário Diferenciado
-                       </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                       {['Pix', 'Cartão no App', 'Cartão na Entrega', 'Dinheiro'].map(method => (
-                         <button 
-                           key={method}
-                           onClick={() => {
-                             if (form.payments.includes(method)) setForm({...form, payments: form.payments.filter(p => p !== method)});
-                             else setForm({...form, payments: [...form.payments, method]});
-                           }}
-                           className={`p-6 rounded-3xl border-2 transition-all flex items-center gap-4 ${form.payments.includes(method) ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-slate-100 dark:border-slate-800'}`}
-                         >
-                           <CreditCard className={`w-6 h-6 ${form.payments.includes(method) ? 'text-emerald-500' : 'text-slate-400'}`} />
-                           <span className="font-bold text-slate-700 dark:text-slate-200">{method}</span>
-                         </button>
-                       ))}
-                    </div>
-                  )}
+                         <div className={`mt-6 py-3 rounded-2xl text-center font-bold text-xs ${
+                           form.monetizationModel === 'monthly' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                         }`}>
+                           {form.monetizationModel === 'monthly' ? 'Selecionado' : 'Escolher Mensal'}
+                         </div>
+                      </div>
+
+                      {/* Plano 2: Anual */}
+                      <div 
+                        onClick={() => {
+                          vibrate(15);
+                          playSfx('tap');
+                          setForm({...form, monetizationModel: 'annual'});
+                        }}
+                        className={`p-6 rounded-[28px] clay-card border-2 cursor-pointer transition-all flex flex-col justify-between relative overflow-hidden ${
+                          form.monetizationModel === 'annual'
+                            ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-xl shadow-emerald-500/10'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                        }`}
+                      >
+                         <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+                           25% OFF • Destaque
+                         </div>
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                               <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-bold uppercase">
+                                 Anual Ouro
+                               </span>
+                               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                 form.monetizationModel === 'annual' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300'
+                               }`}>
+                                 {form.monetizationModel === 'annual' && <Check className="w-3.5 h-3.5" />}
+                               </div>
+                            </div>
+                            <div>
+                               <h4 className="text-xl font-bold text-slate-900 dark:text-white">Assinatura Anual</h4>
+                               <p className="text-xs text-slate-500 mt-1">Destaque máximo e banner rotativo de ofertas.</p>
+                            </div>
+                            <div className="pt-2">
+                               <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">R$ 899,00</span>
+                               <span className="text-xs text-slate-400">/ano</span>
+                               <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mt-1">R$ 74,90/mês • 0% comissão</p>
+                            </div>
+                            <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                               <li className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-500" /> <strong>Destaque em Banner de Ofertas</strong></li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Prioridade na busca de proximidade</li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Economia de R$ 299,80/ano</li>
+                            </ul>
+                         </div>
+                         <div className={`mt-6 py-3 rounded-2xl text-center font-bold text-xs ${
+                           form.monetizationModel === 'annual' ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white shadow-sm'
+                         }`}>
+                           {form.monetizationModel === 'annual' ? 'Selecionado' : 'Escolher Anual Ouro'}
+                         </div>
+                      </div>
+
+                      {/* Plano 3: Comissão */}
+                      <div 
+                        onClick={() => {
+                          vibrate(15);
+                          playSfx('tap');
+                          setForm({...form, monetizationModel: 'commission'});
+                        }}
+                        className={`p-6 rounded-[28px] clay-card border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                          form.monetizationModel === 'commission'
+                            ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-xl shadow-emerald-500/10'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                        }`}
+                      >
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                               <span className="px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-xs font-bold uppercase">
+                                 Sem Fixo
+                               </span>
+                               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                 form.monetizationModel === 'commission' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300'
+                               }`}>
+                                 {form.monetizationModel === 'commission' && <Check className="w-3.5 h-3.5" />}
+                               </div>
+                            </div>
+                            <div>
+                               <h4 className="text-xl font-bold text-slate-900 dark:text-white">Comissão por Venda</h4>
+                               <p className="text-xs text-slate-500 mt-1">Pague apenas uma porcentagem por venda entregue.</p>
+                            </div>
+                            <div className="pt-2">
+                               <span className="text-3xl font-serif font-black text-slate-900 dark:text-white">10%</span>
+                               <span className="text-xs text-slate-400">por pedido realizado</span>
+                               <p className="text-xs text-teal-600 dark:text-teal-400 font-bold mt-1">R$ 0,00 de mensalidade fixa</p>
+                            </div>
+                            <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Risco zero para iniciar</li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Sem vendas = Sem custos</li>
+                               <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /> Troque de plano a qualquer momento</li>
+                            </ul>
+                         </div>
+                         <div className={`mt-6 py-3 rounded-2xl text-center font-bold text-xs ${
+                           form.monetizationModel === 'commission' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                         }`}>
+                           {form.monetizationModel === 'commission' ? 'Selecionado' : 'Escolher Comissão'}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {step === 'payment' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4">
+                   <div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                         Selecione os meios de pagamento aceitos no seu hortifruti para seus clientes:
+                      </p>
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      {['Pix', 'Cartão no App', 'Cartão na Entrega', 'Dinheiro'].map(method => (
+                        <button 
+                          key={method}
+                          type="button"
+                          onClick={() => {
+                            if (form.payments.includes(method)) setForm({...form, payments: form.payments.filter(p => p !== method)});
+                            else setForm({...form, payments: [...form.payments, method]});
+                          }}
+                          className={`p-6 rounded-3xl border-2 transition-all flex items-center gap-4 cursor-pointer ${form.payments.includes(method) ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-slate-100 dark:border-slate-800'}`}
+                        >
+                          <CreditCard className={`w-6 h-6 ${form.payments.includes(method) ? 'text-emerald-500' : 'text-slate-400'}`} />
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{method}</span>
+                        </button>
+                      ))}
+                   </div>
                 </div>
               )}
            </div>
@@ -1249,34 +1855,37 @@ export function PartnerPortal() {
            {/* Actions */}
            <div className="flex gap-4 pt-10 border-t border-slate-100 dark:border-slate-800">
               <button 
+                type="button"
                 onClick={() => {
-                   const stepsArr: Step[] = ['onboarding', 'business', 'location', 'service', 'products', 'hours', 'payment'];
+                   const stepsArr: Step[] = ['onboarding', 'business', 'location', 'service', 'products', 'hours', 'plans', 'payment'];
                    const currentIdx = stepsArr.indexOf(step as any);
                    setStep(stepsArr[currentIdx - 1]);
                 }}
-                className="px-8 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200 rounded-2xl font-bold flex items-center gap-2"
+                className="px-8 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200 rounded-2xl font-bold flex items-center gap-2 cursor-pointer hover:bg-slate-200"
               >
                 <ChevronLeft className="w-6 h-6" />
                 Voltar
               </button>
               <button 
+                type="button"
                 onClick={() => {
-                   const stepsArr: Step[] = ['business', 'location', 'service', 'products', 'hours', 'payment'];
+                   const stepsArr: Step[] = ['business', 'location', 'service', 'products', 'hours', 'plans', 'payment'];
                    const currentIdx = stepsArr.indexOf(step as any);
                    if (currentIdx < stepsArr.length - 1) {
                       const next = stepsArr[currentIdx + 1];
                       let guidance = "";
                       if (next === 'location') guidance = "Onde seu sacolão está localizado? Isso ajuda os clientes a te encontrarem.";
                       if (next === 'service') guidance = "Como você entrega para seus clientes? Você faz entregas ou aceita retiradas?";
-                      if (next === 'products') guidance = "Agora, adicione seus melhores produtos frescos.";
+                      if (next === 'products') guidance = "Agora, adicione seus melhores produtos frescos com fotos nítidas e indicação de quilo ou unidade.";
                       if (next === 'hours') guidance = "Quais são seus horários de atendimento?";
-                      if (next === 'payment') guidance = "Por fim, como você deseja receber seus pagamentos?";
+                      if (next === 'plans') guidance = "Selecione o modelo de monetização: Assinatura Mensal, Anual ou Comissão por Venda.";
+                      if (next === 'payment') guidance = "Por fim, quais meios de pagamento você aceita?";
                       nextStep(next, guidance);
                    } else {
                       setStep('pending');
                    }
                 }}
-                className="flex-1 py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3"
+                className="flex-1 py-5 clay-primary px-6 py-3 font-bold text-lg shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
                 {step === 'payment' ? 'Concluir Cadastro' : 'Próximo Passo'}
                 <ChevronRight className="w-6 h-6" />

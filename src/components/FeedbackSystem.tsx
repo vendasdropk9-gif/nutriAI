@@ -25,6 +25,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
   const [voiceVolume, setVoiceVolumeState] = useState<number>(() => getVoiceVolume());
   const [showVoiceSettings, setShowVoiceSettings] = useState<boolean>(false);
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState<boolean>(false);
+  const [isSpeakingThankYou, setIsSpeakingThankYou] = useState<boolean>(false);
   const closeTimeoutRef = useRef<any>(null);
   const isSubmittingRef = useRef<boolean>(false);
   const hasPlayedVoiceRef = useRef<boolean>(false);
@@ -83,7 +84,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
     { value: 5, label: 'Excelente!', emoji: '🤩' },
   ];
 
-  // Function to automatically play Malu's thank-you voice exactly once
+  // Function to automatically play Malu's thank-you voice exactly once and wait for completion
   const playMaluThankYou = (name?: string) => {
     if (hasPlayedVoiceRef.current) return;
     hasPlayedVoiceRef.current = true;
@@ -97,15 +98,47 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       ? `Muito obrigada pelo seu feedback, ${firstName}! Sua opinião nos ajuda muito a melhorar e evoluir o NutriAI para você.`
       : `Muito obrigada pelo seu feedback! Sua opinião nos ajuda muito a melhorar e evoluir o NutriAI para você.`;
 
-    speak(speechText);
+    setIsSpeakingThankYou(true);
+
+    speak(speechText, {
+      volume: voiceVolume,
+      onEnded: () => {
+        setIsSpeakingThankYou(false);
+        // Wait a smooth 1.5s after speech completes so user sees the completed state, then auto-close smoothly
+        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = setTimeout(() => {
+          handleCloseModal(false);
+        }, 1500);
+      },
+      onError: () => {
+        setIsSpeakingThankYou(false);
+        // Fallback auto-close if audio playback was blocked or errored
+        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = setTimeout(() => {
+          handleCloseModal(false);
+        }, 4000);
+      }
+    });
+
+    // Fallback safety timeout in case onEnded/onError is delayed by browser
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsSpeakingThankYou(false);
+      handleCloseModal(false);
+    }, 25000);
   };
 
-  const handleCloseModal = () => {
-    stopSpeech();
+  const handleCloseModal = (stopAudio?: boolean | React.SyntheticEvent) => {
+    const shouldStop = typeof stopAudio === 'boolean' ? stopAudio : true;
+    if (shouldStop) {
+      stopSpeech();
+    }
+    setIsSpeakingThankYou(false);
     hasPlayedVoiceRef.current = false;
     isSubmittingRef.current = false;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
     }
     setShowSuccess(false);
     setComment('');
@@ -156,14 +189,8 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       }
 
       setShowSuccess(true);
-      // Play Malu voice automatically
+      // Play Malu voice automatically and wait until speech completes before auto-closing
       playMaluThankYou(finalUserName);
-
-      // Schedule auto-close smoothly
-      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = setTimeout(() => {
-        handleCloseModal();
-      }, 5500);
 
     } catch (err: any) {
       console.warn('Erro ao enviar feedback para o Firestore, tentando salvar localmente:', err);
@@ -183,13 +210,8 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
         playSfx('success');
         vibrate([100, 50, 100]);
         setShowSuccess(true);
-        // Play Malu voice automatically
+        // Play Malu voice automatically and wait until speech completes before auto-closing
         playMaluThankYou(finalUserName);
-
-        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-        closeTimeoutRef.current = setTimeout(() => {
-          handleCloseModal();
-        }, 5500);
       } catch (fallbackErr) {
         setError('Ocorreu um erro ao processar seu feedback. Tente novamente mais tarde.');
       }
@@ -569,6 +591,22 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                   Sua opinião nos motiva a evoluir diariamente e tornar o NutriAI cada vez mais completo e inteligente.
                 </p>
 
+                {/* Voice speaking indicator when Malu is thanking the user */}
+                {isSpeakingThankYou && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-3 flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-xs"
+                    id="feedback-speaking-indicator"
+                  >
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Malu falando: Muito obrigada pelo seu feedback...</span>
+                  </motion.div>
+                )}
+
                 {/* Compact Volume Control on Success Screen */}
                 <div 
                   className="mt-4 w-full max-w-sm rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-800/40 p-2.5 flex items-center justify-between gap-2.5"
@@ -600,7 +638,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleCloseModal}
+                    onClick={() => handleCloseModal(true)}
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
                     id="dismiss-feedback-success-btn"
                   >
