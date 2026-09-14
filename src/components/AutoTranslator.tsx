@@ -2028,33 +2028,7 @@ const originalAttrMap = new WeakMap<HTMLElement, Record<string, string>>();
 export function AutoTranslator() {
   const { language: contextLanguage } = useLanguage();
   const { i18n } = useTranslation();
-  const [activeLang, setActiveLang] = useState(contextLanguage || i18n.language || 'pt-BR');
-
-  // React immediately whenever context language changes
-  useEffect(() => {
-    if (contextLanguage) {
-      setActiveLang(contextLanguage);
-    }
-  }, [contextLanguage]);
-
-  // Fallback listeners for external language events
-  useEffect(() => {
-    const handleLanguageChange = (lng?: string) => {
-      const target = lng || i18n.language || 'pt-BR';
-      setActiveLang(target);
-    };
-
-    i18n.on('languageChanged', handleLanguageChange);
-    const onNutri = (e: any) => handleLanguageChange(e?.detail);
-    window.addEventListener('nutri:language-changed', onNutri);
-    window.addEventListener('languageChanged', onNutri);
-
-    return () => {
-      i18n.off('languageChanged', handleLanguageChange);
-      window.removeEventListener('nutri:language-changed', onNutri);
-      window.removeEventListener('languageChanged', onNutri);
-    };
-  }, [i18n]);
+  const activeLang = contextLanguage || i18n.language || 'pt-BR';
 
   // Load comprehensive bidirectional translation dictionary across all languages
   const translationMap = useMemo(() => {

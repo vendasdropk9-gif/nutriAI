@@ -86,7 +86,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children, in
     if (normalized === 'es') normalized = 'es-ES';
 
     // 1. Immediately update React Context state so all sub-components receive the update directly
-    setLanguage(normalized);
+    setLanguage((prev) => (prev !== normalized ? normalized : prev));
 
     // 2. Call i18n changeLanguage to persist in localStorage, update document attributes,
     //    and synchronize with Supabase / Firestore
@@ -94,15 +94,17 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children, in
     return result;
   }, []);
 
+  const translate = useCallback((key: string, defaultValue?: string) => t(key, defaultValue || key), [t]);
+
   const contextValue = useMemo<LanguageContextType>(() => ({
     language,
     changeLanguage,
     isRtl,
     direction,
-    t: (key: string, defaultValue?: string) => t(key, defaultValue || key),
+    t: translate,
     availableLanguages: languagesList,
     _isProviderActive: true,
-  }), [language, changeLanguage, isRtl, direction, t]);
+  }), [language, changeLanguage, isRtl, direction, translate]);
 
   return (
     <LanguageContext.Provider value={contextValue}>

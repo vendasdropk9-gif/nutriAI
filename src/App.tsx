@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { Recipe, MealPlan, UserProfile } from './types';
@@ -62,7 +62,7 @@ import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage as changeAppLanguage } from './i18n';
-import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { LanguageProvider, useLanguage, LanguageContext } from './contexts/LanguageContext';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 import { LanguageModal } from './components/LanguageModal';
@@ -122,23 +122,36 @@ function AppContent() {
   }, []);
 
   // Synchronize language changes seamlessly with Profile & Firestore from Context
+  const prevLangRef = useRef(language);
   useEffect(() => {
-    setProfile((prev) => {
-      if (!prev) return prev;
-      if (prev.language === language && prev.preferred_language === language) return prev;
-      const updated = { ...prev, language, preferred_language: language };
-      if (user) {
-        syncToFirestore(updated);
-      }
-      return updated;
-    });
+    if (prevLangRef.current !== language) {
+      prevLangRef.current = language;
+      setProfile((prev) => {
+        if (!prev) return prev;
+        if (prev.language === language && prev.preferred_language === language) return prev;
+        const updated = { ...prev, language, preferred_language: language };
+        if (user) {
+          syncToFirestore(updated);
+        }
+        return updated;
+      });
+    }
   }, [language, user, syncToFirestore, setProfile]);
 
-  // Initial language check & synchronization with profile
+  // Initial language check & synchronization from profile (run once when profile is loaded)
+  const hasInitProfileLangRef = useRef(false);
   useEffect(() => {
-    const profileLang = profile?.preferred_language || profile?.language;
-    if (profileLang && profileLang !== language) {
-      changeLanguage(profileLang);
+    if (hasInitProfileLangRef.current) return;
+    const rawProfileLang = profile?.preferred_language || profile?.language;
+    if (rawProfileLang) {
+      hasInitProfileLangRef.current = true;
+      let targetLng = rawProfileLang;
+      if (targetLng === 'pt') targetLng = 'pt-BR';
+      if (targetLng === 'en') targetLng = 'en-US';
+      if (targetLng === 'es') targetLng = 'es-ES';
+      if (targetLng !== language) {
+        changeLanguage(targetLng);
+      }
     }
   }, [profile?.preferred_language, profile?.language, language, changeLanguage]);
 
@@ -165,13 +178,15 @@ function AppContent() {
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
-  if (activeTab !== prevTab) {
-    const prevIndex = TAB_ORDER.indexOf(prevTab);
-    const currIndex = TAB_ORDER.indexOf(activeTab);
-    const dir = currIndex > prevIndex ? 1 : -1;
-    setDirection(dir);
-    setPrevTab(activeTab);
-  }
+  useEffect(() => {
+    if (activeTab !== prevTab) {
+      const prevIndex = TAB_ORDER.indexOf(prevTab);
+      const currIndex = TAB_ORDER.indexOf(activeTab);
+      const dir = currIndex > prevIndex ? 1 : -1;
+      setDirection(dir);
+      setPrevTab(activeTab);
+    }
+  }, [activeTab, prevTab]);
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
@@ -942,6 +957,10 @@ function AppContent() {
 }
 
 export default function App() {
+  const existing = useContext(LanguageContext);
+  if (existing && existing._isProviderActive) {
+    return <AppContent />;
+  }
   return (
     <LanguageProvider>
       <AppContent />

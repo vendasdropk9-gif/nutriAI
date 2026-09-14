@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { User } from 'firebase/auth';
 import { db, doc, getDoc, setDoc, updateDoc, collection, getDocs, onSnapshot, serverTimestamp } from './firebase';
 import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
@@ -218,7 +218,7 @@ export function useProfileSync(
   }, [user]);
 
   // Sync profile changes back to Firestore
-  const syncToFirestore = async (newProfile: UserProfile) => {
+  const syncToFirestore = useCallback(async (newProfile: UserProfile) => {
     if (!user) return;
     const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
     if (isLocalUser) return;
@@ -305,7 +305,7 @@ export function useProfileSync(
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [user]);
 
   return { isSyncing, syncToFirestore };
 }
