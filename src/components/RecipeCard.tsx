@@ -12,6 +12,7 @@ import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 
 import { db, auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
+import { AiCookingAdvisor } from './AiCookingAdvisor';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -64,6 +65,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [prepTipsError, setPrepTipsError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAiAdvisor, setShowAiAdvisor] = useState(false);
   
   const isPlayingRef = useRef(false);
   const currentStepIndexRef = useRef(0);
@@ -1644,8 +1646,35 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   </>
                 )}
               </button>
+
+              <button
+                id="toggle-chef-advisor-recipe-btn"
+                onClick={() => setShowAiAdvisor(!showAiAdvisor)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 border ${
+                  showAiAdvisor
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{showAiAdvisor ? 'Fechar Dúvidas Chef' : 'Dúvidas com Chef Malu'}</span>
+              </button>
             </div>
           </div>
+
+          {showAiAdvisor && (
+            <div className="mb-6 animate-in fade-in duration-300">
+              <AiCookingAdvisor
+                profile={null}
+                recipeContext={{
+                  recipeTitle: recipe.title,
+                  ingredients: recipe.ingredients,
+                  currentStep: (activeStep !== null && recipe.instructions?.[activeStep]) ? recipe.instructions[activeStep] : undefined
+                }}
+                onClose={() => setShowAiAdvisor(false)}
+              />
+            </div>
+          )}
 
           <AnimatePresence>
             {isVoiceModeActive && (

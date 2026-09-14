@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion } from "../types";
 import { generateFallbackComparison } from "../data/foodNutritionDatabase";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
@@ -1032,5 +1032,196 @@ export const generatePersonalizedCulinaryChallenge = async (
     startDate: new Date().toISOString(),
     completedDays: 0
   };
+};
+
+export const askCookingAssistant = async (
+  question: string,
+  context?: {
+    recipeTitle?: string;
+    ingredients?: string[];
+    currentStep?: string;
+    targetDish?: string;
+  },
+  profile?: UserProfile
+): Promise<CookingAdviceResult> => {
+  try {
+    const result = await callGeminiEndpoint('askCookingAssistant', [question, context, profile], 22000);
+    if (result && result.directAnswer && result.answer) {
+      return result;
+    }
+  } catch (e) {
+    console.warn("Chef Malu AI cooking assistant endpoint error:", e);
+  }
+
+  // Graceful client fallback
+  const qLower = (question || '').toLowerCase();
+  if (qLower.includes('frango') && (qLower.includes('assar') || qLower.includes('tempo') || qLower.includes('forno'))) {
+    return {
+      question,
+      directAnswer: "Para peito de frango assado, asse a 200°C por 25 a 30 minutos (ou 40 a 45 minutos para sobrecoxas com osso), até atingir 74°C internos.",
+      answer: "O segredo para um frango assado dourado e muito suculento é a temperatura constante do forno pré-aquecido a 200°C. Peitos desossados levam cerca de 25 a 30 minutos, enquanto cortes com osso e pele (como coxas e sobrecoxas) precisam de 40 a 45 minutos. Sempre deixe a carne descansar por 5 minutos antes de fatiar para que os sucos se redistribuam pela fibra muscular.",
+      cookingTimeAndTemp: {
+        temperature: "200°C (forno pré-aquecido)",
+        time: "25-30 min (filé/peito) | 40-45 min (cortes com osso)",
+        internalTemp: "74°C a 75°C (no ponto mais espesso)",
+        technique: "Asse em assadeira pincelada com azeite ou papel manteiga. Deixe descansar 5 min antes de cortar."
+      },
+      nutritionalComparison: {
+        summary: "O frango assado é uma das proteínas magras mais completas e biodisponíveis da nutrição.",
+        caloriesImpact: "Apenas ~165 kcal por porção de 100g de peito assado",
+        proteinImpact: "Fornece 31g de proteína de alto valor biológico",
+        fatImpact: "Menos de 3.5g de lipídios totais por porção",
+        healthBenefits: [
+          "Rico em niacina e vitamina B6 para o metabolismo energético",
+          "Alta concentração de fósforo e selênio antioxidante",
+          "Excelente digestibilidade e poder de saciedade prolongado"
+        ]
+      },
+      culinaryTips: [
+        "Faça uma marinada rápida com limão ou vinagre de maçã, azeite, alho amassado e ervas frescas pelo menos 20 minutos antes.",
+        "Nunca corte o frango imediatamente após retirar do forno; o repouso de 5 minutos preserva a suculência interna."
+      ],
+      suggestedFollowUps: [
+        "Como marinar o frango para ficar mais macio?",
+        "Qual o tempo correto na Airfryer?",
+        "Posso assar o frango ainda congelado?"
+      ]
+    };
+  }
+
+  if ((qLower.includes('creme de leite') || qLower.includes('creme')) && (qLower.includes('iogurte') || qLower.includes('substitu') || qLower.includes('trocar'))) {
+    return {
+      question,
+      directAnswer: "Sim! Você pode substituir o creme de leite por iogurte grego natural tradicional na proporção 1:1, garantindo pratos extremamente cremosos, leves e com muito mais proteína.",
+      answer: "A substituição do creme de leite por iogurte grego natural é um dos maiores truques da gastronomia funcional. Funciona com perfeição em strogonoff, molhos brancos, risotos, recheios de tortas e mousses. O iogurte grego confere uma aveludada cremosidade com um toque sutil de acidez natural que valoriza os temperos.",
+      substitutionAdvice: {
+        originalItem: "Creme de Leite",
+        substituteItem: "Iogurte Grego Natural (sem açúcar)",
+        ratio: "1:1 (use a mesma quantidade indicada na receita)",
+        culinaryImpact: "Textura cremosa e sedosa com leve nota cítrica refrescante que valoriza o sabor de carnes, massas e vegetais.",
+        precaution: "Atenção técnica: Adicione o iogurte grego sempre em fogo bem brando ou após desligar a panela, misturando com vigor suave para não talhar."
+      },
+      nutritionalComparison: {
+        summary: "Transformação nutricional expressiva com corte massivo de calorias e gorduras saturadas.",
+        caloriesImpact: "Redução de até 75% nas calorias (de ~300 kcal para ~75 kcal por 100g)",
+        fatImpact: "Redução de mais de 85% de gorduras saturadas",
+        proteinImpact: "Aumento de 3x no teor de proteínas de alto valor biológico",
+        healthBenefits: [
+          "Preserva a microbiota intestinal através de probióticos ativos",
+          "Favorece o controle do colesterol e saciedade duradoura"
+        ]
+      },
+      culinaryTips: [
+        "Para molhos quentes, tempere o iogurte grego com 1 colher do molho morno antes de incorporar à panela (têmpera térmica).",
+        "Se quiser diminuir a acidez natural do iogurte, adicione uma pitada mínima de noz-moscada ralada na hora."
+      ],
+      suggestedFollowUps: [
+        "O iogurte grego serve para molhos que vão ao forno?",
+        "Posso substituir leite condensado também?",
+        "Como engrossar um molho com iogurte sem usar amido?"
+      ]
+    };
+  }
+
+  return {
+    question,
+    directAnswer: "Com técnicas simples e substituições inteligentes, você mantém o sabor de restaurante com total equilíbrio nutricional.",
+    answer: `Para a dúvida ("${question}"), a recomendação é cozinhar em temperatura branda, respeitar os tempos naturais de cada ingrediente e priorizar temperos naturais e ervas aromáticas para preservar micronutrientes e textura.`,
+    culinaryTips: [
+      "Prove o prato em etapas e equilibre sal, acidez e gordura boa.",
+      "Para manter legumes crocantes e cheios de vitaminas, opte pelo cozimento ao vapor."
+    ],
+    nutritionalComparison: {
+      summary: "Métodos culinários suaves preservam compostos bioativos e vitaminas.",
+      healthBenefits: [
+        "Redução no uso de sódio e gorduras saturadas",
+        "Melhor digestão e saciedade balanceada"
+      ]
+    },
+    suggestedFollowUps: [
+      "Qual o tempo ideal para legumes no vapor?",
+      "Como substituir o sal por ervas?",
+      "Quais gorduras são melhores para cozinhar?"
+    ]
+  };
+};
+
+export const generatePantryExpiringRecipes = async (
+  items: PantryItem[],
+  profile?: UserProfile
+): Promise<PantryRecipeSuggestion[]> => {
+  try {
+    const result = await callGeminiEndpoint('generatePantryExpiringRecipes', [items, profile], 30000);
+    if (Array.isArray(result) && result.length > 0) {
+      return result;
+    }
+  } catch (e) {
+    console.warn("generatePantryExpiringRecipes endpoint error:", e);
+  }
+
+  const expiring = (items || []).filter(i => i.daysRemaining <= 4 || i.status === 'perto_vencimento').map(i => i.name);
+  const expiringNames = expiring.length > 0 ? expiring : ["Legumes frescos", "Tomate", "Ovos"];
+
+  return [
+    {
+      id: `pantry-recipe-salvavida-1`,
+      title: "Assado Rústico NutriAI de Resgate de Despensa",
+      description: `Receita desenhada especificamente para aproveitar ingredientes próximos à validade (${expiringNames.slice(0, 3).join(', ')}) com textura crocante e tempero aromático.`,
+      prepTime: "30 min",
+      difficulty: "Fácil",
+      urgentExpiringIngredientsUsed: expiringNames.slice(0, 3),
+      otherPantryIngredientsUsed: (items || []).slice(0, 2).map(i => i.name),
+      staplesNeeded: ["Azeite de oliva extravirgem", "Alho picado", "Sal marinho", "Páprica defumada"],
+      calories: 340,
+      protein: 26,
+      carbs: 22,
+      fat: 12,
+      ingredients: [
+        ...expiringNames.slice(0, 3).map(name => `Porção de ${name}`),
+        "2 colheres de sopa de azeite extravirgem",
+        "2 dentes de alho picados",
+        "1 colher de chá de páprica doce ou defumada",
+        "Sal marinho e ervas a gosto"
+      ],
+      instructions: [
+        "Pré-aqueça o forno ou a airfryer a 200°C.",
+        "Higienize e pique os ingredientes prestes a vencer em pedaços de tamanho uniforme.",
+        "Em uma tigela ampla, envolva todos os alimentos com o azeite, o alho, a páprica e o sal.",
+        "Distribua na assadeira sem sobrepor e asse por 20 a 25 minutos até dourar com bordas crocantes.",
+        "Sirva imediatamente aproveitando 100% dos nutrientes."
+      ],
+      chefTip: "Assar legumes e proteínas com azeite em alta temperatura carameliza os açúcares naturais e transforma alimentos prestes a murchar em pratos deliciosos.",
+      zeroWasteScore: 98
+    },
+    {
+      id: `pantry-recipe-salvavida-2`,
+      title: "Frigideira Cremosa Funcional com Molho Leve",
+      description: "Preparo rápido de 15 minutos em panela única, combinando ingredientes da despensa em um molho aromático e nutritivo.",
+      prepTime: "18 min",
+      difficulty: "Fácil",
+      urgentExpiringIngredientsUsed: expiringNames.slice(0, 2),
+      otherPantryIngredientsUsed: (items || []).slice(2, 4).map(i => i.name),
+      staplesNeeded: ["Cebola ralada", "Azeite de oliva", "Pimenta do reino"],
+      calories: 290,
+      protein: 28,
+      carbs: 16,
+      fat: 9,
+      ingredients: [
+        `${expiringNames[0] || 'Ingrediente principal'} picado`,
+        "1/2 cebola ralada ou picada fininho",
+        "1 fio de azeite para saltear",
+        "Ervas frescas ou secas a gosto",
+        "Sal e pimenta moída na hora"
+      ],
+      instructions: [
+        "Aqueça a frigideira antiaderente com o fio de azeite em fogo médio.",
+        "Refogue a cebola até ficar transparente e adicione os ingredientes de cozimento mais longo.",
+        "Adicione os itens delicados nos últimos 3 minutos para preservar a cor e os nutrientes.",
+        "Finalize com ervas frescas e ajuste os temperos antes de servir."
+      ],
+      chefTip: "Cozinhar em panela única (one-pot) economiza água, tempo e preserva todos os sucos e minerais no próprio prato.",
+      zeroWasteScore: 92
+    }
+  ];
 };
 

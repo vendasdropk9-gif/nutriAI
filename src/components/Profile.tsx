@@ -6,7 +6,7 @@ import { UserProfile } from '../types';
 import { 
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
-  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database
+  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -1149,6 +1149,37 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 </motion.div>
               )}
             </div>
+          </div>
+
+          {/* Tour Guiado Interativo com Setas */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-emerald-500 text-white shadow-md shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                  Tour Guiado Interativo
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Reveja os principais recursos do app (Scanner de Despensa, Gerador de Refeições e mais) com setas guiadas apontando para os botões.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('pop');
+                vibrate(15);
+                window.dispatchEvent(new CustomEvent('app:openWelcomeTour'));
+              }}
+              className="px-4 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+              id="btn-reopen-welcome-tour-profile"
+            >
+              <Compass className="w-4 h-4" />
+              <span>Fazer Tour com Setas</span>
+            </button>
           </div>
 
           <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />

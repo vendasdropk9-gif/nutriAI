@@ -6,9 +6,43 @@ export interface SpeechOptions {
   lang?: string;
   rate?: number;
   pitch?: number;
+  volume?: number;
   onEnded?: () => void;
   onError?: (error: any) => void;
 }
+
+const VOLUME_STORAGE_KEY = 'nutri_ai_voice_volume';
+
+export const getVoiceVolume = (): number => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return 1.0;
+  try {
+    const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (saved !== null) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  return 1.0;
+};
+
+export const setVoiceVolume = (volume: number): void => {
+  const clamped = Math.max(0, Math.min(1, volume));
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(VOLUME_STORAGE_KEY, clamped.toString());
+    } catch (e) {}
+  }
+  if (activeAudio) {
+    try {
+      activeAudio.volume = clamped;
+    } catch (e) {}
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:voice-volume-changed', { detail: clamped }));
+  }
+};
 
 let activeAudio: HTMLAudioElement | null = null;
 let currentSpeechId = 0;
@@ -78,7 +112,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       audioUrl = '/audio/greeting_evening_malu.wav';
     } else if (isPt && (lower.includes('vou ficar por aqui') || lower.includes('quando precisar') || lower.includes('é só chamar'))) {
       audioUrl = '/audio/goodbye_malu.wav';
-    } else if (isPt && (lower.includes('feedback') || lower.includes('agradecer') || lower.includes('muito obrigada'))) {
+    } else if (isPt && (trimmedText.length <= 18 && (lower === 'muito obrigado' || lower === 'muito obrigada'))) {
       audioUrl = '/audio/feedback_thankyou_malu.wav';
     } else {
       // 1. Fetch high-fidelity Malu (Aoede voice in active language) from backend
@@ -100,6 +134,11 @@ export const speak = async (text: string, options?: SpeechOptions) => {
 
       const audio = new Audio(url);
       activeAudio = audio;
+
+      const targetVolume = typeof options?.volume === 'number' 
+        ? Math.max(0, Math.min(1, options.volume)) 
+        : getVoiceVolume();
+      audio.volume = targetVolume;
       
       if (options?.rate) {
         audio.playbackRate = options.rate;
@@ -187,7 +226,10 @@ const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?
   utterance.lang = options?.lang || 'pt-BR';
   utterance.rate = options?.rate ?? 1.0; 
   utterance.pitch = options?.pitch ?? 1.0; 
-  utterance.volume = 1.0;
+  const browserVolume = typeof options?.volume === 'number' 
+    ? Math.max(0, Math.min(1, options.volume)) 
+    : getVoiceVolume();
+  utterance.volume = browserVolume;
 
   if (selectedVoice) {
     utterance.voice = selectedVoice;
@@ -225,6 +267,11 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
 
     const audio = new Audio(validUrl);
     activeAudio = audio;
+
+    const targetVolume = typeof options?.volume === 'number' 
+      ? Math.max(0, Math.min(1, options.volume)) 
+      : getVoiceVolume();
+    audio.volume = targetVolume;
     
     if (options?.rate) {
       audio.playbackRate = options.rate;

@@ -9,10 +9,12 @@ import {
   Camera, Upload, Sparkles, Trash2, Edit2, Plus, Search, Calendar, 
   AlertTriangle, ShieldCheck, CheckSquare, Square, ShoppingBag, 
   ChevronRight, RefreshCw, Loader2, Utensils, AlertOctagon, ListFilter,
-  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell
+  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell, Package, ChefHat
 } from 'lucide-react';
 import { analyzeFridgeContents, FridgeAnalysisResult } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
+import { PantryScanner } from './PantryScanner';
+import { AiCookingAdvisor } from './AiCookingAdvisor';
 
 interface FridgeItem {
   id: string;
@@ -62,7 +64,7 @@ interface FirestoreErrorInfo {
 export function SmartFridge() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping'>('fridge');
+  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'advisor'>('fridge');
   
   // Fridge items state
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
@@ -562,6 +564,30 @@ export function SmartFridge() {
         >
           <ShoppingBag className="w-4 h-4 text-emerald-500" />
           Lista de Compras
+        </button>
+        <button
+          id="subtab-pantry-scanner-btn"
+          onClick={() => { setActiveSubTab('pantry'); playSfx('tap'); }}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
+            activeSubTab === 'pantry' 
+              ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
+          }`}
+        >
+          <Package className="w-4 h-4 text-emerald-500" />
+          Scanner de Despensa
+        </button>
+        <button
+          id="subtab-cooking-advisor-btn"
+          onClick={() => { setActiveSubTab('advisor'); playSfx('tap'); }}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
+            activeSubTab === 'advisor' 
+              ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
+          }`}
+        >
+          <ChefHat className="w-4 h-4 text-emerald-500" />
+          Dúvidas do Chef IA
         </button>
       </div>
 
@@ -1224,6 +1250,32 @@ export function SmartFridge() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+
+        {/* VIEW 5: PANTRY SCANNER (ANTI-DESPERDÍCIO) */}
+        {activeSubTab === 'pantry' && (
+          <motion.div
+            key="pantry-tab"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="pt-2"
+          >
+            <PantryScanner />
+          </motion.div>
+        )}
+
+        {/* VIEW 6: AI COOKING ADVISOR */}
+        {activeSubTab === 'advisor' && (
+          <motion.div
+            key="advisor-tab"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="pt-2 max-w-4xl mx-auto"
+          >
+            <AiCookingAdvisor />
           </motion.div>
         )}
       </AnimatePresence>

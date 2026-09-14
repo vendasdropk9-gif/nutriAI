@@ -1,7 +1,7 @@
 import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile, CookingAdviceResult, PantryItem, PantryRecipeSuggestion } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -1248,7 +1248,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
     } catch (e) {}
   }
 
-  if (isPt && (normalized.includes('feedback') || normalized.includes('agradecer') || normalized.includes('muito obrigada'))) {
+  if (isPt && (text.trim().length <= 18 && (normalized === 'muito obrigado' || normalized === 'muito obrigada'))) {
     try {
       const p = './public/audio/feedback_thankyou_malu.wav';
       if (fs.existsSync(p)) {
@@ -6035,5 +6035,434 @@ SCHEMA JSON OBRIGATÓRIO:
       }))
     };
   }
+};
+
+// =========================================================================
+// AI-GUIDED COOKING & PANTRY SCANNER RECIPE GENERATION
+// =========================================================================
+
+export const askCookingAssistant = async (
+  question: string,
+  context?: {
+    recipeTitle?: string;
+    ingredients?: string[];
+    currentStep?: string;
+    targetDish?: string;
+  },
+  profile?: UserProfile
+): Promise<CookingAdviceResult> => {
+  const qLower = (question || '').toLowerCase();
+  
+  // Intelligent pre-built fallbacks for instant response and offline safety
+  const isChickenQuestion = qLower.includes('frango') && (qLower.includes('assar') || qLower.includes('tempo') || qLower.includes('forno') || qLower.includes('ponto'));
+  const isCreamSubQuestion = (qLower.includes('creme de leite') || qLower.includes('creme')) && (qLower.includes('iogurte') || qLower.includes('substitu') || qLower.includes('trocar'));
+
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    const ai = getGenAI(apiKey);
+    if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+
+    const systemInstruction = `Você é a Chef Malu, assistente culinária e nutricionista executiva sênior do NutriAI.
+Sua missão é fornecer orientações culinárias práticas, seguras e nutricionalmente fundamentadas para o cozinheiro doméstico.
+Você deve responder com precisão e clareza a perguntas como:
+- "Quanto tempo devo assar este frango?" (orientando sobre cortes específicos, temperatura ideal do forno, airfryer, tempo de descanso e ponto interno seguro).
+- "Posso substituir o creme de leite por iogurte grego nesta receita?" (orientando sobre proporção 1:1, técnica para não talhar ao calor, diferenças de sabor e benefícios nutricionais expressivos como corte de gordura saturada e ganho de proteína).
+- Dúvidas sobre pontos de cozimento, controle de temperatura, resgates de receitas salgadas ou desandadas, substituições saudáveis e preservação de nutrientes.
+
+Diretrizes obrigatórias:
+1. directAnswer: Resposta direta, prática e conclusiva em 1 a 2 frases curtas.
+2. answer: Explicação didática completa, com tom acolhedor e profissional.
+3. cookingTimeAndTemp: Preencha se a dúvida envolver assar, grelhar, cozer ou ponto térmico (temperatura recomendada, tempo estimado, temperatura interna segura, técnica chave).
+4. substitutionAdvice: Preencha se a dúvida for sobre troca de ingredientes (item original, substituto, proporção exata ex: 1:1, impacto culinário e precaução térmica ex: adicionar em fogo brando/desligado para não talhar).
+5. nutritionalComparison: Resumo do ganho nutricional (impacto calórico, impacto de gorduras ou fibras, teor proteico e benefícios para a saúde).
+6. culinaryTips: De 2 a 3 dicas práticas de mestre cuca para enriquecer o prato.
+7. safetyTips: Alertas de higiene, segurança alimentar ou prevenção de contaminação cruzada.
+8. suggestedFollowUps: 3 perguntas curtas e relevantes para continuar a conversa.`;
+
+    const schema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        question: { type: Type.STRING },
+        directAnswer: { type: Type.STRING },
+        answer: { type: Type.STRING },
+        cookingTimeAndTemp: {
+          type: Type.OBJECT,
+          properties: {
+            temperature: { type: Type.STRING },
+            time: { type: Type.STRING },
+            internalTemp: { type: Type.STRING },
+            technique: { type: Type.STRING }
+          }
+        },
+        substitutionAdvice: {
+          type: Type.OBJECT,
+          properties: {
+            originalItem: { type: Type.STRING },
+            substituteItem: { type: Type.STRING },
+            ratio: { type: Type.STRING },
+            culinaryImpact: { type: Type.STRING },
+            precaution: { type: Type.STRING }
+          }
+        },
+        nutritionalComparison: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            caloriesImpact: { type: Type.STRING },
+            proteinImpact: { type: Type.STRING },
+            fatImpact: { type: Type.STRING },
+            healthBenefits: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          },
+          required: ["summary", "healthBenefits"]
+        },
+        culinaryTips: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        },
+        safetyTips: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        },
+        suggestedFollowUps: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        }
+      },
+      required: ["question", "directAnswer", "answer", "culinaryTips", "suggestedFollowUps"]
+    };
+
+    let prompt = `Pergunta do usuário na cozinha: "${question}"\n`;
+    if (context?.recipeTitle) {
+      prompt += `Contexto da Receita Atual: "${context.recipeTitle}"\n`;
+    }
+    if (context?.ingredients && context.ingredients.length > 0) {
+      prompt += `Ingredientes envolvidos: ${context.ingredients.join(', ')}\n`;
+    }
+    if (context?.currentStep) {
+      prompt += `Passo em execução: "${context.currentStep}"\n`;
+    }
+    if (profile?.restrictions && profile.restrictions.length > 0) {
+      prompt += `Restrições do usuário: ${profile.restrictions.join(', ')}\n`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite",
+      contents: prompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.2
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    if (parsed && parsed.directAnswer) {
+      return {
+        question,
+        directAnswer: parsed.directAnswer,
+        answer: parsed.answer,
+        cookingTimeAndTemp: parsed.cookingTimeAndTemp,
+        substitutionAdvice: parsed.substitutionAdvice,
+        nutritionalComparison: parsed.nutritionalComparison,
+        culinaryTips: safeArray(parsed.culinaryTips),
+        safetyTips: safeArray(parsed.safetyTips),
+        suggestedFollowUps: safeArray(parsed.suggestedFollowUps)
+      };
+    }
+  } catch (err: any) {
+    console.warn("Chef Malu AI cooking assistant fallback:", err?.message || err);
+  }
+
+  // Fallback for Chicken baking questions
+  if (isChickenQuestion) {
+    return {
+      question,
+      directAnswer: "Para peito de frango assado, asse a 200°C por 25 a 30 minutos (ou 40 a 45 minutos para sobrecoxas com osso), até atingir 74°C internos.",
+      answer: "O segredo para um frango assado dourado e muito suculento é a temperatura constante do forno pré-aquecido a 200°C. Peitos desossados levam cerca de 25 a 30 minutos, enquanto cortes com osso e pele (como coxas e sobrecoxas) precisam de 40 a 45 minutos. Sempre deixe a carne descansar por 5 minutos antes de fatiar para que os sucos se redistribuam pela fibra muscular.",
+      cookingTimeAndTemp: {
+        temperature: "200°C (forno pré-aquecido)",
+        time: "25-30 min (filé/peito) | 40-45 min (cortes com osso)",
+        internalTemp: "74°C a 75°C (no ponto mais espesso)",
+        technique: "Asse em assadeira pincelada com azeite ou papel manteiga. Se desejar crocância extra, ligue o grill ou aumente para 220°C nos últimos 5 minutos."
+      },
+      nutritionalComparison: {
+        summary: "O frango assado é uma das proteínas magras mais completas e biodisponíveis da nutrição.",
+        caloriesImpact: "Apenas ~165 kcal por porção de 100g de peito assado",
+        proteinImpact: "Fornece 31g de proteína de alto valor biológico",
+        fatImpact: "Menos de 3.5g de lipídios totais por porção",
+        healthBenefits: [
+          "Rico em niacina e vitamina B6 para o metabolismo energético",
+          "Alta concentração de fósforo e selênio antioxidante",
+          "Excelente digestibilidade e poder de saciedade prolongado"
+        ]
+      },
+      culinaryTips: [
+        "Faça uma marinada rápida com limão ou vinagre de maçã, azeite, alho amassado e ervas frescas pelo menos 20 minutos antes.",
+        "Nunca corte o frango imediatamente após retirar do forno; o repouso de 5 minutos preserva a suculência interna.",
+        "Seque a superfície da carne com papel toalha antes de temperar para garantir uma crostinha dourada e uniforme."
+      ],
+      safetyTips: [
+        "Nunca lave o frango cru na pia para evitar aerossóis de bactérias.",
+        "Certifique-se de que os sucos internos saiam totalmente límpidos, sem tons rosados."
+      ],
+      suggestedFollowUps: [
+        "Como marinar o frango para ficar mais macio?",
+        "Qual o tempo correto na Airfryer?",
+        "Posso assar o frango ainda congelado?"
+      ]
+    };
+  }
+
+  // Fallback for Cream -> Greek Yogurt substitution
+  if (isCreamSubQuestion) {
+    return {
+      question,
+      directAnswer: "Sim! Você pode substituir o creme de leite por iogurte grego natural tradicional na proporção 1:1, garantindo pratos extremamente cremosos, leves e com muito mais proteína.",
+      answer: "A substituição do creme de leite por iogurte grego natural é um dos maiores truques da gastronomia funcional. Funciona com perfeição em strogonoff, molhos brancos, risotos, recheios de tortas e mousses. O iogurte grego confere uma aveludada cremosidade com um toque sutil de acidez natural que corta a sensação gordurosa do prato.",
+      substitutionAdvice: {
+        originalItem: "Creme de Leite",
+        substituteItem: "Iogurte Grego Natural (sem açúcar)",
+        ratio: "1:1 (use a mesma quantidade indicada na receita)",
+        culinaryImpact: "Textura cremosa e sedosa com leve nota cítrica refrescante que valoriza o sabor de carnes, massas e vegetais.",
+        precaution: "Atenção técnica crucial: Adicione o iogurte grego sempre em fogo bem brando ou após desligar a panela, misturando com vigor suave. Se submetido a fervura intensa, o iogurte pode talhar devido à coagulação de suas proteínas ácidas."
+      },
+      nutritionalComparison: {
+        summary: "Transformação nutricional expressiva com corte massivo de calorias e gorduras saturadas.",
+        caloriesImpact: "Redução de até 75% nas calorias (de ~300 kcal para ~75 kcal por 100g)",
+        fatImpact: "Redução de mais de 85% de gorduras saturadas",
+        proteinImpact: "Aumento de 3x no teor de proteínas de alto valor biológico",
+        healthBenefits: [
+          "Preserva a microbiota intestinal através de probióticos e bactérias láticas ativas",
+          "Favorece o controle glicêmico e colesterol LDL",
+          "Melhora substancial na saciedade pós-refeição sem causar sensação de peso gástrico"
+        ]
+      },
+      culinaryTips: [
+        "Para molhos quentes, tempere o iogurte grego com 1 colher do molho morno antes de incorporar à panela (têmpera térmica).",
+        "Se quiser diminuir a acidez natural do iogurte, adicione uma pitada mínima de noz-moscada ralada na hora.",
+        "Em receitas de doces, use iogurte grego natural adoçado com gotinhas de estévia ou extrato puro de baunilha."
+      ],
+      safetyTips: [
+        "Use sempre a versão natural (sem sabor e sem açúcar adicionado) para pratos salgados.",
+        "Após aberto, consuma o iogurte grego em até 3 a 5 dias mantido sob refrigeração."
+      ],
+      suggestedFollowUps: [
+        "O iogurte grego serve para molhos que vão ao forno?",
+        "Posso substituir leite condensado também?",
+        "Como engrossar um molho com iogurte sem usar amido?"
+      ]
+    };
+  }
+
+  // General cooking question fallback
+  return {
+    question,
+    directAnswer: "Com técnicas simples e substituições inteligentes, você mantém o sabor de restaurante com total equilíbrio nutricional.",
+    answer: `Para a sua dúvida ("${question}"), a recomendação culinária é sempre priorizar o controle de temperatura branda, o uso de ervas frescas para potencializar sabores sem excesso de sódio e técnicas que respeitem o tempo natural dos alimentos para reter nutrientes e textura ideal.`,
+    culinaryTips: [
+      "Prove o prato em etapas e ajuste o equilíbrio entre sal, acidez (limão/vinagre) e gordura boa (azeite).",
+      "Evite cozimentos excessivamente prolongados em água fervente para não perder vitaminas hidrossolúveis.",
+      "Para manter vegetais crocantes e com cores vibrantes, dê um choque térmico em água com gelo após 2 minutos de vapor."
+    ],
+    nutritionalComparison: {
+      summary: "Técnicas culinárias conscientes preservam compostos bioativos e facilitam a absorção de micronutrientes.",
+      healthBenefits: [
+        "Redução no uso de gorduras refinadas e conservantes artificiais",
+        "Melhor digestibilidade e aproveitamento da matriz alimentar",
+        "Refeição mais saborosa com calorias controladas"
+      ]
+    },
+    suggestedFollowUps: [
+      "Qual o tempo ideal de cozimento para manter os nutrientes?",
+      "Como substituir o sal e realçar o sabor natural?",
+      "Quais panelas são mais saudáveis para cozinhar?"
+    ]
+  };
+};
+
+export const generatePantryExpiringRecipes = async (
+  items: PantryItem[],
+  profile?: UserProfile
+): Promise<PantryRecipeSuggestion[]> => {
+  const sortedItems = [...(items || [])].sort((a, b) => (a.daysRemaining ?? 99) - (b.daysRemaining ?? 99));
+  const expiringItems = sortedItems.filter(i => (i.daysRemaining !== undefined && i.daysRemaining <= 4) || i.status === 'perto_vencimento');
+
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    const ai = getGenAI(apiKey);
+    if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+
+    const systemInstruction = `Você é o Chef Master do NutriAI especializado em Cozinha Sem Desperdício (Zero Waste) e Aproveitamento Total de Alimentos.
+O usuário possui uma lista de ingredientes na despensa e geladeira, com seus prazos de validade e dias restantes.
+Sua missão crítica:
+1. PRIORIZAR E SALVAR ABSOLUTAMENTE OS INGREDIENTES QUE ESTÃO MAIS PRÓXIMOS DA VALIDADE (dias restantes <= 3 ou status perto_vencimento).
+2. Criar de 2 a 3 receitas saudáveis, apetitosas e realistas em português do Brasil que utilizem esses ingredientes prioritários.
+3. Especificar detalhadamente no campo "urgentExpiringIngredientsUsed" os alimentos prestes a vencer que foram aproveitados na receita.
+4. Complementar com outros itens da despensa do usuário e permitir apenas condimentos/itens básicos essenciais (sal, azeite, alho, cebola, água, pimenta).
+5. Fornecer valores nutricionais realistas (calorias, proteínas, carboidratos, gorduras), passo a passo detalhado e dicas do chef para evitar desperdício.`;
+
+    const schema: Schema = {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          title: { type: Type.STRING },
+          description: { type: Type.STRING },
+          prepTime: { type: Type.STRING },
+          difficulty: { type: Type.STRING, enum: ["Fácil", "Médio", "Difícil"] },
+          urgentExpiringIngredientsUsed: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Nomes dos ingredientes prestes a vencer salvos por esta receita"
+          },
+          otherPantryIngredientsUsed: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          },
+          staplesNeeded: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          },
+          calories: { type: Type.INTEGER },
+          protein: { type: Type.INTEGER },
+          carbs: { type: Type.INTEGER },
+          fat: { type: Type.INTEGER },
+          ingredients: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          },
+          instructions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          },
+          chefTip: { type: Type.STRING },
+          zeroWasteScore: { type: Type.INTEGER, description: "Percentual de aproveitamento de 80 a 100%" }
+        },
+        required: [
+          "id", "title", "description", "prepTime", "difficulty",
+          "urgentExpiringIngredientsUsed", "otherPantryIngredientsUsed",
+          "calories", "protein", "carbs", "fat", "ingredients", "instructions", "chefTip", "zeroWasteScore"
+        ]
+      }
+    };
+
+    const pantryDescription = sortedItems.map(it => 
+      `- ${it.name} (${it.quantity}): expira em ${it.daysRemaining} dia(s), status: ${it.status}, local: ${it.storageLocation}`
+    ).join('\n');
+
+    let prompt = `Itens na Despensa e Geladeira do usuário (ordenados por urgência de validade):\n${pantryDescription}\n\n`;
+    if (expiringItems.length > 0) {
+      prompt += `ATENÇÃO: Os itens urgentes a vencer são: ${expiringItems.map(i => i.name).join(', ')}. Crie receitas que resgatem esses itens prioritariamente!\n`;
+    }
+    if (profile?.restrictions && profile.restrictions.length > 0) {
+      prompt += `Restrições alimentares do usuário: ${profile.restrictions.join(', ')}\n`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite",
+      contents: prompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.3
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '[]');
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((item, idx) => ({
+        id: item.id || `pantry-recipe-${Date.now()}-${idx}`,
+        title: item.title,
+        description: item.description,
+        prepTime: item.prepTime || "25 min",
+        difficulty: (item.difficulty as any) || "Fácil",
+        urgentExpiringIngredientsUsed: safeArray(item.urgentExpiringIngredientsUsed),
+        otherPantryIngredientsUsed: safeArray(item.otherPantryIngredientsUsed),
+        staplesNeeded: safeArray(item.staplesNeeded || ["Azeite", "Sal", "Alho"]),
+        calories: Number(item.calories) || 320,
+        protein: Number(item.protein) || 24,
+        carbs: Number(item.carbs) || 28,
+        fat: Number(item.fat) || 10,
+        ingredients: safeArray(item.ingredients),
+        instructions: safeArray(item.instructions),
+        chefTip: item.chefTip || "Excelente aproveitamento para manter nutrientes e evitar desperdício de comida.",
+        zeroWasteScore: Number(item.zeroWasteScore) || 95
+      }));
+    }
+  } catch (err: any) {
+    console.warn("Pantry expiring recipe generation fallback:", err?.message || err);
+  }
+
+  // Resilient fallback recipes that utilize common expiring pantry items
+  const primaryExpiring = expiringItems.map(i => i.name).slice(0, 3);
+  const fallbackExpiringNames = primaryExpiring.length > 0 ? primaryExpiring : ["Legumes variados", "Tomate fresco", "Ervas da horta"];
+
+  return [
+    {
+      id: `pantry-recipe-salvavida-1`,
+      title: "Assado Rústico NutriAI de Resgate de Despensa",
+      description: `Receita desenhada especificamente para aproveitar ingredientes próximos à validade (${fallbackExpiringNames.join(', ')}) com textura crocante e tempero aromático.`,
+      prepTime: "30 min",
+      difficulty: "Fácil",
+      urgentExpiringIngredientsUsed: fallbackExpiringNames,
+      otherPantryIngredientsUsed: sortedItems.slice(0, 3).map(i => i.name),
+      staplesNeeded: ["Azeite de oliva extravirgem", "Alho picado", "Sal marinho", "Páprica defumada"],
+      calories: 340,
+      protein: 26,
+      carbs: 22,
+      fat: 12,
+      ingredients: [
+        ...fallbackExpiringNames.map(name => `Porção de ${name}`),
+        "2 colheres de sopa de azeite extravirgem",
+        "2 dentes de alho picados",
+        "1 colher de chá de páprica doce ou defumada",
+        "Sal marinho e ervas a gosto"
+      ],
+      instructions: [
+        "Pré-aqueça o forno ou a airfryer a 200°C.",
+        "Higienize e pique os ingredientes prestes a vencer em pedaços de tamanho uniforme.",
+        "Em uma tigela ampla, envolva todos os alimentos com o azeite, o alho, a páprica e o sal.",
+        "Distribua na assadeira sem sobrepor e asse por 20 a 25 minutos até dourar com bordas crocantes.",
+        "Sirva imediatamente aproveitando 100% dos nutrientes."
+      ],
+      chefTip: "Assar legumes e proteínas com azeite em alta temperatura carameliza os açúcares naturais e transforma alimentos murchos em pratos dignos de restaurante.",
+      zeroWasteScore: 98
+    },
+    {
+      id: `pantry-recipe-salvavida-2`,
+      title: "Frigideira Cremosa Funcional com Molho Leve",
+      description: "Preparo rápido de 15 minutos em panela única, combinando proteínas e legumes da despensa em um molho aromático e nutritivo.",
+      prepTime: "18 min",
+      difficulty: "Fácil",
+      urgentExpiringIngredientsUsed: fallbackExpiringNames.slice(0, 2),
+      otherPantryIngredientsUsed: sortedItems.slice(2, 4).map(i => i.name),
+      staplesNeeded: ["Cebola ralada", "Azeite de oliva", "Pimenta do reino"],
+      calories: 290,
+      protein: 28,
+      carbs: 16,
+      fat: 9,
+      ingredients: [
+        `${fallbackExpiringNames[0] || 'Ingrediente principal'} picado`,
+        "1/2 cebola ralada ou picada fininho",
+        "1 fio de azeite para saltear",
+        "Ervas frescas ou secas a gosto",
+        "Sal e pimenta moída na hora"
+      ],
+      instructions: [
+        "Aqueça a frigideira antiaderente com o fio de azeite em fogo médio.",
+        "Refogue a cebola até ficar transparente e adicione os ingredientes de cozimento mais longo.",
+        "Adicione os itens delicados nos últimos 3 minutos para preservar a cor e os nutrientes.",
+        "Finalize com ervas frescas e ajuste os temperos antes de servir."
+      ],
+      chefTip: "Cozinhar em panela única (one-pot) economiza água, tempo e preserva todos os sucos e minerais no próprio prato.",
+      zeroWasteScore: 92
+    }
+  ];
 };
 

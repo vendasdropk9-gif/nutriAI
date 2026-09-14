@@ -7,7 +7,7 @@ import {
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
   Map as MapIcon, Zap, Activity, Building2, Heart, BookOpen, Leaf,
   ShieldAlert, Scale, Apple, Sprout, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Flame
+  ChevronLeft, ChevronRight, Flame, Package
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -31,6 +31,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'coach', label: 'Coach IA', icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'generator', label: 'Receitas', icon: <Utensils className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'fridge', label: 'Geladeira', icon: <Apple className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />, color: 'from-emerald-500 to-teal-600' },
+  { id: 'pantry', label: 'Despensa', icon: <Package className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />, color: 'from-amber-500 to-emerald-600' },
   { id: 'garden', label: 'Horta', icon: <Sprout className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />, color: 'from-teal-500 to-emerald-600' },
   { id: 'herbs', label: 'Ervas', icon: <Leaf className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-emerald-500 to-teal-600' },
   { id: 'juice', label: 'Sucos', icon: <GlassWater className="w-4 h-4 sm:w-5 sm:h-5" /> },
@@ -282,6 +283,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
             <motion.button
               key={item.id}
               data-id={item.id}
+              id={`nav-item-${item.id}`}
               onClick={() => {
                 if (isActive) {
                   // If already active, smoothly re-center

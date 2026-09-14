@@ -483,12 +483,19 @@ export interface QuickDish {
 export interface Recipe {
   id: string;
   name: string;
+  title?: string;
   description: string;
   prepTime: string;
+  difficulty?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   ingredients: string[];
   instructions: string[];
   nutrition: NutritionInfo;
   image?: string;
+  imageUrl?: string;
 }
 
 export interface MealPlanDay {
@@ -560,4 +567,66 @@ export interface SmartPlateCombination {
   moderateChoices: string[];
   alternatives: string[];
   warningMessage?: string;
+}
+
+export interface CookingAdviceResult {
+  question: string;
+  directAnswer: string;
+  answer: string;
+  cookingTimeAndTemp?: {
+    temperature?: string;
+    time?: string;
+    internalTemp?: string;
+    technique?: string;
+  };
+  substitutionAdvice?: {
+    originalItem?: string;
+    substituteItem?: string;
+    ratio?: string;
+    culinaryImpact?: string;
+    precaution?: string;
+  };
+  nutritionalComparison?: {
+    summary: string;
+    caloriesImpact?: string;
+    proteinImpact?: string;
+    fatImpact?: string;
+    healthBenefits: string[];
+  };
+  culinaryTips: string[];
+  safetyTips?: string[];
+  suggestedFollowUps: string[];
+}
+
+export interface PantryItem {
+  id: string;
+  name: string;
+  quantity: string;
+  category: string;
+  expirationDate: string;
+  daysRemaining: number;
+  status: 'vencido' | 'perto_vencimento' | 'fresco';
+  barcode?: string;
+  brand?: string;
+  storageLocation: 'despensa' | 'geladeira' | 'freezer';
+  addedAt: string;
+}
+
+export interface PantryRecipeSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  prepTime: string;
+  difficulty: 'Fácil' | 'Médio' | 'Difícil';
+  urgentExpiringIngredientsUsed: string[];
+  otherPantryIngredientsUsed: string[];
+  staplesNeeded: string[];
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string[];
+  instructions: string[];
+  chefTip: string;
+  zeroWasteScore: number;
 }

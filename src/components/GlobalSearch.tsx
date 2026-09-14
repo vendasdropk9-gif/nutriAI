@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Sparkles, Leaf, ChefHat, BookOpen, X, ChevronRight, Apple, Globe, Mic, MicOff, Heart, Flame, Zap, ShieldAlert, Scale, Brain, Camera, User, CalendarDays, ShoppingBasket, Image as ImageIcon, Trophy, Store, MapPin, Dumbbell, Activity, Crown } from 'lucide-react';
+import { Search, Sparkles, Leaf, ChefHat, BookOpen, X, ChevronRight, Apple, Globe, Mic, MicOff, Heart, Flame, Zap, ShieldAlert, Scale, Brain, Camera, User, CalendarDays, ShoppingBasket, Image as ImageIcon, Trophy, Store, MapPin, Dumbbell, Activity, Crown, Package } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
 interface GlobalSearchProps {
@@ -268,6 +268,22 @@ const appFeatures = [
     icon: Apple,
     category: "feature",
     tags: ["geladeira", "inventario", "desperdicio", "alimentos", "vencimento", "estoque", "cozinha", "comida estragando"]
+  },
+  {
+    name: "Scanner de Despensa & Aproveitamento de Validades",
+    description: "Escaneie códigos de barras ou cadastre mantimentos. Gere receitas que priorizam alimentos perto do vencimento.",
+    tab: "pantry",
+    icon: Package,
+    category: "feature",
+    tags: ["despensa", "scanner", "codigo de barras", "validade", "vencimento", "anti-desperdicio", "mantimentos", "ingredientes", "salvar comida", "aproveitamento"]
+  },
+  {
+    name: "Chef Malu • Cozinha Orientada por IA",
+    description: "Tire dúvidas culinárias (tempo de forno, substituições saudáveis como iogurte no lugar de creme de leite) com áudio Aoede.",
+    tab: "cooking_advisor",
+    icon: ChefHat,
+    category: "feature",
+    tags: ["chef", "cozinha orientada", "quanto tempo assar", "assar frango", "substituir", "creme de leite", "iogurte grego", "culinaria", "dicas de preparo", "temperatura", "forno", "nutricao"]
   },
   {
     name: "Horta Orgânica em Casa",

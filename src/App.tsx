@@ -47,6 +47,8 @@ import { MedicinalHerbs } from './components/MedicinalHerbs';
 import { SmartFridge } from './components/SmartFridge';
 import { SmartPlateCombiner } from './components/SmartPlateCombiner';
 import { SmartGarden } from './components/SmartGarden';
+import { PantryScanner } from './components/PantryScanner';
+import { AiCookingAdvisor } from './components/AiCookingAdvisor';
 import { WellnessHub } from './components/WellnessHub';
 import { PhotoEvolution } from './components/PhotoEvolution';
 import { AnatomyWorkoutGuide } from './components/AnatomyWorkoutGuide';
@@ -75,7 +77,7 @@ import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 
 const TAB_ORDER = [
   "admin_library",
-  'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'garden', 'herbs', 'juice', 
+  'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'pantry', 'cooking_advisor', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
   'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'exercise3d', 'evolution', 
   'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
@@ -174,7 +176,7 @@ function AppContent() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'exercise3d' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'exercise3d' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
   const [prevTab, setPrevTab] = useState<string>('assistant360');
   const [direction, setDirection] = useState<number>(0);
 
@@ -896,6 +898,22 @@ function AppContent() {
             )}
             {activeTab === 'fridge' && (
               <SmartFridge />
+            )}
+            {activeTab === 'pantry' && (
+              <div className="max-w-6xl mx-auto px-4 py-6">
+                <PantryScanner 
+                  profile={profile} 
+                  onCookRecipe={(recipe) => {
+                    handleSaveRecipe(recipe);
+                    setActiveTab('generator');
+                  }}
+                />
+              </div>
+            )}
+            {activeTab === 'cooking_advisor' && (
+              <div className="max-w-4xl mx-auto px-4 py-6">
+                <AiCookingAdvisor profile={profile} />
+              </div>
             )}
             {activeTab === 'garden' && (
               <SmartGarden />
