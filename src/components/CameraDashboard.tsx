@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Wifi, WifiOff, AlertTriangle, ShieldCheck, Maximize2, Settings, Loader2 } from 'lucide-react';
+import { Camera, Wifi, WifiOff, AlertTriangle, ShieldCheck, Maximize2, Settings, Loader2, Plus } from 'lucide-react';
+import { CameraSetupModal, NewCameraPayload } from './CameraSetupModal';
 
 interface CameraFeed {
   id: string;
@@ -13,12 +14,24 @@ const mockCameras: CameraFeed[] = [
   { id: 'cam-1', name: 'Cam 01 - Cozinha', location: 'Cozinha', status: 'online', lastPing: 'Agora mesmo' },
   { id: 'cam-2', name: 'Cam 02 - Frente de Loja', location: 'Balcão Principal', status: 'online', lastPing: 'Agora mesmo' },
   { id: 'cam-3', name: 'Cam 03 - Estoque', location: 'Corredor B', status: 'offline', lastPing: 'Há 5 minutos' },
-  { id: 'cam-4', name: 'Cam 04 - Entrada', location: 'Porta Principal', status: 'connecting', lastPing: 'Conectando...' },
 ];
 
 export const CameraDashboard: React.FC = () => {
   const [cameras, setCameras] = useState<CameraFeed[]>(mockCameras);
   const [selectedCam, setSelectedCam] = useState<CameraFeed | null>(null);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+
+  const handleAddCamera = (newCamPayload: NewCameraPayload) => {
+    if (cameras.length >= 4) return;
+    const newCamera: CameraFeed = {
+      id: `cam-${Date.now()}`,
+      name: newCamPayload.name,
+      location: newCamPayload.location,
+      status: 'connecting',
+      lastPing: 'Conectando...'
+    };
+    setCameras(prev => [...prev, newCamera]);
+  };
   
   // Simulate connection updates
   useEffect(() => {
@@ -46,18 +59,34 @@ export const CameraDashboard: React.FC = () => {
           </h2>
           <p className="text-slate-500 dark:text-slate-400">Monitoramento ao vivo de todas as áreas do estabelecimento.</p>
         </div>
-        <div className="flex gap-2">
-          <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center gap-2 font-medium text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center gap-2 font-medium text-sm hidden sm:flex">
             <ShieldCheck className="w-4 h-4" />
             Sistema Seguro
           </div>
+          <button 
+            onClick={() => setIsSetupModalOpen(true)}
+            disabled={cameras.length >= 4}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 disabled:hover:bg-slate-300 dark:disabled:bg-slate-700 dark:disabled:text-slate-500 text-white rounded-xl flex items-center gap-2 font-bold text-sm transition-colors shadow-lg shadow-emerald-500/20 disabled:shadow-none disabled:cursor-not-allowed"
+            title={cameras.length >= 4 ? "Limite máximo de 4 câmeras atingido" : "Adicionar nova câmera"}
+          >
+            <Plus className="w-4 h-4" />
+            Nova Câmera
+          </button>
           <button className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition-colors">
             <Settings className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+      {cameras.length >= 4 && (
+        <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 p-4 rounded-xl flex items-center gap-3 text-sm animate-in fade-in">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <p>Você atingiu o limite de <strong>4 câmeras ativas</strong> do seu plano atual. Para adicionar mais dispositivos de monitoramento, faça um upgrade no seu painel de configurações.</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {cameras.map(cam => (
           <div key={cam.id} className="bg-slate-950 rounded-[24px] overflow-hidden border border-slate-800 flex flex-col group relative">
             <div className="p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-md border-b border-slate-800 absolute top-0 w-full z-10">
@@ -164,6 +193,12 @@ export const CameraDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      <CameraSetupModal 
+        isOpen={isSetupModalOpen} 
+        onClose={() => setIsSetupModalOpen(false)} 
+        onAdd={handleAddCamera}
+      />
     </div>
   );
 };
