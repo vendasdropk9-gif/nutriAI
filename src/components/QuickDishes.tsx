@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   Flame, 
   Dumbbell, 
@@ -46,6 +47,7 @@ export function QuickDishes({
   isOpenAsModal = false,
   onCloseModal
 }: QuickDishesProps) {
+  const { t } = useTranslation();
   const [selectedGoal, setSelectedGoal] = useState<QuickDishGoal>(initialGoal);
   const [dishes, setDishes] = useState<QuickDish[]>(() => getClientFallbackQuickDishes(initialGoal, profile));
   const [isLoading, setIsLoading] = useState(false);
@@ -232,13 +234,13 @@ export function QuickDishes({
         <div className="space-y-2 z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Inteligência Culinária Instantânea</span>
+            <span>{t('quick_dishes_badge', 'Inteligência Culinária Instantânea')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <span>🍽️ Pratos Rápidos com IA</span>
+            <span>🍽️ {t('quick_dishes_title', 'Pratos Rápidos com IA')}</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-            Selecione seu objetivo para receber instantaneamente <strong>3 sugestões deliciosas</strong>, balanceadas e com fotos reais de alta definição gastronômica.
+            {t('quick_dishes_desc', 'Selecione seu objetivo para receber instantaneamente 3 sugestões deliciosas, balanceadas e com fotos reais de alta definição gastronômica.')}
           </p>
         </div>
 
@@ -273,8 +275,8 @@ export function QuickDishes({
                 <Flame className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">🔥 Quero Emagrecer</h3>
-                <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">Saciedade & Fibras</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">🔥 {t('goal_weight_loss', 'Quero Emagrecer')}</h3>
+                <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">{t('goal_weight_loss_sub', 'Saciedade & Fibras')}</span>
               </div>
             </div>
             {selectedGoal === 'weight_loss' && (
@@ -282,7 +284,7 @@ export function QuickDishes({
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 hidden sm:block">
-            Opções leves (250-400 kcal) com alto volume e controle de calorias.
+            {t('goal_weight_loss_desc', 'Opções leves (250-400 kcal) com alto volume e controle de calorias.')}
           </p>
         </button>
 
@@ -303,8 +305,8 @@ export function QuickDishes({
                 <Dumbbell className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">💪 Ganhar Massa</h3>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Alta Proteína (35g+)</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">💪 {t('goal_muscle_gain', 'Ganhar Massa')}</h3>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t('goal_muscle_gain_sub', 'Alta Proteína (35g+)')}</span>
               </div>
             </div>
             {selectedGoal === 'muscle_gain' && (
@@ -312,7 +314,7 @@ export function QuickDishes({
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 hidden sm:block">
-            Densidade proteica e energia para recuperação e hipertrofia.
+            {t('goal_muscle_gain_desc', 'Densidade proteica e energia para recuperação e hipertrofia.')}
           </p>
         </button>
 
@@ -333,8 +335,8 @@ export function QuickDishes({
                 <Zap className="w-5 h-5" />
               </span>
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">⚡ Lanches Rápidos</h3>
-                <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">Preparo em 5-15 min</span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">⚡ {t('goal_quick_fit', 'Lanches Rápidos')}</h3>
+                <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">{t('goal_quick_fit_sub', 'Preparo em 5-15 min')}</span>
               </div>
             </div>
             {selectedGoal === 'quick_fit_snack' && (
@@ -342,7 +344,7 @@ export function QuickDishes({
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 hidden sm:block">
-            Praticidade expressa com ingredientes simples e montagem rápida.
+            {t('goal_quick_fit_desc', 'Praticidade expressa com ingredientes simples e montagem rápida.')}
           </p>
         </button>
 
@@ -357,7 +359,7 @@ export function QuickDishes({
           </div>
           <div className="space-y-1">
             <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-              Preparando suas 3 opções ideais...
+              {t('generating_dishes', 'Preparando suas 3 opções ideais...')}
             </h4>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md">
               A IA está calibrando calorias, proteínas, fibras e selecionando fotografias gastronômicas de alta definição.
@@ -385,7 +387,7 @@ export function QuickDishes({
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all shadow-sm group"
             >
               <RotateCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
-              <span>Gerar Outras 3</span>
+              <span>{t('regenerate_suggestions', 'Gerar Outras 3')}</span>
             </button>
           </div>
 
@@ -499,7 +501,7 @@ export function QuickDishes({
                         className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all cursor-pointer select-none active:scale-95"
                       >
                         <Utensils className="w-3.5 h-3.5" />
-                        <span>Ver Receita</span>
+                        <span>{t('view_recipe', 'Ver Receita')}</span>
                       </button>
 
                       <button
@@ -511,7 +513,7 @@ export function QuickDishes({
                         }`}
                       >
                         <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                        <span>{isFav ? 'Salvo' : 'Favoritar'}</span>
+                        <span>{isFav ? t('saved', 'Salvo') : t('favorite', 'Favoritar')}</span>
                       </button>
                     </div>
                   </div>
@@ -533,7 +535,7 @@ export function QuickDishes({
                               <ChefHat className="w-4 h-4" />
                             </div>
                             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                              Receita Completa
+                              {t('recipe_full', 'Receita Completa')}
                             </span>
                           </div>
                           <button

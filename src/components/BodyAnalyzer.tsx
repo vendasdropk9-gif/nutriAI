@@ -12,8 +12,7 @@ interface BodyAnalyzerProps {
   onAwardPoints?: (amount: number, reason: string) => void;
 }
 
-import { UserProfile } from '../types';
-export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: { profile: UserProfile | null; onUpdateProfile: (p: Partial<UserProfile>) => void; onAwardPoints?: (points: number, reason: string) => void }) {
+export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAnalyzerProps) {
   const { t } = useTranslation();
   const [bodySubTab, setBodySubTab] = useState<'biometrics' | 'shape'>('biometrics');
   const [isScanning, setIsScanning] = useState(false);

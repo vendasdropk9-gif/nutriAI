@@ -208,15 +208,16 @@ USER CONTEXT:
 - Points: ${profile?.points || 0} pts
 
 JSON RESPONSE SCHEMA:
-- text: Spoken sentence in "${currentLang}".
-- action: 'NONE' | 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION'
-- actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string }`;
+- text: Spoken sentence in the appropriate language (if switching language, respond in the new language).
+- action: 'NONE' | 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
+- actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
+- CRITICAL: If the user asks to change or speak another language (e.g. "muda para inglês", "fale em espanhol", "speak english", "change language to spanish", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (such as 'en-US', 'es-ES', 'pt-BR', 'fr-FR', 'de-DE', 'it-IT', 'zh-CN', 'ja-JP', 'ru-RU', 'ar-SA'), and speak the confirmation in that target language!`;
 
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {
       text: { type: Type.STRING },
-      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION'] },
+      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION', 'CHANGE_LANGUAGE'] },
       actionData: {
         type: Type.OBJECT,
         nullable: true,
@@ -225,7 +226,8 @@ JSON RESPONSE SCHEMA:
           modal: { type: Type.STRING },
           filter: { type: Type.STRING },
           actionType: { type: Type.STRING },
-          label: { type: Type.STRING }
+          label: { type: Type.STRING },
+          language: { type: Type.STRING }
         }
       }
     },
@@ -1292,44 +1294,72 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
         ];
 
         for (const model of modelsToTry) {
-          try {
-            const response = await ai.models.generateContent({
-              model,
-              contents: [{ parts: [{ text: cleanText }] }],
-              config: {
-                responseModalities: [Modality.AUDIO],
-                speechConfig: {
-                  voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: 'Aoede' },
+          const maxRetries = 2;
+          for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+              if (attempt > 0) {
+                // Exponential backoff with small jitter for transient demand spikes
+                const delayMs = 300 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 150);
+                await new Promise(r => setTimeout(r, delayMs));
+              }
+
+              const response = await ai.models.generateContent({
+                model,
+                contents: [{ parts: [{ text: cleanText }] }],
+                config: {
+                  responseModalities: [Modality.AUDIO],
+                  speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: 'Aoede' },
+                    },
                   },
                 },
-              },
-            });
+              });
 
-            const parts = response.candidates?.[0]?.content?.parts || [];
-            let base64Audio: string | null = null;
-            for (const p of parts) {
-              if (p.inlineData?.data) {
-                base64Audio = p.inlineData.data;
+              const parts = response.candidates?.[0]?.content?.parts || [];
+              let base64Audio: string | null = null;
+              for (const p of parts) {
+                if (p.inlineData?.data) {
+                  base64Audio = p.inlineData.data;
+                  break;
+                }
+              }
+
+              if (base64Audio) {
+                const pcmBuf = Buffer.from(base64Audio, 'base64');
+                // Minimum PCM size check (> 320 bytes is valid audio, avoids rejecting short phrases)
+                if (pcmBuf.length < 320) {
+                  continue;
+                }
+                const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
+                const b64 = wavBuf.toString('base64');
+                const dataUrl = `data:audio/wav;base64,${b64}`;
+                ttsServerCache.set(cacheKey, dataUrl);
+                return dataUrl;
+              }
+            } catch (modelErr: any) {
+              const msg = String(modelErr?.message || '');
+              const isTransient = 
+                msg.includes('503') || 
+                msg.includes('UNAVAILABLE') || 
+                msg.includes('high demand') || 
+                msg.includes('temporary') || 
+                msg.includes('429') || 
+                msg.includes('RESOURCE_EXHAUSTED') ||
+                msg.includes('500') ||
+                msg.includes('502') ||
+                msg.includes('504');
+
+              if (isTransient) {
+                // If retries remain, attempt retry on temporary high demand
+                if (attempt < maxRetries) {
+                  continue;
+                }
+                console.info(`[TTS Engine] Model ${model} is experiencing temporary high demand (503/429). Falling back to Live Aoede...`);
+              } else {
+                console.warn(`[TTS Engine] Non-transient error with model ${model}:`, msg);
                 break;
               }
-            }
-
-            if (base64Audio) {
-              const pcmBuf = Buffer.from(base64Audio, 'base64');
-              if (pcmBuf.length < 24000) {
-                continue;
-              }
-              const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
-              const b64 = wavBuf.toString('base64');
-              const dataUrl = `data:audio/wav;base64,${b64}`;
-              ttsServerCache.set(cacheKey, dataUrl);
-              return dataUrl;
-            }
-          } catch (modelErr: any) {
-            const msg = String(modelErr?.message || '');
-            if (!msg.includes('429') && !msg.includes('RESOURCE_EXHAUSTED')) {
-              console.warn(`[TTS Engine] Error with model ${model}:`, msg);
             }
           }
         }
@@ -1369,7 +1399,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
 
       if (audioBuffers.length > 0) {
         const combined = Buffer.concat(audioBuffers);
-        if (combined.length < 12000) {
+        if (combined.length < 320) {
           resolve(null);
           return;
         }

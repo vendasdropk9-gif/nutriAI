@@ -257,5 +257,16 @@
   "share_recipe_btn": "Share Recipe",
   "save_favorite_btn": "Save to Favorites",
   "exclusive_novelty": "EXCLUSIVE NOVELTY",
-  "eating_out_desc": "Eating out? Take a photo of the buffet or menu and let AI build the best combination for your goal."
+  "eating_out_desc": "Eating out? Take a photo of the buffet or menu and let AI build the best combination for your goal.",
+  "greeting_hello": "Hello",
+  "user": "User",
+  "great": "Great",
+  "normal": "Normal",
+  "underweight": "Underweight",
+  "overweight": "Overweight",
+  "obesity": "Obesity",
+  "view_recipe": "View Recipe",
+  "recipe_full": "Full Recipe",
+  "favorite": "Favorite",
+  "saved": "Saved"
 }

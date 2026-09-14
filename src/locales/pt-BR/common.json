@@ -257,5 +257,16 @@
   "share_recipe_btn": "Compartilhar",
   "save_favorite_btn": "Salvar Receita",
   "exclusive_novelty": "NOVIDADE EXCLUSIVA",
-  "eating_out_desc": "Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo."
+  "eating_out_desc": "Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo.",
+  "greeting_hello": "Olá",
+  "user": "Usuário",
+  "great": "Excelente",
+  "normal": "Normal",
+  "underweight": "Abaixo do Peso",
+  "overweight": "Sobrepeso",
+  "obesity": "Obesidade",
+  "view_recipe": "Ver Receita",
+  "recipe_full": "Receita Completa",
+  "favorite": "Favorito",
+  "saved": "Salvo"
 }

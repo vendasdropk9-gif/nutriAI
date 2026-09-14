@@ -489,8 +489,8 @@ async function startServer() {
         success: !!audio
       });
     } catch (e: any) {
-      console.error("TTS error:", e.message);
-      res.status(200).json({ audio: null, audioBase64: null, error: e.message, success: false });
+      console.info("[TTS Route] Fallback active:", e?.message || e);
+      res.status(200).json({ audio: null, audioBase64: null, error: e?.message, success: false });
     }
   });
 

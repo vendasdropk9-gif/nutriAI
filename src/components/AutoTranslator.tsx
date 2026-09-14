@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localesMap } from '../i18n/locales';
 
@@ -1906,15 +1906,150 @@ const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ko": "일상에 편리함과 건강을 더하세요.",
     "zh": "日常生活中的便利与健康。",
     "ar": "العملية والصحة في حياتك اليومية."
+  },
+  "saciedade & fibras": {
+    "en": "Satiety & Fiber",
+    "es": "Saciedad y Fibras",
+    "fr": "Satiété et Fibres",
+    "it": "Sazietà e Fibre",
+    "de": "Sättigung und Ballaststoffe",
+    "ja": "満腹感と食物繊維",
+    "ko": "포만감과 식이섬유",
+    "zh": "饱腹感与膳食纤维",
+    "ar": "الشبع والألياف"
+  },
+  "alta proteína (35g+)": {
+    "en": "High Protein (35g+)",
+    "es": "Alta Proteína (35g+)",
+    "fr": "Riche en Protéines (35g+)",
+    "it": "Alto Contenuto Proteico (35g+)",
+    "de": "Viel Protein (35g+)",
+    "ja": "高タンパク質 (35g+)",
+    "ko": "고단백 (35g+)",
+    "zh": "高蛋白质 (35g+)",
+    "ar": "بروتين عالي (35 جم+)"
+  },
+  "preparo em 5-15 min": {
+    "en": "Ready in 5-15 min",
+    "es": "Listo en 5-15 min",
+    "fr": "Prêt en 5-15 min",
+    "it": "Pronto in 5-15 min",
+    "de": "Fertig in 5-15 Min",
+    "ja": "5-15分で完成",
+    "ko": "5-15분 조리",
+    "zh": "5-15分钟制作",
+    "ar": "جاهز في 5-15 دقيقة"
+  },
+  "lanches rápidos": {
+    "en": "Quick Snacks",
+    "es": "Snacks Rápidos",
+    "fr": "Collations Rapides",
+    "it": "Spuntini Rapidi",
+    "de": "Schnelle Snacks",
+    "ja": "手軽なスナック",
+    "ko": "간편 간식",
+    "zh": "快手小食",
+    "ar": "وجبات خفيفة سريعة"
+  },
+  "preparando suas 3 opções ideais...": {
+    "en": "Preparing your 3 ideal options...",
+    "es": "Preparando tus 3 opciones ideales...",
+    "fr": "Préparation de vos 3 options idéales...",
+    "it": "Preparando le tue 3 opzioni ideali...",
+    "de": "Ihre 3 idealen Optionen werden vorbereitet...",
+    "ja": "理想の3品を準備中...",
+    "ko": "최적의 3가지 옵션을 준비하는 중...",
+    "zh": "正在为您定制3道理想选择...",
+    "ar": "جارٍ إعداد خياراتك الثلاثة المثالية..."
+  },
+  "receita completa": {
+    "en": "Full Recipe",
+    "es": "Receta Completa",
+    "fr": "Recette Complète",
+    "it": "Ricetta Completa",
+    "de": "Vollständiges Rezept",
+    "ja": "完全なレシピ",
+    "ko": "전체 레시피",
+    "zh": "完整食谱",
+    "ar": "الوصفة الكاملة"
+  },
+  "ver receita": {
+    "en": "View Recipe",
+    "es": "Ver Receta",
+    "fr": "Voir la Recette",
+    "it": "Vedi Ricetta",
+    "de": "Rezept ansehen",
+    "ja": "レシピを見る",
+    "ko": "레시피 보기",
+    "zh": "查看食谱",
+    "ar": "عرض الوصفة"
+  },
+  "favoritar": {
+    "en": "Favorite",
+    "es": "Favorito",
+    "fr": "Favoris",
+    "it": "Preferito",
+    "de": "Favorit",
+    "ja": "お気に入り",
+    "ko": "즐겨찾기",
+    "zh": "收藏",
+    "ar": "تفضيل"
+  },
+  "salvo": {
+    "en": "Saved",
+    "es": "Guardado",
+    "fr": "Enregistré",
+    "it": "Salvato",
+    "de": "Gespeichert",
+    "ja": "保存済み",
+    "ko": "저장됨",
+    "zh": "已保存",
+    "ar": "محفوظ"
+  },
+  "3 opções geradas sob medida": {
+    "en": "3 Tailor-made Options",
+    "es": "3 Opciones Hechas a Medida",
+    "fr": "3 Options Sur Mesure",
+    "it": "3 Opzioni Su Misura",
+    "de": "3 maßgeschneiderte Optionen",
+    "ja": "カスタマイズされた3品",
+    "ko": "맞춤 생성된 3가지 옵션",
+    "zh": "3道专属定制菜品",
+    "ar": "3 خيارات مخصصة لك"
   }
 };
 
+// Global WeakMaps to store original textual content and attributes
+// This prevents loss of fidelity when cycling through multiple languages
+const originalTextMap = new WeakMap<Node, string>();
+const originalAttrMap = new WeakMap<HTMLElement, Record<string, string>>();
+
 export function AutoTranslator() {
   const { i18n } = useTranslation();
+  const [activeLang, setActiveLang] = useState(i18n.language || 'pt-BR');
+
+  // Listen to language events from all sources
+  useEffect(() => {
+    const handleLanguageChange = (lng?: string) => {
+      const target = lng || i18n.language || 'pt-BR';
+      setActiveLang(target);
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    const onNutri = (e: any) => handleLanguageChange(e?.detail);
+    window.addEventListener('nutri:language-changed', onNutri);
+    window.addEventListener('languageChanged', onNutri);
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+      window.removeEventListener('nutri:language-changed', onNutri);
+      window.removeEventListener('languageChanged', onNutri);
+    };
+  }, [i18n]);
 
   // Load comprehensive bidirectional translation dictionary across all languages
   const translationMap = useMemo(() => {
-    const currentLang = i18n.language || 'pt-BR';
+    const currentLang = activeLang;
     const cleanLang = currentLang.split('-')[0];
     const isPortuguese = currentLang.startsWith('pt');
 
@@ -1967,10 +2102,11 @@ export function AutoTranslator() {
     }
 
     return map;
-  }, [i18n.language]);
+  }, [activeLang]);
 
   useEffect(() => {
-    const currentLang = i18n.language || 'pt-BR';
+    const currentLang = activeLang;
+    const isPortuguese = currentLang.startsWith('pt');
     
     // Sync document language and text direction (RTL support for Arabic)
     if (currentLang.startsWith('ar')) {
@@ -2001,8 +2137,8 @@ export function AutoTranslator() {
         return prefix + match + suffix;
       }
 
-      // 2. Check for surrounding emojis or leading/trailing symbols (e.g., "🍳 Hora de cozinhar!", "✨ Receitas", "🌱 智能果蔬园")
-      const emojiRegex = /^([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)(.*?)([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)?$/u;
+      // 2. Check for surrounding emojis or leading/trailing symbols
+      const emojiRegex = /^([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)(.*?)([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)?$/u;
       const matchEmoji = trimmed.match(emojiRegex);
       if (matchEmoji && matchEmoji[2] && matchEmoji[2].trim().length > 0) {
         const coreText = matchEmoji[2].trim();
@@ -2037,6 +2173,11 @@ export function AutoTranslator() {
         }
       }
 
+      // If in Portuguese and no translation found, return original string
+      if (isPortuguese) {
+        return str;
+      }
+
       // If no match, return original text safely
       return str;
     };
@@ -2052,31 +2193,38 @@ export function AutoTranslator() {
         }
 
         // Translate attributes if applicable
-        const placeholder = el.getAttribute('placeholder');
-        if (placeholder) {
-          const trans = translateString(placeholder);
-          if (trans && trans !== placeholder) el.setAttribute('placeholder', trans);
+        let attrStore = originalAttrMap.get(el);
+        if (!attrStore) {
+          attrStore = {};
+          originalAttrMap.set(el, attrStore);
         }
 
-        const title = el.getAttribute('title');
-        if (title) {
-          const trans = translateString(title);
-          if (trans && trans !== title) el.setAttribute('title', trans);
-        }
-
-        const alt = el.getAttribute('alt');
-        if (alt) {
-          const trans = translateString(alt);
-          if (trans && trans !== alt) el.setAttribute('alt', trans);
+        for (const attr of ['placeholder', 'title', 'alt'] as const) {
+          const currentVal = el.getAttribute(attr);
+          if (currentVal) {
+            if (!attrStore[attr]) {
+              attrStore[attr] = currentVal;
+            }
+            const trans = translateString(attrStore[attr]);
+            if (trans && trans !== currentVal) {
+              el.setAttribute(attr, trans);
+            }
+          }
         }
       }
 
-      // Translate text nodes
+      // Translate text nodes using lossless WeakMap cache
       if (node.nodeType === Node.TEXT_NODE) {
-        const currentVal = node.nodeValue;
-        if (currentVal && currentVal.trim().length > 0) {
-          const targetText = translateString(currentVal);
-          if (targetText && targetText !== currentVal) {
+        let original = originalTextMap.get(node);
+        if (!original) {
+          original = node.nodeValue || '';
+          if (original.trim().length > 0) {
+            originalTextMap.set(node, original);
+          }
+        }
+        if (original && original.trim().length > 0) {
+          const targetText = translateString(original);
+          if (targetText && targetText !== node.nodeValue) {
             node.nodeValue = targetText;
           }
         }
@@ -2090,12 +2238,15 @@ export function AutoTranslator() {
       }
     };
 
-    // Translate the initial layout
+    // Translate the initial layout immediately
     walkAndTranslate(document.body);
+
+    // Staggered passes to capture animated mounts and lazy chunks
+    const t1 = setTimeout(() => walkAndTranslate(document.body), 60);
+    const t2 = setTimeout(() => walkAndTranslate(document.body), 250);
 
     // Create a MutationObserver to catch dynamic content additions (e.g. modals, notifications, AI chat bubbles)
     const observer = new MutationObserver((mutations) => {
-      // Disconnect observer temporarily to prevent feedback loops while translating newly added texts
       observer.disconnect();
 
       for (const mutation of mutations) {
@@ -2105,10 +2256,16 @@ export function AutoTranslator() {
           });
         } else if (mutation.type === 'characterData') {
           const targetNode = mutation.target;
-          const currentVal = targetNode.nodeValue;
-          if (currentVal && currentVal.trim().length > 0) {
-            const targetText = translateString(currentVal);
-            if (targetText && targetText !== currentVal) {
+          let original = originalTextMap.get(targetNode);
+          if (!original) {
+            original = targetNode.nodeValue || '';
+            if (original.trim().length > 0) {
+              originalTextMap.set(targetNode, original);
+            }
+          }
+          if (original && original.trim().length > 0) {
+            const targetText = translateString(original);
+            if (targetText && targetText !== targetNode.nodeValue) {
               targetNode.nodeValue = targetText;
             }
           }
@@ -2116,16 +2273,25 @@ export function AutoTranslator() {
           const el = mutation.target as HTMLElement;
           const attr = mutation.attributeName;
           if (attr === 'placeholder' || attr === 'title' || attr === 'alt') {
-            const val = el.getAttribute(attr);
-            if (val) {
-              const trans = translateString(val);
-              if (trans && trans !== val) el.setAttribute(attr, trans);
+            let attrStore = originalAttrMap.get(el);
+            if (!attrStore) {
+              attrStore = {};
+              originalAttrMap.set(el, attrStore);
+            }
+            const currentVal = el.getAttribute(attr);
+            if (currentVal) {
+              if (!attrStore[attr]) {
+                attrStore[attr] = currentVal;
+              }
+              const trans = translateString(attrStore[attr]);
+              if (trans && trans !== currentVal) {
+                el.setAttribute(attr, trans);
+              }
             }
           }
         }
       }
 
-      // Reconnect observer
       connectObserver();
     });
 
@@ -2142,9 +2308,11 @@ export function AutoTranslator() {
     connectObserver();
 
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
       observer.disconnect();
     };
-  }, [translationMap, i18n.language]);
+  }, [translationMap, activeLang]);
 
   return null; // Invisible global manager
 }

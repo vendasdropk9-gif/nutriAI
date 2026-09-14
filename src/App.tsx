@@ -105,6 +105,7 @@ const slideVariants = {
 export default function App() {
   const { user, loading: authLoading } = useAuth();
   const { t, i18n } = useTranslation();
+  const [currentAppLang, setCurrentAppLang] = useState(i18n.language || 'pt-BR');
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
@@ -121,10 +122,12 @@ export default function App() {
 
   // Synchronize language changes seamlessly with Profile & Firestore
   useEffect(() => {
-    const handleLangChange = (lng: string) => {
-      let targetLng = lng;
+    const handleLangChange = (lng?: string) => {
+      let targetLng = lng || i18n.language || 'pt-BR';
       if (targetLng === 'pt') targetLng = 'pt-BR';
       if (targetLng === 'en') targetLng = 'en-US';
+
+      setCurrentAppLang(targetLng);
 
       setProfile((prev) => {
         if (!prev) return prev;
@@ -138,8 +141,14 @@ export default function App() {
     };
 
     i18n.on('languageChanged', handleLangChange);
+    const onNutriLang = (e: any) => handleLangChange(e?.detail);
+    window.addEventListener('nutri:language-changed', onNutriLang);
+    window.addEventListener('languageChanged', onNutriLang);
+
     return () => {
       i18n.off('languageChanged', handleLangChange);
+      window.removeEventListener('nutri:language-changed', onNutriLang);
+      window.removeEventListener('languageChanged', onNutriLang);
     };
   }, [user, syncToFirestore, i18n, setProfile]);
 
@@ -668,7 +677,7 @@ export default function App() {
       }`}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
-            key={activeTab}
+            key={`${activeTab}-${currentAppLang}`}
             custom={direction}
             variants={slideVariants}
             initial="enter"

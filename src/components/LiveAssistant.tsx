@@ -16,6 +16,8 @@ import { UserProfile } from '../types';
 import { chatWithAssistant } from '../lib/gemini';
 import { speak, stopSpeech, unlockAudio } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { changeLanguage } from '../i18n/index';
+import { supabase } from '../lib/supabase';
 
 export interface LiveAssistantProps {
   profile: UserProfile | null;
@@ -300,8 +302,8 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
 // Local fast-intent classifier for zero-latency instant navigation & actions
 function classifyLocalIntent(query: string, profile?: UserProfile | null): {
   text: string;
-  action: 'NAVIGATE' | 'OPEN_MODAL' | 'CONFIRM_ACTION' | 'NONE';
-  actionData?: { tab?: string; modal?: string; filter?: string };
+  action: 'NAVIGATE' | 'OPEN_MODAL' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE' | 'NONE';
+  actionData?: { tab?: string; modal?: string; filter?: string; language?: string; targetLanguage?: string };
 } | null {
   const q = query.toLowerCase().trim();
 
@@ -584,8 +586,30 @@ function classifyLocalIntent(query: string, profile?: UserProfile | null): {
 
   // 26. Idioma
   if (
-    q.includes('mudar idioma') || q.includes('trocar idioma') || q.includes('alterar idioma') || q.includes('idiomas') || q.includes('língua') || q.includes('lingua')
+    q.includes('mudar idioma') || q.includes('trocar idioma') || q.includes('alterar idioma') || q.includes('idiomas') || q.includes('língua') || q.includes('lingua') ||
+    q.includes('change language') || q.includes('cambiar idioma')
   ) {
+    if (q.includes('espanhol') || q.includes('spanish') || q.includes('español')) {
+      return {
+        text: "¡Cambiando el idioma a español! Todo el aplicativo se ha actualizado.",
+        action: "CHANGE_LANGUAGE",
+        actionData: { language: "es-ES" }
+      };
+    }
+    if (q.includes('inglês') || q.includes('ingles') || q.includes('english')) {
+      return {
+        text: "Switching language to English! The entire app has been updated.",
+        action: "CHANGE_LANGUAGE",
+        actionData: { language: "en-US" }
+      };
+    }
+    if (q.includes('português') || q.includes('portugues') || q.includes('portuguese')) {
+      return {
+        text: "Mudando o idioma para português! Todo o aplicativo foi atualizado.",
+        action: "CHANGE_LANGUAGE",
+        actionData: { language: "pt-BR" }
+      };
+    }
     return {
       text: "Vou abrir as configurações de idioma para você.",
       action: "OPEN_MODAL",
@@ -856,8 +880,18 @@ export function LiveAssistant({
         else window.dispatchEvent(new CustomEvent('app:openFeedbackModal'));
       }
       playSfx('pop');
+    } else if (action === 'CHANGE_LANGUAGE') {
+      const targetLang = actionData?.language || actionData?.targetLanguage;
+      if (targetLang) {
+        changeLanguage(targetLang, supabase, profile?.id);
+        if (onUpdateProfile) {
+          onUpdateProfile(prev => prev ? { ...prev, language: targetLang, preferred_language: targetLang } : prev);
+        }
+      }
+      playSfx('success');
+      vibrate(20);
     }
-  }, [onNavigate, onOpenLanguage, onOpenFeedback]);
+  }, [onNavigate, onOpenLanguage, onOpenFeedback, onUpdateProfile, profile?.id]);
 
   // Forward declaration of startListening
   const startListeningRef = useRef<() => void>(() => {});
