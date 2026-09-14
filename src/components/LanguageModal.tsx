@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Globe, X, Heart, Search } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { playSfx, vibrate } from '../lib/sensory';
 import { languagesList, searchLanguages, LanguageOption } from '../lib/languages';
 import { UserProfile } from '../types';
-import { changeLanguage } from '../i18n/index';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LanguageModalProps {
   isOpen: boolean;
@@ -16,18 +15,16 @@ interface LanguageModalProps {
 }
 
 export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: LanguageModalProps) {
-  const { i18n, t } = useTranslation();
+  const { language: currentLanguage, changeLanguage: setAppLanguage, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-
-  const currentLanguage = i18n.language || 'pt-BR';
 
   const handleLanguageChange = async (targetLng: string) => {
     playSfx('success');
     vibrate(30);
     
-    // Call the centralized i18n helper which updates i18next, localStorage (nutriai_language),
-    // document.documentElement (lang & dir for RTL), window events, Supabase, and Firestore
-    await changeLanguage(targetLng, supabase, profile?.id);
+    // Call the centralized LanguageContext provider which updates context, i18next,
+    // localStorage (nutriai_language), documentElement (lang & dir for RTL), window events, Supabase, and Firestore
+    await setAppLanguage(targetLng, supabase, profile?.id);
     
     if (profile && onUpdateProfile) {
       onUpdateProfile({

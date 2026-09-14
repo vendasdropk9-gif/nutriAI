@@ -4,13 +4,16 @@ import App from './App.tsx';
 import './index.css';
 import './i18n';
 import { AuthProvider } from './contexts/AuthContext.tsx';
+import { LanguageProvider } from './contexts/LanguageContext.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localesMap } from '../i18n/locales';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Comprehensive runtime translation mapping for elements not covered by direct translation keys
 const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
@@ -2025,10 +2026,18 @@ const originalTextMap = new WeakMap<Node, string>();
 const originalAttrMap = new WeakMap<HTMLElement, Record<string, string>>();
 
 export function AutoTranslator() {
+  const { language: contextLanguage } = useLanguage();
   const { i18n } = useTranslation();
-  const [activeLang, setActiveLang] = useState(i18n.language || 'pt-BR');
+  const [activeLang, setActiveLang] = useState(contextLanguage || i18n.language || 'pt-BR');
 
-  // Listen to language events from all sources
+  // React immediately whenever context language changes
+  useEffect(() => {
+    if (contextLanguage) {
+      setActiveLang(contextLanguage);
+    }
+  }, [contextLanguage]);
+
+  // Fallback listeners for external language events
   useEffect(() => {
     const handleLanguageChange = (lng?: string) => {
       const target = lng || i18n.language || 'pt-BR';

@@ -62,6 +62,7 @@ import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage as changeAppLanguage } from './i18n';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
 import { LanguageModal } from './components/LanguageModal';
@@ -102,10 +103,10 @@ const slideVariants = {
   }),
 };
 
-export default function App() {
+function AppContent() {
   const { user, loading: authLoading } = useAuth();
-  const { t, i18n } = useTranslation();
-  const [currentAppLang, setCurrentAppLang] = useState(i18n.language || 'pt-BR');
+  const { language, changeLanguage, t } = useLanguage();
+  const currentAppLang = language;
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
@@ -113,61 +114,33 @@ export default function App() {
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
-  // Auto-detect language on first execution and keep in sync with Profile/Supabase/LocalStorage
+  // Auto-detect navigation events
   useEffect(() => {
     const handleNav = (e: any) => setActiveTab(e.detail);
     window.addEventListener("navigate", handleNav);
     return () => window.removeEventListener("navigate", handleNav);
   }, []);
 
-  // Synchronize language changes seamlessly with Profile & Firestore
+  // Synchronize language changes seamlessly with Profile & Firestore from Context
   useEffect(() => {
-    const handleLangChange = (lng?: string) => {
-      let targetLng = lng || i18n.language || 'pt-BR';
-      if (targetLng === 'pt') targetLng = 'pt-BR';
-      if (targetLng === 'en') targetLng = 'en-US';
-
-      setCurrentAppLang(targetLng);
-
-      setProfile((prev) => {
-        if (!prev) return prev;
-        if (prev.language === targetLng && prev.preferred_language === targetLng) return prev;
-        const updated = { ...prev, language: targetLng, preferred_language: targetLng };
-        if (user) {
-          syncToFirestore(updated);
-        }
-        return updated;
-      });
-    };
-
-    i18n.on('languageChanged', handleLangChange);
-    const onNutriLang = (e: any) => handleLangChange(e?.detail);
-    window.addEventListener('nutri:language-changed', onNutriLang);
-    window.addEventListener('languageChanged', onNutriLang);
-
-    return () => {
-      i18n.off('languageChanged', handleLangChange);
-      window.removeEventListener('nutri:language-changed', onNutriLang);
-      window.removeEventListener('languageChanged', onNutriLang);
-    };
-  }, [user, syncToFirestore, i18n, setProfile]);
-
-  // Initial language check & synchronization
-  useEffect(() => {
-    const saved = localStorage.getItem('nutriai_language') || 
-                  localStorage.getItem('language') || 
-                  localStorage.getItem('i18nextLng') || 
-                  profile?.preferred_language || 
-                  profile?.language;
-    if (saved) {
-      let targetLng = saved;
-      if (targetLng === 'pt') targetLng = 'pt-BR';
-      if (targetLng === 'en') targetLng = 'en-US';
-      if (i18n.language !== targetLng) {
-        changeAppLanguage(targetLng);
+    setProfile((prev) => {
+      if (!prev) return prev;
+      if (prev.language === language && prev.preferred_language === language) return prev;
+      const updated = { ...prev, language, preferred_language: language };
+      if (user) {
+        syncToFirestore(updated);
       }
+      return updated;
+    });
+  }, [language, user, syncToFirestore, setProfile]);
+
+  // Initial language check & synchronization with profile
+  useEffect(() => {
+    const profileLang = profile?.preferred_language || profile?.language;
+    if (profileLang && profileLang !== language) {
+      changeLanguage(profileLang);
     }
-  }, [profile?.preferred_language, profile?.language]);
+  }, [profile?.preferred_language, profile?.language, language, changeLanguage]);
 
   const [isLocked, setIsLocked] = useState(() => {
     try {
@@ -965,5 +938,13 @@ export default function App() {
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }

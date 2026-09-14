@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Globe, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { languagesList, searchLanguages, LanguageOption } from '../lib/languages';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
-import { changeLanguage } from '../i18n/index';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LanguageSwitcherProps {
   profile: UserProfile | null;
@@ -14,15 +13,15 @@ interface LanguageSwitcherProps {
 }
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onSaveProfile }) => {
-  const { i18n, t } = useTranslation();
+  const { language: currentLang, changeLanguage: setAppLanguage, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleLanguageChange = async (targetLng: string) => {
     playSfx('success');
     vibrate(30);
     
-    // Use the comprehensive i18n change language helper
-    await changeLanguage(targetLng, supabase, profile?.id);
+    // Use the comprehensive LanguageContext change language helper
+    await setAppLanguage(targetLng, supabase, profile?.id);
     
     if (profile && onSaveProfile) {
       onSaveProfile({
@@ -42,7 +41,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
   const hasResults = filtered.length > 0;
 
   const renderLanguageButton = (lng: LanguageOption) => {
-    const currentLang = i18n.language || 'pt-BR';
     const isSelected = 
       currentLang === lng.subtag ||
       (lng.subtag === 'pt-BR' && currentLang === 'pt') ||

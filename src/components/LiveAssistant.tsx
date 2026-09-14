@@ -16,8 +16,8 @@ import { UserProfile } from '../types';
 import { chatWithAssistant } from '../lib/gemini';
 import { speak, stopSpeech, unlockAudio } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
-import { changeLanguage } from '../i18n/index';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export interface LiveAssistantProps {
   profile: UserProfile | null;
@@ -693,8 +693,7 @@ export function LiveAssistant({
   onAwardPoints,
   onUpdateProfile
 }: LiveAssistantProps) {
-  const { t, i18n } = useTranslation();
-  const currentLanguage = i18n.language || profile?.language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') : null) || 'pt-BR';
+  const { language: currentLanguage, changeLanguage: setAppLanguage, t } = useLanguage();
 
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -883,7 +882,7 @@ export function LiveAssistant({
     } else if (action === 'CHANGE_LANGUAGE') {
       const targetLang = actionData?.language || actionData?.targetLanguage;
       if (targetLang) {
-        changeLanguage(targetLang, supabase, profile?.id);
+        setAppLanguage(targetLang, supabase, profile?.id);
         if (onUpdateProfile) {
           onUpdateProfile(prev => prev ? { ...prev, language: targetLang, preferred_language: targetLang } : prev);
         }
@@ -891,7 +890,7 @@ export function LiveAssistant({
       playSfx('success');
       vibrate(20);
     }
-  }, [onNavigate, onOpenLanguage, onOpenFeedback, onUpdateProfile, profile?.id]);
+  }, [onNavigate, onOpenLanguage, onOpenFeedback, onUpdateProfile, profile?.id, setAppLanguage]);
 
   // Forward declaration of startListening
   const startListeningRef = useRef<() => void>(() => {});
