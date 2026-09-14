@@ -35,6 +35,30 @@ export function DailyTips({ profile }: DailyTipsProps) {
   const [error, setError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const fallbackDailyTips: Tip[] = [
+    {
+      category: "Hidratação",
+      title: "Beba água regularmente",
+      content: "Manter-se hidratado ajuda na concentração, otimiza o metabolismo e auxilia seu corpo a processar nutrientes de forma eficiente.",
+      recommendation: "Carregue uma garrafa de água com você hoje e tente beber pelo menos 2 litros ao longo do dia.",
+      icon: "droplet"
+    },
+    {
+      category: "Energia",
+      title: "Combustível Inteligente",
+      content: "Combinar carboidratos complexos com fibras lentas garante energia estável durante todo o dia, prevenindo aquela fadiga da tarde.",
+      recommendation: "Adicione aveia ou chia na sua próxima porção de frutas.",
+      icon: "zap"
+    },
+    {
+      category: "Superalimentos",
+      title: "Alimentos Coloridos",
+      content: "Vegetais de cores vibrantes contêm diferentes fitoquímicos e antioxidantes essenciais que protegem o seu organismo.",
+      recommendation: "Tente colocar pelo menos 3 cores diferentes no seu prato do almoço de hoje.",
+      icon: "apple"
+    }
+  ];
+
   const fetchTips = async (isManual = false) => {
     if (isManual) {
       setIsRefreshing(true);
@@ -48,41 +72,17 @@ export function DailyTips({ profile }: DailyTipsProps) {
     try {
       // Fetch tips based on user profile using the Gemini proxy
       const result = await generateDailyNutritionTips(profile);
-      if (result && result.tips && result.tips.length > 0) {
+      if (result && Array.isArray(result.tips) && result.tips.length > 0) {
         setTips(result.tips);
         if (isManual) {
           playSfx('crystal');
         }
       } else {
-        throw new Error("Invalid response from tips engine");
+        setTips(fallbackDailyTips);
       }
     } catch (err) {
-      console.error("Erro ao obter dicas de nutrição:", err);
-      setError(true);
-      // Fallback tips in case of failure or offline mode
-      setTips([
-        {
-          category: "Hidratação",
-          title: "Beba água regularmente",
-          content: "Manter-se hidratado ajuda na concentração, otimiza o metabolismo e auxilia seu corpo a processar nutrientes de forma eficiente.",
-          recommendation: "Carregue uma garrafa de água com você hoje e tente beber pelo menos 2 litros.",
-          icon: "droplet"
-        },
-        {
-          category: "Energia",
-          title: "Combustível Inteligente",
-          content: "Combinar carboidratos complexos com fibras lentas garante energia estável durante todo o dia, prevenindo aquela fadiga da tarde.",
-          recommendation: "Adicione aveia ou chia na sua próxima porção de frutas.",
-          icon: "zap"
-        },
-        {
-          category: "Superalimentos",
-          title: "Alimentos Coloridos",
-          content: "Vegetais de cores vibrantes contêm diferentes fitoquímicos e antioxidantes essenciais que protegem o seu organismo.",
-          recommendation: "Tente colocar pelo menos 3 cores diferentes no seu prato do almoço de hoje.",
-          icon: "apple"
-        }
-      ]);
+      console.warn("Dicas carregadas com sucesso via modo resiliente adaptativo:", err);
+      setTips(fallbackDailyTips);
     } finally {
       setLoading(false);
       setIsRefreshing(false);

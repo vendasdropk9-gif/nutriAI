@@ -877,12 +877,14 @@ export function SmartFridge() {
               {cameraActive && (
                 <div className="space-y-4">
                   <div className="relative rounded-[24px] overflow-hidden bg-black aspect-video max-w-xl mx-auto border border-slate-700 shadow-inner">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
+                    {cameraStream && (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 border-2 border-emerald-500/40 pointer-events-none rounded-[24px]"></div>
                   </div>
                   {cameraError && <p className="text-rose-500 text-center text-sm">{cameraError}</p>}

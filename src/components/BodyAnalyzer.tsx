@@ -299,7 +299,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
           <div className="flex flex-col items-center justify-center space-y-6 w-full animate-in fade-in duration-300">
             <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner">
               
-              {!cameraError && (
+              {cameraStream && !cameraError && (
                 <video
                   ref={videoRef}
                   autoPlay

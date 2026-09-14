@@ -508,7 +508,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
                   <div className="w-full relative aspect-video bg-black dark:bg-slate-950 rounded-3xl border-2 border-slate-100 dark:border-slate-800 shadow-inner overflow-hidden flex flex-col items-center justify-center">
                     
                     {/* Visualizer Video Stream */}
-                    {cameraActive && (
+                    {cameraActive && stream && (
                       <video 
                         ref={videoRef} 
                         autoPlay 

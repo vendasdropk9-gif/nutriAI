@@ -410,7 +410,7 @@ export function EmotionalTracker({
         {isFaceCameraActive && !facePreviewImage && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="relative w-full aspect-[4/3] max-w-lg mx-auto rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-lg">
-              {!faceCameraError && (
+              {faceCameraStream && !faceCameraError && (
                 <video
                   ref={faceVideoRef}
                   autoPlay

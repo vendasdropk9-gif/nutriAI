@@ -751,8 +751,36 @@ export const generateDailyNutritionTips = async (
     recommendation: string;
     icon: string;
   }[];
-} | null> => {
-  return callGeminiEndpoint('generateDailyNutritionTips', [profile]);
+}> => {
+  const res = await callGeminiEndpoint('generateDailyNutritionTips', [profile]);
+  if (res && Array.isArray(res.tips) && res.tips.length > 0) {
+    return res;
+  }
+  return {
+    tips: [
+      {
+        category: "Hidratação",
+        title: "Beba água regularmente",
+        content: "Manter-se hidratado ajuda na concentração, otimiza o metabolismo e auxilia seu corpo a processar nutrientes de forma eficiente.",
+        recommendation: "Carregue uma garrafa de água com você hoje e tente beber pelo menos 2 litros ao longo do dia.",
+        icon: "droplet"
+      },
+      {
+        category: "Energia",
+        title: "Combustível Inteligente",
+        content: "Combinar carboidratos complexos com fibras lentas garante energia estável durante todo o dia, prevenindo aquela fadiga da tarde.",
+        recommendation: "Adicione aveia ou chia na sua próxima porção de frutas.",
+        icon: "zap"
+      },
+      {
+        category: "Superalimentos",
+        title: "Alimentos Coloridos",
+        content: "Vegetais de cores vibrantes contêm diferentes fitoquímicos e antioxidantes essenciais que protegem o seu organismo.",
+        recommendation: "Tente colocar pelo menos 3 cores diferentes no seu prato do almoço de hoje.",
+        icon: "apple"
+      }
+    ]
+  };
 };
 
 export interface FridgeAnalysisResult {

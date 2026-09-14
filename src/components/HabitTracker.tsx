@@ -265,9 +265,8 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
     try {
       const base64Audio = await textToSpeech(text);
       if (base64Audio) {
-        const url = base64Audio.startsWith('data:') ? base64Audio : `data:audio/wav;base64,${base64Audio}`;
-        setAudioUrl(url);
-        await playAudioUrl(url, { onEnded: () => setIsPlaying(false) });
+        setAudioUrl(base64Audio);
+        await playAudioUrl(base64Audio, { onEnded: () => setIsPlaying(false) });
       } else {
         setIsPlaying(false);
       }

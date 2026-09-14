@@ -174,7 +174,7 @@ export function Scanner({ onIngredientsDetected }: ScannerProps) {
         <div className="absolute inset-0 z-10 w-full h-full bg-slate-950 flex flex-col justify-between p-4 animate-in fade-in duration-300">
           <div className="relative flex-1 w-full rounded-2xl overflow-hidden bg-slate-900 flex items-center justify-center">
             
-            {!cameraError && (
+            {cameraStream && !cameraError && (
               <video
                 ref={videoRef}
                 autoPlay

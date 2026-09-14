@@ -123,7 +123,9 @@ export const speak = async (text: string, options?: SpeechOptions) => {
 
     if (audioUrl) {
       let url = audioUrl;
-      if (!url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('http') && !url.startsWith('/')) {
+      const isBase64 = !url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('http') && !(url.startsWith('/') && url.length < 200);
+      
+      if (isBase64) {
         if (url.startsWith('SUQz') || url.startsWith('//') || url.startsWith('/+')) {
           url = `data:audio/mp3;base64,${url}`;
         } else {
@@ -287,9 +289,16 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
   stopSpeech();
   
   try {
-    const validUrl = urlOrBase64.startsWith('data:') || urlOrBase64.startsWith('blob:') || urlOrBase64.startsWith('http') || urlOrBase64.startsWith('/')
-      ? urlOrBase64
-      : `data:audio/wav;base64,${urlOrBase64}`;
+    let validUrl = urlOrBase64;
+    const isBase64 = !validUrl.startsWith('data:') && !validUrl.startsWith('blob:') && !validUrl.startsWith('http') && !(validUrl.startsWith('/') && validUrl.length < 200);
+    
+    if (isBase64) {
+      if (validUrl.startsWith('SUQz') || validUrl.startsWith('//') || validUrl.startsWith('/+')) {
+        validUrl = `data:audio/mp3;base64,${validUrl}`;
+      } else {
+        validUrl = `data:audio/wav;base64,${validUrl}`;
+      }
+    }
 
     const audio = new Audio(validUrl);
     activeAudio = audio;

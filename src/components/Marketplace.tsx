@@ -106,12 +106,32 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     }
   }, [showOrders]);
 
+  const [activeBanners, setActiveBanners] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('nutri-partner-promos') || '[]');
+      if (Array.isArray(stored) && stored.length > 0) {
+        return [...stored, ...BANNERS];
+      }
+    } catch(e) {}
+    return BANNERS;
+  });
+
+  useEffect(() => {
+    const handlePromoAdded = (e: any) => {
+      if (e.detail) {
+        setActiveBanners((prev: any[]) => [e.detail, ...prev.filter((b: any) => b.id !== e.detail.id)]);
+      }
+    };
+    window.addEventListener('nutri-promo-added', handlePromoAdded);
+    return () => window.removeEventListener('nutri-promo-added', handlePromoAdded);
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev + 1) % BANNERS.length);
+      setCurrentBanner(prev => (prev + 1) % (activeBanners.length || 1));
     }, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeBanners.length]);
 
   const addToCart = (product: Product) => {
     vibrate(10);
@@ -393,74 +413,79 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       </div>
 
       {/* Dynamic Banner */}
-      <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-white dark:bg-white transition-colors box-border mx-auto border-none">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={BANNERS[currentBanner].id}
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0"
-          >
-            {!failedImages[BANNERS[currentBanner].id] ? (
-              <img 
-                src={BANNERS[currentBanner].image} 
-                alt={BANNERS[currentBanner].title}
-                className="w-full h-full object-cover object-center block" 
-                referrerPolicy="no-referrer"
-                onError={() => {
-                  setFailedImages(prev => ({ ...prev, [BANNERS[currentBanner].id]: true }));
-                }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-emerald-950 to-teal-950 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)] animate-pulse" />
-                <span className="text-4xl sm:text-6xl mb-2 filter drop-shadow-md select-none opacity-80">🍊 🥗 🥑</span>
-                <span className="text-emerald-400 font-mono text-[9px] uppercase tracking-[0.25em] relative z-10 select-none">
-                  Hortifruti Premium
-                </span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
-            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border z-20">
-               <div className="flex items-center gap-1.5 sm:gap-3">
-                  <div className="px-2 py-0.5 sm:px-3 sm:py-1 clay-primary text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
-                     {BANNERS[currentBanner].price}
+      {activeBanners.length > 0 && (() => {
+        const cur = activeBanners[currentBanner] || activeBanners[0];
+        return (
+          <div className="relative w-full max-w-full h-[180px] sm:h-[320px] md:h-[420px] rounded-[24px] md:rounded-[40px] clay-card overflow-hidden bg-white dark:bg-white transition-colors box-border mx-auto border-none">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={cur.id}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.8 }}
+                className="absolute inset-0"
+              >
+                {!failedImages[cur.id] ? (
+                  <img 
+                    src={cur.image} 
+                    alt={cur.title}
+                    className="w-full h-full object-cover object-center block" 
+                    referrerPolicy="no-referrer"
+                    onError={() => {
+                      setFailedImages(prev => ({ ...prev, [cur.id]: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-emerald-950 to-teal-950 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.06),transparent_50%)] animate-pulse" />
+                    <span className="text-4xl sm:text-6xl mb-2 filter drop-shadow-md select-none opacity-80">🍊 🥗 🥑</span>
+                    <span className="text-emerald-400 font-mono text-[9px] uppercase tracking-[0.25em] relative z-10 select-none">
+                      Hortifruti Premium
+                    </span>
                   </div>
-                  <button 
-                    onClick={() => handleSpeak(BANNERS[currentBanner].tip)}
-                    className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
-                    style={{ color: '#ffffff' }}
-                  >
-                     <Volume2 className="w-3 h-3 sm:w-5 sm:h-5" style={{ color: '#ffffff' }} />
-                  </button>
-               </div>
-               <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
-                  {BANNERS[currentBanner].title}
-               </h3>
-               <p className="hidden sm:block text-white text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{BANNERS[currentBanner].subtitle}</p>
-               <button 
-                  style={{ color: '#ffffff', backgroundColor: '#528f5c' }} onClick={() => addToCart(PRODUCTS[0])}
-                  className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white"
-               >
-                  <ShoppingCart style={{ color: '#ffffff' }} className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span style={{ color: '#ffffff' }} className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
-               </button>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
+                <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border z-20">
+                   <div className="flex items-center gap-1.5 sm:gap-3">
+                      <div className="px-2 py-0.5 sm:px-3 sm:py-1 clay-primary text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+                         {cur.price}
+                      </div>
+                      <button 
+                        onClick={() => handleSpeak(cur.tip)}
+                        className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
+                        style={{ color: '#ffffff' }}
+                      >
+                         <Volume2 className="w-3 h-3 sm:w-5 sm:h-5" style={{ color: '#ffffff' }} />
+                      </button>
+                   </div>
+                   <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
+                      {cur.title}
+                   </h3>
+                   <p className="hidden sm:block text-white text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{cur.subtitle}</p>
+                   <button 
+                      style={{ color: '#ffffff', backgroundColor: '#528f5c' }} onClick={() => addToCart(PRODUCTS[0])}
+                      className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white cursor-pointer"
+                   >
+                      <ShoppingCart style={{ color: '#ffffff' }} className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
+                      <span style={{ color: '#ffffff' }} className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
+                   </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+            
+            {/* Indicators - Vertical on very small screens, horizontal otherwise */}
+            <div className="absolute top-3 right-3 sm:bottom-4 sm:top-auto sm:right-6 md:bottom-8 md:right-12 flex flex-col sm:flex-row gap-1 sm:gap-2 md:gap-3 z-30">
+              {activeBanners.map((_, i) => (
+                <div 
+                  key={i}
+                  className={`rounded-full transition-all duration-500 ${currentBanner === i ? 'h-3 sm:h-1 sm:md:h-1.5 w-1 sm:w-8 md:w-10 bg-emerald-500' : 'h-1 sm:h-1 sm:md:h-1.5 w-1 sm:w-2 md:w-3 bg-white/30'}`}
+                />
+              ))}
             </div>
-          </motion.div>
-        </AnimatePresence>
-        
-        {/* Indicators - Vertical on very small screens, horizontal otherwise */}
-        <div className="absolute top-3 right-3 sm:bottom-4 sm:top-auto sm:right-6 md:bottom-8 md:right-12 flex flex-col sm:flex-row gap-1 sm:gap-2 md:gap-3">
-          {BANNERS.map((_, i) => (
-            <div 
-              key={i}
-              className={`rounded-full transition-all duration-500 ${currentBanner === i ? 'h-3 sm:h-1 sm:md:h-1.5 w-1 sm:w-8 md:w-10 bg-emerald-500' : 'h-1 sm:h-1 sm:md:h-1.5 w-1 sm:w-2 md:w-3 bg-white/30'}`}
-            />
-          ))}
-        </div>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Dicas Diárias (Daily Tips AI) Component */}
       <DailyTips profile={profile} />

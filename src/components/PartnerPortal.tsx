@@ -5,7 +5,7 @@ import {
   ChevronRight, ChevronLeft, CheckCircle2, Upload, Plus, 
   Trash2, Package, TrendingUp, Inbox, Settings, Volume2, 
   Sparkles, Smartphone, LayoutDashboard, Utensils, Search, Edit, Check,
-  Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw
+  Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw, AlertTriangle, Megaphone, Zap, X
 } from 'lucide-react';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -70,6 +70,9 @@ const getMockAddress = (lat: number, lng: number) => {
 type Step = 'onboarding' | 'business' | 'location' | 'service' | 'products' | 'hours' | 'plans' | 'payment' | 'pending' | 'dashboard';
 
 export type MonetizationModel = 'monthly' | 'annual' | 'commission';
+export type DashboardTab = 'panel' | 'orders' | 'stock' | 'sales' | 'monetization' | 'settings' | 'cameras';
+import { CameraDashboard } from './CameraDashboard';
+
 
 interface PartnerForm {
   businessName: string;
@@ -93,7 +96,7 @@ interface PartnerForm {
 
 export function PartnerPortal() {
   const [step, setStep] = useState<Step>('onboarding');
-  const [dashboardTab, setDashboardTab] = useState<'panel' | 'orders' | 'stock' | 'sales' | 'monetization' | 'settings'>('panel');
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>('panel');
   const [orders, setOrders] = useState([
     { id: '#4401', user: 'Ana Maria', items: 'Combo Detox + 5kg Laranja', total: 'R$ 89,90', status: 'Novo', time: '14:23' },
     { id: '#4402', user: 'Pedro S.', items: 'Abacaxi, Melancia, Uva', total: 'R$ 45,00', status: 'Preparando', time: '13:50' },
@@ -112,6 +115,10 @@ export function PartnerPortal() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapCoords, setMapCoords] = useState<[number, number]>([-23.5505, -46.6333]);
+  const [expirationAlerts, setExpirationAlerts] = useState([
+    { id: 'a1', productId: 'p1', name: 'Morango Orgânico (Bandeja)', daysLeft: 2, suggestedDiscount: 30, isPromoApplied: false, img: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=400' },
+    { id: 'a2', productId: 'p3', name: 'Alface Crespa', daysLeft: 1, suggestedDiscount: 50, isPromoApplied: false, img: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400' }
+  ]);
 
   const [form, setForm] = useState<PartnerForm>({
     businessName: '',
@@ -355,6 +362,7 @@ export function PartnerPortal() {
                 { icon: Package, label: 'Estoque', value: 'stock' },
                 { icon: TrendingUp, label: 'Vendas', value: 'sales' },
                 { icon: DollarSign, label: 'Monetização & Repasses', value: 'monetization' },
+                { icon: Camera, label: 'Câmeras', value: 'cameras' },
                 { icon: Settings, label: 'Configurações', value: 'settings' }
               ].map((item, i) => (
                 <button 
@@ -656,6 +664,60 @@ export function PartnerPortal() {
                   <Plus className="w-4 h-4" /> Novo Produto
                 </button>
               </div>
+
+              {/* Alertas de Validade & Promoção Automática */}
+              {expirationAlerts.some(a => !a.isPromoApplied) && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-[28px] p-6 relative overflow-hidden animate-fade shadow-sm">
+                   <div className="absolute top-0 right-0 p-8 bg-amber-500/5 dark:bg-amber-500/10 rounded-bl-[100px] w-32 h-32" />
+                   <div className="flex items-start sm:items-center gap-4 mb-6 relative z-10">
+                     <div className="w-12 h-12 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center shrink-0">
+                       <AlertTriangle className="w-6 h-6" />
+                     </div>
+                     <div>
+                       <h4 className="font-bold text-amber-900 dark:text-amber-400 text-lg">Alerta de Vencimento</h4>
+                       <p className="text-sm text-amber-700 dark:text-amber-500/80">Produtos próximos da validade. Sugerimos aplicar desconto e enviar para o banner rotativo de ofertas do mercado.</p>
+                     </div>
+                   </div>
+                   <div className="grid sm:grid-cols-2 gap-4 relative z-10">
+                     {expirationAlerts.filter(a => !a.isPromoApplied).map(alert => (
+                       <div key={alert.id} className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-sm border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all">
+                         <img src={alert.img} className="w-16 h-16 rounded-xl object-cover shadow-sm" alt={alert.name} />
+                         <div className="flex-1">
+                           <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm line-clamp-1">{alert.name}</h5>
+                           <p className="text-xs text-rose-600 dark:text-rose-400 font-bold mb-3 flex items-center gap-1">
+                             <Clock className="w-3 h-3" /> Vence em {alert.daysLeft} dia{alert.daysLeft > 1 ? 's' : ''}
+                           </p>
+                           <button
+                             type="button"
+                             onClick={() => {
+                               playSfx('success');
+                               vibrate(10);
+                               setExpirationAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, isPromoApplied: true } : a));
+                               try {
+                                 const existing = JSON.parse(localStorage.getItem('nutri-partner-promos') || '[]');
+                                 const newPromo = {
+                                   id: `promo-exp-${alert.id}-${Date.now()}`,
+                                   title: `⚡ Queima Frescor: ${alert.name}`,
+                                   subtitle: `Vencimento próximo: Aproveite com ${alert.suggestedDiscount}% de desconto e evite o desperdício!`,
+                                   price: `${alert.suggestedDiscount}% OFF`,
+                                   image: alert.img,
+                                   tip: `Super oferta relâmpago de frescor: ${alert.name} com ${alert.suggestedDiscount}% OFF!`
+                                 };
+                                 localStorage.setItem('nutri-partner-promos', JSON.stringify([newPromo, ...existing]));
+                                 window.dispatchEvent(new CustomEvent('nutri-promo-added', { detail: newPromo }));
+                               } catch(e) {}
+                             }}
+                             className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all active:scale-95 cursor-pointer"
+                           >
+                             <Megaphone className="w-4 h-4" />
+                             Aplicar {alert.suggestedDiscount}% OFF
+                           </button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+              )}
 
               {/* Search & Category Filter */}
               <div className="grid sm:grid-cols-12 gap-4">
@@ -1303,6 +1365,7 @@ export function PartnerPortal() {
               </form>
             </div>
           )}
+          {dashboardTab === 'cameras' && <CameraDashboard />}
         </main>
       </div>
     );

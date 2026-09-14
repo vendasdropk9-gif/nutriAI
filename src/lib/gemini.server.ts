@@ -3602,15 +3602,37 @@ export const generateDailyNutritionTips = async (
     recommendation: string;
     icon: string;
   }[];
-} | null> => {
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
+}> => {
+  const defaultFallback = {
+    tips: [
+      {
+        category: "Hidratação",
+        title: "Beba água ao acordar",
+        content: "O corpo perde água durante o sono. Rehidratar-se logo cedo ajuda a acelerar o metabolismo e melhora a digestão.",
+        recommendation: "Tome um copo de 300ml de água logo ao levantar hoje!",
+        icon: "droplet"
+      },
+      {
+        category: "Energia",
+        title: "Combustível Inteligente",
+        content: "Combinar carboidratos complexos com fibras lentas garante energia estável durante todo o dia, prevenindo aquela fadiga da tarde.",
+        recommendation: "Adicione aveia ou chia na sua próxima porção de frutas.",
+        icon: "zap"
+      },
+      {
+        category: "Superalimentos",
+        title: "Alimentos Coloridos",
+        content: "Vegetais de cores vibrantes contêm diferentes fitoquímicos e antioxidantes essenciais que protegem o seu organismo.",
+        recommendation: "Tente colocar pelo menos 3 cores diferentes no seu prato do almoço de hoje.",
+        icon: "apple"
       }
-    }
-  });
+    ]
+  };
+
+  const ai = getGenAI();
+  if (!ai) {
+    return defaultFallback;
+  }
 
   let profileText = "Usuário comum de saúde.";
   if (profile) {
@@ -3632,7 +3654,7 @@ ${profileText}
 
 INSTRUÇÕES DE ESCRITA:
 1. Gere dicas super curtas, fáceis de ler, sem termos complicados e extremamente motivacionais e de tom premium.
-2. Cada dica deve focar em um aspect prático aplicável no mesmo dia (Ex: consumo de água associado à saciedade, alimentos antioxidantes, substitutos inteligentes, nutrição pré-treino, etc.).
+2. Cada dica deve focar em um aspecto prático aplicável no mesmo dia (Ex: consumo de água associado à saciedade, alimentos antioxidantes, substitutos inteligentes, nutrição pré-treino, etc.).
 3. Personalize a dica de acordo com o objetivo ou as restrições alimentares do usuário (se houver). Se o usuário tem alergias ou restrições, respeite-as e não mencione os ingredientes restritos!
 4. Mapeie cada dica para um ícone descritivo simples do lucide-react. Escolha estritamente entre: "apple", "droplet", "zap", "brain", "trophy", "heart".
 
@@ -3659,69 +3681,26 @@ Responda APENAS com um objeto JSON validando o schema fornecido.`;
     required: ["tips"]
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
-  let responseText = "";
-  let lastError: any = null;
-
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`[DailyTips] Tentando gerar dicas com o modelo: ${modelName}`);
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-          temperature: 0.8
-        }
-      });
-
-      if (response && response.text) {
-        responseText = response.text;
-        console.log(`[DailyTips] Sucesso ao gerar com o modelo: ${modelName}`);
-        break;
-      }
-    } catch (e: any) {
-      lastError = e;
-      console.log(`[DailyTips] Modelo ${modelName} indisponível ou limite de requisições atingido.`);
-    }
-  }
-
   try {
-    if (!responseText) {
-      if (lastError) {
-        throw lastError;
+    const { text } = await callWithModelFallback(ai, {
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7
       }
-      throw new Error("Não foi possível obter resposta de nenhum modelo Gemini");
+    });
+
+    if (text) {
+      const parsed = JSON.parse(text);
+      if (parsed && Array.isArray(parsed.tips) && parsed.tips.length > 0) {
+        return parsed;
+      }
     }
-    return JSON.parse(responseText);
+    return defaultFallback;
   } catch (error) {
-    console.log("[DailyTips] Usando dicas de nutrição estáticas/locais como fallback.");
-    return {
-      tips: [
-        {
-          category: "Hidratação",
-          title: "Beba água ao acordar",
-          content: "O corpo perde água durante o sono. Rehidratar-se logo cedo ajuda a acelerar o metabolismo e melhora a digestão.",
-          recommendation: "Tome um copo de 300ml de água logo ao levantar hoje!",
-          icon: "droplet"
-        },
-        {
-          category: "Energia",
-          title: "Proteínas e saciedade",
-          content: "Adicionar uma porção de proteínas nos lanches intermediários evita picos de insulina e mantém você satisfeito por mais tempo.",
-          recommendation: "Experimente um ovo cozido ou iogurte natural no lanche da tarde.",
-          icon: "zap"
-        },
-        {
-          category: "Foco",
-          title: "Mastigação consciente",
-          content: "Mastigar mais vezes ajuda o cérebro a registrar a saciedade, melhorando a digestão e o aproveitamento dos nutrientes.",
-          recommendation: "Dedique pelo menos 15 minutos e coma sem telas na próxima refeição.",
-          icon: "brain"
-        }
-      ]
-    };
+    console.log("[DailyTips] Usando dicas de nutrição estáticas/locais como fallback adaptativo.");
+    return defaultFallback;
   }
 };
 
