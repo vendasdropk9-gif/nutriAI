@@ -60,6 +60,16 @@ export const unlockAudio = () => {
           ctx.resume();
         }
       }
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.resume();
+        } catch (e) {}
+      }
+      const dummyAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+      dummyAudio.volume = 0.01;
+      dummyAudio.play().then(() => {
+        dummyAudio.pause();
+      }).catch(() => {});
     }
   } catch (e) {}
 };
@@ -205,9 +215,7 @@ export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
       }) || voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(basePrefix));
     }
 
-    if (matchedVoice || voices.length > 0) {
-      return executeBrowserTTS(text, { ...options, lang: activeLang }, matchedVoice || voices[0]);
-    }
+    return executeBrowserTTS(text, { ...options, lang: activeLang }, matchedVoice || (voices.length > 0 ? voices[0] : undefined));
   }
 
   options?.onEnded?.();

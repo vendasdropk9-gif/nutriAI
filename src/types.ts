@@ -69,6 +69,11 @@ export interface WeeklyChallenge {
   expiresAt: string;
 }
 
+export interface VisualizerPreferences {
+  playbackSpeed: number;
+  mode: 'tutorial' | 'training';
+}
+
 export interface UserProfile {
   name: string;
   firstName?: string;
@@ -106,6 +111,7 @@ export interface UserProfile {
   avatarAccentColor?: string;
   avatarDracoOptimized?: boolean;
   avatarLowMemoryMode?: boolean;
+  visualizerPreferences?: VisualizerPreferences;
   bodyType?: BodyType;
   metabolism?: MetabolismSpeed;
   routine?: string;

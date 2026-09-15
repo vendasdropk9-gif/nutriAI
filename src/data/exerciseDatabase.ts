@@ -13,6 +13,7 @@ export interface ExerciseReference {
   animation: 'idle' | 'executing' | 'tutorial';
   cameraAngle: 'front' | 'side' | 'diagonal' | 'back';
   instructions: string[];
+  proTip?: string;
   gltfUrl?: string; // Optional URL for the DRACO compressed GLB file
 }
 
@@ -31,6 +32,7 @@ export const EXERCISE_DATABASE: ExerciseReference[] = [
     difficulty: 'intermediate',
     animation: 'executing',
     cameraAngle: 'diagonal',
+    proTip: 'Incline levemente o tronco para a frente (~15°) e projete os cotovelos como se estivesse empurrando as paredes para os lados. Isso maximiza o recrutamento das fibras do deltoide lateral reduzindo a compensação do trapézio.',
     instructions: [
       'Sente-se com as costas retas e abdômen contraído.',
       'Segure os halteres com as palmas voltadas para dentro.',
@@ -53,6 +55,7 @@ export const EXERCISE_DATABASE: ExerciseReference[] = [
     difficulty: 'advanced',
     animation: 'executing',
     cameraAngle: 'side',
+    proTip: 'Distribua o peso no "tríplice apoio" do pé (calcanhar, base do hálux e base do 5º dedo) e empurre os joelhos levemente para fora em direção à ponta dos pés durante a subida para proteger o ligamento cruzado anterior.',
     instructions: [
       'Posicione a barra confortavelmente sobre os trapézios.',
       'Afaste os pés na largura dos ombros, pontas levemente para fora.',
@@ -75,6 +78,7 @@ export const EXERCISE_DATABASE: ExerciseReference[] = [
     difficulty: 'beginner',
     animation: 'executing',
     cameraAngle: 'diagonal',
+    proTip: 'Gire internamente as palmas contra o solo gerando torque para fora (como se tentasse "rasgar o chão" para fora). Isso ativa o denteado anterior, estabiliza as escápulas e protege os manguitos rotadores.',
     instructions: [
       'Inicie na posição de prancha com as mãos na largura dos ombros.',
       'Contraia o abdômen e os glúteos para manter o corpo alinhado.',

@@ -714,12 +714,33 @@ export function LiveAssistant({
   const isSpeakingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const isAssistantActiveRef = useRef(false);
+  const latestTranscriptRef = useRef<string>('');
 
   // Audio Analysis References
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
+
+  // Check and request explicit microphone permission on user interaction
+  const checkAndRequestMicPermission = useCallback(async (): Promise<boolean> => {
+    console.log('[NutriAI Mic] Probing microphone permissions...');
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      console.warn('[NutriAI Mic] navigator.mediaDevices.getUserMedia unavailable in this environment');
+      return true; // Fallback to SpeechRecognition attempt
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const tracks = stream.getAudioTracks();
+      console.log(`[NutriAI Mic] Microphone permission granted! Active tracks: ${tracks.length}`);
+      // Clean up probe tracks immediately so Web Speech API has exclusive access
+      tracks.forEach(track => track.stop());
+      return true;
+    } catch (err: any) {
+      console.error('[NutriAI Mic] Microphone permission denied or device error:', err?.name, err?.message);
+      return false;
+    }
+  }, []);
 
   // Stop audio visualizer
   const stopAudioVisualizer = useCallback(() => {
@@ -898,8 +919,11 @@ export function LiveAssistant({
   // Send user query to Malu (Gemini with zero-latency local shortcut fallback) and speak reply
   const handleUserQuery = useCallback(async (queryText: string) => {
     const cleanQuery = queryText.trim();
+    console.log(`[NutriAI Query] Preparing to process user query: "${cleanQuery}"`);
     if (!cleanQuery || isProcessingRef.current) return;
 
+    latestTranscriptRef.current = '';
+    setTranscript('');
     clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
@@ -923,10 +947,12 @@ export function LiveAssistant({
       let actionDataToRun: any = undefined;
 
       if (localMatch) {
+        console.log(`[NutriAI Query] Local intent matched:`, localMatch);
         replyText = localMatch.text;
         actionToRun = localMatch.action;
         actionDataToRun = localMatch.actionData;
       } else {
+        console.log(`[NutriAI Query] Sending query to Gemini backend: "${cleanQuery}"`);
         // 2. Call Gemini Assistant backend with full app awareness, profile, and current language context
         const defaultProfile: UserProfile = profile || {
           name: 'Amigo(a)',
@@ -952,6 +978,7 @@ export function LiveAssistant({
         };
 
         const res = await chatWithAssistant(effectiveProfile, conversationHistory, cleanQuery);
+        console.log(`[NutriAI Query] Received response from Gemini backend:`, res);
         replyText = res?.text || (isPt 
           ? "Estou aqui com você! Como posso te ajudar na sua alimentação hoje?" 
           : "I'm right here with you! How can I help you with your nutrition today?");
@@ -975,11 +1002,13 @@ export function LiveAssistant({
       await speak(replyText, {
         lang: currentLanguage,
         onEnded: () => {
+          console.log('[NutriAI Query] Malu voice playback completed. Restarting listening...');
           setIsSpeaking(false);
           showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
           startListeningRef.current();
         },
-        onError: () => {
+        onError: (err) => {
+          console.warn('[NutriAI Query] Malu voice playback error:', err);
           setIsSpeaking(false);
           showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
           startListeningRef.current();
@@ -1002,6 +1031,7 @@ export function LiveAssistant({
 
   // Handler for inactivity timeout
   const handleInactivityTimeout = useCallback(() => {
+    console.log('[NutriAI LiveAssistant] Inactivity timeout reached (8s silence)');
     if (isListeningRef.current) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) {}
@@ -1032,7 +1062,10 @@ export function LiveAssistant({
   const initSpeechRecognition = useCallback(() => {
     if (typeof window === 'undefined') return null;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
+    if (!SpeechRecognition) {
+      console.warn('[NutriAI SpeechRecognition] Web Speech API SpeechRecognition is NOT supported in this browser environment');
+      return null;
+    }
 
     try {
       const recognition = new SpeechRecognition();
@@ -1044,10 +1077,16 @@ export function LiveAssistant({
       const locStrings = getLocalizedAssistantStrings(currentLanguage);
 
       recognition.onstart = () => {
+        console.log(`[NutriAI SpeechRecognition] Listening started (language: ${currentLanguage})`);
         setIsListening(true);
         showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
+        latestTranscriptRef.current = '';
         setTranscript('');
         resetInactivityTimer();
+      };
+
+      recognition.onspeechstart = () => {
+        console.log('[NutriAI SpeechRecognition] User voice detected in mic stream!');
       };
 
       recognition.onresult = (event: any) => {
@@ -1059,18 +1098,21 @@ export function LiveAssistant({
 
         resetInactivityTimer();
         let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        for (let i = 0; i < event.results.length; i++) {
           currentTranscript += event.results[i][0].transcript;
         }
+        console.log(`[NutriAI SpeechRecognition] Result captured: "${currentTranscript}"`);
+        latestTranscriptRef.current = currentTranscript;
         setTranscript(currentTranscript);
       };
 
       recognition.onerror = (event: any) => {
+        console.error(`[NutriAI SpeechRecognition] Recognition error: "${event?.error}"`, event);
         clearInactivityTimer();
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           showStatus(t('malu_mic_error', locStrings.micError), 'error', 4500);
         } else if (event.error === 'no-speech') {
-          // Handled by inactivity or loop
+          console.log('[NutriAI SpeechRecognition] No speech detected in listening window');
         } else if (event.error !== 'aborted') {
           showStatus(t('malu_try_again', locStrings.tryAgain), 'error', 3000);
         }
@@ -1078,19 +1120,27 @@ export function LiveAssistant({
       };
 
       recognition.onend = () => {
+        console.log(`[NutriAI SpeechRecognition] Recognition session ended. Captured transcript: "${latestTranscriptRef.current}"`);
         clearInactivityTimer();
         setIsListening(false);
+
+        const textToProcess = latestTranscriptRef.current.trim();
+        if (textToProcess && !isProcessingRef.current) {
+          console.log(`[NutriAI SpeechRecognition] Processing captured transcript on recognition end: "${textToProcess}"`);
+          handleUserQuery(textToProcess);
+        }
       };
 
       return recognition;
     } catch (e) {
-      console.warn('Speech recognition init error:', e);
+      console.warn('[NutriAI SpeechRecognition] Init error:', e);
       return null;
     }
-  }, [clearInactivityTimer, currentLanguage, resetInactivityTimer, showStatus, t]);
+  }, [clearInactivityTimer, currentLanguage, handleUserQuery, resetInactivityTimer, showStatus, t]);
 
   // Start listening
   const startListening = useCallback(() => {
+    console.log('[NutriAI LiveAssistant] startListening invoked');
     clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
@@ -1103,16 +1153,19 @@ export function LiveAssistant({
 
     if (recognitionRef.current) {
       try {
+        latestTranscriptRef.current = '';
         setTranscript('');
         recognitionRef.current.lang = currentLanguage;
         recognitionRef.current.start();
         playSfx('pop');
         vibrate(15);
         resetInactivityTimer();
-      } catch (err) {
+      } catch (err: any) {
+        console.warn('[NutriAI SpeechRecognition] Restarting recognition on error:', err?.message || err);
         recognitionRef.current = initSpeechRecognition();
         try {
           if (recognitionRef.current) {
+            latestTranscriptRef.current = '';
             recognitionRef.current.lang = currentLanguage;
             recognitionRef.current.start();
           }
@@ -1122,6 +1175,7 @@ export function LiveAssistant({
         }
       }
     } else {
+      console.warn('[NutriAI SpeechRecognition] Unable to initialize speech recognition');
       showStatus(t('malu_unsupported', locStrings.unsupported), 'error', 3500);
     }
   }, [clearInactivityTimer, currentLanguage, initSpeechRecognition, resetInactivityTimer, showStatus, t]);
@@ -1130,6 +1184,7 @@ export function LiveAssistant({
 
   // Greet user on first tap, speak greeting with Malu voice, then open mic
   const activateAssistantWithGreeting = useCallback(async () => {
+    console.log('[NutriAI LiveAssistant] Activating Malu with greeting...');
     clearInactivityTimer();
     setIsProcessing(false);
     setIsListening(false);
@@ -1144,11 +1199,13 @@ export function LiveAssistant({
     await speak(spoken, {
       lang: currentLanguage,
       onEnded: () => {
+        console.log('[NutriAI LiveAssistant] Greeting ended. Starting speech recognition...');
         setIsSpeaking(false);
         showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
         startListening();
       },
-      onError: () => {
+      onError: (err) => {
+        console.warn('[NutriAI LiveAssistant] Greeting speech error:', err);
         setIsSpeaking(false);
         showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
         startListening();
@@ -1157,7 +1214,8 @@ export function LiveAssistant({
   }, [clearInactivityTimer, currentLanguage, profile, showStatus, startListening, t]);
 
   // Toggle button click (1st touch: Activate with greeting, 2nd touch: Deactivate with goodbye)
-  const handleToggleClick = () => {
+  const handleToggleClick = async () => {
+    console.log('[NutriAI LiveAssistant] Mic button toggled by user');
     unlockAudio();
     playSfx('tap');
     vibrate(20);
@@ -1165,9 +1223,18 @@ export function LiveAssistant({
     const isCurrentlyActive = isListening || isSpeaking || isProcessing;
 
     if (isCurrentlyActive) {
+      console.log('[NutriAI LiveAssistant] Deactivating Malu session...');
       // 2nd Tap: Deactivate Malu with warm farewell
       stopAll({ goodbye: true });
     } else {
+      console.log('[NutriAI LiveAssistant] Requesting mic access on user click...');
+      const hasMicPermission = await checkAndRequestMicPermission();
+      if (!hasMicPermission) {
+        console.warn('[NutriAI LiveAssistant] Microphone access not granted');
+        const locStrings = getLocalizedAssistantStrings(currentLanguage);
+        showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
+        return;
+      }
       // 1st Tap: Activate Malu immediately with time-based greeting
       activateAssistantWithGreeting();
     }

@@ -3,22 +3,46 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Avatar3D } from './Avatar3D';
 import { MuscleOverlay } from './MuscleOverlay';
 import { EXERCISE_DATABASE, ExerciseReference } from '../data/exerciseDatabase';
-import { Play, Pause, RefreshCw, Layers, ZoomIn, Info, CheckCircle2, ChevronRight, Video, Camera, Dumbbell, BrainCircuit, ScanSearch } from 'lucide-react';
+import { Play, Pause, RefreshCw, Layers, ZoomIn, Info, CheckCircle2, ChevronRight, Video, Camera, Dumbbell, BrainCircuit, ScanSearch, Save, Check, Lightbulb, ChevronDown, Sparkles } from 'lucide-react';
 import { getAvatarById } from '../data/avatarCatalog';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { UserProfile } from '../types';
+import { UserProfile, VisualizerPreferences } from '../types';
 
 export function ExerciseVisualizer() {
-  const [profile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+  const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+  const [savedPrefs, setSavedPrefs] = useLocalStorage<VisualizerPreferences>('visualizer-preferences', {
+    playbackSpeed: 1,
+    mode: 'tutorial'
+  });
+
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>(EXERCISE_DATABASE[0].id);
-  const [mode, setMode] = useState<'tutorial' | 'training'>('tutorial');
+  const [mode, setMode] = useState<'tutorial' | 'training'>(() => {
+    return profile?.visualizerPreferences?.mode ?? savedPrefs?.mode ?? 'tutorial';
+  });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
+    return profile?.visualizerPreferences?.playbackSpeed ?? savedPrefs?.playbackSpeed ?? 1;
+  });
   const [reps, setReps] = useState(10);
   const [currentRep, setCurrentRep] = useState(0);
   const [tutorialPhase, setTutorialPhase] = useState<'initial' | 'movement' | 'final' | 'return'>('initial');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [qualityLevel, setQualityLevel] = useState<'low' | 'medium' | 'high'>('high');
+  const [saveSuccessToast, setSaveSuccessToast] = useState(false);
+  const [isProTipOpen, setIsProTipOpen] = useState(true);
+
+  const handleSavePreferences = () => {
+    const prefs: VisualizerPreferences = { playbackSpeed, mode };
+    setSavedPrefs(prefs);
+    if (profile) {
+      setProfile({
+        ...profile,
+        visualizerPreferences: prefs
+      });
+    }
+    setSaveSuccessToast(true);
+    setTimeout(() => setSaveSuccessToast(false), 3000);
+  };
 
   // Check device memory and spawn Web Worker for idle caching
   useEffect(() => {
@@ -301,6 +325,30 @@ export function ExerciseVisualizer() {
                   </button>
                 ))}
               </div>
+
+              {/* Save Preferences Button */}
+              <div className="h-6 w-px bg-slate-700 mx-1 shrink-0" />
+              <button
+                onClick={handleSavePreferences}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-bold shrink-0 ${
+                  saveSuccessToast
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60'
+                }`}
+                title="Salvar preferências de exibição para sessões futuras"
+              >
+                {saveSuccessToast ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-semibold">Salvo!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="hidden sm:inline">Salvar Preferências</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
           
@@ -340,6 +388,50 @@ export function ExerciseVisualizer() {
               </span>
             </div>
           )}
+
+          {/* Collapsible Pro Tip Box */}
+          <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl overflow-hidden shadow-xl transition-all">
+            <button
+              onClick={() => setIsProTipOpen(!isProTipOpen)}
+              className="w-full p-4 flex items-center justify-between bg-slate-900/80 hover:bg-slate-800/80 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <Lightbulb className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Dica Biomecânica Pro</span>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  </h4>
+                  <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-0.5">
+                    {activeExercise.name} • Ajuste de técnica de alta eficiência
+                  </p>
+                </div>
+              </div>
+              <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-transform shrink-0 ml-2">
+                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isProTipOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {isProTipOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  className="border-t border-slate-800/80 bg-slate-950/40 p-4 text-xs text-slate-300 leading-relaxed"
+                >
+                  <div className="bg-amber-500/10 border-l-3 border-amber-500 p-3.5 rounded-r-xl text-slate-200 shadow-inner flex items-start gap-2.5">
+                    <p className="text-xs leading-relaxed">
+                      {activeExercise.proTip || `Foque no alinhamento articular durante a fase concêntrica e mantenha a cadência de 2s na descida para maximizar o tempo sob tensão no ${activeExercise.name}.`}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Right Column - Data & Explanations */}

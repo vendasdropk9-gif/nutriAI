@@ -1219,7 +1219,11 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
         });
         
         const modelsToTry = [
-          "gemini-3.1-flash-tts-preview"
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-3.1-flash-tts-preview",
+          "gemini-2.5-pro",
+          "gemini-flash-latest"
         ];
 
         for (const model of modelsToTry) {
