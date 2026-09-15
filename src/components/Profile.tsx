@@ -2,17 +2,30 @@ import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { HealthIntegrationSettings } from './HealthIntegrationSettings';
+import { AvatarGallery } from './AvatarGallery';
+import { getAvatarById, AvatarCatalogItem } from '../data/avatarCatalog';
 import { UserProfile } from '../types';
 import { 
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
-  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass
+  User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
+  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { MealNotificationTimes } from '../types';
+import { 
+  DEFAULT_MEAL_TIMES, 
+  DEFAULT_CHALLENGE_TIMES, 
+  syncSchedulesToServiceWorker, 
+  triggerNativeTestNotification, 
+  requestNotificationPermission, 
+  getNotificationPermission 
+} from '../lib/pushScheduler';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -33,10 +46,30 @@ const PRESET_AVATARS = [
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const { logoutLocally } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [mealRemindersEnabled, setMealRemindersEnabled] = useState<boolean>(() => {
-    return safeGet('nutri-meal-reminders') === 'true';
+    if (profile?.mealRemindersEnabled !== undefined) return Boolean(profile.mealRemindersEnabled);
+    return safeGet('nutri-meal-reminders') !== 'false';
   });
+  const [challengeRemindersEnabled, setChallengeRemindersEnabled] = useState<boolean>(() => {
+    if (profile?.challengeRemindersEnabled !== undefined) return Boolean(profile.challengeRemindersEnabled);
+    return safeGet('nutri-challenge-reminders') !== 'false';
+  });
+  const [mealTimes, setMealTimes] = useState<Required<MealNotificationTimes>>(() => ({
+    breakfast: profile?.mealNotificationTimes?.breakfast || safeGet('nutri-meal-time-breakfast') || DEFAULT_MEAL_TIMES.breakfast,
+    morningSnack: profile?.mealNotificationTimes?.morningSnack || safeGet('nutri-meal-time-morningSnack') || DEFAULT_MEAL_TIMES.morningSnack,
+    lunch: profile?.mealNotificationTimes?.lunch || safeGet('nutri-meal-time-lunch') || DEFAULT_MEAL_TIMES.lunch,
+    afternoonSnack: profile?.mealNotificationTimes?.afternoonSnack || safeGet('nutri-meal-time-afternoonSnack') || DEFAULT_MEAL_TIMES.afternoonSnack,
+    dinner: profile?.mealNotificationTimes?.dinner || safeGet('nutri-meal-time-dinner') || DEFAULT_MEAL_TIMES.dinner,
+    supper: profile?.mealNotificationTimes?.supper || safeGet('nutri-meal-time-supper') || DEFAULT_MEAL_TIMES.supper
+  }));
+  const [challengeTime, setChallengeTime] = useState<string>(() => {
+    return profile?.challengeReminderTime || safeGet('nutri-challenge-time-morning') || DEFAULT_CHALLENGE_TIMES.morningReminder;
+  });
+  const [challengeReviewTime, setChallengeReviewTime] = useState<string>(() => {
+    return profile?.challengeReviewTime || safeGet('nutri-challenge-time-evening') || DEFAULT_CHALLENGE_TIMES.eveningReview;
+  });
+  const [isTestingPush, setIsTestingPush] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState<boolean>(() => {
     if (profile?.highContrast !== undefined) return Boolean(profile.highContrast);
     return safeGet('nutri-high-contrast') === 'true';
@@ -50,6 +83,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [activeToast, setActiveToast] = useState<{ title: string; desc: string; icon?: 'bell' | 'face' | 'fingerprint' | 'check' } | null>(null);
   const [isTestingBiometric, setIsTestingBiometric] = useState<'face' | 'fingerprint' | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [show3DAvatarGallery, setShow3DAvatarGallery] = useState(false);
   const [customPhotoUrlInput, setCustomPhotoUrlInput] = useState('');
   const [showUrlInputModal, setShowUrlInputModal] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -133,17 +167,18 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     }, 4000);
   };
 
-  const requestNotificationPermission = async () => {
-    try {
-      if ('Notification' in window && typeof Notification !== 'undefined') {
-        const permission = await Notification.requestPermission();
-        setNotificationPermission(permission);
-        return permission;
-      }
-    } catch (e) {
-      console.warn('Notification permission request blocked:', e);
+  const handleRequestPushPermission = async () => {
+    playSfx('tap');
+    const perm = await requestNotificationPermission();
+    setNotificationPermission(perm);
+    if (perm === 'granted') {
+      playSfx('crystal');
+      vibrate([30, 40]);
+      showInAppToast('Notificações Nativas Ativadas!', 'O Service Worker agora pode alertar suas refeições e desafios em tempo real.', 'bell');
+    } else if (perm === 'denied') {
+      showInAppToast('Permissão Negada', 'Habilite as notificações nas configurações do seu navegador para receber alertas.', 'bell');
     }
-    return 'default' as NotificationPermission;
+    return perm;
   };
 
   const handleToggleMealReminders = async () => {
@@ -154,12 +189,132 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     if (nextState) {
       playSfx('crystal');
       vibrate([30, 40]);
-      await requestNotificationPermission();
-      showInAppToast('Lembretes Ativados!', 'Você receberá alertas e avisos sonoros nos horários das refeições.', 'bell');
+      if (notificationPermission === 'default') {
+        await handleRequestPushPermission();
+      }
+      showInAppToast('Lembretes de Refeições Ativados!', 'Você receberá alertas e avisos sonoros nos horários das refeições.', 'bell');
     } else {
       playSfx('pop');
       vibrate(20);
       showInAppToast('Lembretes Desativados', 'Os alertas automáticos de refeições foram pausados.', 'bell');
+    }
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      mealRemindersEnabled: nextState,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+    syncSchedulesToServiceWorker(updatedProfile);
+  };
+
+  const handleToggleChallengeReminders = async () => {
+    const nextState = !challengeRemindersEnabled;
+    setChallengeRemindersEnabled(nextState);
+    safeSet('nutri-challenge-reminders', String(nextState));
+
+    if (nextState) {
+      playSfx('crystal');
+      vibrate([30, 40]);
+      if (notificationPermission === 'default') {
+        await handleRequestPushPermission();
+      }
+      showInAppToast('Alertas de Desafios Ativados!', 'Você será notificado nos horários programados sobre metas e desafios.', 'bell');
+    } else {
+      playSfx('pop');
+      vibrate(20);
+      showInAppToast('Alertas de Desafios Pausados', 'Lembretes de desafios foram desativados.', 'bell');
+    }
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled: nextState,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+    syncSchedulesToServiceWorker(updatedProfile);
+  };
+
+  const handleMealTimeChange = (mealKey: keyof MealNotificationTimes, timeValue: string) => {
+    const updatedTimes = { ...mealTimes, [mealKey]: timeValue };
+    setMealTimes(updatedTimes);
+    safeSet(`nutri-meal-time-${mealKey}`, timeValue);
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      mealRemindersEnabled,
+      mealNotificationTimes: updatedTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+    syncSchedulesToServiceWorker(updatedProfile);
+  };
+
+  const handleChallengeTimeChange = (type: 'morning' | 'evening', timeValue: string) => {
+    if (type === 'morning') {
+      setChallengeTime(timeValue);
+      safeSet('nutri-challenge-time-morning', timeValue);
+    } else {
+      setChallengeReviewTime(timeValue);
+      safeSet('nutri-challenge-time-evening', timeValue);
+    }
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: type === 'morning' ? timeValue : challengeTime,
+      challengeReviewTime: type === 'evening' ? timeValue : challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+    syncSchedulesToServiceWorker(updatedProfile);
+  };
+
+  const handleTestNativeNotification = async () => {
+    setIsTestingPush(true);
+    playSfx('notification');
+    vibrate([40, 60, 100]);
+    showInAppToast('Disparando Push Nativo...', 'Verifique a central de notificações do seu sistema/dispositivo.', 'bell');
+
+    try {
+      await triggerNativeTestNotification(
+        '🍲 NutriAI - Alerta Nativo & Desafio',
+        'Seu lembrete programado de refeição e metas diárias está ativo no Service Worker!'
+      );
+      setNotificationPermission(getNotificationPermission());
+    } catch (e) {
+      console.warn('Falha no teste de push nativo:', e);
+    } finally {
+      setTimeout(() => setIsTestingPush(false), 1200);
     }
   };
 
@@ -187,26 +342,14 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       allergies: profile?.allergies || [],
       goals: profile?.goals || '',
       equipment: profile?.equipment || [],
-      highContrast: nextState
+      highContrast: nextState,
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
     };
     onSaveProfile(updatedProfile);
-  };
-
-  const handleTestMealNotification = () => {
-    playSfx('notification');
-    vibrate([40, 60, 100]);
-    showInAppToast('🍲 Hora da Refeição!', 'Seu plano nutricional tem um lembrete programado: Almoço Saudável.', 'bell');
-
-    try {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('🍲 Lembrete NutriAI', {
-          body: 'Hora da sua refeição! Confira seu plano alimentar para manter o foco.',
-          icon: '/favicon.ico'
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to trigger native notification:', e);
-    }
   };
 
   const handleLogout = async () => {
@@ -385,6 +528,31 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     showInAppToast('Avatar Selecionado!', 'Avatar de perfil atualizado com sucesso.');
   };
 
+  const handleSelect3DAvatar = (avatarId: string, customConfig?: Partial<AvatarCatalogItem['modelConfig']>) => {
+    const avatarItem = getAvatarById(avatarId);
+    
+    const updatedProfile: UserProfile = {
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      ...(profile || {}),
+      name: formData.name || profile?.name || 'Usuário NutriAI',
+      avatarId: avatarId,
+      avatarName: avatarItem.name,
+      avatarAccentColor: customConfig?.accentColor || avatarItem.modelConfig.accentColor,
+      skinTone: customConfig?.skinColor || avatarItem.modelConfig.skinColor,
+      avatarDracoOptimized: true
+    };
+    
+    onSaveProfile(updatedProfile);
+    safeSet('nutri-profile', JSON.stringify(updatedProfile));
+
+    playSfx('success');
+    vibrate([30, 40]);
+    showInAppToast('Avatar 3D Ativado!', `${avatarItem.name} configurado como seu avatar 3D oficial.`);
+  };
+
   const handleRemovePhoto = () => {
     setFormData(prev => ({ ...prev, photoURL: '' }));
     
@@ -459,13 +627,19 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       preferences: formData.preferences.trim() || undefined,
       equipment: formData.equipment.split(',').map((s) => s.trim()).filter(Boolean),
       highContrast: highContrastEnabled,
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime: challengeReviewTime,
     };
     
     onSaveProfile(processedProfile);
+    syncSchedulesToServiceWorker(processedProfile);
     playSfx('success');
     vibrate([30, 50]);
     setIsSaved(true);
-    showInAppToast('Perfil Salvo!', 'Todas as suas informações foram salvas e sincronizadas.');
+    showInAppToast('Perfil Salvo!', 'Todas as suas informações e lembretes foram salvos e sincronizados.');
     setTimeout(() => setIsSaved(false), 4000);
   };
 
@@ -568,11 +742,21 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
                 <button
                   type="button"
+                  id="open-3d-avatar-gallery-btn"
+                  onClick={() => setShow3DAvatarGallery(true)}
+                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Avatar 3D (DRACO)</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setShowAvatarPicker(true)}
                   className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl transition-all border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Escolher Avatar</span>
+                  <span>Fotos 2D</span>
                 </button>
 
                 <button
@@ -889,11 +1073,48 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             />
           </div>
 
-          {/* Meal Reminders Card */}
-          <div className="space-y-2">
-            <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-              Notificações de Refeições
-            </label>
+          {/* Health Integrations (Google Fit & Apple Health) */}
+          <HealthIntegrationSettings
+            profile={profile}
+            onUpdateProfile={(updater) => {
+              const updated = updater(profile);
+              if (updated) onSaveProfile(updated);
+            }}
+          />
+
+          {/* Push Notifications & Schedule Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                Notificações Push Nativas & Agendamento
+              </label>
+
+              {/* Native Permission Status Badge */}
+              <div className="flex items-center gap-1.5">
+                {notificationPermission === 'granted' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    Push Permitido
+                  </span>
+                ) : notificationPermission === 'denied' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-semibold border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                    Bloqueado no Navegador
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRequestPushPermission}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[11px] font-semibold border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                  >
+                    <Bell className="w-3.5 h-3.5 text-blue-500" />
+                    Habilitar Permissão Nativa
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 1. Meal Reminders Card */}
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -915,24 +1136,23 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {mealRemindersEnabled 
-                        ? 'Você receberá avisos sonoros e alertas pontuais para não pular refeições.' 
-                        : 'Ative para receber alertas quando for a hora de comer.'}
+                        ? 'Notificações sonoras e nativas sincronizadas com o Service Worker nos seus horários programados.' 
+                        : 'Ative para programar alertas nativos em cada refeição do dia.'}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                  {mealRemindersEnabled && (
-                    <button
-                      type="button"
-                      onClick={handleTestMealNotification}
-                      className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      title="Tocar som de teste e simular notificação"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Testar Alerta</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleTestNativeNotification}
+                    disabled={isTestingPush}
+                    className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    title="Disparar notificação nativa de teste pelo Service Worker"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>{isTestingPush ? 'Enviando...' : 'Testar Push'}</span>
+                  </button>
 
                   <button
                     type="button"
@@ -948,26 +1168,185 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 </div>
               </div>
 
+              {/* Time Configuration Grid */}
               {mealRemindersEnabled && (
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Café da Manhã</p>
-                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">08:00</p>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                      Horários Programados das Refeições
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Toque no horário para personalizar
+                    </span>
                   </div>
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Almoço</p>
-                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">12:30</p>
-                  </div>
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Lanche</p>
-                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">16:30</p>
-                  </div>
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded-xl text-center border border-emerald-100 dark:border-emerald-900/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Jantar</p>
-                    <p className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">20:00</p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                    {/* Café da manhã */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Café da Manhã</p>
+                      <input
+                        type="time"
+                        value={mealTimes.breakfast}
+                        onChange={(e) => handleMealTimeChange('breakfast', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
+
+                    {/* Lanche da Manhã */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Lanche Manhã</p>
+                      <input
+                        type="time"
+                        value={mealTimes.morningSnack}
+                        onChange={(e) => handleMealTimeChange('morningSnack', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
+
+                    {/* Almoço */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Almoço</p>
+                      <input
+                        type="time"
+                        value={mealTimes.lunch}
+                        onChange={(e) => handleMealTimeChange('lunch', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
+
+                    {/* Lanche da Tarde */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Lanche Tarde</p>
+                      <input
+                        type="time"
+                        value={mealTimes.afternoonSnack}
+                        onChange={(e) => handleMealTimeChange('afternoonSnack', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
+
+                    {/* Jantar */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Jantar</p>
+                      <input
+                        type="time"
+                        value={mealTimes.dinner}
+                        onChange={(e) => handleMealTimeChange('dinner', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
+
+                    {/* Ceia */}
+                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">Ceia</p>
+                      <input
+                        type="time"
+                        value={mealTimes.supper}
+                        onChange={(e) => handleMealTimeChange('supper', e.target.value)}
+                        className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-500 text-center"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* 2. Challenge & Habit Reminders Card */}
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3.5 rounded-2xl transition-colors ${
+                    challengeRemindersEnabled 
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  }`}>
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Alertas de Desafios & Metas</h4>
+                      {challengeRemindersEnabled && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] uppercase tracking-wider border border-amber-500/20">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {challengeRemindersEnabled 
+                        ? 'Lembretes automáticos para não perder sua sequência (streak), metas de hidratação e desafios da semana.' 
+                        : 'Ative para receber lembretes de cumprimento de metas diárias.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleToggleChallengeReminders}
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer ${
+                      challengeRemindersEnabled
+                        ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
+                        : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    {challengeRemindersEnabled ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Challenge Timings */}
+              {challengeRemindersEnabled && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Morning reminder */}
+                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                          <Target className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Lembrete Matinal de Metas</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Foco nos desafios e metas do dia
+                        </p>
+                      </div>
+                      <input
+                        type="time"
+                        value={challengeTime}
+                        onChange={(e) => handleChallengeTimeChange('morning', e.target.value)}
+                        className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-700 dark:text-amber-300 outline-none focus:ring-2 focus:ring-amber-500 text-center w-24 shrink-0"
+                      />
+                    </div>
+
+                    {/* Evening review */}
+                    <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                          <Flame className="w-3.5 h-3.5 text-orange-500" />
+                          <span>Revisão Noturna de Hábitos</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Checagem de streak e metas cumpridas
+                        </p>
+                      </div>
+                      <input
+                        type="time"
+                        value={challengeReviewTime}
+                        onChange={(e) => handleChallengeTimeChange('evening', e.target.value)}
+                        className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-700 dark:text-amber-300 outline-none focus:ring-2 focus:ring-amber-500 text-center w-24 shrink-0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Service Worker Background Info */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-slate-500 dark:text-slate-400 text-xs">
+              <Smartphone className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>
+                <strong>Agendamento PWA Nativo:</strong> O Service Worker persiste seus horários localmente para disparar notificações pontuais mesmo quando a aba estiver em segundo plano.
+              </span>
             </div>
           </div>
 
@@ -1159,27 +1538,45 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               </div>
               <div>
                 <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">
-                  Tour Guiado Interativo
+                  Tour de Boas-Vindas Interativo
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Reveja os principais recursos do app (Scanner de Despensa, Gerador de Refeições e mais) com setas guiadas apontando para os botões.
+                  Reveja as funcionalidades principais (Gerador de Receitas, Rastreador de Hábitos, Despensa IA e mais) a qualquer momento.
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                playSfx('pop');
-                vibrate(15);
-                window.dispatchEvent(new CustomEvent('app:openWelcomeTour'));
-              }}
-              className="px-4 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
-              id="btn-reopen-welcome-tour-profile"
-            >
-              <Compass className="w-4 h-4" />
-              <span>Fazer Tour com Setas</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('pop');
+                  vibrate(15);
+                  window.dispatchEvent(new CustomEvent('app:openWelcomeTour', { detail: { mode: 'introjs' } }));
+                }}
+                className="px-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                id="btn-reopen-introjs-tour-profile"
+                title="Iniciar tour passo a passo com Intro.js"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Tour Intro.js</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('pop');
+                  vibrate(15);
+                  window.dispatchEvent(new CustomEvent('app:openWelcomeTour', { detail: { mode: 'spotlight' } }));
+                }}
+                className="px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                id="btn-reopen-welcome-tour-profile"
+                title="Iniciar tour com setas visuais"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Tour com Setas</span>
+              </button>
+            </div>
           </div>
 
           <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />
@@ -1370,6 +1767,43 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* 3D Avatar Gallery Modal Portal */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {show3DAvatarGallery && (
+            <div className="fixed inset-0 z-[999998] flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-xl overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-6xl max-h-[92vh] overflow-y-auto bg-slate-950 rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-emerald-500/30 relative"
+              >
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Personalização de Avatar Biomecânico 3D</span>
+                  </div>
+                  <button
+                    onClick={() => setShow3DAvatarGallery(false)}
+                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <AvatarGallery
+                  userProfile={profile || undefined}
+                  onSelectAvatar={handleSelect3DAvatar}
+                  onClose={() => setShow3DAvatarGallery(false)}
+                  isModal={true}
+                />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Biometric Scanner Test Modal Portal */}
       {typeof document !== 'undefined' && createPortal(

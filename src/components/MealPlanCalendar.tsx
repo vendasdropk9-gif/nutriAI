@@ -287,6 +287,12 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   };
 
   const handleLogMeal = (recipe: Recipe, mealLabel: string) => {
+    const lower = mealLabel.toLowerCase();
+    const detectedType = lower.includes('almo') ? 'lunch'
+      : lower.includes('jant') ? 'dinner'
+      : lower.includes('caf') ? 'breakfast'
+      : 'snack';
+
     const log: IntakeLog = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -294,7 +300,8 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
       recipeName: recipe.name,
       planned: recipe.nutrition,
       actual: recipe.nutrition, // By default we assume they ate what was planned unless they adjust
-      adjusted: false
+      adjusted: false,
+      mealType: detectedType
     };
     onLogIntake(log);
     setLoggingMeal(mealLabel);

@@ -6398,3 +6398,90 @@ Sua missão crítica:
   ];
 };
 
+export const generateQuickTipsInsight = async (
+  profile: UserProfile,
+  intakeLogs: IntakeLog[]
+): Promise<{
+  title: string;
+  suggestion: string;
+  details: string;
+  actionLabel?: string;
+  recommendedMeal?: string;
+} | null> => {
+  const safeLogs = safeArray<IntakeLog>(intakeLogs);
+  const today = new Date().toDateString();
+  const todayLogs = safeLogs.filter(l => l && l.date && new Date(l.date).toDateString() === today);
+
+  const goal = profile?.goals || 'Perda de peso';
+  const hasLunch = todayLogs.some(l => {
+    const name = (l.recipeName || '').toLowerCase();
+    const type = (l.mealType || '').toLowerCase();
+    return type.includes('lunch') || type.includes('almo') || name.includes('almo');
+  });
+
+  const totalCalories = todayLogs.reduce((acc, curr) => acc + (Number(curr?.actual?.calories) || 0), 0);
+
+  const prompt = `Você é um nutricionista experiente do aplicativo NutriAI.
+Gere uma "Dica Rápida" hiper-personalizada para o Dashboard do usuário, conectando diretamente o histórico de refeições dele com suas metas.
+
+CONTEXTO DO USUÁRIO:
+- Nome: ${profile?.name || 'Usuário'}
+- Objetivo: ${goal}
+- Peso: ${profile?.weight || 70}kg | Meta: ${profile?.targetWeight || 65}kg
+- Total consumido hoje: ${totalCalories} kcal
+- Refeições registradas hoje: ${todayLogs.length > 0 ? JSON.stringify(todayLogs.map(l => ({ name: l.recipeName, cal: l.actual?.calories, type: l.mealType }))) : 'Nenhuma ainda hoje'}
+- Registrou Almoço hoje?: ${hasLunch ? 'SIM' : 'NÃO'}
+
+DIRETRIZ PRINCIPAL:
+Se o usuário registrou o almoço (ou se tem histórico de almoço), gere uma sugestão contextualizada no estilo:
+"Como você registrou o almoço, hoje seu jantar pode ser mais leve baseado no seu objetivo de perda de peso."
+Adicione uma recomendação prática para a próxima refeição (especialmente o jantar).
+
+Responda em formato JSON rigoroso:
+{
+  "title": "Título conciso da dica (ex: Almoço Registrado • Jantar Leve)",
+  "suggestion": "Frase direta de impacto (ex: Como você registrou o almoço, hoje seu jantar pode ser mais leve baseado no seu objetivo de perda de peso.)",
+  "details": "Explicação nutricional prática de 2 a 3 frases com ideias de alimentos leves.",
+  "actionLabel": "Texto do botão de ação (ex: Ver Pratos Rápidos Leves)",
+  "recommendedMeal": "Sugestão de refeição recomendada (ex: Salada morna com tiras de frango ou sopa de legumes)"
+}`;
+
+  try {
+    const ai = getGenAI();
+    if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            suggestion: { type: Type.STRING },
+            details: { type: Type.STRING },
+            actionLabel: { type: Type.STRING },
+            recommendedMeal: { type: Type.STRING }
+          },
+          required: ["title", "suggestion", "details"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    return parsed;
+  } catch (err) {
+    console.warn("[generateQuickTipsInsight] Usando fallback local estruturado:", err);
+    return {
+      title: hasLunch ? "Almoço Registrado • Jantar Leve" : "Calibragem Inteligente de Refeições",
+      suggestion: hasLunch
+        ? `Como você registrou o almoço, hoje seu jantar pode ser mais leve baseado no seu objetivo de ${goal.toLowerCase().includes('perda') ? 'perda de peso' : goal}.`
+        : `Ao registrar seu almoço hoje, seu jantar poderá ser calibrado automaticamente para ser mais leve e prático.`,
+      details: "Para manter o déficit calórico no alvo sem passar fome, priorize proteínas magras (peito de frango, peixe ou ovos) acompanhadas de vegetais no vapor e saladas frescas à noite.",
+      actionLabel: "Ver Pratos Rápidos Leves",
+      recommendedMeal: "Salada proteica ou legumes salteados com peito de frango"
+    };
+  }
+};
+

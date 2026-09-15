@@ -310,6 +310,14 @@ const appFeatures = [
     tags: ["perfil", "conta", "foto", "dados", "configuracoes", "nome", "senha", "biometria", "peso meta"]
   },
   {
+    name: "Integração Google Fit & Apple Health",
+    description: "Sincronize passos, calorias ativas e ajuste dinamicamente seu plano alimentar.",
+    tab: "profile",
+    icon: Activity,
+    category: "feature",
+    tags: ["google fit", "apple health", "passos", "calorias ativas", "sincronizacao", "healthkit", "oauth", "fitness", "gasto calorico", "relogio", "smartwatch"]
+  },
+  {
     name: "Parceiros & Descontos Exclusivos",
     description: "Lojas de suplementos, produtos naturais e academias com cupom.",
     tab: "partner",

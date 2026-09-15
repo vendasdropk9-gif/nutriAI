@@ -13,6 +13,7 @@ import {
 } from '../lib/offlineRecipes';
 import { RecipeCard } from './RecipeCard';
 import { playSfx, vibrate } from '../lib/sensory';
+import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 
 interface OfflineRecipesModalProps {
   isOpen: boolean;
@@ -33,6 +34,14 @@ export const OfflineRecipesModal: React.FC<OfflineRecipesModalProps> = ({
   const loadRecipes = () => {
     const list = getOfflineRecipes();
     setRecipes(list);
+
+    // Pré-carrega proativamente as imagens das receitas salvas no cache do SW
+    const imagesToPrefetch = list
+      .map(r => r.imageUrl || (r as any).image)
+      .filter((img): img is string => typeof img === 'string' && img.length > 0);
+    if (imagesToPrefetch.length > 0) {
+      prefetchRecipeImages(imagesToPrefetch);
+    }
 
     if (initialRecipeId) {
       const found = list.find(r => r.id === initialRecipeId);

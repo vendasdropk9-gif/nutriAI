@@ -10,6 +10,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
+import { startIntroJsTour } from '../lib/introTour';
 
 interface WelcomeTourProps {
   onFinish?: () => void;
@@ -90,7 +91,7 @@ const TOUR_STEPS: TourStep[] = [
     suggestedTab: 'generator',
     icon: <ChefHat className="w-6 h-6 text-amber-500 animate-pulse" />,
     badge: 'Gerador de Refeições',
-    primaryActionLabel: 'Ver Scanner de Despensa',
+    primaryActionLabel: 'Ver Rastreador de Hábitos',
     highlights: [
       {
         icon: <Apple className="w-4 h-4 text-emerald-500" />,
@@ -118,6 +119,41 @@ const TOUR_STEPS: TourStep[] = [
       }
     ],
     proTip: 'Você pode tocar no botão flutuante a qualquer momento, em qualquer tela, para gerar uma receita de emergência.'
+  },
+  {
+    id: 'habits-tracker',
+    title: 'Rastreador de Hábitos & Metas Diárias',
+    subtitle: 'Hidratação, sono, passos, queima calórica e streaks de constância.',
+    description: 'Observe a seta apontando para a aba de Hábitos na barra de navegação. Aqui você registra seu consumo de água copo a copo, acompanha seu jejum intermitente e monitora sua evolução diária com gráficos interativos.',
+    targetSelector: '#nav-item-habits',
+    secondaryTargetSelector: '#nav-item-habits',
+    targetButtonName: 'Aba Rastreador de Hábitos',
+    preferredArrowDirection: 'up',
+    suggestedTab: 'habits',
+    icon: <Activity className="w-6 h-6 text-rose-500 animate-pulse" />,
+    badge: 'Rastreador de Hábitos',
+    primaryActionLabel: 'Ver Scanner de Despensa',
+    highlights: [
+      {
+        icon: <Droplets className="w-4 h-4 text-sky-500" />,
+        title: 'Meta de Água & Lembretes',
+        description: 'Controle em tempo real de hidratação com progresso e notificações push.',
+        tagColor: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
+      },
+      {
+        icon: <Flame className="w-4 h-4 text-orange-500" />,
+        title: 'Streaks & Dias Consecutivos',
+        description: 'Mantenha sua disciplina e acumule pontos no ranking da comunidade.',
+        tagColor: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
+      },
+      {
+        icon: <HeartPulse className="w-4 h-4 text-rose-500" />,
+        title: 'Sono & Atividade Física',
+        description: 'Registre horas dormidas e gasto calórico para balancear sua alimentação.',
+        tagColor: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+      }
+    ],
+    proTip: 'Ative alertas push nos horários do seu perfil para ser lembrado automaticamente de beber água.'
   },
   {
     id: 'pantry-scanner',
@@ -333,15 +369,27 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
 
   // Allow reopening tour via custom event 'app:openWelcomeTour'
   useEffect(() => {
-    const handleReopenTour = () => {
-      setCurrentStepIndex(0);
-      setIsOpen(true);
-      playSfx('pop');
-      vibrate(20);
+    const handleReopenTour = (e: Event) => {
+      const customEvent = e as CustomEvent<{ mode?: 'introjs' | 'spotlight' }>;
+      if (customEvent.detail?.mode === 'introjs') {
+        setIsOpen(false);
+        setTimeout(() => {
+          startIntroJsTour({
+            forceStart: true,
+            onNavigateTab,
+            onComplete: onFinish
+          });
+        }, 80);
+      } else {
+        setCurrentStepIndex(0);
+        setIsOpen(true);
+        playSfx('pop');
+        vibrate(20);
+      }
     };
-    window.addEventListener('app:openWelcomeTour', handleReopenTour);
-    return () => window.removeEventListener('app:openWelcomeTour', handleReopenTour);
-  }, []);
+    window.addEventListener('app:openWelcomeTour', handleReopenTour as EventListener);
+    return () => window.removeEventListener('app:openWelcomeTour', handleReopenTour as EventListener);
+  }, [onNavigateTab, onFinish]);
 
   // Keyboard navigation (Escape to close, Arrow keys to navigate)
   useEffect(() => {
@@ -848,24 +896,46 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
 
               {/* Footer Controls & Navigation */}
               <div className="flex items-center justify-between pt-3.5 mt-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                {/* Step Indicators */}
-                <div className="flex items-center gap-1.5">
-                  {TOUR_STEPS.map((s, idx) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        playSfx('tap');
-                        handleStepTransition(idx);
-                      }}
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                        idx === currentStepIndex
-                          ? 'w-6 bg-emerald-500 dark:bg-emerald-400 shadow-xs'
-                          : 'w-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
-                      }`}
-                      aria-label={`Ir para passo ${idx + 1}`}
-                    />
-                  ))}
+                {/* Step Indicators & Intro.js switch */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    {TOUR_STEPS.map((s, idx) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          playSfx('tap');
+                          handleStepTransition(idx);
+                        }}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                          idx === currentStepIndex
+                            ? 'w-6 bg-emerald-500 dark:bg-emerald-400 shadow-xs'
+                            : 'w-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600'
+                        }`}
+                        aria-label={`Ir para passo ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose(false);
+                      setTimeout(() => {
+                        startIntroJsTour({
+                          forceStart: true,
+                          onNavigateTab,
+                          onComplete: onFinish
+                        });
+                      }, 100);
+                    }}
+                    className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                    title="Alternar para o modo Intro.js"
+                    id="btn-switch-to-introjs-tour"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Modo Intro.js</span>
+                  </button>
                 </div>
 
                 {/* Action Buttons */}

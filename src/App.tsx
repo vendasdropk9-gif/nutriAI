@@ -52,13 +52,14 @@ import { AiCookingAdvisor } from './components/AiCookingAdvisor';
 import { WellnessHub } from './components/WellnessHub';
 import { PhotoEvolution } from './components/PhotoEvolution';
 import { AnatomyWorkoutGuide } from './components/AnatomyWorkoutGuide';
+import { ExerciseVisualizer } from './components/ExerciseVisualizer';
 import { Assistant360 } from './components/Assistant360';
 import { QuickDishes } from './components/QuickDishes';
+import { prefetchCuratedRecipeCatalog } from './lib/recipeImagePrefetcher';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
 import { WelcomeTour } from './components/WelcomeTour';
-import { HeaderAvatar } from './components/HeaderAvatar';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
@@ -319,6 +320,14 @@ function AppContent() {
 
   useMealPushNotifications(profile, addNotification);
 
+  // Pré-aquecimento em segundo plano de imagens do catálogo para suporte offline robusto
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      prefetchCuratedRecipeCatalog();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const handleNav = (e: any) => setActiveTab(e.detail);
     window.addEventListener("navigate", handleNav);
@@ -552,20 +561,10 @@ function AppContent() {
               <GlobalSearch variant="desktop" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
             </div>
 
-            {/* Action Buttons Cluster (Avatar, Search on mobile, Feedback, Language, Dark Mode) */}
-            <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
-              {/* Header Profile Photo / Avatar Selector */}
-              <HeaderAvatar
-                profile={profile}
-                onSaveProfile={(updated) => {
-                  setProfile(updated);
-                  if (user) syncToFirestore(updated);
-                }}
-                onOpenProfileTab={() => setActiveTab('profile')}
-              />
-
+            {/* Action Buttons Cluster (Search on mobile, Feedback, Language, Dark Mode) */}
+            <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
               {/* Mobile Search Trigger */}
-              <div className="md:hidden flex items-center">
+              <div className="md:hidden flex items-center justify-center">
                 <GlobalSearch variant="mobile" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
               </div>
 
@@ -577,7 +576,7 @@ function AppContent() {
                   playSfx('tap');
                   setIsFeedbackOpen(true);
                 }}
-                className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-[1.5px] overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none cursor-pointer flex items-center justify-center"
+                className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full p-[1.5px] overflow-hidden shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)] dark:shadow-[0_0_15px_rgba(255,255,255,0.12)] focus:outline-none cursor-pointer flex items-center justify-center"
                 title={t('leave_feedback', 'Deixe seu feedback')}
                 id="header-feedback-trigger-btn"
               >
@@ -586,7 +585,7 @@ function AppContent() {
                 
                 {/* Perfectly centered inner icon */}
                 <div className="relative flex items-center justify-center rounded-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 w-full h-full">
-                  <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
                 </div>
               </motion.button>
 
@@ -601,7 +600,7 @@ function AppContent() {
                   setIsReadingMode(next);
                   window.dispatchEvent(new CustomEvent('app:reading-mode-changed', { detail: next }));
                 }}
-                className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all shrink-0 flex items-center justify-center cursor-pointer ${
+                className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full transition-all shrink-0 flex items-center justify-center cursor-pointer ${
                   isReadingMode 
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-400' 
                     : 'text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800'
@@ -609,7 +608,7 @@ function AppContent() {
                 title={isReadingMode ? t('reading_mode_disable', 'Desativar Modo de Leitura') : t('reading_mode_enable', 'Ativar Modo de Leitura')}
                 id="header-reading-mode-toggle-btn"
               >
-                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+                <BookOpen className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                 {isReadingMode && (
                   <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-white dark:border-slate-900" />
                 )}
@@ -627,11 +626,11 @@ function AppContent() {
                   vibrate(10);
                   setIsLanguageOpen(true);
                 }}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
                 title={t('change_language', 'Mudar idioma / Change language')}
                 id="header-language-trigger-btn"
               >
-                <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Globe className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
               </motion.button>
 
               {/* Dark Mode Toggle Button */}
@@ -639,13 +638,13 @@ function AppContent() {
                 whileHover={{ scale: 1.06 }} 
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-300 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-300 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
                 title={isDarkMode ? t('switch_light_mode', 'Mudar para modo claro') : t('switch_dark_mode', 'Mudar para modo escuro')}
               >
                 {isDarkMode ? (
-                  <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                  <Sun className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-400" />
                 ) : (
-                  <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
+                  <Moon className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-slate-700" />
                 )}
               </motion.button>
             </div>
@@ -692,15 +691,20 @@ function AppContent() {
               />
             )}
             {activeTab === 'assistant360' && (
-              <Assistant360 profile={profile} onNavigate={(tab) => {
-                if (tab === 'live') {
-                  // handle opening live assistant (we might have a state or we can just keep the floating button for it)
-                  // Let's just dispatch an event to open live assistant
-                  window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
-                } else {
-                  setActiveTab(tab as any);
-                }
-              }} />
+              <Assistant360 
+                profile={profile} 
+                onNavigate={(tab) => {
+                  if (tab === 'live') {
+                    // handle opening live assistant (we might have a state or we can just keep the floating button for it)
+                    // Let's just dispatch an event to open live assistant
+                    window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
+                  } else {
+                    setActiveTab(tab as any);
+                  }
+                }} 
+                onLogIntake={handleLogIntake}
+                onUpdateProfile={updateProfile}
+              />
             )}
             {activeTab === 'quickdishes' && (
               <QuickDishes
@@ -831,7 +835,7 @@ function AppContent() {
               />
             )}
             {activeTab === 'exercise3d' && (
-              <AnatomyWorkoutGuide />
+              <ExerciseVisualizer />
             )}
             {activeTab === 'evolution' && (
               <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />

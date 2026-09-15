@@ -165,9 +165,98 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
           navigateFallback: 'index.html',
+          navigateFallbackDenylist: [/^\/api\/.*/, /^\/manual/],
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
+          importScripts: ['/sw-push-scheduler.js'],
           runtimeCaching: [
+            // 1. Receitas & Imagens de Culinária (Unsplash CDN e outros bancos de imagens de pratos) - CacheFirst para carregamento offline instantâneo
+            {
+              urlPattern: /^https:\/\/(?:images\.unsplash\.com|images\.pexels\.com|cdn\.pixabay\.com|firebasestorage\.googleapis\.com|lh3\.googleusercontent\.com|res\.cloudinary\.com)\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'recipe-food-images-cache',
+                expiration: {
+                  maxEntries: 350,
+                  maxAgeSeconds: 60 * 60 * 24 * 60, // 60 dias de persistência para fotos de receitas
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // 2. Imagens Locais e Assets de Mídia (Avatares, Pratos, Ícones de Categoria)
+            {
+              urlPattern: /\.(?:png|jpg|jpeg|svg|webp|gif|avif|ico)$/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'app-media-assets-cache',
+                expiration: {
+                  maxEntries: 150,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // 3. Dados do Perfil e Endpoints da API NutriAI (/api/...) - NetworkFirst com fallback rápido para o cache
+            {
+              urlPattern: /\/api\/(?!health).*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'nutriai-profile-api-cache',
+                networkTimeoutSeconds: 3, // Se demorar mais de 3s ou estiver offline, serve dados do perfil em cache
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // 4. Dados do Perfil e Registros no Supabase (REST API - profiles, intake_logs, habits)
+            {
+              urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-profile-data-cache',
+                networkTimeoutSeconds: 3,
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 14, // 14 dias
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // 5. Dados do Perfil e Firestore/Google APIs (Fallback para Firestore REST)
+            {
+              urlPattern: /^https:\/\/(?:firestore|identitytoolkit)\.googleapis\.com\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'firestore-profile-data-cache',
+                networkTimeoutSeconds: 3,
+                expiration: {
+                  maxEntries: 80,
+                  maxAgeSeconds: 60 * 60 * 24 * 7,
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            // 6. Fontes do Google (CSS das fontes)
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
@@ -182,6 +271,7 @@ export default defineConfig(({mode}) => {
                 },
               },
             },
+            // 7. Arquivos de Fontes Web (Woff2 gstatic)
             {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
@@ -217,6 +307,58 @@ export default defineConfig(({mode}) => {
       sourcemap: false,
       minify: false,
       chunkSizeWarningLimit: 5000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+
+            // 1. Bibliotecas de animação (motion / framer-motion)
+            if (/[\\/]node_modules[\\/](motion|framer-motion)[\\/]/.test(id)) {
+              return 'vendor-motion';
+            }
+
+            // 2. Biblioteca de ícones (lucide-react)
+            if (/[\\/]node_modules[\\/]lucide-react[\\/]/.test(id)) {
+              return 'vendor-lucide';
+            }
+
+            // 3. Renderização 3D e canvas (three / @react-three)
+            if (/[\\/]node_modules[\\/](three|@react-three)[\\/]/.test(id)) {
+              return 'vendor-three';
+            }
+
+            // 4. Gráficos analíticos (recharts / d3)
+            if (/[\\/]node_modules[\\/](recharts|d3-[a-z0-9-]+|victory-vendor)[\\/]/.test(id)) {
+              return 'vendor-charts';
+            }
+
+            // 5. Mapas e geolocalização (leaflet / react-leaflet)
+            if (/[\\/]node_modules[\\/](leaflet|react-leaflet)[\\/]/.test(id)) {
+              return 'vendor-maps';
+            }
+
+            // 6. Firebase e autenticação/banco
+            if (/[\\/]node_modules[\\/](@firebase|firebase)[\\/]/.test(id)) {
+              return 'vendor-firebase';
+            }
+
+            // 7. Supabase client
+            if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id)) {
+              return 'vendor-supabase';
+            }
+
+            // 8. Utilitários de exportação (jspdf, html-to-image)
+            if (/[\\/]node_modules[\\/](jspdf|html-to-image|pdf-parse-new)[\\/]/.test(id)) {
+              return 'vendor-pdf';
+            }
+
+            // 9. React Core e runtime
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) {
+              return 'vendor-react';
+            }
+          },
+        },
+      },
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

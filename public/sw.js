@@ -1,3 +1,10 @@
+// Import native push and meal/challenge scheduler
+try {
+  importScripts('/sw-push-scheduler.js');
+} catch (e) {
+  console.warn('[SW] Could not import /sw-push-scheduler.js:', e);
+}
+
 const CACHE_NAME = 'nutriai-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',

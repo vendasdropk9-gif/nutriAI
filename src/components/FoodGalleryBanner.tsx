@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, Utensils, Zap, ShoppingCart, ChefHat, Flame, Salad, Soup, Sparkles } from 'lucide-react';
+import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 
 interface FoodSlide {
   id: string;
@@ -81,6 +82,11 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
   const [prevRecipesCount, setPrevRecipesCount] = useState<number | undefined>(recipesCount);
   const [isPulsing, setIsPulsing] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+
+  // Pré-carrega no Service Worker as imagens dos pratos do banner para exibição offline imediata
+  useEffect(() => {
+    prefetchRecipeImages(FOOD_SLIDES.map(s => s.image));
+  }, []);
 
   useEffect(() => {
     if (recipesCount !== undefined) {

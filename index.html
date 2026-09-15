@@ -44,38 +44,16 @@
     
     <!-- Service Worker Registration -->
     <script type="module">
-      if (import.meta.env.PROD) {
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-              .then((reg) => {
-                console.log('NutriAI PWA Service Worker registrado com sucesso:', reg.scope);
-              })
-              .catch((err) => {
-                console.warn('Falha ao registrar o Service Worker do NutriAI PWA:', err);
-              });
-          });
-        }
-      } else {
-        // Em desenvolvimento, desregistrar ativamente qualquer service worker e limpar o cache
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then((registrations) => {
-            for (const registration of registrations) {
-              registration.unregister().then(() => {
-                console.log('Service Worker antigo desregistrado com sucesso em desenvolvimento.');
-              });
-            }
-          });
-        }
-        if ('caches' in window) {
-          caches.keys().then((keys) => {
-            for (const key of keys) {
-              caches.delete(key).then(() => {
-                console.log('Cache limpo em desenvolvimento:', key);
-              });
-            }
-          });
-        }
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              console.log('NutriAI PWA Service Worker registrado com sucesso:', reg.scope);
+            })
+            .catch((err) => {
+              console.warn('Falha ao registrar o Service Worker do NutriAI PWA:', err);
+            });
+        });
       }
     </script>
   </body>

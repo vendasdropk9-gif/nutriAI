@@ -1,12 +1,16 @@
 import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
 import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
-import { Avatar3D } from './Avatar3D';
+import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
+import realisticAvatarImg from '../assets/images/realistic_fitness_avatar_1789485014929.jpg';
+
+// Lazy load Avatar3D to eliminate main-thread blocking on tab switch
+const Avatar3D = lazy(() => import('./Avatar3D'));
 
 interface PersonalTrainerProps {
   profile: UserProfile | null;
@@ -205,6 +209,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [activeMode, setActiveMode] = useState<'training' | 'tutorial'>('training');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [cameraView, setCameraView] = useState<'front' | 'side' | 'detail'>('front');
+  const [avatarDisplayMode, setAvatarDisplayMode] = useState<'realistic' | '3d'>('realistic');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showWrongMode, setShowWrongMode] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
@@ -783,33 +788,106 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start justify-center">
            {/* Left Column: Avatar and Visuals */}
            <div className="lg:col-span-7 space-y-6 relative w-full">
-             <div className="relative w-full rounded-[32px] md:rounded-[40px] overflow-hidden bg-slate-950/5 dark:bg-slate-900/50 shadow-2xl">
-               <Avatar3D 
-                 activeMuscles={currentExercise?.primaryMuscles || []} 
-                 animation={
-                   showWrongMode ? 'wrong' : 
-                   (activeMode === 'tutorial' ? currentExercise?.tutorialSteps?.[tutorialStep]?.animationState || 'tutorial' : 
-                   (isTimerActive ? 'executing' : 'idle'))
-                 }
-                 view={cameraView}
-                 playbackSpeed={playbackSpeed}
-               />
+             <div className="relative w-full min-h-[420px] rounded-[32px] md:rounded-[40px] overflow-hidden bg-slate-950/80 dark:bg-slate-900/90 shadow-2xl border border-emerald-500/20 flex items-center justify-center">
+               {avatarDisplayMode === 'realistic' ? (
+                 <div className="w-full h-full min-h-[420px] relative flex items-center justify-center p-4">
+                   {/* Background ambient lighting */}
+                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-950/30 via-transparent to-transparent pointer-events-none" />
+                   
+                   <motion.div
+                     className="relative max-h-full max-w-full flex items-center justify-center"
+                     animate={isTimerActive ? {
+                       scale: [1, 1.02, 1],
+                       y: [0, -3, 0],
+                     } : { scale: 1, y: 0 }}
+                     transition={{
+                       duration: (2.5 / playbackSpeed),
+                       repeat: Infinity,
+                       ease: "easeInOut"
+                     }}
+                   >
+                     <img
+                       src={realisticAvatarImg}
+                       alt={currentExercise?.name || "Exercício"}
+                       className="max-h-[360px] md:max-h-[400px] w-auto object-contain drop-shadow-[0_0_35px_rgba(59,130,246,0.35)] rounded-2xl"
+                       referrerPolicy="no-referrer"
+                     />
 
-              {/* Viewpoint Controls */}
+                     {/* Biomechanical Target Highlight Overlays */}
+                     {currentExercise?.primaryMuscles?.[0] && (
+                       <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5">
+                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                         <span className="text-[10px] md:text-xs font-bold text-white uppercase">{currentExercise.primaryMuscles[0]}</span>
+                       </div>
+                     )}
+                   </motion.div>
+                 </div>
+               ) : (
+                 <Suspense
+                   fallback={
+                     <Static3DAvatarPlaceholder
+                       title={currentExercise?.name || "Exercício 3D"}
+                       subtitle="Carregando modelo anatômico do instrutor..."
+                       heightClass="min-h-[420px]"
+                     />
+                   }
+                 >
+                   <Avatar3D 
+                     activeMuscles={currentExercise?.primaryMuscles || []} 
+                     animation={
+                       showWrongMode ? 'wrong' : 
+                       (activeMode === 'tutorial' ? currentExercise?.tutorialSteps?.[tutorialStep]?.animationState || 'tutorial' : 
+                       (isTimerActive ? 'executing' : 'idle'))
+                     }
+                     view={cameraView}
+                     playbackSpeed={playbackSpeed}
+                   />
+                 </Suspense>
+               )}
+
+              {/* Avatar Mode & Viewpoint Controls */}
               <div className="absolute top-6 left-6 md:top-8 md:left-8 flex flex-col gap-2 z-10">
-                {(['front', 'side', 'detail'] as const).map(v => (
+                {/* Mode toggle (Realista vs 3D) */}
+                <div className="flex items-center gap-1 p-1 bg-slate-950/80 backdrop-blur-md rounded-full border border-emerald-500/30">
                   <button
-                    key={v}
-                    onClick={() => setCameraView(v)}
-                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all ${
-                      cameraView === v 
-                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' 
-                      : 'bg-white/10 text-white border-white/20 active:bg-white/30'
+                    onClick={() => setAvatarDisplayMode('realistic')}
+                    className={`px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${
+                      avatarDisplayMode === 'realistic'
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md'
+                        : 'text-emerald-400 hover:text-white'
                     }`}
                   >
-                    {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
+                    Realista
                   </button>
-                ))}
+                  <button
+                    onClick={() => setAvatarDisplayMode('3d')}
+                    className={`px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${
+                      avatarDisplayMode === '3d'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    3D
+                  </button>
+                </div>
+
+                {avatarDisplayMode === '3d' && (
+                  <div className="flex flex-col gap-1.5">
+                    {(['front', 'side', 'detail'] as const).map(v => (
+                      <button
+                        key={v}
+                        onClick={() => setCameraView(v)}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all ${
+                          cameraView === v 
+                          ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' 
+                          : 'bg-white/10 text-white border-white/20 active:bg-white/30'
+                        }`}
+                      >
+                        {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Ambient Music Controls Overlay */}

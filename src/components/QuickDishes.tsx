@@ -27,6 +27,7 @@ import {
 import { QuickDish, QuickDishGoal, UserProfile, Recipe } from '../types';
 import { generateQuickDishes } from '../lib/gemini';
 import { getClientFallbackQuickDishes, DEFAULT_FALLBACK_IMAGE } from '../lib/quickDishesData';
+import { prefetchDishes } from '../lib/recipeImagePrefetcher';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -84,6 +85,13 @@ export function QuickDishes({
       handleGenerate(selectedGoal);
     }
   }, []);
+
+  // Pré-carrega proativamente as fotos de pratos no Service Worker para acesso offline instantâneo
+  useEffect(() => {
+    if (dishes && dishes.length > 0) {
+      prefetchDishes(dishes);
+    }
+  }, [dishes]);
 
   const handleGenerate = async (goalToUse: QuickDishGoal) => {
     setIsLoading(true);

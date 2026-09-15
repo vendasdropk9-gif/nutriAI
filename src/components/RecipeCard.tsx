@@ -13,6 +13,7 @@ import { db, auth } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
+import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -346,6 +347,13 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   });
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+
+  // Pré-carrega no Service Worker a imagem da receita para garantir visualização offline imediata
+  useEffect(() => {
+    if (recipeImage && typeof recipeImage === 'string' && recipeImage.startsWith('http')) {
+      prefetchRecipeImages([recipeImage]);
+    }
+  }, [recipeImage]);
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isExportingCard, setIsExportingCard] = useState(false);

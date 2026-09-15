@@ -1253,3 +1253,16 @@ export const generatePantryExpiringRecipes = async (
   ];
 };
 
+export const generateQuickTipsInsight = async (
+  profile: UserProfile,
+  intakeLogs: IntakeLog[]
+): Promise<{
+  title: string;
+  suggestion: string;
+  details: string;
+  actionLabel?: string;
+  recommendedMeal?: string;
+} | null> => {
+  return callGeminiEndpoint('generateQuickTipsInsight', [profile, intakeLogs]);
+};
+

@@ -9,6 +9,7 @@ export interface IntakeLog {
   planned: NutritionInfo;
   actual: NutritionInfo;
   adjusted: boolean; // If IA adjusted later meals based on this
+  mealType?: 'breakfast' | 'lunch' | 'snack' | 'dinner' | string;
 }
 
 export interface ProgressLog {
@@ -100,6 +101,11 @@ export interface UserProfile {
   targetWeight?: number;
   skinTone?: string;
   hairColor?: string;
+  avatarId?: string;
+  avatarName?: string;
+  avatarAccentColor?: string;
+  avatarDracoOptimized?: boolean;
+  avatarLowMemoryMode?: boolean;
   bodyType?: BodyType;
   metabolism?: MetabolismSpeed;
   routine?: string;
@@ -139,6 +145,73 @@ export interface UserProfile {
   bloodPressureLogs?: BloodPressureLog[];
   bodyMonitorLogs?: BodyMonitorLog[];
   notes?: Note[];
+  mealRemindersEnabled?: boolean;
+  mealNotificationTimes?: MealNotificationTimes;
+  challengeRemindersEnabled?: boolean;
+  challengeReminderTime?: string; // "09:00"
+  challengeReviewTime?: string; // "19:00"
+  notificationPreferences?: NotificationPreferences;
+  healthIntegrations?: HealthIntegrationConfig;
+}
+
+export interface HealthIntegrationConfig {
+  googleFit?: {
+    connected: boolean;
+    lastSync?: string;
+    accessToken?: string;
+    autoSync: boolean;
+    syncSteps: boolean;
+    syncCalories: boolean;
+    syncHeartRate?: boolean;
+    accountEmail?: string;
+  };
+  appleHealth?: {
+    connected: boolean;
+    lastSync?: string;
+    autoSync: boolean;
+    syncSteps: boolean;
+    syncCalories: boolean;
+    syncHeartRate?: boolean;
+    deviceId?: string;
+  };
+  autoAdjustMealPlan: boolean;
+  activityCalorieFactor?: number; // 0.0 - 1.0 (e.g. 0.5 for 50% compensation to maintain deficit)
+  dailyMetrics?: {
+    date: string;
+    steps: number;
+    activeCalories: number;
+    distanceKm: number;
+    avgHeartRate?: number;
+    source: 'google_fit' | 'apple_health' | 'manual';
+    lastUpdated: string;
+  };
+  history?: Array<{
+    date: string;
+    steps: number;
+    activeCalories: number;
+    distanceKm: number;
+    adjustedCaloriesAdded: number;
+    source: 'google_fit' | 'apple_health';
+  }>;
+}
+
+export interface MealNotificationTimes {
+  breakfast?: string;
+  morningSnack?: string;
+  lunch?: string;
+  afternoonSnack?: string;
+  dinner?: string;
+  supper?: string;
+}
+
+export interface NotificationPreferences {
+  nativePushEnabled?: boolean;
+  mealAlertsEnabled?: boolean;
+  mealTimes?: MealNotificationTimes;
+  challengeAlertsEnabled?: boolean;
+  challengeReminderTime?: string;
+  challengeReviewTime?: string;
+  soundEnabled?: boolean;
 }
 
 export interface BodyMonitorLog {

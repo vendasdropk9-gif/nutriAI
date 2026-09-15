@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from "react";
 import { UserProfile } from "../types";
 import {
   generateAvatarImage,
@@ -24,10 +24,14 @@ import {
   Heart
 } from "lucide-react";
 import { jsPDF } from "jspdf";
-import { Avatar3D } from "./Avatar3D";
 import { JourneyAnalyticsDashboard } from "./JourneyAnalyticsDashboard";
 import { WeeklySummary } from "./WeeklySummary";
 import { GoldenWaterTip } from "./GoldenWaterTip";
+import { Static3DAvatarPlaceholder } from "./Static3DAvatarPlaceholder";
+import realisticSimulatorImg from "../assets/images/realistic_simulator_avatar_1789485027705.jpg";
+
+// Lazy load the 3D Avatar component to eliminate tab-switching lag and initial load overhead
+const Avatar3D = lazy(() => import("./Avatar3D"));
 
 interface JourneyVisualizerProps {
   profile: UserProfile | null;
@@ -62,7 +66,7 @@ export function JourneyVisualizer({ profile, onUpdateProfile }: JourneyVisualize
   const isFemale = profile?.gender === 'feminino';
   const defaultAvatars = isFemale ? DEFAULT_AVATARS_FEMALE : DEFAULT_AVATARS_MALE;
 
-  const [simMode, setSimMode] = useState<'biomechanic3d' | 'photomorph'>('biomechanic3d');
+  const [simMode, setSimMode] = useState<'realistic' | 'biomechanic3d' | 'photomorph'>('realistic');
   
   const [images, setImages] = useState<Record<Period, string | null>>({
     day1: defaultAvatars.day1,
@@ -364,31 +368,44 @@ export function JourneyVisualizer({ profile, onUpdateProfile }: JourneyVisualize
       </div>
 
       {/* Centered Mode Switcher Pill */}
-      <div className="flex items-center justify-center p-1.5 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full mb-8 max-w-md w-full mx-auto border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+      <div className="flex items-center justify-center p-1.5 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full mb-8 max-w-xl w-full mx-auto border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
+        <button
+          type="button"
+          onClick={() => setSimMode('realistic')}
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none ${
+            simMode === 'realistic'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-md shadow-emerald-500/30'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Avatar Realista</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setSimMode('biomechanic3d')}
-          className={`flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer select-none ${
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none ${
             simMode === 'biomechanic3d'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Avatar 3D Interativo</span>
+          <span>Avatar 3D</span>
         </button>
 
         <button
           type="button"
           onClick={() => setSimMode('photomorph')}
-          className={`flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer select-none ${
+          className={`flex-1 py-2.5 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer select-none ${
             simMode === 'photomorph'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <ImageIcon className="w-4 h-4" />
-          <span>Metamorfose 90 Dias (IA)</span>
+          <span>Metamorfose 90D</span>
         </button>
       </div>
 
@@ -408,6 +425,113 @@ export function JourneyVisualizer({ profile, onUpdateProfile }: JourneyVisualize
             <div className="text-left flex-1">
               <p className="text-[11px] uppercase tracking-wider font-bold text-emerald-700 dark:text-emerald-400 mb-0.5">Assistente Malu</p>
               <p className="font-sans text-slate-700 dark:text-slate-200 font-medium italic text-sm sm:text-base leading-relaxed">"{message}"</p>
+            </div>
+          </div>
+        )}
+
+        {/* MODE 0: Photorealistic 3D Fitness Avatar */}
+        {simMode === 'realistic' && (
+          <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
+            
+            {/* Focus Controls */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-xs">
+              <button
+                onClick={() => setSelectedMuscleFocus('fullbody')}
+                className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${selectedMuscleFocus === 'fullbody' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                Corpo Inteiro
+              </button>
+              <button
+                onClick={() => setSelectedMuscleFocus('core')}
+                className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${selectedMuscleFocus === 'core' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                Core & Abdômen
+              </button>
+              <button
+                onClick={() => setSelectedMuscleFocus('upper')}
+                className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${selectedMuscleFocus === 'upper' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                Superior & Ombros
+              </button>
+              <button
+                onClick={() => setSelectedMuscleFocus('lower')}
+                className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${selectedMuscleFocus === 'lower' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                Inferior & Coxas
+              </button>
+            </div>
+
+            {/* Realistic Stage Viewport */}
+            <div className="w-full max-w-2xl min-h-[420px] sm:min-h-[480px] bg-gradient-to-b from-[#09101d] via-[#040810] to-[#020408] rounded-[28px] sm:rounded-[36px] border border-emerald-500/30 p-4 sm:p-6 relative overflow-hidden flex flex-col items-center justify-center shadow-2xl">
+              {/* Cyan biometric scanning ring */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Top floating biometric status badge */}
+              <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-emerald-400/40 text-xs font-bold text-emerald-400 shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Biometria HD Ativa</span>
+              </div>
+
+              <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-blue-400/40 text-xs font-bold text-blue-400 shadow-lg">
+                <Zap className="w-3.5 h-3.5 text-blue-400" />
+                <span>Simetria: 98.4%</span>
+              </div>
+
+              {/* Realistic Avatar Image & Overlays */}
+              <div className="relative z-10 flex items-center justify-center py-2">
+                <img
+                  src={realisticSimulatorImg}
+                  alt="Avatar Realista 3D"
+                  className="max-h-[360px] sm:max-h-[420px] w-auto object-contain drop-shadow-[0_0_40px_rgba(56,189,248,0.35)] rounded-2xl"
+                  referrerPolicy="no-referrer"
+                />
+
+                {/* Laser Scanning Line Animation */}
+                <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee] animate-pulse pointer-events-none" />
+              </div>
+
+              {/* Bottom Projection Label */}
+              <div className="absolute bottom-4 inset-x-0 flex justify-center px-4 pointer-events-none z-10">
+                <div className="bg-slate-950/85 backdrop-blur-md px-5 py-2 rounded-2xl border border-slate-700/80 shadow-xl flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white text-xs sm:text-sm font-black uppercase tracking-wider">
+                    Projeção Anatômica Realista • Hipertrofia & Definição
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Centered Metrics Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl mx-auto">
+              <div className="bg-slate-50/90 dark:bg-slate-800/80 p-5 rounded-[24px] border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-400 mb-1">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Peso de Referência</span>
+                </div>
+                <p className="text-3xl sm:text-4xl font-serif text-slate-800 dark:text-slate-100 tracking-tight">
+                  {profile?.weight || 70} <span className="text-lg text-slate-400">kg</span>
+                </p>
+              </div>
+
+              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-5 rounded-[24px] border border-emerald-200/60 dark:border-emerald-800/40 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
+                  <Sparkles className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Gordura Estimada</span>
+                </div>
+                <p className="text-3xl sm:text-4xl font-serif text-emerald-800 dark:text-emerald-300 tracking-tight">
+                  {isFemale ? '26.5' : '18.0'} <span className="text-lg text-emerald-500">%</span>
+                </p>
+              </div>
+
+              <div className="bg-indigo-50/80 dark:bg-indigo-950/40 p-5 rounded-[24px] border border-indigo-200/60 dark:border-indigo-800/40 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 mb-1">
+                  <Activity className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Massa Magra</span>
+                </div>
+                <p className="text-3xl sm:text-4xl font-serif text-indigo-800 dark:text-indigo-300 tracking-tight">
+                  {((profile?.weight || 70) * (isFemale ? 0.735 : 0.82)).toFixed(1)} <span className="text-lg text-indigo-500">kg</span>
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -467,14 +591,24 @@ export function JourneyVisualizer({ profile, onUpdateProfile }: JourneyVisualize
               </div>
             </div>
 
-            {/* Centered Three.js 3D Canvas Box */}
+            {/* Centered Three.js 3D Canvas Box with Lazy Loading and Biometric Scan Placeholder */}
             <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center">
-              <Avatar3D 
-                activeMuscles={activeMuscles}
-                animation={avatarAnimation}
-                view={avatarView}
-                playbackSpeed={1}
-              />
+              <Suspense
+                fallback={
+                  <Static3DAvatarPlaceholder
+                    title="Modelo 3D Biomecânico"
+                    subtitle="Carregando malha 3D e renderizador WebGL..."
+                    heightClass="min-h-[420px]"
+                  />
+                }
+              >
+                <Avatar3D 
+                  activeMuscles={activeMuscles}
+                  animation={avatarAnimation}
+                  view={avatarView}
+                  playbackSpeed={1}
+                />
+              </Suspense>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
                 Arraste com o dedo ou mouse para girar 360° e inspecionar a estrutura biomecânica.
               </p>

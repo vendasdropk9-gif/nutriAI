@@ -4,14 +4,19 @@ import { useTranslation } from 'react-i18next';
 import { 
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
-  Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart
+  Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart, Footprints
 } from 'lucide-react';
-import { UserProfile } from '../types';
+import { UserProfile, IntakeLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
+import { DashboardQuickTips } from './DashboardQuickTips';
+import { ConnectedHealthWidget } from './ConnectedHealthWidget';
+import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
 
 interface Assistant360Props {
   profile: UserProfile | null;
   onNavigate: (tabId: string) => void;
+  onLogIntake?: (log: IntakeLog) => void;
+  onUpdateProfile?: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
 }
 
 const PROACTIVE_TIPS = [
@@ -21,7 +26,7 @@ const PROACTIVE_TIPS = [
   { text: "Qualidade do sono ontem atingiu 88%. Excelente recuperação corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
 ];
 
-export function Assistant360({ profile, onNavigate }: Assistant360Props) {
+export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile }: Assistant360Props) {
   const { t } = useTranslation();
   const [activeTip, setActiveTip] = useState(0);
 
@@ -238,6 +243,13 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
         </div>
       </motion.div>
 
+      {/* NOVO: Sistema de Dicas Rápidas Inteligentes Conectado ao Histórico */}
+      <DashboardQuickTips 
+        profile={profile} 
+        onNavigate={onNavigate} 
+        onLogIntake={onLogIntake} 
+      />
+
       {/* 3. Resumo do Dia / Daily Health Metrics Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
@@ -345,6 +357,21 @@ export function Assistant360({ profile, onNavigate }: Assistant360Props) {
           </div>
 
         </div>
+
+        {/* WIDGET DE SAÚDE CONECTADA (Google Fit / Apple Health) */}
+        <ConnectedHealthWidget
+          profile={profile}
+          onNavigate={onNavigate}
+          onUpdateProfile={onUpdateProfile}
+        />
+
+        {/* AJUSTE DINÂMICO NO PLANO DE REFEIÇÕES BASEADO EM DADOS DE SAÚDE */}
+        <AdaptiveMealAdjustmentCard
+          profile={profile}
+          onNavigate={onNavigate}
+          onLogIntake={onLogIntake}
+          onUpdateProfile={onUpdateProfile}
+        />
       </div>
 
       {/* NOVO: BANNER DESTAQUE PARA O RESTAURANTE INTELIGENTE */}

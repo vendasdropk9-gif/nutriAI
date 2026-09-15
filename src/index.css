@@ -460,5 +460,170 @@ html[dir="rtl"] input[type="tel"] {
   text-align: left;
 }
 
+/* ===================================================
+   Custom NutriAI Styling for Intro.js Welcome Tour
+   =================================================== */
+
+.introjs-overlay {
+  background: rgba(11, 15, 20, 0.82) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.3s ease-out !important;
+}
+
+.introjs-helperLayer {
+  border-radius: 20px !important;
+  box-shadow: 0 0 0 9999px rgba(11, 15, 20, 0.82), 0 0 28px rgba(16, 185, 129, 0.85) !important;
+  border: 2px solid #10B981 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.nutri-intro-tooltip,
+.introjs-tooltip {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  padding: 18px 20px !important;
+  max-width: 440px !important;
+  min-width: 300px !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.dark .nutri-intro-tooltip,
+.dark .introjs-tooltip {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+.introjs-tooltip-title {
+  font-family: 'Poppins', system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  color: #0f172a !important;
+  margin-bottom: 6px !important;
+}
+
+.dark .introjs-tooltip-title {
+  color: #ffffff !important;
+}
+
+.introjs-tooltiptext {
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  color: #334155 !important;
+  padding: 4px 0 12px !important;
+}
+
+.dark .introjs-tooltiptext {
+  color: #cbd5e1 !important;
+}
+
+.introjs-tooltipbuttons {
+  border-top: 1px solid #f1f5f9 !important;
+  padding-top: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.dark .introjs-tooltipbuttons {
+  border-top: 1px solid #1e293b !important;
+}
+
+.introjs-button {
+  border-radius: 12px !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+  padding: 8px 14px !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.introjs-nextbutton,
+.introjs-donebutton {
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.introjs-nextbutton:hover,
+.introjs-donebutton:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  transform: translateY(-1px);
+}
+
+.introjs-prevbutton {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.dark .introjs-prevbutton {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+  border: 1px solid #334155 !important;
+}
+
+.introjs-skipbutton {
+  background: transparent !important;
+  color: #64748b !important;
+  border: none !important;
+  font-size: 11.5px !important;
+}
+
+.dark .introjs-skipbutton {
+  color: #94a3b8 !important;
+}
+
+.introjs-progressbar {
+  background-color: #10B981 !important;
+  border-radius: 9999px !important;
+}
+
+.introjs-progress {
+  border-radius: 9999px !important;
+  background-color: rgba(226, 232, 240, 0.6) !important;
+  margin-top: 10px !important;
+}
+
+.dark .introjs-progress {
+  background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+.introjs-bullets ul li a.active {
+  background: #10B981 !important;
+  width: 18px !important;
+  border-radius: 9999px !important;
+}
+
+.introjs-bullets ul li a {
+  background: #cbd5e1 !important;
+  transition: all 0.2s ease !important;
+}
+
+.dark .introjs-bullets ul li a {
+  background: #475569 !important;
+}
+
+.introjs-arrow {
+  border-color: #ffffff transparent !important;
+}
+
+.dark .introjs-arrow {
+  border-color: #0f172a transparent !important;
+}
+
 
 

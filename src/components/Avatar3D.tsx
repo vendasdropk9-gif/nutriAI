@@ -2,14 +2,21 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Zap, Cpu } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { getAvatarById, AvatarCatalogItem } from '../data/avatarCatalog';
+import { getDracoCompressionStats, isLowEndDevice, dispose3DObject } from '../lib/dracoLoader';
 
-interface Avatar3DProps {
+export interface Avatar3DProps {
   activeMuscles: string[];
   animation?: 'idle' | 'executing' | 'tutorial' | 'wrong' | 'perfect';
   view?: 'front' | 'side' | 'detail';
   playbackSpeed?: number;
+  avatarId?: string;
+  avatarConfig?: Partial<AvatarCatalogItem['modelConfig']>;
+  lowMemoryMode?: boolean;
+  showDracoBadge?: boolean;
+  gltfUrl?: string; // URL of the exercise GLB file
 }
 
 // Camera controller that smoothly transitions to target view
@@ -130,8 +137,82 @@ function MusclePart({
   );
 }
 
+// Component to load and display GLTF/GLB models using DRACO compression
+function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig }: { url: string } & Avatar3DProps) {
+  const group = useRef<THREE.Group>(null);
+  const [model, setModel] = useState<THREE.Group | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    
+    import('../lib/dracoLoader').then(({ loadCompressedAvatarGLTF }) => {
+      loadCompressedAvatarGLTF(url).then((scene) => {
+        if (!active) return;
+        
+        // Traverse and update materials based on avatar config
+        const avatar = getAvatarById(avatarId);
+        const skinColor = avatarConfig?.skinColor || avatar.modelConfig.skinColor || '#d4a373';
+        const accentColor = avatarConfig?.accentColor || avatar.modelConfig.accentColor || '#10b981';
+        
+        scene.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            
+            // Simple material override logic based on node names (if any)
+            if (child.material) {
+              const newMat = child.material.clone();
+              if (child.name.toLowerCase().includes('skin') || child.name.toLowerCase().includes('body')) {
+                newMat.color.set(skinColor);
+              } else if (child.name.toLowerCase().includes('accent') || child.name.toLowerCase().includes('glow')) {
+                newMat.color.set(accentColor);
+                newMat.emissive.set(accentColor);
+                newMat.emissiveIntensity = 2.0;
+              }
+              child.material = newMat;
+            }
+          }
+        });
+        
+        setModel(scene);
+      }).catch(err => {
+        console.error("Failed to load GLTF:", err);
+        if (active) setError(err);
+      });
+    });
+
+    return () => {
+      active = false;
+      if (model) {
+        import('../lib/dracoLoader').then(({ dispose3DObject }) => {
+          dispose3DObject(model);
+        });
+      }
+    };
+  }, [url, avatarId, avatarConfig]);
+
+  if (error) {
+    console.error("Rendering fallback due to GLTF error:", error);
+    return null; // The parent will handle the fallback
+  }
+
+  return (
+    <group ref={group}>
+      {model && <primitive object={model} />}
+    </group>
+  );
+}
+
 // Realistic Anatomical Humanoid Model with smooth athletic curves & joints
-function RealisticHumanoidModel({ activeMuscles, animation = 'idle', playbackSpeed = 1 }: Avatar3DProps) {
+function RealisticHumanoidModel({
+  activeMuscles,
+  animation = 'idle',
+  playbackSpeed = 1,
+  avatarId,
+  avatarConfig,
+  lowMemoryMode = false
+}: Avatar3DProps) {
   const rootGroup = useRef<THREE.Group>(null);
   const spineGroup = useRef<THREE.Group>(null);
   const leftArmGroup = useRef<THREE.Group>(null);
@@ -144,39 +225,75 @@ function RealisticHumanoidModel({ activeMuscles, animation = 'idle', playbackSpe
   const rightKneeGroup = useRef<THREE.Group>(null);
   const headGroup = useRef<THREE.Group>(null);
 
+  // Retrieve current avatar config from catalog or props
+  const avatar = useMemo(() => {
+    const base = getAvatarById(avatarId);
+    if (!avatarConfig) return base;
+    return {
+      ...base,
+      modelConfig: {
+        ...base.modelConfig,
+        ...avatarConfig,
+        proportions: {
+          ...base.modelConfig.proportions,
+          ...(avatarConfig.proportions || {})
+        }
+      }
+    };
+  }, [avatarId, avatarConfig]);
+
+  const { modelConfig } = avatar;
+  const isCyber = modelConfig.isCyber;
+  const skinColor = modelConfig.skinColor || '#d4a373';
+  const accentGlow = modelConfig.accentColor || '#10b981';
+  const apparelColor = modelConfig.apparelColor || '#0f172a';
+  const p = modelConfig.proportions;
+
+  // DRACO-quantized level of detail: reduce segments on mobile/lowMemoryMode
+  const seg = useMemo(() => {
+    return lowMemoryMode ? { sphere: 16, cyl: 14, cap: 10 } : { sphere: 32, cyl: 24, cap: 16 };
+  }, [lowMemoryMode]);
+
   // Shared reusable smooth geometries for high performance & realistic contours
   const geo = useMemo(() => {
     return {
-      head: new THREE.SphereGeometry(0.2, 32, 32),
-      jaw: new THREE.CylinderGeometry(0.12, 0.08, 0.12, 24),
-      visor: new THREE.TorusGeometry(0.17, 0.03, 16, 32, Math.PI),
-      neck: new THREE.CylinderGeometry(0.09, 0.12, 0.18, 24),
-      clavicle: new THREE.CapsuleGeometry(0.04, 0.45, 12, 16),
-      pectoral: new THREE.CapsuleGeometry(0.08, 0.16, 16, 16),
-      upperRibs: new THREE.CapsuleGeometry(0.15, 0.28, 16, 16),
-      lat: new THREE.CapsuleGeometry(0.07, 0.22, 16, 16),
-      abUpper: new THREE.CapsuleGeometry(0.05, 0.1, 12, 12),
-      abMid: new THREE.CapsuleGeometry(0.05, 0.09, 12, 12),
-      abLower: new THREE.CapsuleGeometry(0.05, 0.08, 12, 12),
-      oblique: new THREE.CapsuleGeometry(0.055, 0.18, 12, 12),
-      pelvis: new THREE.CapsuleGeometry(0.13, 0.22, 16, 16),
-      glute: new THREE.SphereGeometry(0.12, 24, 24),
-      deltoid: new THREE.SphereGeometry(0.1, 24, 24),
-      bicep: new THREE.CapsuleGeometry(0.065, 0.22, 16, 16),
-      tricep: new THREE.CapsuleGeometry(0.06, 0.2, 16, 16),
-      jointSphere: new THREE.SphereGeometry(0.06, 16, 16),
-      forearm: new THREE.CapsuleGeometry(0.055, 0.22, 16, 16),
-      hand: new THREE.CapsuleGeometry(0.045, 0.1, 12, 12),
-      quadMain: new THREE.CapsuleGeometry(0.095, 0.35, 16, 16),
-      quadTear: new THREE.CapsuleGeometry(0.06, 0.15, 12, 12),
-      hamstring: new THREE.CapsuleGeometry(0.075, 0.32, 16, 16),
-      patella: new THREE.SphereGeometry(0.045, 16, 16),
-      calf: new THREE.CapsuleGeometry(0.075, 0.3, 16, 16),
-      shin: new THREE.CapsuleGeometry(0.05, 0.28, 12, 12),
-      shoe: new THREE.CapsuleGeometry(0.06, 0.2, 16, 16),
+      head: new THREE.SphereGeometry(0.2, seg.sphere, seg.sphere),
+      jaw: new THREE.CylinderGeometry(0.12, 0.08, 0.12, seg.cyl),
+      visor: new THREE.TorusGeometry(0.17, 0.03, seg.cap, seg.sphere, Math.PI),
+      neck: new THREE.CylinderGeometry(0.09, 0.12, 0.18, seg.cyl),
+      clavicle: new THREE.CapsuleGeometry(0.04, 0.45 * p.shoulderScale, seg.cap, seg.cap),
+      pectoral: new THREE.CapsuleGeometry(0.08 * p.chestScale, 0.16 * p.chestScale, seg.cap, seg.cap),
+      upperRibs: new THREE.CapsuleGeometry(0.15 * p.chestScale, 0.28, seg.cap, seg.cap),
+      lat: new THREE.CapsuleGeometry(0.07 * p.shoulderScale, 0.22, seg.cap, seg.cap),
+      abUpper: new THREE.CapsuleGeometry(0.05 * p.waistScale, 0.1, seg.cap, seg.cap),
+      abMid: new THREE.CapsuleGeometry(0.05 * p.waistScale, 0.09, seg.cap, seg.cap),
+      abLower: new THREE.CapsuleGeometry(0.05 * p.waistScale, 0.08, seg.cap, seg.cap),
+      oblique: new THREE.CapsuleGeometry(0.055 * p.waistScale, 0.18, seg.cap, seg.cap),
+      pelvis: new THREE.CapsuleGeometry(0.13 * p.waistScale, 0.22, seg.cap, seg.cap),
+      glute: new THREE.SphereGeometry(0.12 * p.legScale, seg.sphere, seg.sphere),
+      deltoid: new THREE.SphereGeometry(0.1 * p.shoulderScale, seg.sphere, seg.sphere),
+      bicep: new THREE.CapsuleGeometry(0.065 * p.armScale, 0.22, seg.cap, seg.cap),
+      tricep: new THREE.CapsuleGeometry(0.06 * p.armScale, 0.2, seg.cap, seg.cap),
+      jointSphere: new THREE.SphereGeometry(0.06, seg.cap, seg.cap),
+      forearm: new THREE.CapsuleGeometry(0.055 * p.armScale, 0.22, seg.cap, seg.cap),
+      hand: new THREE.CapsuleGeometry(0.045, 0.1, seg.cap, seg.cap),
+      quadMain: new THREE.CapsuleGeometry(0.095 * p.legScale, 0.35, seg.cap, seg.cap),
+      quadTear: new THREE.CapsuleGeometry(0.06 * p.legScale, 0.15, seg.cap, seg.cap),
+      hamstring: new THREE.CapsuleGeometry(0.075 * p.legScale, 0.32, seg.cap, seg.cap),
+      patella: new THREE.SphereGeometry(0.045, seg.cap, seg.cap),
+      calf: new THREE.CapsuleGeometry(0.075 * p.legScale, 0.3, seg.cap, seg.cap),
+      shin: new THREE.CapsuleGeometry(0.05, 0.28, seg.cap, seg.cap),
+      shoe: new THREE.CapsuleGeometry(0.06, 0.2, seg.cap, seg.cap),
       shoeSole: new THREE.BoxGeometry(0.13, 0.03, 0.26),
     };
-  }, []);
+  }, [seg, p]);
+
+  // Clean up geometries on unmount to prevent GPU memory leaks
+  useEffect(() => {
+    return () => {
+      Object.values(geo).forEach((g) => g.dispose());
+    };
+  }, [geo]);
 
   // Detect exercise category to trigger natural biomechanical movements
   const exerciseType = useMemo(() => {
@@ -305,7 +422,7 @@ function RealisticHumanoidModel({ activeMuscles, animation = 'idle', playbackSpe
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride="#e2e8f0"
+            colorOverride={isCyber ? '#1e293b' : skinColor}
           />
           {/* Athletic Jawline */}
           <MusclePart
@@ -315,14 +432,14 @@ function RealisticHumanoidModel({ activeMuscles, animation = 'idle', playbackSpe
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride="#cbd5e1"
+            colorOverride={isCyber ? '#0f172a' : skinColor}
           />
           {/* Futuristic Visor Accent */}
           <mesh geometry={geo.visor} position={[0, 0.12, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
             <meshStandardMaterial
-              color="#06b6d4"
-              emissive="#06b6d4"
-              emissiveIntensity={2.0}
+              color={accentGlow}
+              emissive={accentGlow}
+              emissiveIntensity={2.4}
               roughness={0.1}
               metalness={0.9}
             />
@@ -335,7 +452,7 @@ function RealisticHumanoidModel({ activeMuscles, animation = 'idle', playbackSpe
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride="#94a3b8"
+            colorOverride={isCyber ? '#334155' : skinColor}
           />
         </group>
 
@@ -795,7 +912,41 @@ function StudioStage() {
   );
 }
 
-export function Avatar3D({ activeMuscles, animation = 'idle', view = 'front', playbackSpeed = 1 }: Avatar3DProps) {
+export function Avatar3D({
+  activeMuscles,
+  animation = 'idle',
+  view = 'front',
+  playbackSpeed = 1,
+  avatarId,
+  avatarConfig,
+  lowMemoryMode,
+  showDracoBadge = true
+}: Avatar3DProps) {
+  const [effectiveAvatarId, setEffectiveAvatarId] = useState<string>(() => {
+    if (avatarId) return avatarId;
+    try {
+      const stored = localStorage.getItem('nutri-profile');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.avatarId) return parsed.avatarId;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return 'athena-fit-pro';
+  });
+
+  useEffect(() => {
+    if (avatarId) {
+      setEffectiveAvatarId(avatarId);
+    }
+  }, [avatarId]);
+
+  const activeAvatar = useMemo(() => getAvatarById(effectiveAvatarId), [effectiveAvatarId]);
+  const isMobileLowEnd = useMemo(() => isLowEndDevice(), []);
+  const effectiveLowMemory = lowMemoryMode !== undefined ? lowMemoryMode : isMobileLowEnd;
+  const dracoStats = useMemo(() => getDracoCompressionStats(), []);
+
   const [webglAvailable, setWebglAvailable] = useState<boolean>(() => {
     if (typeof document === 'undefined') return false;
     try {
@@ -900,11 +1051,26 @@ export function Avatar3D({ activeMuscles, animation = 'idle', view = 'front', pl
             <pointLight position={[0, 1, 3]} intensity={0.9} color="#e0f2fe" />
 
             <Float speed={animation === 'idle' ? 1.5 : 0} rotationIntensity={0.2} floatIntensity={0.25}>
-              <RealisticHumanoidModel
-                activeMuscles={activeMuscles}
-                animation={animation}
-                playbackSpeed={playbackSpeed}
-              />
+              {gltfUrl ? (
+                <GltfModel
+                  url={gltfUrl}
+                  activeMuscles={activeMuscles}
+                  animation={animation}
+                  playbackSpeed={playbackSpeed}
+                  avatarId={effectiveAvatarId}
+                  avatarConfig={avatarConfig}
+                  lowMemoryMode={effectiveLowMemory}
+                />
+              ) : (
+                <RealisticHumanoidModel
+                  activeMuscles={activeMuscles}
+                  animation={animation}
+                  playbackSpeed={playbackSpeed}
+                  avatarId={effectiveAvatarId}
+                  avatarConfig={avatarConfig}
+                  lowMemoryMode={effectiveLowMemory}
+                />
+              )}
             </Float>
 
             <StudioStage />
@@ -922,13 +1088,32 @@ export function Avatar3D({ activeMuscles, animation = 'idle', view = 'front', pl
         )}
       </ErrorBoundary>
 
-      {/* Floating Status Pill */}
-      <div className="absolute bottom-5 left-0 right-0 flex justify-center pointer-events-none z-10 px-4">
-        <div className="px-3.5 py-1.5 bg-slate-950/80 backdrop-blur-md rounded-full border border-emerald-500/30 text-[10px] sm:text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2 shadow-xl">
+      {/* Floating Status Pill with Avatar & DRACO compression badges */}
+      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between pointer-events-none z-10 gap-2">
+        <div className="px-3.5 py-1.5 bg-slate-950/85 backdrop-blur-md rounded-full border border-emerald-500/30 text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 shadow-xl">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span>Biomechanical 3D Model</span>
+          <span>{activeAvatar.name}</span>
+          <span className="text-slate-500 font-normal">|</span>
+          <span className="text-slate-300 font-mono text-[9px] sm:text-[10px]">{activeAvatar.category}</span>
         </div>
+
+        {showDracoBadge && (
+          <div className="flex items-center gap-1.5">
+            {effectiveLowMemory && (
+              <div className="px-2.5 py-1 bg-amber-950/80 backdrop-blur-md rounded-full border border-amber-500/40 text-[9px] sm:text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow-lg">
+                <Cpu className="w-3 h-3 text-amber-400" />
+                <span>Low-RAM Mode</span>
+              </div>
+            )}
+            <div className="px-2.5 py-1 bg-slate-950/80 backdrop-blur-md rounded-full border border-cyan-500/40 text-[9px] sm:text-[10px] font-mono text-cyan-300 flex items-center gap-1 shadow-lg">
+              <Zap className="w-3 h-3 text-cyan-400" />
+              <span>DRACO -{dracoStats.compressionRatio}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+export default Avatar3D;
