@@ -14,7 +14,7 @@ export interface Avatar3DProps {
   playbackSpeed?: number;
   avatarId?: string;
   avatarConfig?: Partial<AvatarCatalogItem['modelConfig']>;
-  lowMemoryMode?: boolean;
+  qualityLevel?: 'low' | 'medium' | 'high';
   showDracoBadge?: boolean;
   gltfUrl?: string; // URL of the exercise GLB file
 }
@@ -138,7 +138,7 @@ function MusclePart({
 }
 
 // Component to load and display GLTF/GLB models using DRACO compression
-function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig, lowMemoryMode }: { url: string } & Avatar3DProps) {
+function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig, qualityLevel }: { url: string } & Avatar3DProps) {
   const group = useRef<THREE.Group>(null);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -147,7 +147,7 @@ function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig, lowM
     let active = true;
     
     import('../lib/dracoLoader').then(({ loadCompressedAvatarGLTF }) => {
-      loadCompressedAvatarGLTF(url, lowMemoryMode).then((scene) => {
+      loadCompressedAvatarGLTF(url, qualityLevel === 'low').then((scene) => {
         if (!active) return;
         
         // Traverse and update materials based on avatar config
@@ -211,7 +211,7 @@ function RealisticHumanoidModel({
   playbackSpeed = 1,
   avatarId,
   avatarConfig,
-  lowMemoryMode = false
+  qualityLevel = 'high'
 }: Avatar3DProps) {
   const rootGroup = useRef<THREE.Group>(null);
   const spineGroup = useRef<THREE.Group>(null);
@@ -249,10 +249,10 @@ function RealisticHumanoidModel({
   const apparelColor = modelConfig.apparelColor || '#0f172a';
   const p = modelConfig.proportions;
 
-  // DRACO-quantized level of detail: reduce segments on mobile/lowMemoryMode
+  // DRACO-quantized level of detail: reduce segments on mobile/low quality
   const seg = useMemo(() => {
-    return lowMemoryMode ? { sphere: 16, cyl: 14, cap: 10 } : { sphere: 32, cyl: 24, cap: 16 };
-  }, [lowMemoryMode]);
+    return qualityLevel === 'low' ? { sphere: 16, cyl: 14, cap: 10 } : { sphere: 32, cyl: 24, cap: 16 };
+  }, [qualityLevel]);
 
   // Shared reusable smooth geometries for high performance & realistic contours
   const geo = useMemo(() => {
@@ -919,8 +919,9 @@ export function Avatar3D({
   playbackSpeed = 1,
   avatarId,
   avatarConfig,
-  lowMemoryMode,
-  showDracoBadge = true
+  qualityLevel,
+  showDracoBadge = true,
+  gltfUrl
 }: Avatar3DProps) {
   const [effectiveAvatarId, setEffectiveAvatarId] = useState<string>(() => {
     if (avatarId) return avatarId;
@@ -944,7 +945,7 @@ export function Avatar3D({
 
   const activeAvatar = useMemo(() => getAvatarById(effectiveAvatarId), [effectiveAvatarId]);
   const isMobileLowEnd = useMemo(() => isLowEndDevice(), []);
-  const effectiveLowMemory = lowMemoryMode !== undefined ? lowMemoryMode : isMobileLowEnd;
+  const effectiveQualityLevel = qualityLevel !== undefined ? qualityLevel : (isMobileLowEnd ? 'low' : 'high');
   const dracoStats = useMemo(() => getDracoCompressionStats(), []);
 
   const [webglAvailable, setWebglAvailable] = useState<boolean>(() => {
@@ -1059,7 +1060,7 @@ export function Avatar3D({
                   playbackSpeed={playbackSpeed}
                   avatarId={effectiveAvatarId}
                   avatarConfig={avatarConfig}
-                  lowMemoryMode={effectiveLowMemory}
+                  qualityLevel={effectiveQualityLevel}
                 />
               ) : (
                 <RealisticHumanoidModel
@@ -1068,7 +1069,7 @@ export function Avatar3D({
                   playbackSpeed={playbackSpeed}
                   avatarId={effectiveAvatarId}
                   avatarConfig={avatarConfig}
-                  lowMemoryMode={effectiveLowMemory}
+                  qualityLevel={effectiveQualityLevel}
                 />
               )}
             </Float>
@@ -1099,7 +1100,7 @@ export function Avatar3D({
 
         {showDracoBadge && (
           <div className="flex items-center gap-1.5">
-            {effectiveLowMemory && (
+            {effectiveQualityLevel === 'low' && (
               <div className="px-2.5 py-1 bg-amber-950/80 backdrop-blur-md rounded-full border border-amber-500/40 text-[9px] sm:text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow-lg">
                 <Cpu className="w-3 h-3 text-amber-400" />
                 <span>Low-RAM Mode</span>

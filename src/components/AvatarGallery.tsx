@@ -379,7 +379,7 @@ export const AvatarGallery: React.FC<AvatarGalleryProps> = ({
                 activeMuscles={activeExerciseMuscles}
                 animation={previewAnimation}
                 view={previewView}
-                lowMemoryMode={lowMemoryMode}
+                qualityLevel={lowMemoryMode ? 'low' : 'high'}
                 showDracoBadge={true}
               />
             </div>

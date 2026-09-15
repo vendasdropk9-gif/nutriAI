@@ -1,54 +1,4 @@
-const DB_NAME = 'NutriAIGLTFCache';
-const STORE_NAME = 'models';
-const DB_VERSION = 1;
-
-function getDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      return reject(new Error('IndexedDB not supported'));
-    }
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-  });
-}
-
-async function saveToIDB(url: string, arrayBuffer: ArrayBuffer): Promise<void> {
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.put(arrayBuffer, url);
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (err) {
-    console.warn('Worker IDB Save Error:', err);
-  }
-}
-
-async function loadFromIDB(url: string): Promise<ArrayBuffer | null> {
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(url);
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
-  } catch (err) {
-    console.warn('Worker IDB Load Error:', err);
-    return null;
-  }
-}
+import { saveToCache, loadFromCache } from '../lib/idbCache';
 
 self.onmessage = async (e: MessageEvent) => {
   const { urls } = e.data;
@@ -63,13 +13,15 @@ self.onmessage = async (e: MessageEvent) => {
   for (const url of urls) {
     if (!url) continue;
     try {
-      // Check if already in cache
-      const exists = await loadFromIDB(url);
+      // Check if already in cache using idb
+      // We pass undefined for expectedEtag here because we just want to know if *any* valid version exists
+      const exists = await loadFromCache(url);
       if (!exists) {
         const response = await fetch(url);
         if (response.ok) {
+          const etag = response.headers.get('ETag') || undefined;
           const buffer = await response.arrayBuffer();
-          await saveToIDB(url, buffer);
+          await saveToCache(url, buffer, etag);
           loadedCount++;
         }
       }

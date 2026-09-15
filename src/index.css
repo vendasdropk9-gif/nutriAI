@@ -60,6 +60,30 @@ body {
   animation: idleBreathe 4s ease-in-out infinite;
 }
 
+/* Muscle contraction pulse animation synchronized with exercise execution */
+@keyframes muscleContractionPulse {
+  0%, 100% {
+    opacity: 0.75;
+    fill: #10b981;
+    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    opacity: 1;
+    fill: #34d399;
+    filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.95));
+  }
+}
+
+.exercise-visualizer-container .active-muscle-segment {
+  animation: muscleContractionPulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.exercise-visualizer-container .active-muscle-segment-fast {
+  animation: muscleContractionPulse 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* Custom scrollbar in vibrant application emerald green */
 ::-webkit-scrollbar {
   width: 6px;

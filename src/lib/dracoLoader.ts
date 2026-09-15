@@ -1,67 +1,19 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { saveToCache, loadFromCache } from './idbCache';
 
 // Official Google Draco Decoder CDN (WASM + JS fallbacks)
 const DRACO_DECODER_PATH = 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/';
+const KTX2_DECODER_PATH = 'https://www.gstatic.com/basis-universal/versioned/decoders/1.0.0/';
 
 let dracoLoaderInstance: DRACOLoader | null = null;
+let ktx2LoaderInstance: KTX2Loader | null = null;
 let gltfLoaderInstance: GLTFLoader | null = null;
 
 // Cache for loaded and decompressed models to prevent duplicate network/GPU overhead
 const modelCache = new Map<string, THREE.Group>();
-
-const DB_NAME = 'NutriAIGLTFCache';
-const STORE_NAME = 'models';
-const DB_VERSION = 1;
-
-function getDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      return reject(new Error('IndexedDB not supported'));
-    }
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-  });
-}
-
-async function saveToIDB(url: string, arrayBuffer: ArrayBuffer): Promise<void> {
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.put(arrayBuffer, url);
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (err) {
-    console.warn('IDB Save Error:', err);
-  }
-}
-
-async function loadFromIDB(url: string): Promise<ArrayBuffer | null> {
-  try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(url);
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
-  } catch (err) {
-    console.warn('IDB Load Error:', err);
-    return null;
-  }
-}
 
 /**
  * Initializes and returns a singleton instance of DRACOLoader
@@ -81,11 +33,21 @@ export function getDracoLoader(): DRACOLoader {
 /**
  * Initializes and returns a singleton GLTFLoader with DRACO decompression enabled.
  */
-export function getDracoGLTFLoader(): GLTFLoader {
+export function getDracoGLTFLoader(renderer?: THREE.WebGLRenderer): GLTFLoader {
   if (!gltfLoaderInstance) {
     gltfLoaderInstance = new GLTFLoader();
     const draco = getDracoLoader();
     gltfLoaderInstance.setDRACOLoader(draco);
+    
+    // Add KTX2Loader for CompressedTexture support
+    ktx2LoaderInstance = new KTX2Loader();
+    ktx2LoaderInstance.setTranscoderPath(KTX2_DECODER_PATH);
+    if (renderer) {
+      ktx2LoaderInstance.detectSupport(renderer);
+    }
+    gltfLoaderInstance.setKTX2Loader(ktx2LoaderInstance);
+  } else if (renderer && ktx2LoaderInstance) {
+    ktx2LoaderInstance.detectSupport(renderer);
   }
   return gltfLoaderInstance;
 }
@@ -127,54 +89,79 @@ export function getDracoCompressionStats(): DracoStats {
   };
 }
 
+let textureWorker: Worker | null = null;
+let textureJobId = 0;
+const pendingTextureJobs = new Map<number, { resolve: (bitmap: ImageBitmap) => void, reject: (err: Error) => void }>();
+
+function getTextureWorker(): Worker {
+  if (!textureWorker) {
+    textureWorker = new Worker(new URL('../workers/textureProcessor.ts', import.meta.url), { type: 'module' });
+    textureWorker.onmessage = (e) => {
+      const { id, imageBitmap, error } = e.data;
+      const job = pendingTextureJobs.get(id);
+      if (job) {
+        if (error) {
+          job.reject(new Error(error));
+        } else {
+          job.resolve(imageBitmap);
+        }
+        pendingTextureJobs.delete(id);
+      }
+    };
+  }
+  return textureWorker;
+}
+
 /**
- * Dynamically reduces texture resolution based on device capabilities to save memory.
+ * Dynamically reduces texture resolution based on device capabilities and converts to ImageBitmap (WebGL optimized) via WebWorker.
  */
-function compressTexture(texture: THREE.Texture, maxResolution: number): THREE.Texture {
+async function compressTexture(texture: THREE.Texture, maxResolution: number): Promise<THREE.Texture> {
   if (!texture.image) return texture;
   
   const image = texture.image;
-  const width = image.width || (image instanceof HTMLVideoElement ? image.videoWidth : 0);
-  const height = image.height || (image instanceof HTMLVideoElement ? image.videoHeight : 0);
+  const supportsImageBitmap = typeof createImageBitmap !== 'undefined';
   
-  if (!width || !height || (width <= maxResolution && height <= maxResolution)) {
-    return texture; // No compression needed
+  if (!supportsImageBitmap) {
+    return texture; // Cannot use worker without ImageBitmap transfer
   }
-  
-  // Calculate new dimensions keeping aspect ratio
-  let newWidth = width;
-  let newHeight = height;
-  
-  if (width > height) {
-    newWidth = maxResolution;
-    newHeight = Math.round(height * (maxResolution / width));
-  } else {
-    newHeight = maxResolution;
-    newWidth = Math.round(width * (maxResolution / height));
+
+  let originalBitmap: ImageBitmap;
+  try {
+    if (image instanceof ImageBitmap) {
+      originalBitmap = image;
+    } else {
+      originalBitmap = await createImageBitmap(image);
+    }
+  } catch (e) {
+    return texture; // Fallback
   }
+
+  const worker = getTextureWorker();
+  const jobId = ++textureJobId;
   
-  if (typeof document === 'undefined') return texture; // SSR fallback
-  
-  const canvas = document.createElement('canvas');
-  canvas.width = newWidth;
-  canvas.height = newHeight;
-  
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.drawImage(image, 0, 0, newWidth, newHeight);
-    const newTexture = new THREE.CanvasTexture(canvas);
-    newTexture.colorSpace = texture.colorSpace;
-    newTexture.wrapS = texture.wrapS;
-    newTexture.wrapT = texture.wrapT;
-    newTexture.flipY = texture.flipY;
-    newTexture.name = texture.name + '_compressed';
+  return new Promise((resolve) => {
+    pendingTextureJobs.set(jobId, {
+      resolve: (compressedBitmap: ImageBitmap) => {
+        const newTexture = new THREE.Texture(compressedBitmap);
+        newTexture.colorSpace = texture.colorSpace;
+        newTexture.wrapS = texture.wrapS;
+        newTexture.wrapT = texture.wrapT;
+        newTexture.flipY = texture.flipY;
+        newTexture.name = texture.name + '_compressed';
+        newTexture.needsUpdate = true;
+        
+        if (!(image instanceof ImageBitmap)) texture.dispose();
+        
+        resolve(newTexture);
+      },
+      reject: (err) => {
+        console.warn('Worker texture compression failed', err);
+        resolve(texture); // Fallback to original
+      }
+    });
     
-    // Free the old texture memory
-    texture.dispose();
-    return newTexture;
-  }
-  
-  return texture;
+    worker.postMessage({ id: jobId, imageBitmap: originalBitmap, maxResolution }, [originalBitmap]);
+  });
 }
 
 /**
@@ -188,15 +175,16 @@ export async function loadCompressedAvatarGLTF(url: string, forceLowMemory: bool
   const loader = getDracoGLTFLoader();
   
   // Check Cache-ahead strategy via IndexedDB
-  let buffer = await loadFromIDB(url);
+  let buffer = await loadFromCache(url);
   
   if (!buffer) {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const etag = response.headers.get('ETag') || undefined;
       buffer = await response.arrayBuffer();
       // Store async so it doesn't block
-      saveToIDB(url, buffer).catch(console.warn);
+      saveToCache(url, buffer, etag).catch(console.warn);
     } catch (e) {
       console.warn(`[DracoLoader] Failed to fetch GLTF from ${url}`, e);
       throw e;
@@ -217,6 +205,9 @@ export async function loadCompressedAvatarGLTF(url: string, forceLowMemory: bool
         // Dynamic texture resolution threshold based on device tier
         const maxTextureRes = lowMem ? 512 : 2048;
 
+        // Collect async texture processing promises
+        const texturePromises: Promise<void>[] = [];
+
         // Traverse and optimize geometry buffers & compress textures
         scene.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -232,26 +223,32 @@ export async function loadCompressedAvatarGLTF(url: string, forceLowMemory: bool
 
             // Texture Compression Logic
             if (mesh.material) {
-              const processMaterial = (mat: THREE.Material) => {
+              const processMaterial = async (mat: THREE.Material) => {
                 const stdMat = mat as THREE.MeshStandardMaterial;
-                if (stdMat.map) stdMat.map = compressTexture(stdMat.map, maxTextureRes);
-                if (stdMat.normalMap) stdMat.normalMap = compressTexture(stdMat.normalMap, maxTextureRes);
-                if (stdMat.roughnessMap) stdMat.roughnessMap = compressTexture(stdMat.roughnessMap, maxTextureRes);
-                if (stdMat.metalnessMap) stdMat.metalnessMap = compressTexture(stdMat.metalnessMap, maxTextureRes);
-                if (stdMat.emissiveMap) stdMat.emissiveMap = compressTexture(stdMat.emissiveMap, maxTextureRes);
+                if (stdMat.map) stdMat.map = await compressTexture(stdMat.map, maxTextureRes);
+                if (stdMat.normalMap) stdMat.normalMap = await compressTexture(stdMat.normalMap, maxTextureRes);
+                if (stdMat.roughnessMap) stdMat.roughnessMap = await compressTexture(stdMat.roughnessMap, maxTextureRes);
+                if (stdMat.metalnessMap) stdMat.metalnessMap = await compressTexture(stdMat.metalnessMap, maxTextureRes);
+                if (stdMat.emissiveMap) stdMat.emissiveMap = await compressTexture(stdMat.emissiveMap, maxTextureRes);
               };
 
               if (Array.isArray(mesh.material)) {
-                mesh.material.forEach(processMaterial);
+                mesh.material.forEach((mat) => texturePromises.push(processMaterial(mat)));
               } else {
-                processMaterial(mesh.material);
+                texturePromises.push(processMaterial(mesh.material));
               }
             }
           }
         });
 
-        modelCache.set(url, scene);
-        resolve(scene.clone());
+        Promise.all(texturePromises).then(() => {
+          modelCache.set(url, scene);
+          resolve(scene.clone());
+        }).catch((err) => {
+          console.warn('Error during texture preprocessing:', err);
+          modelCache.set(url, scene);
+          resolve(scene.clone()); // Still resolve with uncompressed if error
+        });
       },
       (error) => {
         console.warn(`[DracoLoader] Error parsing glTF model from ${url}:`, error);
@@ -268,12 +265,12 @@ export async function preloadExerciseModels(urls: string[]) {
   for (const url of urls) {
     if (!url) continue;
     try {
-      const exists = await loadFromIDB(url);
+      const exists = await loadFromCache(url);
       if (!exists) {
         const response = await fetch(url);
         if (response.ok) {
           const buffer = await response.arrayBuffer();
-          await saveToIDB(url, buffer);
+          await saveToCache(url, buffer);
         }
       }
     } catch (err) {

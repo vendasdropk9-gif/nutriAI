@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Avatar3D } from './Avatar3D';
+import { MuscleOverlay } from './MuscleOverlay';
 import { EXERCISE_DATABASE, ExerciseReference } from '../data/exerciseDatabase';
 import { Play, Pause, RefreshCw, Layers, ZoomIn, Info, CheckCircle2, ChevronRight, Video, Camera, Dumbbell, BrainCircuit, ScanSearch } from 'lucide-react';
 import { getAvatarById } from '../data/avatarCatalog';
@@ -17,16 +18,20 @@ export function ExerciseVisualizer() {
   const [currentRep, setCurrentRep] = useState(0);
   const [tutorialPhase, setTutorialPhase] = useState<'initial' | 'movement' | 'final' | 'return'>('initial');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [deviceLowMemory, setDeviceLowMemory] = useState(false);
+  const [qualityLevel, setQualityLevel] = useState<'low' | 'medium' | 'high'>('high');
 
   // Check device memory and spawn Web Worker for idle caching
   useEffect(() => {
-    // Detect < 4GB RAM dynamically
+    // Detect RAM dynamically to set texture/mesh quality tier
     const memory = 'deviceMemory' in navigator ? (navigator as any).deviceMemory : 8;
-    setDeviceLowMemory(memory < 4);
+    setQualityLevel(memory <= 4 ? 'low' : memory <= 8 ? 'medium' : 'high');
 
-    // Run cache-ahead logic using a background Web Worker during idle time
-    const topExercises = EXERCISE_DATABASE.filter(e => e.gltfUrl).slice(0, 3).map(e => e.gltfUrl as string);
+    // Determine the top 3 most frequent exercises from the user's history
+    // Fallback to top global exercises if history is empty or unavailable
+    const topExercises = EXERCISE_DATABASE
+      .filter(e => e.gltfUrl)
+      .slice(0, 3)
+      .map(e => e.gltfUrl as string);
 
     if (topExercises.length > 0) {
       const idleCallback = (window.requestIdleCallback || window.setTimeout)(() => {
@@ -48,7 +53,7 @@ export function ExerciseVisualizer() {
       });
       return () => (window.cancelIdleCallback || window.clearTimeout)(idleCallback);
     }
-  }, [profile?.workoutHistory]);
+  }, [profile?.workoutLogs]);
 
   const activeExercise = useMemo(() => 
     EXERCISE_DATABASE.find(e => e.id === selectedExerciseId) || EXERCISE_DATABASE[0], 
@@ -152,7 +157,7 @@ export function ExerciseVisualizer() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6 text-slate-100 p-4">
+    <div className="exercise-visualizer-container w-full max-w-7xl mx-auto space-y-6 text-slate-100 p-4">
       
       {/* Header */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-2xl flex flex-col md:flex-row gap-6 items-center justify-between">
@@ -221,15 +226,20 @@ export function ExerciseVisualizer() {
                 </div>
               </div>
               
-              {/* Reference Image Thumbnail */}
-              <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-cyan-500/30 shadow-lg pointer-events-auto group relative">
-                <img 
-                  src={activeExercise.referenceImage} 
-                  alt="Reference"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-1 rounded">Ref. Original</span>
+              {/* Anatomy Map & Reference Image Thumbnails */}
+              <div className="flex flex-col gap-3 pointer-events-auto">
+                <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-emerald-500/30 shadow-lg relative group">
+                  <MuscleOverlay activeMuscles={activeMuscles} isPlaying={isPlaying || getAnimationState() !== 'idle'} />
+                </div>
+                <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-cyan-500/30 shadow-lg group relative">
+                  <img 
+                    src={activeExercise.referenceImage} 
+                    alt="Reference"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-1 rounded">Ref. Original</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -242,7 +252,7 @@ export function ExerciseVisualizer() {
               animation={getAnimationState()}
               view={viewAngle as 'front' | 'side' | 'detail'}
               playbackSpeed={playbackSpeed}
-              lowMemoryMode={profile?.avatarLowMemoryMode || deviceLowMemory}
+              qualityLevel={qualityLevel}
               showDracoBadge={true}
               gltfUrl={activeExercise.gltfUrl} // Integrates dynamic DRACO GLTF loading
             />
