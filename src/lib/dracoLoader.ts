@@ -180,7 +180,7 @@ function compressTexture(texture: THREE.Texture, maxResolution: number): THREE.T
 /**
  * Asynchronously loads a glTF/GLB model with DRACO decompression, IndexedDB caching, and dynamic texture compression.
  */
-export async function loadCompressedAvatarGLTF(url: string): Promise<THREE.Group> {
+export async function loadCompressedAvatarGLTF(url: string, forceLowMemory: boolean = false): Promise<THREE.Group> {
   if (modelCache.has(url)) {
     return modelCache.get(url)!.clone();
   }
@@ -213,7 +213,7 @@ export async function loadCompressedAvatarGLTF(url: string): Promise<THREE.Group
       path,
       (gltf) => {
         const scene = gltf.scene;
-        const lowMem = isLowEndDevice();
+        const lowMem = forceLowMemory || isLowEndDevice();
         // Dynamic texture resolution threshold based on device tier
         const maxTextureRes = lowMem ? 512 : 2048;
 

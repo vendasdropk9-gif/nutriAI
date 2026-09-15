@@ -17,6 +17,38 @@ export function ExerciseVisualizer() {
   const [currentRep, setCurrentRep] = useState(0);
   const [tutorialPhase, setTutorialPhase] = useState<'initial' | 'movement' | 'final' | 'return'>('initial');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [deviceLowMemory, setDeviceLowMemory] = useState(false);
+
+  // Check device memory and spawn Web Worker for idle caching
+  useEffect(() => {
+    // Detect < 4GB RAM dynamically
+    const memory = 'deviceMemory' in navigator ? (navigator as any).deviceMemory : 8;
+    setDeviceLowMemory(memory < 4);
+
+    // Run cache-ahead logic using a background Web Worker during idle time
+    const topExercises = EXERCISE_DATABASE.filter(e => e.gltfUrl).slice(0, 3).map(e => e.gltfUrl as string);
+
+    if (topExercises.length > 0) {
+      const idleCallback = (window.requestIdleCallback || window.setTimeout)(() => {
+        try {
+          // Dynamic import of the worker to preload top 3 history exercises
+          import('../workers/modelPreloader?worker').then((WorkerModule) => {
+             const PreloadWorker = WorkerModule.default;
+             const worker = new PreloadWorker();
+             worker.postMessage({ urls: topExercises });
+             worker.onmessage = (e) => {
+               if (e.data.status === 'done') {
+                 worker.terminate();
+               }
+             };
+          });
+        } catch (err) {
+          console.warn('Worker initialization failed', err);
+        }
+      });
+      return () => (window.cancelIdleCallback || window.clearTimeout)(idleCallback);
+    }
+  }, [profile?.workoutHistory]);
 
   const activeExercise = useMemo(() => 
     EXERCISE_DATABASE.find(e => e.id === selectedExerciseId) || EXERCISE_DATABASE[0], 
@@ -210,7 +242,7 @@ export function ExerciseVisualizer() {
               animation={getAnimationState()}
               view={viewAngle as 'front' | 'side' | 'detail'}
               playbackSpeed={playbackSpeed}
-              lowMemoryMode={profile?.avatarLowMemoryMode}
+              lowMemoryMode={profile?.avatarLowMemoryMode || deviceLowMemory}
               showDracoBadge={true}
               gltfUrl={activeExercise.gltfUrl} // Integrates dynamic DRACO GLTF loading
             />

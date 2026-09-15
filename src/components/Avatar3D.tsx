@@ -138,7 +138,7 @@ function MusclePart({
 }
 
 // Component to load and display GLTF/GLB models using DRACO compression
-function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig }: { url: string } & Avatar3DProps) {
+function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig, lowMemoryMode }: { url: string } & Avatar3DProps) {
   const group = useRef<THREE.Group>(null);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -147,7 +147,7 @@ function GltfModel({ url, animation, activeMuscles, avatarId, avatarConfig }: { 
     let active = true;
     
     import('../lib/dracoLoader').then(({ loadCompressedAvatarGLTF }) => {
-      loadCompressedAvatarGLTF(url).then((scene) => {
+      loadCompressedAvatarGLTF(url, lowMemoryMode).then((scene) => {
         if (!active) return;
         
         // Traverse and update materials based on avatar config
