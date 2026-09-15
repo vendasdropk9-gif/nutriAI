@@ -142,10 +142,10 @@ export function ExerciseVisualizer() {
         if (idx === 0) { // completed a cycle
            setIsPlaying(false);
         }
-      }, 2500);
+      }, 2500 / playbackSpeed);
       return () => clearInterval(interval);
     }
-  }, [mode, isPlaying, tutorialPhase]);
+  }, [mode, isPlaying, tutorialPhase, playbackSpeed]);
 
   const getAnimationState = () => {
     if (mode === 'training') return isPlaying ? 'executing' : 'idle';
@@ -258,26 +258,46 @@ export function ExerciseVisualizer() {
             />
 
             {/* Controls Overlay */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 bg-slate-900/90 backdrop-blur-md px-6 py-3 rounded-full border border-slate-700/50 shadow-2xl">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-5 py-2.5 rounded-full border border-slate-700/50 shadow-2xl max-w-[95%] overflow-x-auto">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center transition-transform hover:scale-105"
+                className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center transition-transform hover:scale-105 shrink-0"
               >
-                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
+                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
               </button>
               
-              <div className="h-8 w-px bg-slate-700 mx-2" />
+              <div className="h-6 w-px bg-slate-700 mx-1 shrink-0" />
               
-              <div className="flex bg-slate-800 rounded-xl p-1">
+              <div className="flex bg-slate-800 rounded-xl p-1 shrink-0">
                 {(['tutorial', 'training'] as const).map(m => (
                   <button
                     key={m}
                     onClick={() => { setMode(m); setIsPlaying(false); setTutorialPhase('initial'); setCurrentRep(0); }}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
                       mode === m ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     Modo {m === 'tutorial' ? 'Aprender' : 'Treino'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Playback Speed Controller */}
+              <div className="h-6 w-px bg-slate-700 mx-1 shrink-0" />
+              <div className="flex items-center gap-1 bg-slate-800 rounded-xl p-1 shrink-0">
+                <span className="text-[10px] text-slate-400 font-bold px-1.5 uppercase hidden sm:inline">Velocidade</span>
+                {[0.5, 0.75, 1].map(speed => (
+                  <button
+                    key={speed}
+                    onClick={() => setPlaybackSpeed(speed)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      playbackSpeed === speed
+                        ? 'bg-emerald-500 text-slate-950 shadow'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title={`Velocidade de reprodução ${speed}x`}
+                  >
+                    {speed}x
                   </button>
                 ))}
               </div>
