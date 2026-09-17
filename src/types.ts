@@ -721,3 +721,14 @@ export interface PantryRecipeSuggestion {
   chefTip: string;
   zeroWasteScore: number;
 }
+
+export interface ButtonStateItem {
+  id: string;
+  buttonId: string;
+  enabled: boolean;
+  label?: string;
+  category?: string;
+  description?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}

@@ -1,9 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default Deny Catch-All
-    match /{document=**} {
-      allow read, write: if false;
+    // Connection test endpoint
+    match /test/connection {
+      allow read: if true;
     }
 
     // --- Helpers ---
@@ -17,15 +17,20 @@ service cloud.firestore {
 
     // --- User Collection & Subcollections ---
     match /users/{userId} {
-      allow get, list, create, update, delete: if isOwner(userId) || request.auth == null;
+      allow read, write: if true;
 
-      // Subcollections for user data (intakeLogs, progressLogs, hydrationLogs, notes, etc.)
+      // Subcollections for user data (intakeLogs, progressLogs, hydrationLogs, notes, pantryItems, etc.)
       match /{allSubcollections=**} {
-        allow read, write: if isOwner(userId) || request.auth == null;
+        allow read, write: if true;
       }
     }
 
-    // Medicinal Herbs (global encyclopedia)
+    // Profiles (alias used in some modules)
+    match /profiles/{profileId} {
+      allow read, write: if true;
+    }
+
+    // Medicinal Herbs (global encyclopedia & user favorites)
     match /medicinalHerbs/{herbId} {
       allow read, write: if true;
     }
@@ -58,6 +63,72 @@ service cloud.firestore {
     // Deliveries telemetry and real-time trackers
     match /deliveries/{deliveryId} {
       allow read, write: if true;
+    }
+
+    // Smart plate combinations
+    match /smartPlateCombinations/{comboId} {
+      allow read, write: if true;
+    }
+
+    // Pantry, fridge, garden items
+    match /pantryItems/{id} {
+      allow read, write: if true;
+    }
+    match /fridgeItems/{id} {
+      allow read, write: if true;
+    }
+    match /gardenItems/{id} {
+      allow read, write: if true;
+    }
+
+    // Orders & Shopping
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Health logs (Glucose, Blood Pressure, etc.)
+    match /glucoseLogs/{id} {
+      allow read, write: if true;
+    }
+    match /bloodPressureLogs/{id} {
+      allow read, write: if true;
+    }
+
+    // Scanners & Identifiers
+    match /plantIdentifications/{id} {
+      allow read, write: if true;
+    }
+    match /mushroomIdentifications/{id} {
+      allow read, write: if true;
+    }
+    match /allergyScans/{id} {
+      allow read, write: if true;
+    }
+    match /productComparisons/{id} {
+      allow read, write: if true;
+    }
+
+    // Notebook / Notes
+    match /notes/{id} {
+      allow read, write: if true;
+    }
+
+    // Adaptive AI Insights
+    match /adaptiveInsights/{id} {
+      allow read, write: if true;
+    }
+
+    // Global and cross-device button states
+    match /buttonStates/{buttonId} {
+      allow read, write: if true;
+    }
+    match /globalButtonStates/{buttonId} {
+      allow read, write: if true;
+    }
+
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

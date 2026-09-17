@@ -11,9 +11,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <LanguageProvider>
-          <App />
-        </LanguageProvider>
+          <LanguageProvider>
+            <App />
+          </LanguageProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

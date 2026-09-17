@@ -87,10 +87,10 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-32 pt-2 animate-in fade-in duration-700">
+    <div className="w-full max-w-6xl mx-auto space-y-8 pb-32 pt-2 animate-in fade-in duration-700 flex flex-col items-center">
       
       {/* 1. Hero AI Avatar Card */}
-      <div className={`relative rounded-[32px] p-6 sm:p-10 overflow-hidden transition-all duration-500 ${
+      <div className={`relative w-full rounded-[32px] p-6 sm:p-10 overflow-hidden transition-all duration-500 mx-auto ${
         isPremium 
           ? 'bg-gradient-to-br from-[#151B23] via-[#1A222C] to-[#0F141A] border border-[#D8B14A]/40 shadow-[0_12px_40px_rgba(216,177,74,0.15)]' 
           : 'bg-gradient-to-br from-[#151B23] via-[#1B232E] to-[#0B0F14] border border-[#232C39] shadow-[0_12px_36px_rgba(0,0,0,0.4)]'
@@ -182,7 +182,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           vibrate(20);
           onNavigate('quickdishes');
         }}
-        className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-teal-500/15 p-6 sm:p-7 border border-orange-500/30 hover:border-orange-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group backdrop-blur-md"
+        className="relative w-full overflow-hidden rounded-[32px] bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-teal-500/15 p-6 sm:p-7 border border-orange-500/30 hover:border-orange-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group backdrop-blur-md mx-auto"
       >
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/10 blur-2xl pointer-events-none" />
         
@@ -222,7 +222,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
-        className="card-premium p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-emerald-500/40 transition-all"
+        className="card-premium w-full p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-emerald-500/40 transition-all mx-auto"
         onClick={() => onNavigate('habits')}
       >
         <div className="flex items-center gap-4">
@@ -244,14 +244,16 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       </motion.div>
 
       {/* NOVO: Sistema de Dicas Rápidas Inteligentes Conectado ao Histórico */}
-      <DashboardQuickTips 
-        profile={profile} 
-        onNavigate={onNavigate} 
-        onLogIntake={onLogIntake} 
-      />
+      <div className="w-full mx-auto">
+        <DashboardQuickTips 
+          profile={profile} 
+          onNavigate={onNavigate} 
+          onLogIntake={onLogIntake} 
+        />
+      </div>
 
       {/* 3. Resumo do Dia / Daily Health Metrics Grid */}
-      <div className="space-y-4">
+      <div className="space-y-4 w-full mx-auto">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-[#16C784]" />
@@ -383,7 +385,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           vibrate(10);
           onNavigate('smartplate');
         }}
-        className={`relative overflow-hidden rounded-[24px] p-6 sm:p-8 cursor-pointer transition-all ${
+        className={`relative w-full mx-auto overflow-hidden rounded-[24px] p-6 sm:p-8 cursor-pointer transition-all ${
           isPremium
             ? 'bg-gradient-to-r from-[#D8B14A]/10 via-[#B8860B]/10 to-transparent border border-[#D8B14A]/30'
             : 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/30'
@@ -415,7 +417,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       </motion.div>
 
       {/* 4. Grid de Funcionalidades Principais */}
-      <div className="space-y-4">
+      <div className="space-y-4 w-full mx-auto">
         <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white px-1">
           {t('smart_resources', 'Recursos Inteligentes')}
         </h3>

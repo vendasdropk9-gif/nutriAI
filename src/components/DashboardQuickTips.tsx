@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lightbulb, 
@@ -39,10 +39,12 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
     actionLabel?: string;
   } | null>(null);
 
-  // Quick log modal / popover state
+  // Estado para abrir o painel de registro rápido DIRETAMENTE NA FRENTE desta aba
   const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState<'lunch' | 'dinner' | 'breakfast'>('lunch');
   const [customMealName, setCustomMealName] = useState('');
   const [customMealCalories, setCustomMealCalories] = useState('450');
+  const cardContainerRef = useRef<HTMLDivElement>(null);
 
   // Gera dicas locais instantâneas a partir do histórico
   const localTips = useMemo(() => {
@@ -91,6 +93,19 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
       totalMeals: todayLogs.length
     };
   }, [profile?.intakeLogs]);
+
+  // Abre o painel de registro rápido na frente desta aba
+  const openQuickLog = (mealType: 'lunch' | 'dinner' | 'breakfast' = 'lunch') => {
+    playSfx('tap');
+    vibrate(12);
+    setSelectedMealType(mealType);
+    if (mealType === 'breakfast') setCustomMealCalories('320');
+    else if (mealType === 'dinner') setCustomMealCalories('280');
+    else setCustomMealCalories('450');
+    setIsQuickLogOpen(true);
+    // Garante que o card esteja visível na frente dos olhos do usuário
+    cardContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 
   // Atualização com Gemini AI
   const handleRefresh = async () => {
@@ -161,6 +176,36 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
     setCurrentIndex(0);
   };
 
+  // Opções rápidas de 1 toque de acordo com a refeição selecionada
+  const mealQuickOptions = useMemo(() => {
+    if (selectedMealType === 'breakfast') {
+      return [
+        { name: 'Ovos Mexidos com Pão Integral e Café', calories: 320, desc: 'Proteína e energia matinal limpa', icon: '🍳' },
+        { name: 'Iogurte com Granola, Frutas e Chia', calories: 290, desc: 'Probióticos e saciedade duradoura', icon: '🥣' },
+        { name: 'Panqueca de Aveia, Banana e Canela', calories: 310, desc: 'Carboidrato complexo sem picos', icon: '🥞' },
+      ];
+    }
+    if (selectedMealType === 'dinner') {
+      return [
+        { name: 'Sopa Funcional de Abóbora com Frango', calories: 280, desc: 'Digestão leve e conforto noturno', icon: '🍲' },
+        { name: 'Omelete de Claras com Espinafre e Ricota', calories: 240, desc: 'Proteína pura e sem peso gástrico', icon: '🍳' },
+        { name: 'Salmão com Brócolis e Cenoura ao Vapor', calories: 350, desc: 'Ômega-3 protetor e micronutrientes', icon: '🐟' },
+      ];
+    }
+    // lunch (default)
+    return [
+      { name: 'Salada Caesar com Frango Grelhado', calories: 420, desc: 'Proteína magra + folhas verdes', icon: '🥗' },
+      { name: 'Bowl de Quinoa, Ovos e Legumes', calories: 480, desc: 'Fibras lentas e minerais', icon: '🥣' },
+      { name: 'Peixe com Purê de Mandioquinha e Brócolis', calories: 390, desc: 'Digestão rápida e ômega-3', icon: '🐟' },
+    ];
+  }, [selectedMealType]);
+
+  const customPlaceholder = useMemo(() => {
+    if (selectedMealType === 'breakfast') return 'Ex: Tapioca com ovos e suco verde';
+    if (selectedMealType === 'dinner') return 'Ex: Sopa de legumes ou salada com frango';
+    return 'Ex: Arroz integral, feijão e frango assado';
+  }, [selectedMealType]);
+
   const getTipIcon = (iconType: string) => {
     switch (iconType) {
       case 'flame':
@@ -182,16 +227,19 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
   if (!activeTip) return null;
 
   return (
-    <div className="relative rounded-[32px] overflow-hidden bg-gradient-to-br from-white via-slate-50 to-emerald-50/20 dark:from-[#151B23] dark:via-[#18212B] dark:to-[#0F161E] border border-slate-200/80 dark:border-[#243040] p-5 sm:p-7 shadow-lg shadow-emerald-500/5 transition-all duration-300">
-      
+    <div 
+      ref={cardContainerRef}
+      id="dashboard-quick-tips-card"
+      className="relative rounded-[32px] overflow-hidden bg-gradient-to-br from-white via-slate-50 to-emerald-50/20 dark:from-[#151B23] dark:via-[#18212B] dark:to-[#0F161E] border border-slate-200/80 dark:border-[#243040] p-5 sm:p-7 shadow-lg shadow-emerald-500/5 transition-all duration-300"
+    >
       {/* Luz ambiente sutil */}
       <div className="absolute top-0 right-1/4 w-72 h-36 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-500/10 dark:bg-orange-500/5 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Header com indicador de histórico e atualização */}
+      {/* Header exatamente alinhado ao print com indicador de histórico, voz e controles */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-sm">
             <Lightbulb className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -210,7 +258,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
           </div>
         </div>
 
-        {/* Controles: Narração Aoede, Navegação e Refresh */}
+        {/* Controles do topo: Voz Malu, Atualização e Navegação */}
         <div className="flex items-center gap-2">
           {/* Botão de voz usando voz Aoede da Malu */}
           <VoicePlayButton 
@@ -231,7 +279,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1C2532] rounded-xl p-0.5">
               <button
                 onClick={handlePrev}
-                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                 title="Dica anterior"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -241,7 +289,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               </span>
               <button
                 onClick={handleNext}
-                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                 title="Próxima dica"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -251,27 +299,41 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
         </div>
       </div>
 
-      {/* Barra de Status das Refeições de Hoje (Contexto Visual Imediato) */}
+      {/* Barra de Status das Refeições de Hoje (Contexto Visual Imediato e Seleção Rápida de Refeição) */}
       <div className="relative z-10 grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-white/60 dark:bg-[#10161D]/80 border border-slate-200/60 dark:border-[#202B38] mb-5 text-xs backdrop-blur-sm">
         
         {/* Café */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-slate-50/50 dark:bg-white/[0.02]">
-          <div className={`w-2 h-2 rounded-full ${todayMealsStatus.breakfast ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
-          <div className="truncate">
+        <button
+          type="button"
+          onClick={() => openQuickLog('breakfast')}
+          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+            todayMealsStatus.breakfast 
+              ? 'bg-emerald-500/10 border border-emerald-500/20' 
+              : 'bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05]'
+          }`}
+          title="Clique para registrar ou revisar o Café da Manhã"
+        >
+          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.breakfast ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+          <div className="truncate flex-1">
             <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Café da Manhã</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
               {todayMealsStatus.breakfast ? 'Registrado ✓' : 'Não registrado'}
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Almoço */}
-        <div className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all ${
-          todayMealsStatus.lunch 
-            ? 'bg-emerald-500/10 border border-emerald-500/20' 
-            : 'bg-slate-50/50 dark:bg-white/[0.02]'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${todayMealsStatus.lunch ? 'bg-emerald-500' : 'bg-orange-400 animate-pulse'}`} />
+        <button
+          type="button"
+          onClick={() => openQuickLog('lunch')}
+          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+            todayMealsStatus.lunch 
+              ? 'bg-emerald-500/10 border border-emerald-500/20' 
+              : 'bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 shadow-sm'
+          }`}
+          title="Clique para abrir e registrar o Almoço na frente"
+        >
+          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.lunch ? 'bg-emerald-500' : 'bg-orange-400 animate-pulse'}`} />
           <div className="truncate flex-1">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Almoço</span>
@@ -287,260 +349,300 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                 : 'Pendente hoje'}
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Jantar */}
-        <div className={`flex items-center gap-2 px-2 py-1.5 rounded-xl ${
-          todayMealsStatus.dinner 
-            ? 'bg-emerald-500/10 border border-emerald-500/20' 
-            : 'bg-slate-50/50 dark:bg-white/[0.02]'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${todayMealsStatus.dinner ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
-          <div className="truncate">
+        <button
+          type="button"
+          onClick={() => openQuickLog('dinner')}
+          className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+            todayMealsStatus.dinner 
+              ? 'bg-emerald-500/10 border border-emerald-500/20' 
+              : 'bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05]'
+          }`}
+          title="Clique para registrar ou revisar o Jantar"
+        >
+          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.dinner ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+          <div className="truncate flex-1">
             <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Jantar</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
               {todayMealsStatus.dinner 
                 ? (todayMealsStatus.dinnerName || 'Registrado ✓')
                 : 'Sugerido: Leve 🥗'}
             </span>
           </div>
-        </div>
+        </button>
 
       </div>
 
-      {/* Conteúdo da Dica Ativa */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTip.id + currentIndex}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25 }}
-          className="relative z-10 space-y-4"
-        >
-          {/* Tag e Título */}
-          <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase tracking-wider ${activeTip.badgeColor}`}>
-              {activeTip.tag}
-            </span>
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              {getTipIcon(activeTip.iconType)}
-              {activeTip.title}
-            </span>
-          </div>
+      {/* Conteúdo: Dica Ativa (Exatamente como no print do usuário) */}
+      <div className="relative z-10 space-y-4">
+        {/* Tag e Título */}
+        <div className="flex items-center gap-2">
+          <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase tracking-wider ${activeTip.badgeColor}`}>
+            {activeTip.tag}
+          </span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            {getTipIcon(activeTip.iconType)}
+            {activeTip.title}
+          </span>
+        </div>
 
-          {/* Dica Principal em Destaque */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/[0.06] border border-emerald-500/20 dark:border-emerald-500/30">
-            <p className="text-base sm:text-lg font-display font-bold text-slate-900 dark:text-white leading-snug">
-              "{activeTip.suggestion}"
-            </p>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-[#C5CDD9] mt-2.5 leading-relaxed">
-              {activeTip.details}
-            </p>
-          </div>
+        {/* Dica Principal em Destaque */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/[0.06] border border-emerald-500/20 dark:border-emerald-500/30">
+          <p className="text-base sm:text-lg font-display font-bold text-slate-900 dark:text-white leading-snug">
+            "{activeTip.suggestion}"
+          </p>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-[#C5CDD9] mt-2.5 leading-relaxed">
+            {activeTip.details}
+          </p>
+        </div>
 
-          {/* Botões de Ação */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {activeTip.actionLabel && activeTip.actionTab && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    playSfx('tap');
-                    vibrate(15);
-                    onNavigate(activeTip.actionTab!);
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
-                >
-                  <span>{activeTip.actionLabel}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
-              )}
-
-              {/* Botão de Registro Rápido de Almoço */}
-              {!todayMealsStatus.lunch && onLogIntake && (
-                <button
-                  onClick={() => {
-                    playSfx('tap');
-                    vibrate(10);
-                    setIsQuickLogOpen(true);
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-600 dark:text-orange-400 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Registrar Almoço Rápido</span>
-                </button>
-              )}
-
-              {todayMealsStatus.lunch && !todayMealsStatus.dinner && onLogIntake && (
-                <button
-                  onClick={() => {
-                    playSfx('tap');
-                    vibrate(10);
-                    handlePerformQuickLog('Jantar Leve: Sopa Funcional de Abóbora com Frango', 280, 'dinner');
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1E2836] dark:hover:bg-[#283648] text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Registrar Jantar Leve (280 kcal)</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1">
-              {currentTips.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    playSfx('tap');
-                    setCurrentIndex(idx);
-                  }}
-                  aria-label={`Ir para dica ${idx + 1}`}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    currentIndex === idx 
-                      ? 'w-6 bg-emerald-500' 
-                      : 'w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Modal / Diálogo de Registro Rápido de Almoço */}
-      {isQuickLogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white dark:bg-[#151B23] rounded-[28px] border border-slate-200 dark:border-[#2A3749] p-6 shadow-2xl space-y-5">
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
-                  <Utensils className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-display font-bold text-slate-900 dark:text-white text-base">
-                    Registrar Almoço
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-[#B5BDC9]">
-                    Alimenta o histórico para sugestões adaptativas
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsQuickLogOpen(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-[#1E2836] text-slate-400 hover:text-slate-600 transition-colors"
+        {/* Botões de Ação */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {activeTip.actionLabel && activeTip.actionTab && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(15);
+                  onNavigate(activeTip.actionTab!);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <span>{activeTip.actionLabel}</span>
+                <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            )}
+
+            {/* Botão de Registro Rápido de Almoço (Abre na frente desta aba) */}
+            {!todayMealsStatus.lunch && onLogIntake && (
+              <button
+                onClick={() => openQuickLog('lunch')}
+                className="px-4 py-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-600 dark:text-orange-400 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Abre o registro diretamente na frente desta aba"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Registrar Almoço Rápido</span>
               </button>
-            </div>
+            )}
 
-            {/* Opções de 1 Toque */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
-                Escolha rápida em 1 toque:
-              </span>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  onClick={() => handlePerformQuickLog('Salada Caesar com Frango Grelhado', 420, 'lunch')}
-                  className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/50 dark:bg-[#1C2532] dark:hover:bg-[#223040] border border-slate-200/70 dark:border-[#263547] hover:border-emerald-500/40 transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-500">
-                      🥗 Salada Caesar com Frango Grelhado
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Proteína magra + folhas verdes
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                    420 kcal
-                  </span>
-                </button>
+            {todayMealsStatus.lunch && !todayMealsStatus.dinner && onLogIntake && (
+              <button
+                onClick={() => openQuickLog('dinner')}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1E2836] dark:hover:bg-[#283648] text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Registrar Jantar Leve</span>
+              </button>
+            )}
+          </div>
 
-                <button
-                  onClick={() => handlePerformQuickLog('Bowl Funcional de Quinoa, Ovos e Legumes', 480, 'lunch')}
-                  className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/50 dark:bg-[#1C2532] dark:hover:bg-[#223040] border border-slate-200/70 dark:border-[#263547] hover:border-emerald-500/40 transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-500">
-                      🥣 Bowl de Quinoa, Ovos e Legumes
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Fibras lentas e minerais
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                    480 kcal
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => handlePerformQuickLog('Filé de Peixe com Purê de Mandioquinha e Brócolis', 390, 'lunch')}
-                  className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/50 dark:bg-[#1C2532] dark:hover:bg-[#223040] border border-slate-200/70 dark:border-[#263547] hover:border-emerald-500/40 transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-500">
-                      🐟 Peixe com Purê de Mandioquinha e Brócolis
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Digestão rápida e ômega-3
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                    390 kcal
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Ou digitação personalizada */}
-            <div className="pt-2 border-t border-slate-200 dark:border-[#263547] space-y-3">
-              <span className="text-xs font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
-                Ou digite seu prato:
-              </span>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Ex: Arroz integral, feijão e frango assado"
-                  value={customMealName}
-                  onChange={(e) => setCustomMealName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#10151D] border border-slate-200 dark:border-[#263547] text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                />
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <input
-                      type="number"
-                      placeholder="Calorias estimadas (ex: 450)"
-                      value={customMealCalories}
-                      onChange={(e) => setCustomMealCalories(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#10151D] border border-slate-200 dark:border-[#263547] text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <button
-                    disabled={!customMealName.trim()}
-                    onClick={() => {
-                      if (customMealName.trim()) {
-                        handlePerformQuickLog(
-                          customMealName.trim(), 
-                          parseInt(customMealCalories, 10) || 450, 
-                          'lunch'
-                        );
-                      }
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs transition-all cursor-pointer shrink-0"
-                  >
-                    Salvar Almoço
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <div className="flex items-center gap-1">
+            {currentTips.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  playSfx('tap');
+                  setCurrentIndex(idx);
+                }}
+                aria-label={`Ir para dica ${idx + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  currentIndex === idx 
+                    ? 'w-6 bg-emerald-500' 
+                    : 'w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'
+                }`}
+              />
+            ))}
           </div>
         </div>
-      )}
+      </div>
 
+      {/* PAINEL QUE ABRE DIRETAMENTE NA FRENTE DESTA ABA DO PRINT (FADE-IN-UP SUAVEMENTE SOBREPOSTO) */}
+      <AnimatePresence>
+        {isQuickLogOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 32, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 z-30 rounded-[32px] bg-white/98 dark:bg-[#151B23]/98 backdrop-blur-xl p-5 sm:p-6 flex flex-col justify-between overflow-y-auto border-2 border-orange-500/40 shadow-2xl shadow-orange-500/20 animate-fade-in-up"
+          >
+            <div className="space-y-4">
+              {/* Header do painel frontal */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-[#243040]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center justify-center shadow-sm">
+                    <Utensils className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-display font-black text-slate-900 dark:text-white text-base sm:text-lg">
+                        {selectedMealType === 'breakfast' 
+                          ? 'Registrar Café da Manhã' 
+                          : selectedMealType === 'dinner' 
+                          ? 'Registrar Jantar' 
+                          : 'Registrar Almoço'}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider border border-orange-500/20">
+                        Registro Rápido
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-[#B5BDC9]">
+                      Alimenta o histórico para sugestões adaptativas da IA
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    playSfx('tap');
+                    setIsQuickLogOpen(false);
+                  }}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1E2836] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  title="Fechar e voltar à dica"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Seletor rápido de tipo de refeição dentro do painel */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    setSelectedMealType('breakfast');
+                    setCustomMealCalories('320');
+                  }}
+                  className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                    selectedMealType === 'breakfast'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
+                  }`}
+                >
+                  Café da Manhã
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    setSelectedMealType('lunch');
+                    setCustomMealCalories('450');
+                  }}
+                  className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                    selectedMealType === 'lunch'
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
+                  }`}
+                >
+                  Almoço
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    setSelectedMealType('dinner');
+                    setCustomMealCalories('280');
+                  }}
+                  className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                    selectedMealType === 'dinner'
+                      ? 'bg-indigo-500 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
+                  }`}
+                >
+                  Jantar
+                </button>
+              </div>
+
+              {/* Opções de 1 Toque */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
+                  Escolha rápida em 1 toque:
+                </span>
+                <div className="grid grid-cols-1 gap-2">
+                  {mealQuickOptions.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handlePerformQuickLog(opt.name, opt.calories, selectedMealType)}
+                      className="w-full text-left p-3 rounded-2xl bg-slate-50/90 hover:bg-emerald-50/70 dark:bg-[#1C2532] dark:hover:bg-[#223040] border border-slate-200/80 dark:border-[#263547] hover:border-emerald-500/50 transition-all flex items-center justify-between group cursor-pointer"
+                    >
+                      <div>
+                        <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-500 flex items-center gap-1.5">
+                          <span className="text-sm">{opt.icon}</span>
+                          <span>{opt.name}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {opt.desc}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg shrink-0 ml-2 border border-emerald-500/20">
+                        {opt.calories} kcal
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ou digite seu prato */}
+              <div className="pt-2 border-t border-slate-200/80 dark:border-[#263547] space-y-2.5">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
+                  Ou digite seu prato:
+                </span>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder={customPlaceholder}
+                    value={customMealName}
+                    onChange={(e) => setCustomMealName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#10151D] border border-slate-200 dark:border-[#263547] text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        placeholder="Calorias estimadas (ex: 450)"
+                        value={customMealCalories}
+                        onChange={(e) => setCustomMealCalories(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#10151D] border border-slate-200 dark:border-[#263547] text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 transition-colors"
+                      />
+                    </div>
+                    <button
+                      disabled={!customMealName.trim()}
+                      onClick={() => {
+                        if (customMealName.trim()) {
+                          handlePerformQuickLog(
+                            customMealName.trim(), 
+                            parseInt(customMealCalories, 10) || 450, 
+                            selectedMealType
+                          );
+                        }
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 text-white font-bold text-xs transition-all cursor-pointer shrink-0 shadow-md shadow-orange-500/20"
+                    >
+                      Salvar {selectedMealType === 'breakfast' ? 'Café' : selectedMealType === 'dinner' ? 'Jantar' : 'Almoço'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé do painel */}
+            <div className="pt-3 mt-3 border-t border-slate-200/70 dark:border-[#243040] flex items-center justify-between text-xs text-slate-500">
+              <span>Toque no X para fechar e voltar para as dicas</span>
+              <button
+                type="button"
+                onClick={() => setIsQuickLogOpen(false)}
+                className="font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+              >
+                Voltar à dica
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

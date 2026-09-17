@@ -1,5 +1,21 @@
 {
   "entities": {
+    "ButtonState": {
+      "title": "Button State",
+      "description": "Global and user-specific button enabled/disabled state for synchronization across devices and sessions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "buttonId": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "label": { "type": "string" },
+        "category": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["buttonId", "enabled", "updatedAt"]
+    },
     "User": {
       "title": "User Profile",
       "description": "Core user information, biometric configuration, and settings",
@@ -585,6 +601,14 @@
     "/users/{userId}/gardenCrops/{id}": {
       "schema": "GardenCrop",
       "description": "The user's active plant crops in the smart garden"
+    },
+    "/buttonStates/{buttonId}": {
+      "schema": "ButtonState",
+      "description": "Global button enabled/disabled state synced across devices and sessions"
+    },
+    "/users/{userId}/buttonStates/{buttonId}": {
+      "schema": "ButtonState",
+      "description": "User specific button enabled/disabled state synced across sessions and devices"
     }
   }
 }

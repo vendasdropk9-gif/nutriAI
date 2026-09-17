@@ -47,8 +47,6 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'body', label: 'Corpo', icon: <User className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-blue-500 to-indigo-500' },
   { id: 'plan', label: 'Plano', icon: <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'shopping', label: 'Compras', icon: <ShoppingBasket className="w-4 h-4 sm:w-5 sm:h-5" /> },
-  { id: 'journey', label: 'Simulador 3D', icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-emerald-500 to-indigo-500' },
-  { id: 'exercise3d', label: 'Guia 3D', icon: <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />, color: 'from-emerald-500 to-teal-600', isSpecial: true },
   { id: 'evolution', label: 'Evolução', icon: <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-indigo-400 to-purple-600' },
   { id: 'challenge', label: 'Desafio', icon: <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-orange-500 to-amber-500' },
   { id: 'swaps', label: 'Trocas', icon: <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> },
@@ -269,10 +267,12 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
       {/* Main Horizontal Scrollable Container (No visible scrollbars) */}
       <div
         ref={containerRef}
-        className="relative flex items-center gap-2 sm:gap-2.5 h-full overflow-x-auto overflow-y-hidden scrollbar-none no-scrollbar hide-scrollbar px-10 md:px-16 w-full scroll-smooth"
+        className="relative flex items-center gap-2 sm:gap-2.5 h-full overflow-x-auto overflow-y-hidden scrollbar-none no-scrollbar hide-scrollbar w-full scroll-smooth"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          paddingLeft: 'max(2rem, calc(50% - 90px))',
+          paddingRight: 'max(2rem, calc(50% - 90px))',
         }}
       >
         {NAV_ITEMS.map((item) => {
@@ -298,7 +298,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                group flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none
+                group flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none text-center
                 ${isActive
                   ? isPremiumItem
                     ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-bold shadow-[0_4px_18px_rgba(16,185,129,0.38)] ring-1 ring-[#D8B14A]/90 border border-[#D8B14A]/80 scale-[1.02]'

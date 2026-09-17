@@ -926,7 +926,7 @@ Responda APENAS com um array JSON com os objetos de receita.`;
     }
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
 
   for (const modelName of modelsToTry) {
     try {
@@ -1219,11 +1219,8 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
         });
         
         const modelsToTry = [
-          "gemini-2.5-flash",
-          "gemini-2.0-flash",
           "gemini-3.1-flash-tts-preview",
-          "gemini-2.5-pro",
-          "gemini-flash-latest"
+          "gemini-3.8-flash"
         ];
 
         for (const model of modelsToTry) {
@@ -1378,7 +1375,7 @@ async function synthesizeLiveAoede(cleanText: string, apiKey: string, language: 
     }, maxTimeoutMs);
 
     ai.live.connect({
-      model: "gemini-3.1-flash-live-preview",
+      model: "gemini-3.8-live",
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
@@ -2737,7 +2734,7 @@ Responda APENAS com JSON.`;
     required: ["name", "description", "prepTime", "ingredients", "instructions", "nutrition"],
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
   
   try {
     const ai = getGenAI();
@@ -4263,7 +4260,7 @@ DIRETRIZES IMPORTANTES:
     required: ["identified", "productName", "ingredientsFound", "isSafe", "allergensDetected", "userSpecificThreats", "alternativesSuggested", "detailedAnalysis", "score"]
   };
 
-  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest"];
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
   let responseText = "";
   let lastError: any = null;
 
@@ -6455,7 +6452,7 @@ Responda em formato JSON rigoroso:
     if (!ai) throw new Error("API_KEY_UNAVAILABLE");
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",

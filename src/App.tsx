@@ -12,7 +12,6 @@ import { MealPlanView } from './components/MealPlanCalendar';
 import { ShoppingListView } from './components/ShoppingListView';
 import { Profile } from './components/Profile';
 import { PlateAnalyzer } from './components/PlateAnalyzer';
-import { JourneyVisualizer } from './components/JourneyVisualizer';
 import { JuiceGenerator } from './components/JuiceGenerator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BarcodeScanner } from './components/BarcodeScanner';
@@ -52,7 +51,6 @@ import { AiCookingAdvisor } from './components/AiCookingAdvisor';
 import { WellnessHub } from './components/WellnessHub';
 import { PhotoEvolution } from './components/PhotoEvolution';
 import { AnatomyWorkoutGuide } from './components/AnatomyWorkoutGuide';
-import { ExerciseVisualizer } from './components/ExerciseVisualizer';
 import { Assistant360 } from './components/Assistant360';
 import { QuickDishes } from './components/QuickDishes';
 import { prefetchCuratedRecipeCatalog } from './lib/recipeImagePrefetcher';
@@ -60,7 +58,7 @@ import { NotificationSystem, AppNotification } from './components/NotificationSy
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
 import { WelcomeTour } from './components/WelcomeTour';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen } from 'lucide-react';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 import { useTranslation } from 'react-i18next';
@@ -75,36 +73,16 @@ import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
+import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 
 const TAB_ORDER = [
   "admin_library",
   'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'pantry', 'cooking_advisor', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
-  'emotional', 'analyzer', 'body', 'plan', 'shopping', 'journey', 'exercise3d', 'evolution', 
+  'emotional', 'analyzer', 'body', 'plan', 'shopping', 'evolution', 
   'challenge', 'swaps', 'dining', 'market', 'frescor', 'trainer', 'wellness', 
   'academies', 'gamification', 'prediction', 'profile', 'pricing', 'partner', 'delivery'
 ];
-
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 32 : direction < 0 ? -32 : 0,
-    opacity: 0,
-    scale: 0.96,
-    filter: 'blur(4px)',
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    filter: 'blur(0px)',
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -32 : direction < 0 ? 32 : 0,
-    opacity: 0,
-    scale: 0.96,
-    filter: 'blur(4px)',
-  }),
-};
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -177,19 +155,7 @@ function AppContent() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'journey' | 'exercise3d' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
-  const [prevTab, setPrevTab] = useState<string>('assistant360');
-  const [direction, setDirection] = useState<number>(0);
-
-  useEffect(() => {
-    if (activeTab !== prevTab) {
-      const prevIndex = TAB_ORDER.indexOf(prevTab);
-      const currIndex = TAB_ORDER.indexOf(activeTab);
-      const dir = currIndex > prevIndex ? 1 : -1;
-      setDirection(dir);
-      setPrevTab(activeTab);
-    }
-  }, [activeTab, prevTab]);
+  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
@@ -664,24 +630,7 @@ function AppContent() {
         ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
       }`}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={`${activeTab}-${currentAppLang}`}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ 
-              type: "spring", 
-              stiffness: 280, 
-              damping: 28, 
-              mass: 0.8,
-              opacity: { duration: 0.25 },
-              scale: { duration: 0.3 }
-            }}
-            className="w-full flex-1 flex flex-col min-h-[400px]"
-          >
+        <LayoutAnimationProvider animationKey={`${activeTab}-${currentAppLang}`}>
             <ErrorBoundary>
               {(activeTab === 'generator' || activeTab === 'plan') && (
               <FoodGalleryBanner 
@@ -707,11 +656,20 @@ function AppContent() {
               />
             )}
             {activeTab === 'quickdishes' && (
-              <QuickDishes
-                profile={profile}
-                onSaveRecipe={handleSaveRecipe}
-                onAwardPoints={awardPoints}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full animate-fade-in-up"
+              >
+                <QuickDishes
+                  profile={profile}
+                  onSaveRecipe={handleSaveRecipe}
+                  onAwardPoints={awardPoints}
+                  onUpdateProfile={updateProfile}
+                />
+              </motion.div>
             )}
             {activeTab === 'generator' && (
               <Generator 
@@ -828,15 +786,6 @@ function AppContent() {
                 onAwardPoints={awardPoints} 
               />
             )}
-            {activeTab === 'journey' && (
-              <JourneyVisualizer 
-                profile={profile} 
-                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
-              />
-            )}
-            {activeTab === 'exercise3d' && (
-              <ExerciseVisualizer />
-            )}
             {activeTab === 'evolution' && (
               <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />
             )}
@@ -923,8 +872,7 @@ function AppContent() {
               <SmartGarden />
             )}
             </ErrorBoundary>
-          </motion.div>
-        </AnimatePresence>
+        </LayoutAnimationProvider>
       </main>
 
       <LiveAssistant 

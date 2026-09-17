@@ -10,8 +10,7 @@ import { analyzeBarcodeProduct, generatePantryExpiringRecipes } from '../lib/gem
 import { speak } from '../lib/speech';
 import { PantryItem, PantryRecipeSuggestion, UserProfile, Recipe } from '../types';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '../lib/firebase';
 
 interface PantryScannerProps {
   profile?: UserProfile | null;
@@ -114,10 +113,8 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
     // Try Firestore if logged in
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
+      const user = auth.currentUser || (profile?.id ? { uid: profile.id } : null);
       if (user) {
-        const db = getFirestore();
         const snap = await getDocs(collection(db, `users/${user.uid}/pantryItems`));
         if (!snap.empty) {
           items = snap.docs.map(d => ({ id: d.id, ...d.data() } as PantryItem));
@@ -207,10 +204,8 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
   const saveItems = async (items: PantryItem[]) => {
     localStorage.setItem('nutri_pantry_items', JSON.stringify(items));
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
+      const user = auth.currentUser || (profile?.id ? { uid: profile.id } : null);
       if (user) {
-        const db = getFirestore();
         for (const item of items) {
           await setDoc(doc(db, `users/${user.uid}/pantryItems/${item.id}`), item, { merge: true });
         }
@@ -251,10 +246,8 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
     localStorage.setItem('nutri_pantry_items', JSON.stringify(updated));
 
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
+      const user = auth.currentUser || (profile?.id ? { uid: profile.id } : null);
       if (user) {
-        const db = getFirestore();
         await deleteDoc(doc(db, `users/${user.uid}/pantryItems/${id}`));
       }
     } catch (e) {}

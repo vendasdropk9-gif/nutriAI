@@ -1,6 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { db, doc, getDoc, setDoc, updateDoc, collection, getDocs, onSnapshot, serverTimestamp } from './firebase';
+import { db } from './firebase';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  collection, 
+  getDocs, 
+  onSnapshot, 
+  serverTimestamp 
+} from 'firebase/firestore';
 import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
 
 export function useProfileSync(
@@ -14,16 +24,15 @@ export function useProfileSync(
   useEffect(() => {
     if (!user) return;
 
-    // Check if it is a local simulated user
-    const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
-    if (isLocalUser) return;
+    // Check user ID - ensure valid document path segment
+    const userId = user.uid || (user as any).id || 'current-user';
 
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const fetchProfileAndLogs = async () => {
       try {
         setIsSyncing(true);
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'users', userId);
         
         // Listen to live profile updates
         unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
@@ -225,12 +234,11 @@ export function useProfileSync(
   // Sync profile changes back to Firestore
   const syncToFirestore = useCallback(async (newProfile: UserProfile) => {
     if (!user) return;
-    const isLocalUser = user.uid.startsWith('local-user-') || user.email?.includes('local');
-    if (isLocalUser) return;
+    const userId = user.uid || (user as any).id || 'current-user';
 
     setIsSyncing(true);
     try {
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, 'users', userId);
       const names = (newProfile.name || '').split(' ');
       
       const payload: Record<string, any> = {

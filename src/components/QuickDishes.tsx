@@ -22,9 +22,14 @@ import {
   BookmarkCheck,
   CheckCircle2,
   ListPlus,
-  Scale
+  Scale,
+  Database,
+  Sliders
 } from 'lucide-react';
-import { QuickDish, QuickDishGoal, UserProfile, Recipe } from '../types';
+import { QuickDish, QuickDishGoal, UserProfile, Recipe, IntakeLog } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { db, doc, setDoc } from '../lib/firebase';
+import { speak } from '../lib/speech';
 import { generateQuickDishes } from '../lib/gemini';
 import { getClientFallbackQuickDishes, DEFAULT_FALLBACK_IMAGE } from '../lib/quickDishesData';
 import { prefetchDishes } from '../lib/recipeImagePrefetcher';
@@ -35,6 +40,7 @@ interface QuickDishesProps {
   profile: UserProfile | null;
   onSaveRecipe?: (recipe: Recipe) => void;
   onAwardPoints?: (amount: number, reason: string) => void;
+  onUpdateProfile?: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
   initialGoal?: QuickDishGoal;
   isOpenAsModal?: boolean;
   onCloseModal?: () => void;
@@ -44,10 +50,12 @@ export function QuickDishes({
   profile,
   onSaveRecipe,
   onAwardPoints,
+  onUpdateProfile,
   initialGoal = 'weight_loss',
   isOpenAsModal = false,
   onCloseModal
 }: QuickDishesProps) {
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [selectedGoal, setSelectedGoal] = useState<QuickDishGoal>(initialGoal);
   const [dishes, setDishes] = useState<QuickDish[]>(() => getClientFallbackQuickDishes(initialGoal, profile));
@@ -55,11 +63,18 @@ export function QuickDishes({
   const [activeRecipeCardId, setActiveRecipeCardId] = useState<string | null>(null);
   const [selectedDishForModal, setSelectedDishForModal] = useState<QuickDish | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({});
+  const [registeredMeals, setRegisteredMeals] = useState<Record<string, boolean>>({});
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
   const [copySuccessToast, setCopySuccessToast] = useState<string | null>(null);
   const [addedToCartToast, setAddedToCartToast] = useState<string | null>(null);
   const [previousDishesHistory, setPreviousDishesHistory] = useState<string[]>([]);
   const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
+
+  // Firestore Global Button States (Always Enabled Now)
+  const isRegisterMealEnabled = true;
+  const isFavoriteEnabled = true;
+  const isShoppingListEnabled = true;
+  const isGenerateMoreEnabled = true;
 
   // Sync custom items to shopping list
   const [customShoppingItems, setCustomShoppingItems] = useLocalStorage<{ name: string; checked: boolean }[]>(
@@ -94,6 +109,11 @@ export function QuickDishes({
   }, [dishes]);
 
   const handleGenerate = async (goalToUse: QuickDishGoal) => {
+    if (!isGenerateMoreEnabled) {
+      playSfx('pop');
+      showToastMessage("O botão 'Gerar Novas Sugestões' está desabilitado na sincronização do Firestore.");
+      return;
+    }
     setIsLoading(true);
     playSfx('tap');
     vibrate(20);
@@ -129,7 +149,12 @@ export function QuickDishes({
     handleGenerate(goal);
   };
 
-  const handleToggleFavorite = (dish: QuickDish) => {
+  const handleToggleFavorite = async (dish: QuickDish) => {
+    if (!isFavoriteEnabled) {
+      playSfx('pop');
+      showToastMessage("O botão 'Favoritar' está desabilitado na sincronização do Firestore.");
+      return;
+    }
     const isCurrentlyFav = favoriteIds[dish.id] || favoriteIds[dish.name];
     const newStatus = !isCurrentlyFav;
 
@@ -164,7 +189,18 @@ export function QuickDishes({
       if (onSaveRecipe) {
         onSaveRecipe(convertedRecipe);
       }
-      showToastMessage(`"${dish.name}" foi salvo nas suas receitas favoritas! ❤️`);
+
+      // Persist directly to Cloud Firestore
+      try {
+        const targetUid = user?.uid || profile?.id || 'current-user';
+        await setDoc(doc(db, 'users', targetUid, 'savedRecipes', dish.id), convertedRecipe);
+        await setDoc(doc(db, 'recipes', dish.id), convertedRecipe);
+        console.log(`[QuickDishes] Receita salva no banco de dados com sucesso: ${dish.name}`);
+      } catch (err) {
+        console.warn("Aviso ao salvar receita no Firestore:", err);
+      }
+
+      showToastMessage(`"${dish.name}" foi salvo nas suas receitas favoritas no banco de dados! ❤️`);
     } else {
       playSfx('pop');
     }
@@ -177,13 +213,103 @@ export function QuickDishes({
     }, 3000);
   };
 
-  const handleAddAllToShoppingList = (dish: QuickDish) => {
+  const handleRegisterMeal = async (dish: QuickDish) => {
+    if (!isRegisterMealEnabled) {
+      playSfx('pop');
+      showToastMessage("O botão 'Registrar Almoço' está desabilitado na sincronização do Firestore.");
+      return;
+    }
+    playSfx('success');
+    vibrate([30, 40, 50]);
+
+    const targetUid = user?.uid || profile?.id || 'current-user';
+    const now = new Date();
+    
+    // Determine meal label
+    const hour = now.getHours();
+    const mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' = 
+      hour >= 5 && hour < 11 ? 'breakfast' :
+      hour >= 11 && hour < 15 ? 'lunch' :
+      hour >= 15 && hour < 18 ? 'snack' : 'dinner';
+
+    const mealTypeLabel = 
+      mealType === 'breakfast' ? 'Café da Manhã' :
+      mealType === 'lunch' ? 'Almoço' :
+      mealType === 'snack' ? 'Lanche' : 'Jantar';
+
+    const intakeLogId = `intake_${Date.now()}_${dish.id}`;
+    const nutritionInfo = {
+      calories: dish.nutrition.calories,
+      protein: dish.nutrition.protein,
+      carbs: dish.nutrition.carbs,
+      fat: dish.nutrition.fat,
+      fiber: dish.nutrition.fiber
+    };
+
+    const newIntakeLog: IntakeLog = {
+      id: intakeLogId,
+      date: now.toISOString(),
+      mealId: dish.id,
+      recipeName: dish.name,
+      mealType,
+      planned: nutritionInfo,
+      actual: nutritionInfo,
+      adjusted: false
+    };
+
+    setRegisteredMeals(prev => ({
+      ...prev,
+      [dish.id]: true,
+      [dish.name]: true
+    }));
+
+    // 1. Direct write to Cloud Firestore
+    try {
+      await setDoc(doc(db, 'users', targetUid, 'intakeLogs', intakeLogId), newIntakeLog);
+      console.log(`[QuickDishes] Refeição gravada no Firestore com sucesso: ${dish.name}`);
+    } catch (e) {
+      console.warn("Aviso ao gravar refeição no Firestore:", e);
+    }
+
+    // 2. Update React profile state
+    if (onUpdateProfile) {
+      onUpdateProfile(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          intakeLogs: [...(prev.intakeLogs || []), newIntakeLog]
+        };
+      });
+    }
+
+    // 3. Award XP points
+    if (onAwardPoints) {
+      onAwardPoints(30, `${mealTypeLabel} registrado no banco de dados`);
+    }
+
+    // 4. Audio confirmation using Aoede/Malu profile
+    speak(`${dish.name} registrado com sucesso no banco de dados como seu ${mealTypeLabel}!`, { lang: 'pt-BR' });
+    showToastMessage(`🎉 "${dish.name}" registrado no banco de dados como ${mealTypeLabel}! (+30 XP)`);
+  };
+
+  const handleAddAllToShoppingList = async (dish: QuickDish) => {
+    if (!isShoppingListEnabled) {
+      playSfx('pop');
+      showToastMessage("O botão 'Lista de Compras' está desabilitado na sincronização do Firestore.");
+      return;
+    }
     playSfx('tap');
     vibrate(30);
 
-    const newItemsToAdd = dish.ingredients.map(ing => ({
+    const targetUid = user?.uid || profile?.id || 'current-user';
+    const newItemsToAdd = dish.ingredients.map((ing, idx) => ({
+      id: `shop_${Date.now()}_${idx}`,
       name: `${ing.amount} de ${ing.name} (${dish.name})`,
-      checked: false
+      checked: false,
+      addedAt: new Date().toISOString(),
+      dishId: dish.id,
+      dishName: dish.name,
+      userId: targetUid
     }));
 
     setCustomShoppingItems(prev => {
@@ -192,7 +318,17 @@ export function QuickDishes({
       return [...prev, ...filtered];
     });
 
-    setAddedToCartToast(`${dish.ingredients.length} ingredientes adicionados à sua Lista de Compras!`);
+    // Persist to Cloud Firestore
+    try {
+      for (const item of newItemsToAdd) {
+        await setDoc(doc(db, 'users', targetUid, 'shoppingList', item.id), item);
+      }
+      console.log(`[QuickDishes] Ingredientes salvos no Firestore shoppingList`);
+    } catch (e) {
+      console.warn("Aviso ao salvar shoppingList no Firestore:", e);
+    }
+
+    setAddedToCartToast(`${dish.ingredients.length} ingredientes salvos no Banco de Dados (Lista de Compras)!`);
     playSfx('success');
     vibrate([30, 50]);
 
@@ -235,7 +371,13 @@ export function QuickDishes({
   };
 
   const content = (
-    <div className="w-full space-y-6 animate-in fade-in duration-500">
+    <motion.div 
+      initial={{ opacity: 0, y: 32 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full space-y-6 animate-fade-in-up"
+    >
       
       {/* 1. Header & Title Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent p-6 sm:p-8 rounded-[32px] border border-emerald-500/20 backdrop-blur-md relative overflow-hidden">
@@ -387,21 +529,29 @@ export function QuickDishes({
               </span>
             </div>
             
-            {/* Quick Regenerate Button */}
-            <button
-              id="btn-regenerate-quick-dishes-top"
-              onClick={() => handleGenerate(selectedGoal)}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all shadow-sm group"
-            >
-              <RotateCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
-              <span>{t('regenerate_suggestions', 'Gerar Outras 3')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Quick Regenerate Button */}
+              <button
+                id="btn-regenerate-quick-dishes-top"
+                onClick={() => handleGenerate(selectedGoal)}
+                disabled={isLoading || !isGenerateMoreEnabled}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm group ${
+                  !isGenerateMoreEnabled 
+                    ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 text-slate-700 dark:text-slate-300 cursor-pointer'
+                }`}
+                title={!isGenerateMoreEnabled ? 'Desabilitado no Firestore' : undefined}
+              >
+                <RotateCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+                <span>{t('regenerate_suggestions', 'Gerar Outras 3')}</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dishes.map((dish, idx) => {
               const isFav = favoriteIds[dish.id] || favoriteIds[dish.name];
+              const isRegistered = registeredMeals[dish.id] || registeredMeals[dish.name];
               const isCardRecipeOpen = activeRecipeCardId === dish.id;
 
               return (
@@ -499,30 +649,62 @@ export function QuickDishes({
                     </div>
 
                     {/* Card Actions Footer */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      {/* Database Registration Button */}
                       <button
-                        onClick={() => {
-                          setActiveRecipeCardId(dish.id);
-                          playSfx('tap');
-                          vibrate(15);
-                        }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all cursor-pointer select-none active:scale-95"
-                      >
-                        <Utensils className="w-3.5 h-3.5" />
-                        <span>{t('view_recipe', 'Ver Receita')}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleToggleFavorite(dish)}
-                        className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
-                          isFav
-                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
-                            : 'bg-slate-100 dark:bg-slate-800 border-transparent hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                        onClick={() => handleRegisterMeal(dish)}
+                        disabled={!isRegisterMealEnabled}
+                        title={!isRegisterMealEnabled ? 'Desabilitado no Firestore' : undefined}
+                        className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all select-none active:scale-95 ${
+                          !isRegisterMealEnabled
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                            : isRegistered
+                            ? 'bg-emerald-600 text-white shadow-emerald-600/25 cursor-pointer'
+                            : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 cursor-pointer'
                         }`}
                       >
-                        <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                        <span>{isFav ? t('saved', 'Salvo') : t('favorite', 'Favoritar')}</span>
+                        {isRegistered ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            <span>Almoço Registrado no Banco!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>Registrar Almoço no Banco (+30 XP)</span>
+                          </>
+                        )}
                       </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            setActiveRecipeCardId(dish.id);
+                            playSfx('tap');
+                            vibrate(15);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all cursor-pointer select-none active:scale-95"
+                        >
+                          <Utensils className="w-3.5 h-3.5" />
+                          <span>{t('view_recipe', 'Ver Receita')}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleFavorite(dish)}
+                          disabled={!isFavoriteEnabled}
+                          title={!isFavoriteEnabled ? 'Desabilitado no Firestore' : undefined}
+                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition-all ${
+                            !isFavoriteEnabled
+                              ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-transparent'
+                              : isFav
+                              ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 cursor-pointer'
+                              : 'bg-slate-100 dark:bg-slate-800 border-transparent hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          <span>{isFav ? t('saved', 'Salvo') : t('favorite', 'Favoritar')}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -638,25 +820,49 @@ export function QuickDishes({
                         </div>
 
                         {/* Action Buttons inside Card */}
-                        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0 mt-3">
+                        <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0 mt-3">
                           <button
-                            onClick={() => handleAddAllToShoppingList(dish)}
-                            className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                            onClick={() => handleRegisterMeal(dish)}
+                            disabled={!isRegisterMealEnabled}
+                            title={!isRegisterMealEnabled ? 'Desabilitado no Firestore' : undefined}
+                            className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all select-none active:scale-95 ${
+                              !isRegisterMealEnabled
+                                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
+                                : isRegistered
+                                ? 'bg-emerald-600 text-white shadow-emerald-600/25 cursor-pointer'
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 cursor-pointer'
+                            }`}
                           >
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            <span>Comprar</span>
+                            <Database className="w-4 h-4 text-white" />
+                            <span>{isRegistered ? 'Almoço Gravado no Banco de Dados!' : 'Registrar Refeição no Banco (+30 XP)'}</span>
                           </button>
 
-                          <button
-                            onClick={() => {
-                              setSelectedDishForModal(dish);
-                              playSfx('tap');
-                            }}
-                            className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-95"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                            <span>Expandir</span>
-                          </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handleAddAllToShoppingList(dish)}
+                              disabled={!isShoppingListEnabled}
+                              title={!isShoppingListEnabled ? 'Desabilitado no Firestore' : undefined}
+                              className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 ${
+                                !isShoppingListEnabled
+                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                              }`}
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              <span>Comprar</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedDishForModal(dish);
+                                playSfx('tap');
+                              }}
+                              className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-95"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>Expandir</span>
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -671,8 +877,13 @@ export function QuickDishes({
             <button
               id="btn-regenerate-quick-dishes-bottom"
               onClick={() => handleGenerate(selectedGoal)}
-              disabled={isLoading}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              disabled={isLoading || !isGenerateMoreEnabled}
+              title={!isGenerateMoreEnabled ? 'Desabilitado no Firestore' : undefined}
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-extrabold text-sm sm:text-base shadow-lg transition-all ${
+                !isGenerateMoreEnabled
+                  ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+              }`}
             >
               <RotateCw className="w-5 h-5 animate-spin-slow" />
               <span>GERAR OUTRAS 3 OPÇÕES</span>
@@ -845,38 +1056,71 @@ export function QuickDishes({
                 </div>
               )}
 
-              {/* Three Mandatory Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                {/* 1. Add to Shopping List */}
+              {/* Mandatory Action Buttons */}
+              <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                {/* 0. Register Meal in Database */}
                 <button
-                  onClick={() => handleAddAllToShoppingList(selectedDishForModal)}
-                  className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all active:scale-95"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Lista de Compras</span>
-                </button>
-
-                {/* 2. Toggle Favorite */}
-                <button
-                  onClick={() => handleToggleFavorite(selectedDishForModal)}
-                  className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border transition-all active:scale-95 ${
-                    favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name]
-                      ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20'
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                  onClick={() => handleRegisterMeal(selectedDishForModal)}
+                  disabled={!isRegisterMealEnabled}
+                  title={!isRegisterMealEnabled ? 'Desabilitado no Firestore' : undefined}
+                  className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
+                    !isRegisterMealEnabled
+                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none border border-slate-300 dark:border-slate-700'
+                      : registeredMeals[selectedDishForModal.id] || registeredMeals[selectedDishForModal.name]
+                      ? 'bg-emerald-600 text-white shadow-emerald-600/25 cursor-pointer'
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 cursor-pointer'
                   }`}
                 >
-                  <Heart className={`w-4 h-4 ${favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'fill-current' : ''}`} />
-                  <span>{favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'Favoritado ❤️' : 'Favoritar'}</span>
+                  <Database className="w-4 h-4 text-white" />
+                  <span>
+                    {registeredMeals[selectedDishForModal.id] || registeredMeals[selectedDishForModal.name]
+                      ? 'Refeição Gravada com Sucesso no Banco de Dados!'
+                      : 'Registrar Refeição no Banco de Dados (+30 XP)'}
+                  </span>
                 </button>
 
-                {/* 3. Share Dish */}
-                <button
-                  onClick={() => handleShareDish(selectedDishForModal)}
-                  className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Compartilhar</span>
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* 1. Add to Shopping List */}
+                  <button
+                    onClick={() => handleAddAllToShoppingList(selectedDishForModal)}
+                    disabled={!isShoppingListEnabled}
+                    title={!isShoppingListEnabled ? 'Desabilitado no Firestore' : undefined}
+                    className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
+                      !isShoppingListEnabled
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer'
+                    }`}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Salvar na Lista (Banco)</span>
+                  </button>
+
+                  {/* 2. Toggle Favorite */}
+                  <button
+                    onClick={() => handleToggleFavorite(selectedDishForModal)}
+                    disabled={!isFavoriteEnabled}
+                    title={!isFavoriteEnabled ? 'Desabilitado no Firestore' : undefined}
+                    className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border transition-all active:scale-95 ${
+                      !isFavoriteEnabled
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-transparent'
+                        : favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name]
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20 cursor-pointer'
+                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 cursor-pointer'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 ${favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'fill-current' : ''}`} />
+                    <span>{favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'Favoritado ❤️' : 'Favoritar no Banco'}</span>
+                  </button>
+
+                  {/* 3. Share Dish */}
+                  <button
+                    onClick={() => handleShareDish(selectedDishForModal)}
+                    className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Compartilhar</span>
+                  </button>
+                </div>
               </div>
 
             </motion.div>
@@ -910,15 +1154,21 @@ export function QuickDishes({
         )}
       </AnimatePresence>
 
-    </div>
+    </motion.div>
   );
 
   if (isOpenAsModal) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
-        <div className="relative w-full max-w-5xl bg-[#0F141A] rounded-[36px] border border-emerald-500/30 p-4 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] my-auto max-h-[95vh] overflow-y-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 36, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.98 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-5xl bg-[#0F141A] rounded-[36px] border border-emerald-500/30 p-4 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] my-auto max-h-[95vh] overflow-y-auto animate-fade-in-up"
+        >
           {content}
-        </div>
+        </motion.div>
       </div>
     );
   }

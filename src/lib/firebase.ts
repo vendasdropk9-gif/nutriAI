@@ -1,12 +1,44 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection as fsCollection, 
+  doc as fsDoc, 
+  getDocs as fsGetDocs, 
+  getDoc as fsGetDoc, 
+  setDoc as fsSetDoc, 
+  addDoc as fsAddDoc, 
+  updateDoc as fsUpdateDoc, 
+  deleteDoc as fsDeleteDoc, 
+  onSnapshot as fsOnSnapshot, 
+  query as fsQuery, 
+  where as fsWhere, 
+  limit as fsLimit, 
+  orderBy as fsOrderBy, 
+  serverTimestamp as fsServerTimestamp,
+  Timestamp as fsTimestamp,
+  writeBatch as fsWriteBatch,
+  getDocFromServer as fsGetDocFromServer
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { safeGet, safeSet } from './storage';
 
-// Initialize Firebase App for Authentication only
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase App & Services
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Provisioned named Cloud Firestore Database
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const signInWithGoogle = async () => {
   try {
@@ -22,7 +54,7 @@ export const signInWithGoogle = async () => {
         const result = await signInWithPopup(auth, googleProvider);
         return result.user;
       } catch (popupErr: any) {
-        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/popup-closed-by-user' && isMobile) {
+        if (popupErr?.code === 'auth/popup-blocked' || (popupErr?.code === 'auth/popup-closed-by-user' && isMobile)) {
           console.warn("Popup blocked or closed on mobile, falling back to signInWithRedirect...");
           await signInWithRedirect(auth, googleProvider);
           return null;
@@ -36,9 +68,7 @@ export const signInWithGoogle = async () => {
   }
 };
 
-// --- FIRESTORE TO SUPABASE BRIDGE LAYER ---
-
-// Map Firestore collection names to Supabase tables
+// Map Firestore collection names to Supabase tables for optional dual-write
 export const TABLE_MAPPING: Record<string, string> = {
   'users': 'profiles',
   'fridgeItems': 'fridge_items',
@@ -68,7 +98,6 @@ export const TABLE_MAPPING: Record<string, string> = {
   'smartPlateCombinations': 'smart_plate_combinations'
 };
 
-// Key transformation utilities for snake_case/camelCase mappings
 function camelToSnake(str: string): string {
   if (str === 'photoURL') return 'photo_url';
   return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -95,7 +124,6 @@ function convertObjectKeys(obj: any, convertFn: (s: string) => string): any {
   return obj;
 }
 
-// Special serializers and deserializers for tables with flattened schemas (e.g. intake_logs)
 function serializeRow(table: string, data: any, userId?: string) {
   const converted = convertObjectKeys(data, camelToSnake);
   if (userId) {
@@ -117,28 +145,6 @@ function serializeRow(table: string, data: any, userId?: string) {
     }
     delete converted.planned;
     delete converted.actual;
-  }
-
-  if (table === 'medicinal_herbs') {
-    const extra: any = {};
-    const allowedKeys = [
-      'id', 'popular_name', 'scientific_name', 'botanical_family',
-      'other_names', 'description', 'origin', 'biome', 'states',
-      'harvest_season', 'part_used', 'properties', 'indications',
-      'preparation', 'dosage', 'contraindications', 'created_at', 'user_id'
-    ];
-    
-    const contraindicationsObj = converted.contraindications || {};
-    for (const key of Object.keys(converted)) {
-      if (!allowedKeys.includes(key)) {
-        extra[key] = converted[key];
-        delete converted[key];
-      }
-    }
-    converted.contraindications = {
-      ...contraindicationsObj,
-      extra_fields: extra
-    };
   }
 
   return converted;
@@ -170,132 +176,36 @@ function deserializeRow(table: string, row: any) {
     delete converted.actualFat;
   }
 
-  if (table === 'medicinal_herbs') {
-    if (converted.contraindications && converted.contraindications.extraFields) {
-      const extra = converted.contraindications.extraFields;
-      delete converted.contraindications.extraFields;
-      Object.assign(converted, extra);
-    }
-  }
-
   return converted;
 }
 
-export const db: any = { isDb: true };
-
-export function initializeFirestore(app: any, config: any, dbId?: string) {
-  return db;
-}
-
-export function setLogLevel(level: string) {
-  // no-op
-}
-
-export function collection(dbOrRef: any, ...parts: string[]) {
-  const rawParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
-  const allParts: string[] = [];
-  for (const p of rawParts) {
-    if (typeof p === 'string') {
-      const split = p.split('/').filter(Boolean);
-      allParts.push(...split);
-    } else if (p) {
-      allParts.push(String(p));
+/**
+ * Remove undefined values and clean payloads for safe Cloud Firestore ingestion
+ */
+export function sanitizeDataForFirestore(data: any): any {
+  if (data === undefined) return null;
+  if (data === null) return null;
+  if (data instanceof Date) return data.toISOString();
+  if (Array.isArray(data)) {
+    return data.map(sanitizeDataForFirestore).filter(item => item !== undefined);
+  }
+  if (typeof data === 'object') {
+    // Preserve Firestore FieldValues
+    if (data._methodName || (data.constructor && data.constructor.name === 'FieldValue')) {
+      return data;
     }
-  }
-  
-  let table = '';
-  let userId = undefined;
-
-  if (allParts.length === 1) {
-    table = TABLE_MAPPING[allParts[0]] || allParts[0];
-  } else if (allParts.length === 3 && allParts[0] === 'users') {
-    userId = allParts[1];
-    table = TABLE_MAPPING[allParts[2]] || allParts[2];
-  } else if (allParts.length === 4 && allParts[0] === 'users') {
-    userId = allParts[1];
-    table = TABLE_MAPPING[allParts[2]] || allParts[2];
-  } else {
-    table = TABLE_MAPPING[allParts[allParts.length - 1]] || allParts[allParts.length - 1];
-  }
-
-  return {
-    isCollection: true,
-    parts: allParts,
-    table,
-    userId,
-  };
-}
-
-export function doc(dbOrRef: any, ...parts: string[]) {
-  const rawParts = dbOrRef && dbOrRef.parts ? [...dbOrRef.parts, ...parts] : parts;
-  const allParts: string[] = [];
-  for (const p of rawParts) {
-    if (typeof p === 'string') {
-      const split = p.split('/').filter(Boolean);
-      allParts.push(...split);
-    } else if (p) {
-      allParts.push(String(p));
+    const clean: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (val !== undefined) {
+        clean[key] = sanitizeDataForFirestore(val);
+      }
     }
+    return clean;
   }
-
-  let table = '';
-  let userId = undefined;
-  let id = '';
-
-  if (allParts.length === 2) {
-    if (allParts[0] === 'users') {
-      table = 'profiles';
-      id = allParts[1];
-    } else {
-      table = TABLE_MAPPING[allParts[0]] || allParts[0];
-      id = allParts[1];
-    }
-  } else if (allParts.length === 3 && allParts[0] === 'users') {
-    userId = allParts[1];
-    table = TABLE_MAPPING[allParts[2]] || allParts[2];
-    id = allParts[1];
-  } else if (allParts.length === 4 && allParts[0] === 'users') {
-    userId = allParts[1];
-    table = TABLE_MAPPING[allParts[2]] || allParts[2];
-    id = allParts[3];
-  } else {
-    table = TABLE_MAPPING[allParts[0]] || allParts[0];
-    id = allParts[allParts.length - 1];
-  }
-
-  return {
-    isDoc: true,
-    parts: allParts,
-    table,
-    userId,
-    id,
-  };
+  return data;
 }
 
-export function query(collectionRef: any, ...constraints: any[]) {
-  return {
-    ...collectionRef,
-    constraints: constraints.filter(Boolean),
-  };
-}
-
-export function where(field: string, op: string, value: any) {
-  return { type: 'where', field, op, value };
-}
-
-export function limit(n: number) {
-  return { type: 'limit', value: n };
-}
-
-export function orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
-  return { type: 'orderBy', field, direction };
-}
-
-export function serverTimestamp() {
-  return new Date().toISOString();
-}
-
-// --- HYBRID LOCAL STORAGE FALLBACK ENGINE ---
+// --- OPTIMISTIC LOCAL STORAGE CACHING ENGINE ---
 const localDB: Record<string, Record<string, any>> = {};
 const isBrowser = typeof window !== 'undefined';
 const listeners: Array<{
@@ -303,8 +213,6 @@ const listeners: Array<{
   queryOrDocRef: any;
   onNext: (snap: any) => void;
 }> = [];
-
-import { safeGet, safeSet } from './storage';
 
 function getLocalTable(table: string): Record<string, any> {
   if (!localDB[table]) {
@@ -315,9 +223,7 @@ function getLocalTable(table: string): Record<string, any> {
         if (stored) {
           localDB[table] = JSON.parse(stored);
         }
-      } catch (e) {
-        // Silently handle json parse errors
-      }
+      } catch (e) {}
     }
   }
   return localDB[table];
@@ -327,9 +233,7 @@ function saveLocalTable(table: string) {
   if (isBrowser) {
     try {
       safeSet(`local_db_${table}`, JSON.stringify(localDB[table] || {}));
-    } catch (e) {
-      // Silently handled by safeSet
-    }
+    } catch (e) {}
   }
 }
 
@@ -346,7 +250,7 @@ function triggerSnapshots(table: string) {
 }
 
 function getDocsLocal(queryObj: any) {
-  const table = queryObj.table;
+  const table = queryObj.table || 'docs';
   const userId = queryObj.userId;
   const tableData = getLocalTable(table);
   
@@ -379,15 +283,11 @@ function getDocsLocal(queryObj: any) {
     const orderByConstraint = queryObj.constraints.find((c: any) => c.type === 'orderBy');
     if (orderByConstraint) {
       const field = orderByConstraint.field;
-      const dir = orderByConstraint.direction;
+      const dir = orderByConstraint.direction === 'desc' ? -1 : 1;
       items.sort((a, b) => {
-        const valA = a[field];
-        const valB = b[field];
-        if (valA === valB) return 0;
-        if (valA === undefined || valA === null) return 1;
-        if (valB === undefined || valB === null) return -1;
-        const comp = valA < valB ? -1 : 1;
-        return dir === 'desc' ? -comp : comp;
+        if (a[field] < b[field]) return -1 * dir;
+        if (a[field] > b[field]) return 1 * dir;
+        return 0;
       });
     }
 
@@ -397,234 +297,274 @@ function getDocsLocal(queryObj: any) {
     }
   }
 
-  const docs = items.map(item => {
-    const itemData = deserializeRow(table, item);
-    return {
-      id: item.id,
-      data: () => itemData,
-      exists: () => true,
-    };
-  });
-
   return {
-    docs,
-    forEach: (callback: any) => docs.forEach(callback),
-    size: docs.length,
-    empty: docs.length === 0,
+    empty: items.length === 0,
+    size: items.length,
+    docs: items.map(item => ({
+      id: item.id,
+      data: () => item,
+      exists: () => true
+    }))
   };
 }
 
 function getDocLocal(docRef: any) {
-  const table = docRef.table;
+  const table = docRef.table || 'docs';
   const id = docRef.id;
   const tableData = getLocalTable(table);
   const data = tableData[id];
 
   return {
-    exists: () => data !== undefined,
-    data: () => data ? deserializeRow(table, data) : null,
     id,
+    exists: () => !!data,
+    data: () => data || null
   };
 }
 
 function setDocLocal(docRef: any, data: any) {
-  const table = docRef.table;
-  const id = docRef.id;
+  const table = docRef.table || 'docs';
+  const id = docRef.id || 'current';
   const tableData = getLocalTable(table);
-  
-  const serialized = serializeRow(table, data, docRef.userId);
-  tableData[id] = { ...serialized, id };
+  tableData[id] = { ...tableData[id], ...data, id };
   saveLocalTable(table);
-  
   triggerSnapshots(table);
 }
 
 function addDocLocal(collectionRef: any, data: any) {
-  const table = collectionRef.table;
-  const id = crypto.randomUUID();
+  const table = collectionRef.table || 'docs';
+  const id = data.id || `auto_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   const tableData = getLocalTable(table);
-  
-  const serialized = serializeRow(table, data, collectionRef.userId);
-  tableData[id] = { ...serialized, id };
+  tableData[id] = { ...data, id };
   saveLocalTable(table);
-  
   triggerSnapshots(table);
-  return { id };
+  return { id, path: `${collectionRef.path || table}/${id}` };
 }
 
 function updateDocLocal(docRef: any, data: any) {
-  const table = docRef.table;
-  const id = docRef.id;
-  const tableData = getLocalTable(table);
-  
-  const existing = tableData[id] || {};
-  const serialized = serializeRow(table, data, docRef.userId);
-  tableData[id] = { ...existing, ...serialized, id };
-  saveLocalTable(table);
-  
-  triggerSnapshots(table);
+  setDocLocal(docRef, data);
 }
 
 function deleteDocLocal(docRef: any) {
-  const table = docRef.table;
+  const table = docRef.table || 'docs';
   const id = docRef.id;
   const tableData = getLocalTable(table);
-  
   delete tableData[id];
   saveLocalTable(table);
-  
   triggerSnapshots(table);
 }
 
-// Intercepts queries and routes them to Supabase with local fallback
-export async function getDocs(queryObj: any) {
-  if (!isSupabaseConfigured || queryObj.userId?.startsWith('local-user-')) {
-    return getDocsLocal(queryObj);
+function parseSegments(dbOrRef: any, pathSegments: string[]): string[] {
+  let basePath = '';
+  if (typeof dbOrRef === 'string') {
+    pathSegments = [dbOrRef, ...pathSegments];
+  } else if (dbOrRef && dbOrRef.path) {
+    basePath = dbOrRef.path;
   }
 
+  const segments: string[] = [];
+  if (basePath) {
+    segments.push(...basePath.split('/').filter(Boolean));
+  }
+  for (const s of pathSegments) {
+    if (typeof s === 'string') {
+      segments.push(...s.split('/').filter(Boolean));
+    }
+  }
+  return segments;
+}
+
+// --- CLOUD FIRESTORE OPERATIONAL METHODS ---
+
+export function collection(dbOrRef: any, ...pathSegments: string[]): any {
+  const segments = parseSegments(dbOrRef, pathSegments);
+  const fullPath = segments.join('/');
+  
+  const ref = fsCollection(db, fullPath) as any;
   try {
-    let builder = supabase.from(queryObj.table).select('*');
-    if (queryObj.userId) {
-      builder = builder.eq('user_id', queryObj.userId);
-    }
-    
-    if (queryObj.constraints) {
-      for (const c of queryObj.constraints) {
-        if (c.type === 'where') {
-          const col = camelToSnake(c.field);
-          if (c.op === '==') {
-            builder = builder.eq(col, c.value);
-          } else if (c.op === 'in') {
-            builder = builder.in(col, c.value);
-          } else if (c.op === 'array-contains') {
-            builder = builder.contains(col, [c.value]);
-          }
-        } else if (c.type === 'limit') {
-          builder = builder.limit(c.value);
-        } else if (c.type === 'orderBy') {
-          const col = camelToSnake(c.field);
-          builder = builder.order(col, { ascending: c.direction === 'asc' });
-        }
-      }
-    }
+    ref.table = segments[segments.length - 1] || 'collection';
+    ref.userId = segments[0] === 'users' ? segments[1] : undefined;
+    ref.parts = segments;
+    ref.isCollection = true;
+  } catch (e) {}
+  return ref;
+}
 
-    const { data, error } = await builder;
-    if (error) throw error;
+export function doc(dbOrRef: any, ...pathSegments: string[]): any {
+  const segments = parseSegments(dbOrRef, pathSegments);
+  const fullPath = segments.join('/');
 
-    const docs = (data || []).map(row => {
-      const docData = deserializeRow(queryObj.table, row);
-      return {
-        id: row.id,
-        data: () => docData,
-        exists: () => true,
-      };
-    });
+  const ref = fsDoc(db, fullPath) as any;
+  try {
+    ref.table = segments[segments.length - 2] || segments[0] || 'doc';
+    ref.userId = segments[0] === 'users' ? segments[1] : undefined;
+    ref.parts = segments;
+    ref.isDoc = true;
+  } catch (e) {}
+  return ref;
+}
 
-    return {
-      docs,
-      forEach: (callback: any) => docs.forEach(callback),
-      size: docs.length,
-      empty: docs.length === 0,
-    };
+export function query(collectionRef: any, ...constraints: any[]) {
+  const validConstraints = constraints.filter(Boolean);
+  const realConstraints = validConstraints.map(c => {
+    if (c.type === 'where') return fsWhere(c.field, c.op, c.value);
+    if (c.type === 'orderBy') return fsOrderBy(c.field, c.direction);
+    if (c.type === 'limit') return fsLimit(c.value);
+    return c;
+  });
+
+  try {
+    const q = fsQuery(collectionRef, ...realConstraints) as any;
+    try {
+      q.table = collectionRef.table;
+      q.userId = collectionRef.userId;
+      q.parts = collectionRef.parts;
+      q.constraints = validConstraints;
+    } catch (e) {}
+    return q;
   } catch (err) {
-    return getDocsLocal(queryObj);
+    return {
+      ...collectionRef,
+      constraints: validConstraints
+    };
   }
 }
 
-export async function getDoc(docRef: any) {
-  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) {
-    return getDocLocal(docRef);
-  }
+export function where(field: string, op: string, value: any) {
+  return { type: 'where', field, op, value };
+}
 
+export function limit(n: number) {
+  return { type: 'limit', value: n };
+}
+
+export function orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
+  return { type: 'orderBy', field, direction };
+}
+
+export function serverTimestamp() {
   try {
-    const { data, error } = await supabase
-      .from(docRef.table)
-      .select('*')
-      .eq('id', docRef.id)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    const docData = data ? deserializeRow(docRef.table, data) : null;
-    return {
-      exists: () => !!data,
-      data: () => docData,
-      id: docRef.id,
-    };
-  } catch (err) {
-    return getDocLocal(docRef);
+    return fsServerTimestamp();
+  } catch {
+    return new Date().toISOString();
   }
 }
 
-export const getDocFromServer = getDoc;
+export const Timestamp = fsTimestamp;
+export const writeBatch = (customDb?: any) => fsWriteBatch(customDb || db);
 
-export async function setDoc(docRef: any, data: any, options?: any) {
-  // Always write locally first to keep cache warm and consistent
+export async function setDoc(docRef: any, data: any, options: any = { merge: true }) {
+  // 1. Instant local write for instant UI feedback
   setDocLocal(docRef, data);
 
-  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
-
+  // 2. Persist to real Cloud Firestore Database
   try {
-    const serialized = serializeRow(docRef.table, data, docRef.userId);
-    serialized.id = docRef.id;
+    const cleanData = sanitizeDataForFirestore(data);
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    await fsSetDoc(realRef, cleanData, options);
+    console.log(`[NutriAI Firestore] Sucesso ao gravar doc: ${realRef.path}`);
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] Aviso na gravação Firestore (${docRef?.path}):`, err?.message || err);
+  }
 
-    const { error } = await supabase
-      .from(docRef.table)
-      .upsert(serialized);
-
-    if (error) throw error;
-  } catch (err: any) {}
+  // 3. Optional Supabase dual-write if active
+  if (isSupabaseConfigured && !docRef.userId?.startsWith('local-user-')) {
+    try {
+      const serialized = serializeRow(docRef.table, data, docRef.userId);
+      serialized.id = docRef.id;
+      await supabase.from(docRef.table).upsert(serialized);
+    } catch (e) {}
+  }
 }
 
 export async function addDoc(collectionRef: any, data: any) {
   const localRes = addDocLocal(collectionRef, data);
-
-  if (!isSupabaseConfigured || collectionRef.userId?.startsWith('local-user-')) return localRes;
+  const dataWithId = { ...data, id: data.id || localRes.id };
 
   try {
-    const serialized = serializeRow(collectionRef.table, data, collectionRef.userId);
-    serialized.id = localRes.id;
-
-    const { error } = await supabase
-      .from(collectionRef.table)
-      .insert(serialized);
-
-    if (error) throw error;
-  } catch (err: any) {}
-
-  return localRes;
+    const cleanData = sanitizeDataForFirestore(dataWithId);
+    const realRef = collectionRef.isCollection && collectionRef.firestore 
+      ? collectionRef 
+      : fsCollection(db, collectionRef.path || collectionRef.table);
+    const docSnap = await fsAddDoc(realRef, cleanData);
+    console.log(`[NutriAI Firestore] Sucesso ao adicionar doc: ${docSnap.path}`);
+    return docSnap;
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] Aviso ao adicionar no Firestore (${collectionRef?.path}):`, err?.message || err);
+    return localRes;
+  }
 }
 
 export async function updateDoc(docRef: any, data: any) {
   updateDocLocal(docRef, data);
 
-  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
-
   try {
-    const serialized = serializeRow(docRef.table, data, docRef.userId);
+    const cleanData = sanitizeDataForFirestore(data);
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    await fsUpdateDoc(realRef, cleanData);
+    console.log(`[NutriAI Firestore] Sucesso na atualização doc: ${realRef.path}`);
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] Aviso ao atualizar Firestore (${docRef?.path}):`, err?.message || err);
+  }
 
-    const { error } = await supabase
-      .from(docRef.table)
-      .update(serialized)
-      .eq('id', docRef.id);
-
-    if (error) throw error;
-  } catch (err: any) {}
+  if (isSupabaseConfigured && !docRef.userId?.startsWith('local-user-')) {
+    try {
+      const serialized = serializeRow(docRef.table, data, docRef.userId);
+      await supabase.from(docRef.table).update(serialized).eq('id', docRef.id);
+    } catch (e) {}
+  }
 }
 
 export async function deleteDoc(docRef: any) {
   deleteDocLocal(docRef);
 
-  if (!isSupabaseConfigured || docRef.userId?.startsWith('local-user-') || docRef.id?.startsWith('local-user-')) return;
-
   try {
-    const { error } = await supabase
-      .from(docRef.table)
-      .delete()
-      .eq('id', docRef.id);
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    await fsDeleteDoc(realRef);
+    console.log(`[NutriAI Firestore] Sucesso ao excluir doc: ${realRef.path}`);
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] Aviso ao deletar Firestore (${docRef?.path}):`, err?.message || err);
+  }
 
-    if (error) throw error;
-  } catch (err) {}
+  if (isSupabaseConfigured && !docRef.userId?.startsWith('local-user-')) {
+    try {
+      await supabase.from(docRef.table).delete().eq('id', docRef.id);
+    } catch (e) {}
+  }
+}
+
+export async function getDoc(docRef: any) {
+  try {
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    const snap = await fsGetDoc(realRef);
+    if (snap.exists()) {
+      setDocLocal(docRef, snap.data());
+      return snap;
+    }
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] getDoc Firestore fallback para cache (${docRef?.path}):`, err?.message || err);
+  }
+  return getDocLocal(docRef);
+}
+
+export const getDocFromServer = async (docRef: any) => {
+  try {
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    return await fsGetDocFromServer(realRef);
+  } catch {
+    return getDoc(docRef);
+  }
+};
+
+export async function getDocs(queryOrColRef: any) {
+  try {
+    const snap = await fsGetDocs(queryOrColRef);
+    if (snap && snap.docs) {
+      return snap;
+    }
+  } catch (err: any) {
+    console.warn(`[NutriAI Firestore] getDocs Firestore fallback para cache (${queryOrColRef?.path}):`, err?.message || err);
+  }
+  return getDocsLocal(queryOrColRef);
 }
 
 export function onSnapshot(
@@ -632,114 +572,40 @@ export function onSnapshot(
   onNext: (snapshot: any) => void,
   onError?: (error: any) => void
 ) {
-  let active = true;
-  let channel: any = null;
-
-  const runFetch = async () => {
-    try {
-      if (!isSupabaseConfigured || queryOrDocRef.userId?.startsWith('local-user-') || queryOrDocRef.id?.startsWith('local-user-')) {
-        onNext(queryOrDocRef.isDoc ? getDocLocal(queryOrDocRef) : getDocsLocal(queryOrDocRef));
-        return;
+  // 1. Fast initial response from local cache to prevent UI delay
+  try {
+    if (queryOrDocRef.isDoc) {
+      const localSnap = getDocLocal(queryOrDocRef);
+      if (localSnap.exists()) {
+        onNext(localSnap);
       }
-
-      if (queryOrDocRef.isDoc) {
-        const { data, error } = await supabase
-          .from(queryOrDocRef.table)
-          .select('*')
-          .eq('id', queryOrDocRef.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        if (!active) return;
-
-        const docData = data ? deserializeRow(queryOrDocRef.table, data) : null;
-        onNext({
-          exists: () => !!data,
-          data: () => docData,
-          id: queryOrDocRef.id,
-        });
-      } else {
-        let builder = supabase.from(queryOrDocRef.table).select('*');
-        if (queryOrDocRef.userId) {
-          builder = builder.eq('user_id', queryOrDocRef.userId);
-        }
-        
-        if (queryOrDocRef.constraints) {
-          for (const c of queryOrDocRef.constraints) {
-            if (c.type === 'where') {
-              const col = camelToSnake(c.field);
-              if (c.op === '==') {
-                builder = builder.eq(col, c.value);
-              } else if (c.op === 'in') {
-                builder = builder.in(col, c.value);
-              } else if (c.op === 'array-contains') {
-                builder = builder.contains(col, [c.value]);
-              }
-            } else if (c.type === 'limit') {
-              builder = builder.limit(c.value);
-            } else if (c.type === 'orderBy') {
-              const col = camelToSnake(c.field);
-              builder = builder.order(col, { ascending: c.direction === 'asc' });
-            }
-          }
-        }
-
-        const { data, error } = await builder;
-        if (error) throw error;
-        if (!active) return;
-
-        const docs = (data || []).map(row => {
-          const docData = deserializeRow(queryOrDocRef.table, row);
-          return {
-            id: row.id,
-            data: () => docData,
-            exists: () => true,
-          };
-        });
-
-        onNext({
-          forEach: (callback: any) => docs.forEach(callback),
-          docs,
-          size: docs.length,
-          empty: docs.length === 0,
-        });
-      }
-    } catch (err) {
-      if (active) {
-        onNext(queryOrDocRef.isDoc ? getDocLocal(queryOrDocRef) : getDocsLocal(queryOrDocRef));
+    } else {
+      const localQuerySnap = getDocsLocal(queryOrDocRef);
+      if (localQuerySnap.docs.length > 0) {
+        onNext(localQuerySnap);
       }
     }
-  };
+  } catch (e) {}
 
-  runFetch();
-
-  // Register as local listener to capture local updates
-  const listenerObj = { table: queryOrDocRef.table, queryOrDocRef, onNext };
-  listeners.push(listenerObj);
-
-  if (isSupabaseConfigured) {
-    channel = supabase
-      .channel(`realtime:${queryOrDocRef.table}:${Math.random().toString(36).substr(2, 9)}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: queryOrDocRef.table },
-        () => {
-          if (active) {
-            runFetch();
-          }
-        }
-      )
-      .subscribe();
+  // 2. Attach real live Firestore listener
+  try {
+    const unsubscribe = fsOnSnapshot(queryOrDocRef, (snap) => {
+      onNext(snap);
+    }, (err) => {
+      console.warn(`[NutriAI Firestore] onSnapshot listener error (${queryOrDocRef?.path}):`, err);
+      if (onError) onError(err);
+    });
+    return unsubscribe;
+  } catch (e) {
+    console.warn(`[NutriAI Firestore] onSnapshot attachment error:`, e);
+    return () => {};
   }
+}
 
-  return () => {
-    active = false;
-    if (channel) {
-      supabase.removeChannel(channel);
-    }
-    const idx = listeners.indexOf(listenerObj);
-    if (idx !== -1) {
-      listeners.splice(idx, 1);
-    }
-  };
+export function initializeFirestore(customApp: any, config: any, dbId?: string) {
+  return db;
+}
+
+export function setLogLevel(level: string) {
+  // no-op log level setter for compatibility
 }
