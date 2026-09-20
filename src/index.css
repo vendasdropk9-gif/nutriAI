@@ -664,5 +664,24 @@ html[dir="rtl"] input[type="tel"] {
   border-color: #0f172a transparent !important;
 }
 
+/* Print Rules for Clean Recipe Printing */
+@media print {
+  body.printing-recipe-active > *:not(#nutri-print-section) {
+    display: none !important;
+  }
+  body.printing-recipe-active {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  body.printing-recipe-active #nutri-print-section {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    visibility: visible !important;
+  }
+}
+
 
 

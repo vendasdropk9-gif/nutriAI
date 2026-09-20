@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff } from 'lucide-react';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline } from '../lib/offlineRecipes';
+import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -255,6 +256,17 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     if (nowSaved) {
       playSfx('crystal');
     }
+  };
+
+  const handlePrintRecipe = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    playSfx('tap');
+    vibrate(15);
+    printRecipe(recipe, {
+      chefTip: prepTips?.chefSecret,
+      category: (recipe as any).category,
+      servings: (recipe as any).servings
+    });
   };
 
   useEffect(() => {
@@ -1080,6 +1092,18 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               )}
             </button>
 
+            {/* Print Recipe Button in Reading Mode */}
+            <button
+              type="button"
+              onClick={handlePrintRecipe}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+              title="Imprimir receita para cozinha (formato limpo de folha)"
+              id={`btn-print-reading-${recipe.id}`}
+            >
+              <Printer className="w-4 h-4" />
+              <span>Imprimir</span>
+            </button>
+
             {/* Exit Reading Mode Button */}
             <button
               type="button"
@@ -1583,6 +1607,18 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   <span>Salvar para Offline</span>
                 </>
               )}
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={handlePrintRecipe}
+              className="flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/15 border border-slate-400/20 hover:border-slate-400/35 text-slate-700 dark:text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+              title="Imprimir receita formatada especificamente para papel ou salvar como PDF"
+              id={`btn-print-recipe-${recipe.id}`}
+            >
+              <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Imprimir Receita</span>
             </button>
           )}
 
@@ -2655,6 +2691,15 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                             <span>Copiar Texto</span>
                           </>
                         )}
+                      </button>
+
+                      <button
+                        onClick={handlePrintRecipe}
+                        className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-slate-700 active:scale-95 cursor-pointer"
+                        title="Imprimir receita em folha limpa para cozinhar"
+                      >
+                        <Printer className="w-4 h-4 text-emerald-400" />
+                        <span>Imprimir</span>
                       </button>
 
                       <button

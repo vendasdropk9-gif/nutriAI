@@ -24,9 +24,11 @@ import {
   ListPlus,
   Scale,
   Database,
-  Sliders
+  Sliders,
+  Printer
 } from 'lucide-react';
 import { QuickDish, QuickDishGoal, UserProfile, Recipe, IntakeLog } from '../types';
+import { printRecipe } from '../lib/recipePrinter';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, setDoc } from '../lib/firebase';
 import { speak } from '../lib/speech';
@@ -728,16 +730,31 @@ export function QuickDishes({
                               {t('recipe_full', 'Receita Completa')}
                             </span>
                           </div>
-                          <button
-                            onClick={() => {
-                              setActiveRecipeCardId(null);
-                              playSfx('tap');
-                            }}
-                            className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                            title="Fechar Receita do Prato"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                playSfx('tap');
+                                printRecipe(dish, {
+                                  category: dish.categoryLabel || dish.category,
+                                  chefTip: dish.portionSuggestion ? `Sugestão de porção: ${dish.portionSuggestion}` : undefined
+                                });
+                              }}
+                              className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                              title="Imprimir Receita Limpa"
+                            >
+                              <Printer className="w-4 h-4 text-emerald-500" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveRecipeCardId(null);
+                                playSfx('tap');
+                              }}
+                              className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                              title="Fechar Receita do Prato"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Overlay Content */}
@@ -1079,20 +1096,20 @@ export function QuickDishes({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {/* 1. Add to Shopping List */}
                   <button
                     onClick={() => handleAddAllToShoppingList(selectedDishForModal)}
                     disabled={!isShoppingListEnabled}
                     title={!isShoppingListEnabled ? 'Desabilitado no Firestore' : undefined}
-                    className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
+                    className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
                       !isShoppingListEnabled
                         ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
                         : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 cursor-pointer'
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>Salvar na Lista (Banco)</span>
+                    <span>Salvar Lista</span>
                   </button>
 
                   {/* 2. Toggle Favorite */}
@@ -1100,7 +1117,7 @@ export function QuickDishes({
                     onClick={() => handleToggleFavorite(selectedDishForModal)}
                     disabled={!isFavoriteEnabled}
                     title={!isFavoriteEnabled ? 'Desabilitado no Firestore' : undefined}
-                    className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border transition-all active:scale-95 ${
+                    className={`py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all active:scale-95 ${
                       !isFavoriteEnabled
                         ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-transparent'
                         : favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name]
@@ -1109,16 +1126,33 @@ export function QuickDishes({
                     }`}
                   >
                     <Heart className={`w-4 h-4 ${favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'fill-current' : ''}`} />
-                    <span>{favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'Favoritado ❤️' : 'Favoritar no Banco'}</span>
+                    <span>{favoriteIds[selectedDishForModal.id] || favoriteIds[selectedDishForModal.name] ? 'Favoritado' : 'Favoritar'}</span>
                   </button>
 
                   {/* 3. Share Dish */}
                   <button
                     onClick={() => handleShareDish(selectedDishForModal)}
-                    className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+                    className="py-3 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
                   >
                     <Share2 className="w-4 h-4" />
                     <span>Compartilhar</span>
+                  </button>
+
+                  {/* 4. Print Dish */}
+                  <button
+                    onClick={() => {
+                      playSfx('tap');
+                      printRecipe(selectedDishForModal, {
+                        category: selectedDishForModal.categoryLabel || selectedDishForModal.category,
+                        chefTip: selectedDishForModal.portionSuggestion ? `Sugestão de porção: ${selectedDishForModal.portionSuggestion}` : undefined
+                      });
+                    }}
+                    className="py-3 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
+                    title="Imprimir receita do prato para cozinhar"
+                    id={`btn-print-dish-${selectedDishForModal.id}`}
+                  >
+                    <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Imprimir</span>
                   </button>
                 </div>
               </div>
