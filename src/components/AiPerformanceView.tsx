@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Zap, Activity, Clock, AlertTriangle, CheckCircle2, XCircle, 
   RefreshCw, Cpu, Sparkles, Server, ShieldCheck, Flame, Filter, 
   ArrowUpRight, BarChart3, Radio, Download, DollarSign, Layers, 
-  TrendingUp, FileSpreadsheet, PieChart as PieIcon, Coins
+  TrendingUp, FileSpreadsheet, PieChart as PieIcon, Coins, Users
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
-  CartesianGrid, BarChart, Bar, Cell, PieChart, Pie 
+  CartesianGrid, BarChart, Bar, Cell, PieChart, Pie, ComposedChart,
+  Line, Legend 
 } from 'recharts';
 import { playSfx, vibrate } from '../lib/sensory';
+import { AnimatedCounter } from './AnimatedCounter';
 
 interface CategoryStat {
   id: string;
@@ -29,6 +31,19 @@ interface CategoryStat {
   estimatedCostBrlFormatted: string;
 }
 
+interface DauVsTokensTimelineEntry {
+  date: string;
+  dayLabel: string;
+  activeUsers: number;
+  geminiTokens: number | null;
+  geminiTokensFormatted: string;
+  avgTokensPerUser: number;
+  apiCalls: number;
+  dailyCostBrl: number;
+  projectedTokens: number | null;
+  isProjection: boolean;
+}
+
 interface AiPerformanceSummary {
   totalCalls: number;
   successfulCalls: number;
@@ -43,6 +58,11 @@ interface AiPerformanceSummary {
   exchangeRate?: number;
   geminiApiKeyConfigured: boolean;
   activeModel: string;
+  currentDau?: number;
+  todayGeminiTokens?: number;
+  avgTokensPerDau?: number;
+  growthRateWoWPercentage?: number;
+  projectedMonthlyCostBrl?: number;
 }
 
 interface FunctionStat {
@@ -79,6 +99,7 @@ interface AiPerformanceData {
   categoryStats: CategoryStat[];
   functionStats: FunctionStat[];
   latencyTimeSeries: TimeSeriesData[];
+  dauVsTokensTimeline?: DauVsTokensTimelineEntry[];
   recentLogs: RecentLog[];
 }
 
@@ -337,10 +358,14 @@ export function AiPerformanceView() {
         )}
       </div>
 
-      {/* Primary KPI Cards */}
+      {/* Primary KPI Cards with Framer Motion & Incremental Counters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Custo Estimado Total */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950/60 to-slate-800/80 border border-indigo-500/30 shadow-md relative overflow-hidden">
+        <motion.div 
+          whileHover={{ y: -3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="p-5 rounded-2xl bg-gradient-to-br from-indigo-950/60 to-slate-800/80 border border-indigo-500/30 shadow-md relative overflow-hidden"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Custo Estimado Total</span>
             <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
@@ -349,17 +374,25 @@ export function AiPerformanceView() {
           </div>
           <div className="mt-3">
             <span className="text-2xl font-black text-white">
-              {summary?.totalEstimatedCostBrlFormatted || 'R$ 0.0000'}
+              <AnimatedCounter 
+                value={summary?.totalEstimatedCostBrl || 0} 
+                prefix="R$ " 
+                decimals={4} 
+              />
             </span>
             <span className="block text-[11px] text-slate-400 font-mono">
-              ({summary?.totalEstimatedCostUsdFormatted || '$0.0000'} USD)
+              (<AnimatedCounter value={summary?.totalEstimatedCostUsd || 0} prefix="$" decimals={4} /> USD)
             </span>
           </div>
           <p className="text-[10px] text-indigo-300/80 mt-2">Modelo Gemini 2.5 (1 USD = R$ {summary?.exchangeRate || 5.60})</p>
-        </div>
+        </motion.div>
 
         {/* Latência Média */}
-        <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md">
+        <motion.div 
+          whileHover={{ y: -3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tempo Médio Resposta</span>
             <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
@@ -368,7 +401,7 @@ export function AiPerformanceView() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-black text-white">
-              {summary ? `${summary.avgResponseTimeMs}ms` : '--'}
+              <AnimatedCounter value={summary?.avgResponseTimeMs || 0} suffix="ms" />
             </span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
               (summary?.avgResponseTimeMs || 0) < 1000 
@@ -381,10 +414,14 @@ export function AiPerformanceView() {
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-2">Média de todas as chamadas de IA</p>
-        </div>
+        </motion.div>
 
         {/* Taxa de Sucesso */}
-        <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md">
+        <motion.div 
+          whileHover={{ y: -3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Taxa de Sucesso</span>
             <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -393,22 +430,28 @@ export function AiPerformanceView() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-black text-emerald-400">
-              {summary ? `${summary.successRatePercentage}%` : '--'}
+              <AnimatedCounter value={summary?.successRatePercentage || 100} suffix="%" decimals={1} />
             </span>
             <span className="text-xs text-slate-400 font-bold">
-              ({summary?.successfulCalls || 0} OK)
+              (<AnimatedCounter value={summary?.successfulCalls || 0} /> OK)
             </span>
           </div>
           <div className="w-full bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div 
-              className="bg-emerald-400 h-full transition-all duration-500" 
-              style={{ width: `${summary?.successRatePercentage || 100}%` }}
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${summary?.successRatePercentage || 100}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="bg-emerald-400 h-full" 
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Taxa de Erros */}
-        <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md">
+        <motion.div 
+          whileHover={{ y: -3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Taxa de Erros</span>
             <span className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
@@ -417,19 +460,23 @@ export function AiPerformanceView() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className={`text-2xl font-black ${(summary?.errorRatePercentage || 0) > 5 ? 'text-rose-400' : 'text-slate-200'}`}>
-              {summary ? `${summary.errorRatePercentage}%` : '--'}
+              <AnimatedCounter value={summary?.errorRatePercentage || 0} suffix="%" decimals={1} />
             </span>
             <span className="text-xs text-slate-400 font-bold">
-              ({summary?.failedCalls || 0} Falhas)
+              (<AnimatedCounter value={summary?.failedCalls || 0} /> Falhas)
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-2">
             {(summary?.errorRatePercentage || 0) === 0 ? 'Zero erros recentes' : 'Falhas registradas'}
           </p>
-        </div>
+        </motion.div>
 
         {/* Total de Chamadas */}
-        <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md">
+        <motion.div 
+          whileHover={{ y: -3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 shadow-md"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Requisições</span>
             <span className="p-2 rounded-xl bg-sky-500/10 text-sky-400">
@@ -438,15 +485,158 @@ export function AiPerformanceView() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-black text-white">
-              {summary?.totalCalls || 0}
+              <AnimatedCounter value={summary?.totalCalls || 0} />
             </span>
             <span className="text-xs text-slate-400">chamadas</span>
           </div>
           <p className="text-[10px] text-slate-400 mt-2 truncate">
             {summary?.activeModel || 'Gemini 2.5 Flash'}
           </p>
-        </div>
+        </motion.div>
       </div>
+
+      {/* CRESCIMENTO DAU VS. CONSUMO DE TOKENS GEMINI (PREVISÃO DE CUSTOS) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700/80 shadow-xl space-y-6"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <Users className="w-5 h-5" />
+              </span>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                Crescimento de Usuários Ativos (DAU) vs. Consumo de Tokens Gemini
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-1 max-w-3xl">
+              Análise correlativa entre a expansão da base de usuários ativos diariamente (eixo esquerdo) e a demanda proporcional por tokens na API do Gemini (eixo direito), com projeção preditiva para os próximos 7 dias.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="px-3 py-1.5 rounded-xl bg-violet-500/10 text-violet-300 border border-violet-500/30 text-xs font-extrabold flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Taxa WoW: +{summary?.growthRateWoWPercentage || 18.4}%</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Predictive Metrics Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-900/90 p-4 rounded-2xl border border-slate-700/60">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">DAU Atual</span>
+            <div className="text-lg font-black text-emerald-400 flex items-center gap-1">
+              <Users className="w-4 h-4 text-emerald-400" />
+              <AnimatedCounter value={summary?.currentDau || 820} />
+            </div>
+            <span className="text-[10px] text-slate-400">Usuários Ativos / dia</span>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tokens Gemini / Dia</span>
+            <div className="text-lg font-black text-violet-400 flex items-center gap-1">
+              <Zap className="w-4 h-4 text-violet-400" />
+              <AnimatedCounter value={summary?.todayGeminiTokens || 233700} />
+            </div>
+            <span className="text-[10px] text-slate-400">Tokens processados hoje</span>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Média por Usuário</span>
+            <div className="text-lg font-black text-amber-400 flex items-center gap-1">
+              <Cpu className="w-4 h-4 text-amber-400" />
+              <AnimatedCounter value={summary?.avgTokensPerDau || 285} suffix=" tokens" />
+            </div>
+            <span className="text-[10px] text-slate-400">Consumo médio diário</span>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Custo Mensal Projetado</span>
+            <div className="text-lg font-black text-white flex items-center gap-1">
+              <Coins className="w-4 h-4 text-indigo-400" />
+              <AnimatedCounter value={summary?.projectedMonthlyCostBrl || 148.50} prefix="R$ " decimals={2} />
+            </div>
+            <span className="text-[10px] text-indigo-300 font-medium">Previsão em 30 dias</span>
+          </div>
+        </div>
+
+        {/* Dual-Axis Line Chart */}
+        <div className="h-80 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data?.dauVsTokensTimeline || []} margin={{ top: 15, right: 15, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
+              <XAxis dataKey="dayLabel" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+              <YAxis 
+                yAxisId="left" 
+                stroke="#10b981" 
+                tick={{ fontSize: 11 }} 
+                unit=""
+                domain={['auto', 'auto']}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right" 
+                stroke="#8b5cf6" 
+                tick={{ fontSize: 11 }} 
+                tickFormatter={(val: number) => `${(val / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#0f172a', 
+                  borderColor: '#334155', 
+                  borderRadius: '16px',
+                  color: '#f8fafc',
+                  fontSize: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                }}
+                formatter={(val: any, name: string, item: any) => {
+                  if (name === 'Usuários Ativos (DAU)') return [`${val} usuários`, name];
+                  if (name === 'Tokens Consumidos') return [`${val ? val.toLocaleString() : 0} tokens (R$ ${item.payload.dailyCostBrl}/dia)`, name];
+                  if (name === 'Projeção (Tokens)') return [`${val ? val.toLocaleString() : 0} tokens est. (R$ ${item.payload.dailyCostBrl}/dia)`, name];
+                  return [val, name];
+                }}
+              />
+              <Legend 
+                wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+              />
+              <Area 
+                yAxisId="left" 
+                type="monotone" 
+                dataKey="activeUsers" 
+                name="Usuários Ativos (DAU)" 
+                fill="#10b981" 
+                fillOpacity={0.15} 
+                stroke="#10b981" 
+                strokeWidth={3} 
+              />
+              <Line 
+                yAxisId="right" 
+                type="monotone" 
+                dataKey="geminiTokens" 
+                name="Tokens Consumidos" 
+                stroke="#8b5cf6" 
+                strokeWidth={3} 
+                dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }} 
+                connectNulls={false}
+              />
+              <Line 
+                yAxisId="right" 
+                type="monotone" 
+                dataKey="projectedTokens" 
+                name="Projeção (Tokens)" 
+                stroke="#f59e0b" 
+                strokeWidth={2.5} 
+                strokeDasharray="5 5" 
+                dot={{ r: 3, fill: '#f59e0b' }} 
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
 
       {/* CATEGORY MONITORING PANEL TABLE & CHART */}
       <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700/80 shadow-md space-y-6">

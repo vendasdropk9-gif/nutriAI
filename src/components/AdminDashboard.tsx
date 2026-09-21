@@ -41,6 +41,8 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { UserProfile } from '../types';
 import { SystemLogsView } from './SystemLogsView';
 import { AiPerformanceView } from './AiPerformanceView';
+import { MacronutrientAnalyticsView } from './MacronutrientAnalyticsView';
+import { PieChart as PieIcon, Apple } from 'lucide-react';
 
 interface AdminDashboardProps {
   profile?: UserProfile | null;
@@ -50,7 +52,7 @@ interface AdminDashboardProps {
 export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) {
   const [report, setReport] = useState<DatabaseIntegrityReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance' | 'macros'>('overview');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'firestore' | 'supabase'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ok' | 'warning' | 'error' | 'missing'>('all');
@@ -593,6 +595,19 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
           <Cpu className="w-4 h-4 text-indigo-400" />
           <span>Desempenho da IA</span>
           <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+        </button>
+
+        <button
+          onClick={() => { setActiveSubTab('macros'); playSfx('tap'); }}
+          className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'macros'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <PieIcon className="w-4 h-4 text-emerald-400" />
+          <span>Nutrientes & Intake</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
 
         <button
@@ -1782,6 +1797,13 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
       {activeSubTab === 'ai_performance' && (
         <div className="animate-fade-in">
           <AiPerformanceView />
+        </div>
+      )}
+
+      {/* Tab 7: Distribuição Diária de Macronutrientes (Firestore Intake) */}
+      {activeSubTab === 'macros' && (
+        <div className="animate-fade-in">
+          <MacronutrientAnalyticsView />
         </div>
       )}
 
