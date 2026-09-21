@@ -653,44 +653,106 @@ async function startServer() {
         isError: !log.success
       }));
 
-    // Construção do Histórico Diário: DAU vs. Consumo de Tokens Gemini e Previsão
-    const dauVsTokensTimeline = [];
+    // Construção do Histórico Diário (30 Dias) e Média Móvel de Tendência
+    const spendForecast30dTimeline = [];
+    const historicalCosts: number[] = [];
     const today = new Date();
-    const daysHistory = 14;
+    const daysHistory30 = 30;
 
-    for (let i = daysHistory - 1; i >= 0; i--) {
+    for (let i = daysHistory30 - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const dateKey = d.toISOString().split('T')[0];
       const dayLabel = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
-      // Crescimento orgânico de ~140 DAU há 14 dias para ~820 DAU hoje
-      const progress = (daysHistory - 1 - i) / Math.max(1, (daysHistory - 1));
-      const baseDau = Math.round(140 + progress * 680 + (Math.sin(i * 1.5) * 25));
-      const activeUsers = Math.max(50, baseDau);
+      // Crescimento orgânico progressivo dos últimos 30 dias (de ~120 usuários para ~820 hoje)
+      const progress = (daysHistory30 - 1 - i) / Math.max(1, (daysHistory30 - 1));
+      const activeUsers = Math.round(120 + progress * 700 + (Math.sin(i * 1.2) * 22));
+      const avgTokens = Math.round(250 + (Math.cos(i * 1.4) * 30));
+      const geminiTokens = activeUsers * avgTokens;
 
-      // Consumo médio de ~280 tokens por usuário ativo por dia
-      const avgTokensPerUser = Math.round(260 + (Math.cos(i) * 35));
-      const geminiTokens = activeUsers * avgTokensPerUser;
-      const apiCalls = Math.round(geminiTokens / 320);
-
-      // Custo em USD ($0.15 por 1M de tokens mesclados Gemini 2.5 Flash)
       const dailyCostUsd = (geminiTokens / 1000000) * 0.15;
       const dailyCostBrl = parseFloat((dailyCostUsd * BRL_EXCHANGE_RATE).toFixed(2));
+      historicalCosts.push(dailyCostBrl);
 
-      dauVsTokensTimeline.push({
+      // Média móvel de 7 dias
+      const slice7 = historicalCosts.slice(Math.max(0, historicalCosts.length - 7));
+      const ma7 = parseFloat((slice7.reduce((acc, curr) => acc + curr, 0) / slice7.length).toFixed(2));
+
+      // Média móvel acumulada dos últimos 30 dias
+      const ma30 = parseFloat((historicalCosts.reduce((acc, curr) => acc + curr, 0) / historicalCosts.length).toFixed(2));
+
+      spendForecast30dTimeline.push({
         date: dateKey,
         dayLabel,
         activeUsers,
         geminiTokens,
-        geminiTokensFormatted: `${(geminiTokens / 1000).toFixed(1)}k`,
-        avgTokensPerUser,
-        apiCalls,
         dailyCostBrl,
-        projectedTokens: geminiTokens,
-        isProjection: false
+        movingAverage7d: ma7,
+        movingAverage30d: ma30,
+        projectedTrendCostBrl: dailyCostBrl,
+        upperBound: null,
+        lowerBound: null,
+        isForecast: false
       });
     }
+
+    // Calcular Média Móvel base dos últimos 30 dias e inclinação da tendência (Trend slope)
+    const past30dTotalCostBrl = parseFloat(historicalCosts.reduce((a, b) => a + b, 0).toFixed(2));
+    const past30dAvgDailyCostBrl = parseFloat((past30dTotalCostBrl / 30).toFixed(2));
+
+    const firstHalfAvg = historicalCosts.slice(0, 15).reduce((a, b) => a + b, 0) / 15;
+    const secondHalfAvg = historicalCosts.slice(15, 30).reduce((a, b) => a + b, 0) / 15;
+    const dailyTrendGrowthBrl = Math.max(0.15, (secondHalfAvg - firstHalfAvg) / 15);
+
+    // Projeção dos próximos 30 dias com base na Média Móvel dos 30 dias anteriores + Linha de Tendência
+    let lastMa30 = spendForecast30dTimeline[spendForecast30dTimeline.length - 1].movingAverage30d;
+    let next30dProjectedTotalBrl = 0;
+
+    for (let p = 1; p <= 30; p++) {
+      const projDate = new Date(today);
+      projDate.setDate(today.getDate() + p);
+      const dayLabel = `${projDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}*`;
+
+      // Aplicação do fator de tendência na Média Móvel
+      const projectedCost = parseFloat((past30dAvgDailyCostBrl + (p * dailyTrendGrowthBrl) + (Math.sin(p * 0.8) * 1.5)).toFixed(2));
+      next30dProjectedTotalBrl += projectedCost;
+
+      lastMa30 = parseFloat((lastMa30 * 0.95 + projectedCost * 0.05).toFixed(2));
+      const upperBound = parseFloat((projectedCost * 1.12).toFixed(2));
+      const lowerBound = parseFloat((projectedCost * 0.88).toFixed(2));
+
+      spendForecast30dTimeline.push({
+        date: projDate.toISOString().split('T')[0],
+        dayLabel,
+        activeUsers: Math.round(820 + (p * 18)),
+        geminiTokens: Math.round((820 + (p * 18)) * 285),
+        dailyCostBrl: null,
+        movingAverage7d: parseFloat((projectedCost * 0.98).toFixed(2)),
+        movingAverage30d: lastMa30,
+        projectedTrendCostBrl: projectedCost,
+        upperBound,
+        lowerBound,
+        isForecast: true
+      });
+    }
+
+    const next30dProjectedTotalBrlFormatted = parseFloat(next30dProjectedTotalBrl.toFixed(2));
+    const trendGrowthPercentage = parseFloat((((next30dProjectedTotalBrlFormatted - past30dTotalCostBrl) / past30dTotalCostBrl) * 100).toFixed(1));
+
+    // Construção do Histórico Diário Simplificado (14 Dias) para o gráfico DAU vs Tokens
+    const dauVsTokensTimeline = spendForecast30dTimeline.slice(16, 30).map(item => ({
+      date: item.date,
+      dayLabel: item.dayLabel,
+      activeUsers: item.activeUsers,
+      geminiTokens: item.geminiTokens,
+      geminiTokensFormatted: `${(item.geminiTokens / 1000).toFixed(1)}k`,
+      avgTokensPerUser: Math.round(item.geminiTokens / item.activeUsers),
+      apiCalls: Math.round(item.geminiTokens / 320),
+      dailyCostBrl: item.dailyCostBrl,
+      projectedTokens: item.geminiTokens,
+      isProjection: false
+    }));
 
     // Adiciona 7 dias de projeção futura com base na taxa de crescimento atual (+2.5% ao dia)
     const lastHistDay = dauVsTokensTimeline[dauVsTokensTimeline.length - 1];
@@ -792,6 +854,13 @@ async function startServer() {
       functionStats,
       latencyTimeSeries,
       dauVsTokensTimeline,
+      spendForecast30dTimeline,
+      movingAverageForecastStats: {
+        past30dTotalCostBrl,
+        past30dAvgDailyCostBrl,
+        next30dProjectedTotalBrl: next30dProjectedTotalBrlFormatted,
+        trendGrowthPercentage
+      },
       recentLogs: aiTelemetryLogs.slice(0, 50).map(l => ({
         ...l,
         category: CATEGORY_LABELS[getCategoryForFunction(l.functionName)] || 'Outros'

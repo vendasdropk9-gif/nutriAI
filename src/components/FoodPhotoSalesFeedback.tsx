@@ -99,7 +99,11 @@ export function FoodPhotoSalesFeedback({
 }: FoodPhotoSalesFeedbackProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [appliedFixes, setAppliedFixes] = useState<Record<number, boolean>>({});
-  const feedbackData = getInstantSalesFeedback(productName, category, initialRating);
+  
+  const defaultRating = initialRating || (category === 'fruits_veg' ? 4.8 : 4.6);
+  const [rating, setRating] = useState<number>(defaultRating);
+  
+  const feedbackData = getInstantSalesFeedback(productName, category, rating);
 
   const toggleFix = (index: number) => {
     playSfx('pop');
@@ -111,20 +115,47 @@ export function FoodPhotoSalesFeedback({
     });
   };
 
-  const starEmojiRating = (
-    <div className="flex items-center gap-1 text-amber-400 font-extrabold text-sm">
-      <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span key={star} className="text-base drop-shadow-sm">
-            {star <= feedbackData.stars ? '⭐' : '☆'}
+  const renderInteractiveStars = () => {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playSfx('tap');
+                vibrate(15);
+                setRating(star);
+              }}
+              className="text-xl sm:text-2xl transition-transform hover:scale-125 cursor-pointer focus:outline-none filter drop-shadow-xs active:scale-95"
+              title={`Classificar com ${star} estrela(s)`}
+            >
+              {star <= Math.round(rating) ? '⭐' : '☆'}
+            </button>
+          ))}
+          <span className="ml-2 text-xs sm:text-sm text-amber-300 font-black bg-slate-950/40 px-2.5 py-0.5 rounded-lg border border-slate-800">
+            {rating.toFixed(1)}/5.0
           </span>
-        ))}
+        </div>
+        {/* Immediate emoji-rich feedback message */}
+        <motion.div
+          key={rating}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-xs font-bold text-amber-200 mt-1.5 text-left bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl w-full"
+        >
+          {rating <= 1 && "😟 Erro Crítico na Foto! Ângulo desfavorável ou sombra excessiva detectada. Corrija para reverter a perda de vendas."}
+          {rating === 2 && "⚠️ Detalhes Ofuscados! O fundo poluído ou a baixa iluminação estão escondendo as qualidades do alimento."}
+          {rating === 3 && "💡 Potencial Regular! Boas cores, mas adicione gotículas de água fresca 💦 e destaque a textura hortifrúti."}
+          {rating === 4 && "🌿 Excelente Apelo! Ótimo frescor e nitidez de cores. Adicione selos saudáveis para conversão máxima."}
+          {rating >= 5 && "😍 Foto Espetacular! Iluminação perfeita e frescor incrível. Esta imagem impulsiona as vendas naturalmente!"}
+        </motion.div>
       </div>
-      <span className="ml-1 text-xs text-amber-300 font-black">
-        {feedbackData.rating.toFixed(1)}/5.0
-      </span>
-    </div>
-  );
+    );
+  };
 
   if (compact) {
     return (
@@ -141,7 +172,7 @@ export function FoodPhotoSalesFeedback({
           title="Ver Avaliação & Feedback Imediato da Imagem para Vendas"
         >
           <span className="text-xs">⭐</span>
-          <span className="text-amber-300 font-black">{feedbackData.rating.toFixed(1)}</span>
+          <span className="text-amber-300 font-black">{rating.toFixed(1)}</span>
           <span className="hidden sm:inline text-[10px] text-emerald-300 font-semibold">• Feedback Vendas</span>
           <Sparkles className="w-3 h-3 text-amber-400 animate-pulse ml-0.5" />
         </button>
@@ -179,17 +210,17 @@ export function FoodPhotoSalesFeedback({
                 </div>
 
                 {/* Rating & Score Summary */}
-                <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-3">
+                <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-800/80 border border-slate-700/80 flex flex-col gap-3">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Classificação com Emoji ⭐</span>
-                    <div className="mt-0.5">{starEmojiRating}</div>
-                    <p className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Classificação Interativa com Estrelas ⭐</span>
+                    {renderInteractiveStars()}
+                    <p className="text-xs font-semibold text-emerald-400 mt-2 flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5" /> {feedbackData.conversionBoostEstimate}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Nota Apelo Visual</span>
-                    <span className="text-2xl font-black text-amber-400">{feedbackData.salesScore}/100</span>
+                  <div className="flex justify-between items-center border-t border-slate-700/50 pt-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Nota de Apelo de Vendas</span>
+                    <span className="text-xl font-black text-amber-400">{feedbackData.salesScore}/100</span>
                   </div>
                 </div>
 
@@ -290,7 +321,7 @@ export function FoodPhotoSalesFeedback({
         </div>
 
         <div>
-          {starEmojiRating}
+          {renderInteractiveStars()}
         </div>
       </div>
 

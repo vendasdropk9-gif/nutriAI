@@ -127,6 +127,7 @@ export function PartnerPortal() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; price: string; unit: string; description: string; image: string; category: string } | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isPromoChecked, setIsPromoChecked] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapCoords, setMapCoords] = useState<[number, number]>([-23.5505, -46.6333]);
   const [expirationAlerts, setExpirationAlerts] = useState([
@@ -199,17 +200,40 @@ export function PartnerPortal() {
     e.preventDefault();
     if (!editingProduct) return;
 
+    let savedProd = { ...editingProduct };
     if (editingProduct.id === 'new') {
-      const newProd = { ...editingProduct, id: `p-${Date.now()}` };
-      setForm({ ...form, products: [...form.products, newProd] });
+      savedProd.id = `p-${Date.now()}`;
+      setForm({ ...form, products: [...form.products, savedProd] });
     } else {
       setForm({
         ...form,
         products: form.products.map(p => p.id === editingProduct.id ? editingProduct : p)
       });
     }
+
+    if (isPromoChecked) {
+      const promoId = `promo-prod-${Date.now()}`;
+      const newPromo = {
+        id: promoId,
+        title: `⚡ Oferta Relâmpago: ${savedProd.name}`,
+        subtitle: `${savedProd.description || 'Preço imbatível por tempo limitado!'}`,
+        price: `Apenas R$ ${savedProd.price}/${savedProd.unit}`,
+        image: savedProd.image,
+        tip: `Aproveite a promoção de ${savedProd.name}! Apenas R$ ${savedProd.price}/${savedProd.unit}!`
+      };
+      
+      try {
+        const existing = JSON.parse(localStorage.getItem('nutri-partner-promos') || '[]');
+        localStorage.setItem('nutri-partner-promos', JSON.stringify([newPromo, ...existing]));
+        window.dispatchEvent(new CustomEvent('nutri-promo-added', { detail: newPromo }));
+      } catch(e) {
+        console.warn("Local storage error in portal:", e);
+      }
+    }
+
     setIsProductModalOpen(false);
     setEditingProduct(null);
+    setIsPromoChecked(false);
   };
 
   const removeProduct = (id: string) => {
@@ -218,6 +242,7 @@ export function PartnerPortal() {
 
   const startEditProduct = (prod: any) => {
     setEditingProduct(prod);
+    setIsPromoChecked(false);
     setIsProductModalOpen(true);
   };
 
@@ -231,6 +256,7 @@ export function PartnerPortal() {
       image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200',
       category: 'Frutas'
     });
+    setIsPromoChecked(false);
     setIsProductModalOpen(true);
   };
 
@@ -2335,6 +2361,29 @@ export function PartnerPortal() {
                               className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-28 resize-none"
                               placeholder="Fale mais sobre a origem e benefícios..."
                             />
+                         </div>
+                         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                           <label className="flex items-start gap-3 cursor-pointer group">
+                             <input 
+                               type="checkbox"
+                               checked={isPromoChecked}
+                               onChange={e => {
+                                 vibrate(10);
+                                 try { playSfx('tap'); } catch(err) {}
+                                 setIsPromoChecked(e.target.checked);
+                               }}
+                               className="w-5 h-5 mt-1 rounded text-emerald-500 focus:ring-emerald-400 border-slate-300 dark:border-slate-700 cursor-pointer"
+                             />
+                             <div>
+                               <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-500 transition-colors flex items-center gap-1.5">
+                                 <Megaphone className="w-4 h-4 text-emerald-500 animate-bounce" />
+                                 Lançar como Oferta Relâmpago ⚡
+                               </span>
+                               <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                 Divulgar este item com anúncio de áudio em tempo real e destaque no banner!
+                               </p>
+                             </div>
+                           </label>
                          </div>
                       </div>
                    </div>

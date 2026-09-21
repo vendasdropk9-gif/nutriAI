@@ -14,6 +14,7 @@ import {
 import { playSfx, vibrate } from '../lib/sensory';
 import { AnimatedCounter } from './AnimatedCounter';
 import { GeminiBurnRateCard, BurnRateData } from './GeminiBurnRateCard';
+import { GeminiSpendForecastChart, ForecastItem, MovingAverageForecastStats } from './GeminiSpendForecastChart';
 
 interface CategoryStat {
   id: string;
@@ -102,6 +103,8 @@ interface AiPerformanceData {
   functionStats: FunctionStat[];
   latencyTimeSeries: TimeSeriesData[];
   dauVsTokensTimeline?: DauVsTokensTimelineEntry[];
+  spendForecast30dTimeline?: ForecastItem[];
+  movingAverageForecastStats?: MovingAverageForecastStats;
   recentLogs: RecentLog[];
 }
 
@@ -364,6 +367,13 @@ export function AiPerformanceView() {
       <GeminiBurnRateCard 
         burnRateData={summary?.burnRate} 
         isLoading={loading} 
+      />
+
+      {/* Gemini API Future Spend Forecast Chart (30-Day Moving Average Trendline) */}
+      <GeminiSpendForecastChart
+        timeline={data?.spendForecast30dTimeline}
+        stats={data?.movingAverageForecastStats}
+        isLoading={loading}
       />
 
       {/* Primary KPI Cards with Framer Motion & Incremental Counters */}

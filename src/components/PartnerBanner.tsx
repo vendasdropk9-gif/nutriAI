@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, VolumeX, Store, Utensils, Sparkles, Music } from "lucide-react";
+import { Volume2, VolumeX, Store, Utensils, Sparkles, Music, Megaphone, Zap, X, Gift } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { playSfx, vibrate } from "../lib/sensory";
+import { speak } from "../lib/speech";
 
 const PARTNERS = [
   "Sacolão do Bairro - Frescor do Dia 🥬",
@@ -24,6 +25,42 @@ const FRUIT_BG_IMAGES = [
 
 export function PartnerBanner() {
   const { t } = useTranslation();
+  const [promos, setPromos] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("nutri-partner-promos");
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [activeNotification, setActiveNotification] = useState<any | null>(null);
+
+  // Dynamic slides constructor: custom promos first!
+  const getActiveSlides = () => {
+    const promoSlides = promos.map((p: any) => ({
+      id: p.id,
+      title: p.title || "Oferta Especial",
+      subtitle: p.subtitle || "Aproveite esta promoção relâmpago",
+      price: p.price || "Oferta",
+      image: p.image || FRUIT_BG_IMAGES[0],
+      type: "promo"
+    }));
+
+    const staticSlides = PARTNERS.map((name, i) => ({
+      id: `partner-${i}`,
+      title: name,
+      subtitle: "Desconto NutriAI Ativo",
+      price: "15% OFF",
+      image: FRUIT_BG_IMAGES[i % FRUIT_BG_IMAGES.length],
+      type: "partner"
+    }));
+
+    return [...promoSlides, ...staticSlides];
+  };
+
+  const slides = getActiveSlides();
+
   const [index, setIndex] = useState(0);
   const [bgIndex, setBgIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
@@ -57,12 +94,55 @@ export function PartnerBanner() {
   // Handle partner rotation
   useEffect(() => {
     const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % PARTNERS.length);
+      setIndex((prev) => {
+        const len = slides.length || 1;
+        return (prev + 1) % len;
+      });
     }, 6000);
     return () => {
       clearInterval(timer);
       stopAmbientSynth();
       stopHTMLAudio();
+    };
+  }, [slides.length]);
+
+  // Listen to new live promotions
+  useEffect(() => {
+    const handleNewPromo = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const newPromo = customEvent.detail;
+      if (!newPromo) return;
+
+      // Append new promo to state so it renders instantly
+      setPromos(prev => {
+        const exists = prev.some(p => p.id === newPromo.id);
+        if (exists) return prev;
+        return [newPromo, ...prev];
+      });
+
+      // Show floating interactive card
+      setActiveNotification(newPromo);
+
+      // Instantly switch index to 0 to display the fresh offer
+      setIndex(0);
+
+      // Play joyful success chime
+      try {
+        playSfx("success");
+        vibrate(25);
+      } catch (err) {}
+
+      // Play elegant Malu (Aoede) voice announcement of the deal
+      try {
+        const cleanTitle = (newPromo.title || "").replace(/⚡/g, "").trim();
+        const msg = `Atenção! Nova promoção lançada: ${cleanTitle}. ${newPromo.price}! Aproveite agora!`;
+        speak(msg);
+      } catch (err) {}
+    };
+
+    window.addEventListener("nutri-promo-added", handleNewPromo);
+    return () => {
+      window.removeEventListener("nutri-promo-added", handleNewPromo);
     };
   }, []);
 
@@ -266,8 +346,50 @@ export function PartnerBanner() {
     setIsMuted(false);
   };
 
+  const currentBgImage = slides[index]?.image || FRUIT_BG_IMAGES[bgIndex];
+
   return (
-    <div className="w-full bg-slate-900 border-b border-slate-200 dark:border-slate-800/85 transition-colors duration-500 overflow-hidden">
+    <div className="w-full bg-slate-900 border-b border-slate-200 dark:border-slate-800/85 transition-colors duration-500 overflow-hidden relative">
+      {/* Dynamic Floating Interactive Toast Notification Overlay */}
+      <AnimatePresence>
+        {activeNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -80, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[999] w-[calc(100%-32px)] max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-emerald-500/30 rounded-3xl p-4 shadow-2xl flex items-center gap-4 cursor-pointer"
+            onClick={() => {
+              setActiveNotification(null);
+              setIndex(0); // Scroll to the live offer
+            }}
+          >
+            <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-slate-100 border border-slate-150">
+              <img src={activeNotification.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute top-1 right-1 bg-amber-500 text-white rounded-full p-1 animate-pulse">
+                <Zap className="w-3.5 h-3.5 fill-white" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
+                <Megaphone className="w-3 h-3 animate-bounce" /> {t('flash_deal_label', 'Oferta Relâmpago!')}
+              </span>
+              <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{activeNotification.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{activeNotification.subtitle}</p>
+              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1">{activeNotification.price}</p>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveNotification(null);
+              }}
+              className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="w-full">
         {/* Banner Principal Unificado com Largura Total (Edge-to-Edge) */}
         <div className="relative w-full h-52 sm:h-60 md:h-68 overflow-hidden group transition-all duration-300">
@@ -275,8 +397,8 @@ export function PartnerBanner() {
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             <AnimatePresence mode="sync">
               <motion.img
-                key={bgIndex}
-                src={FRUIT_BG_IMAGES[bgIndex]}
+                key={currentBgImage}
+                src={currentBgImage}
                 initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
@@ -296,7 +418,7 @@ export function PartnerBanner() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 bg-transparent border border-white/25 text-white px-3 py-1.5 rounded-full font-mono text-[10px] sm:text-xs tracking-wider uppercase font-extrabold shrink-0 drop-shadow-md">
                 <Store className="w-3.5 h-3.5 text-white" />
-                <span>{t('fidelity_partner', 'Fidelidade Parceira')}</span>
+                <span>{slides[index]?.type === 'promo' ? t('flash_deal_top', 'OFERTA ATIVA ⚡') : t('fidelity_partner', 'Fidelidade Parceira')}</span>
               </div>
 
               {/* Controles de Áudio Compactos em Pilula Transparente */}
@@ -365,24 +487,32 @@ export function PartnerBanner() {
 
             {/* Rodapé do Banner: Nome e Oferta do Parceiro Transparente com Texto Branco */}
             <div className="w-full bg-transparent rounded-xl p-1 sm:p-2 border-none">
-              <div className="h-7 overflow-hidden relative w-full flex items-center">
+              <div className="h-10 sm:h-12 overflow-hidden relative w-full flex items-center">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, y: 8, filter: "blur(2px)" }}
+                    initial={{ opacity: 0, y: 12, filter: "blur(2px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
+                    exit={{ opacity: 0, y: -12, filter: "blur(2px)" }}
                     transition={{
                       duration: 0.6,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className="w-full flex items-center justify-between gap-2"
+                    className="w-full flex items-center justify-between gap-4"
                   >
-                    <span className="font-sans text-sm sm:text-base md:text-lg font-bold text-white tracking-wide block truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                      {PARTNERS[index]}
-                    </span>
-                    <span className="text-[11px] sm:text-xs font-semibold text-white shrink-0 bg-transparent px-2.5 py-0.5 rounded-full border border-white/40 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                      Desconto NutriAI
+                    <div className="min-w-0">
+                      <span className="font-sans text-sm sm:text-base md:text-lg font-bold text-white tracking-wide block truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                        {slides[index]?.title}
+                      </span>
+                      {slides[index]?.subtitle && (
+                        <span className="text-[10px] sm:text-xs text-emerald-300 font-semibold block truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                          {slides[index]?.subtitle}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-bold text-white shrink-0 bg-emerald-500/80 px-3 py-1 rounded-full border border-emerald-400/50 shadow-md drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-amber-300 animate-pulse fill-amber-300" />
+                      {slides[index]?.price || "Desconto NutriAI"}
                     </span>
                   </motion.div>
                 </AnimatePresence>
