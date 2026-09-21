@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, Utensils, Zap, ShoppingCart, ChefHat, Flame, Salad, Soup, Sparkles } from 'lucide-react';
 import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
+import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 
 interface FoodSlide {
   id: string;
@@ -163,6 +164,15 @@ export function FoodGalleryBanner({ onNavigateToMarket, isGenerating = false, re
             </div>
             <div className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-widest border border-white/20 whitespace-nowrap">
               {slide.calories}
+            </div>
+            
+            <div className="ml-auto z-30">
+              <FoodPhotoSalesFeedback
+                productName={slide.name}
+                category="prepared_meal"
+                photoUrl={slide.image}
+                compact={true}
+              />
             </div>
           </motion.div>
           

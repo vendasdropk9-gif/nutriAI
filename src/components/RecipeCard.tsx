@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
+import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -1403,10 +1404,19 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-[1.02]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20 pointer-events-none" />
+          <div className="absolute top-4 right-4 z-20">
+            <FoodPhotoSalesFeedback
+              productName={recipe.name}
+              category="prepared_meal"
+              photoUrl={recipeImage}
+              compact={true}
+            />
+          </div>
+
           <button
             onClick={handleGenerateImage}
             disabled={isGeneratingImage}
-            className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold px-4 py-2.5 rounded-full border border-white/20 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold px-4 py-2.5 rounded-full border border-white/20 transition-all shadow-lg active:scale-95 disabled:opacity-50 z-10"
           >
             {isGeneratingImage ? (
               <>

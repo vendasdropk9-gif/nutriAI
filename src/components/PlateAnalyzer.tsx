@@ -12,6 +12,7 @@ import { speak } from '../lib/speech';
 import { VoicePlayButton } from './VoicePlayButton';
 import { PlateAnalysisResult, UserProfile } from '../types';
 import { exportElementAsImage, downloadBlobUrl, copyBlobToClipboard, shareFileOrBlob } from '../lib/cardExport';
+import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 
 interface PlateAnalyzerProps {
   profile?: UserProfile | null;
@@ -851,6 +852,17 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                   </p>
                 </div>
               </div>
+
+              {/* Immediate Food & Produce Photo Feedback for Sales & Quality */}
+              <FoodPhotoSalesFeedback
+                productName={typeof analysisResult.foods?.[0] === 'object' ? (analysisResult.foods[0] as any)?.name : (analysisResult.foods?.[0] || "Alimento / Hortifrúti Analisado")}
+                category={analysisResult.foods?.some((f: any) => {
+                  const foodName = typeof f === 'string' ? f : (f?.name || '');
+                  return ['maçã','banana','salada','tomate','fruta','verdura','legume','alface','morango','laranja'].some(k => foodName.toLowerCase().includes(k));
+                }) ? 'fruits_veg' : 'prepared_meal'}
+                photoUrl={previewImage}
+                compact={false}
+              />
 
               {/* Nutrients Bento Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">

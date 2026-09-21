@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { playSfx, vibrate } from '../lib/sensory';
 import { AnimatedCounter } from './AnimatedCounter';
+import { GeminiBurnRateCard, BurnRateData } from './GeminiBurnRateCard';
 
 interface CategoryStat {
   id: string;
@@ -63,6 +64,7 @@ interface AiPerformanceSummary {
   avgTokensPerDau?: number;
   growthRateWoWPercentage?: number;
   projectedMonthlyCostBrl?: number;
+  burnRate?: BurnRateData;
 }
 
 interface FunctionStat {
@@ -357,6 +359,12 @@ export function AiPerformanceView() {
           </motion.div>
         )}
       </div>
+
+      {/* Gemini API Burn Rate & Monthly Projection Card */}
+      <GeminiBurnRateCard 
+        burnRateData={summary?.burnRate} 
+        isLoading={loading} 
+      />
 
       {/* Primary KPI Cards with Framer Motion & Incremental Counters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

@@ -36,6 +36,7 @@ import { vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
 import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
+import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 
 const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
 const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
@@ -691,7 +692,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 )}
 
                 {/* Badges Overlay */}
-                <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
                   {/* Modalidade de Venda Tag */}
                   <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider shadow-sm text-white ${
                     product.saleType === 'kg' 
@@ -711,6 +712,16 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                       Colhido Hoje
                     </span>
                   )}
+                </div>
+
+                {/* Instant Photo Feedback for Sales Optimization */}
+                <div className="absolute top-2.5 right-2.5 z-20">
+                  <FoodPhotoSalesFeedback
+                    productName={product.name}
+                    category={product.category === 'Frutas' || product.category === 'Verduras' || product.category === 'Legumes' ? 'fruits_veg' : 'food_product'}
+                    photoUrl={product.image}
+                    compact={true}
+                  />
                 </div>
 
                 <button 

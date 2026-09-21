@@ -725,6 +725,31 @@ async function startServer() {
     const projectedMonthlyTokens = Math.round(projectedMonthlyDau * 285 * 30);
     const projectedMonthlyCostBrl = parseFloat((((projectedMonthlyTokens / 1000000) * 0.15) * BRL_EXCHANGE_RATE).toFixed(2));
 
+    // Cálculo do Burn Rate da API Gemini para o mês atual
+    const now = new Date();
+    const currentDayOfMonth = now.getDate() || 20;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate() || 30;
+    const remainingDaysInMonth = Math.max(1, daysInMonth - currentDayOfMonth);
+
+    // Taxa diária de consumo (Burn Rate) em R$
+    const dailyBurnRateBrl = latestDay ? (latestDay.dailyCostBrl || 42.80) : 42.80;
+    const dailyBurnRateUsd = parseFloat((dailyBurnRateBrl / BRL_EXCHANGE_RATE).toFixed(2));
+
+    // Consumo Month-To-Date (MTD) acumulado até hoje
+    const mtdSpendBrl = parseFloat((currentDayOfMonth * dailyBurnRateBrl).toFixed(2));
+    const mtdSpendUsd = parseFloat((mtdSpendBrl / BRL_EXCHANGE_RATE).toFixed(2));
+
+    // Projeção estimada do gasto total até o fim do mês
+    const projectedMonthEndSpendBrl = parseFloat((mtdSpendBrl + (remainingDaysInMonth * dailyBurnRateBrl)).toFixed(2));
+    const projectedMonthEndSpendUsd = parseFloat((projectedMonthEndSpendBrl / BRL_EXCHANGE_RATE).toFixed(2));
+
+    const monthlyBudgetBrl = 1500.00;
+    const budgetUsedPercentage = parseFloat(((mtdSpendBrl / monthlyBudgetBrl) * 100).toFixed(1));
+    const projectedBudgetUsedPercentage = parseFloat(((projectedMonthEndSpendBrl / monthlyBudgetBrl) * 100).toFixed(1));
+    const burnRateStatus = projectedBudgetUsedPercentage > 100 ? 'critical' : projectedBudgetUsedPercentage >= 85 ? 'warning' : 'healthy';
+
     res.json({
       summary: {
         totalCalls,
@@ -740,12 +765,28 @@ async function startServer() {
         exchangeRate: BRL_EXCHANGE_RATE,
         geminiApiKeyConfigured: !!process.env.GEMINI_API_KEY,
         activeModel: "Gemini 2.5 Flash / Pro (Google GenAI)",
-        // Predictive metrics
+        // Predictive metrics & Burn Rate
         currentDau: latestDay.activeUsers,
         todayGeminiTokens: latestDay.geminiTokens,
         avgTokensPerDau: 285,
         growthRateWoWPercentage: 18.4,
-        projectedMonthlyCostBrl
+        projectedMonthlyCostBrl,
+        burnRate: {
+          currentDayOfMonth,
+          daysInMonth,
+          remainingDaysInMonth,
+          dailyBurnRateBrl,
+          dailyBurnRateUsd,
+          mtdSpendBrl,
+          mtdSpendUsd,
+          projectedMonthEndSpendBrl,
+          projectedMonthEndSpendUsd,
+          monthlyBudgetBrl,
+          budgetUsedPercentage,
+          projectedBudgetUsedPercentage,
+          status: burnRateStatus,
+          tpmBurnRateTokens: Math.round((latestDay.geminiTokens || 230000) / (24 * 60))
+        }
       },
       categoryStats,
       functionStats,
