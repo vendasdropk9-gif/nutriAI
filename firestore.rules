@@ -126,6 +126,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Real-time Presence Indicators
+    match /presence/{userId} {
+      allow read, write: if true;
+    }
+
     // Default Deny Catch-All
     match /{document=**} {
       allow read, write: if false;

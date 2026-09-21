@@ -1,6 +1,7 @@
 import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
+import { analyzeShoppingListBudget } from "./priceMonitor";
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile, CookingAdviceResult, PantryItem, PantryRecipeSuggestion } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
@@ -6485,4 +6486,138 @@ Responda em formato JSON rigoroso:
     };
   }
 };
+
+export const analyzeBudgetAndSubstitutions = async (
+  items: { name: string; checked: boolean }[],
+  budgetLimit: number = 120,
+  userLocation: string = 'São Paulo'
+): Promise<any> => {
+  const fallback = analyzeShoppingListBudget(items, budgetLimit);
+
+  try {
+    const ai = getGenAI();
+    if (!ai) return fallback;
+
+    const itemListStr = items.map(it => `- ${it.name}`).join("\n");
+
+    const prompt = `Você é a Chef Malu do NutriAI, especialista em nutrição brasileira, economia doméstica e compras inteligentes.
+O usuário tem uma lista de compras para seu plano alimentar e estabeleceu um Orçamento Limite de R$ ${budgetLimit.toFixed(2)}.
+
+Localização de busca: ${userLocation}
+
+Parceiros locais conveniados com ofertas:
+1. Sacolão Vida Verde (foco em hortifrúti orgânico, frutas da estação, folhagens colheita do dia)
+2. Hortifruti Premium (cortes práticos, kits prontos, vegetais selecionados)
+3. Sacolão Economia Popular (preços direto do produtor, ovos caipiras a granel, filé de frango, tilápia, aveia a granel)
+
+Lista de ingredientes do usuário:
+${itemListStr}
+
+Avalie o custo total estimado e calcule o status do orçamento:
+- Se o total estimado atingir >= 75% do limite ou ultrapassar, sugira substituições inteligentes de ingredientes por opções mais econômicas encontradas em parceiros locais.
+- Cada substituição DEVE manter a equivalência nutricional (mesmo grupo de nutrientes: proteínas, fibras, micronutrientes, saciedade).
+- Retorne economia real em R$ por item.
+- Crie um script de voz acolhedor para a Chef Malu (Aoede) alertando sobre o orçamento e destacando as economias.
+
+Responda em formato JSON estrito:
+{
+  "budgetLimit": number,
+  "currentTotal": number,
+  "budgetUsedPercentage": number,
+  "isNearLimit": boolean,
+  "isExceeded": boolean,
+  "status": "safe" | "warning" | "danger",
+  "statusMessage": string,
+  "totalPotentialSavings": number,
+  "projectedTotalAfterSubstitutions": number,
+  "substitutions": [
+    {
+      "id": string,
+      "originalItem": string,
+      "originalPrice": number,
+      "originalUnit": string,
+      "substituteItem": string,
+      "substitutePrice": number,
+      "substituteUnit": string,
+      "storeId": string,
+      "storeName": string,
+      "storeLogo": string,
+      "potentialSavings": number,
+      "savingsPercentage": number,
+      "nutritionalEquivalence": string,
+      "culinaryAdvice": string,
+      "isPartnerDeal": boolean
+    }
+  ],
+  "voiceSummary": string
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            budgetLimit: { type: Type.NUMBER },
+            currentTotal: { type: Type.NUMBER },
+            budgetUsedPercentage: { type: Type.NUMBER },
+            isNearLimit: { type: Type.BOOLEAN },
+            isExceeded: { type: Type.BOOLEAN },
+            status: { type: Type.STRING },
+            statusMessage: { type: Type.STRING },
+            totalPotentialSavings: { type: Type.NUMBER },
+            projectedTotalAfterSubstitutions: { type: Type.NUMBER },
+            substitutions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  originalItem: { type: Type.STRING },
+                  originalPrice: { type: Type.NUMBER },
+                  originalUnit: { type: Type.STRING },
+                  substituteItem: { type: Type.STRING },
+                  substitutePrice: { type: Type.NUMBER },
+                  substituteUnit: { type: Type.STRING },
+                  storeId: { type: Type.STRING },
+                  storeName: { type: Type.STRING },
+                  storeLogo: { type: Type.STRING },
+                  potentialSavings: { type: Type.NUMBER },
+                  savingsPercentage: { type: Type.NUMBER },
+                  nutritionalEquivalence: { type: Type.STRING },
+                  culinaryAdvice: { type: Type.STRING },
+                  isPartnerDeal: { type: Type.BOOLEAN }
+                },
+                required: ["id", "originalItem", "originalPrice", "substituteItem", "substitutePrice", "storeName", "potentialSavings", "nutritionalEquivalence"]
+              }
+            },
+            voiceSummary: { type: Type.STRING }
+          },
+          required: ["budgetLimit", "currentTotal", "budgetUsedPercentage", "status", "statusMessage", "substitutions", "voiceSummary"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    if (parsed && parsed.substitutions && Array.isArray(parsed.substitutions) && parsed.substitutions.length > 0) {
+      return {
+        ...fallback,
+        ...parsed,
+        substitutions: parsed.substitutions.map((s: any, idx: number) => ({
+          ...s,
+          id: s.id || `ai-sub-${idx}-${Date.now()}`,
+          storeLogo: s.storeLogo || (s.storeName?.includes('Vida') ? '🥬' : s.storeName?.includes('Premium') ? '🍊' : '💰')
+        }))
+      };
+    }
+
+    return fallback;
+  } catch (err) {
+    console.warn("[analyzeBudgetAndSubstitutions] Usando fallback determinístico local:", err);
+    return fallback;
+  }
+};
+
 

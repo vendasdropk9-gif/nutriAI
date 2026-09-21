@@ -732,3 +732,112 @@ export interface ButtonStateItem {
   updatedAt?: string;
   updatedBy?: string;
 }
+
+export interface PartnerOffer {
+  id: string;
+  storeId: string;
+  storeName: string;
+  itemName: string;
+  originalPrice: number;
+  promoPrice: number;
+  unit: string;
+  discountPercent: number;
+  category: string;
+  availableInStore: boolean;
+  badge?: string;
+}
+
+export interface SmartBudgetSubstitution {
+  id: string;
+  originalItem: string;
+  originalPrice: number;
+  originalUnit: string;
+  substituteItem: string;
+  substitutePrice: number;
+  substituteUnit: string;
+  storeId: string;
+  storeName: string;
+  storeLogo?: string;
+  potentialSavings: number;
+  savingsPercentage: number;
+  nutritionalEquivalence: string;
+  culinaryAdvice: string;
+  isPartnerDeal: boolean;
+  partnerPromoId?: string;
+}
+
+export interface BudgetMonitoringAnalysis {
+  budgetLimit: number;
+  currentTotal: number;
+  budgetUsedPercentage: number;
+  isNearLimit: boolean;
+  isExceeded: boolean;
+  status: 'safe' | 'warning' | 'danger';
+  statusMessage: string;
+  totalPotentialSavings: number;
+  projectedTotalAfterSubstitutions: number;
+  substitutions: SmartBudgetSubstitution[];
+  cheapestPartnerStore: {
+    storeId: string;
+    storeName: string;
+    basketTotal: number;
+    savingsVsAverage: number;
+  };
+  voiceSummary: string;
+}
+
+export interface PantryDepletionPrediction {
+  id: string;
+  name: string;
+  category: string;
+  currentStock: string;
+  unit: string;
+  estimatedDaysRemaining: number;
+  avgDailyConsumption: string;
+  lastUsedOrPurchased: string;
+  predictedDepletionDate: string;
+  urgency: 'critical' | 'soon' | 'adequate';
+  estimatedRestockCost: number;
+  isAlreadyInShoppingList: boolean;
+  canAffordWithinBudget: boolean;
+  budgetImpact: {
+    currentListTotal: number;
+    newTotalIfAdded: number;
+    budgetLimit: number;
+    remainingMargin: number;
+    willExceedBudget: boolean;
+    exceededAmount: number;
+  };
+  smartTip: string;
+}
+
+export interface PantryReplenishmentSummary {
+  criticalCount: number;
+  soonCount: number;
+  totalRestockCost: number;
+  affordableRestockCost: number;
+  affordableItemsCount: number;
+  unaffordableItemsCount: number;
+  predictions: PantryDepletionPrediction[];
+  aiVoiceSummary: string;
+}
+
+export type PresenceStatus = 'active' | 'inactive';
+
+export interface UserPresence {
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  photoURL?: string;
+  status: PresenceStatus; // 'active' = navegando / ativo (green), 'inactive' = inativo (red)
+  isOnline: boolean;
+  currentView?: string;
+  currentAction?: string;
+  lastActiveAt: string; // ISO format string
+  updatedAt: string;
+  deviceType?: 'mobile' | 'desktop' | 'tablet';
+  cartItemCount?: number;
+  role?: 'buyer' | 'seller' | 'admin' | 'courier';
+}
+
+

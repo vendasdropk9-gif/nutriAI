@@ -58,6 +58,9 @@ import { NotificationSystem, AppNotification } from './components/NotificationSy
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
 import { WelcomeTour } from './components/WelcomeTour';
+import { AdminDashboard } from './components/AdminDashboard';
+import { initPeriodicBackupScheduler } from './lib/backupService';
+import { presenceManager } from './lib/presenceService';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
@@ -71,12 +74,14 @@ import { AutoTranslator } from './components/AutoTranslator';
 import { GlobalSearch } from './components/GlobalSearch';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { OfflineSyncBanner } from './components/OfflineSyncBanner';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 
 const TAB_ORDER = [
   "admin_library",
+  'admin',
   'assistant360', 'quickdishes', 'coach', 'smartplate', 'generator', 'fridge', 'pantry', 'cooking_advisor', 'garden', 'herbs', 'juice', 
   'habits', 'notes', 'bloodpressure', 'glucose', 'barcode', 'allergy', 'comparer', 
   'emotional', 'analyzer', 'body', 'plan', 'shopping', 'evolution', 
@@ -155,7 +160,16 @@ function AppContent() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'analyzer' | 'body' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
+  const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'admin' | 'analyzer' | 'body' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
+
+  // Real-time user presence tracking in NutriAI
+  useEffect(() => {
+    presenceManager.setUser(user, profile, activeTab);
+  }, [user, profile]);
+
+  useEffect(() => {
+    presenceManager.setCurrentTab(activeTab);
+  }, [activeTab]);
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
@@ -292,6 +306,14 @@ function AppContent() {
       prefetchCuratedRecipeCatalog();
     }, 1500);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Rotina periódica em segundo plano de backup de dados críticos para storage/Firestore
+  useEffect(() => {
+    const cleanupBackupScheduler = initPeriodicBackupScheduler();
+    return () => {
+      cleanupBackupScheduler();
+    };
   }, []);
 
   useEffect(() => {
@@ -630,7 +652,8 @@ function AppContent() {
         ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
         : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
       }`}>
-        <LayoutAnimationProvider animationKey={`${activeTab}-${currentAppLang}`}>
+        <LayoutAnimationProvider animationKey={activeTab}>
+          <div key={`tab-view-${activeTab}-${currentAppLang}`} className="w-full flex-1 flex flex-col items-center">
             <ErrorBoundary>
               {(activeTab === 'generator' || activeTab === 'plan') && (
               <FoodGalleryBanner 
@@ -744,6 +767,12 @@ function AppContent() {
             )}
             {activeTab === 'profile' && (
               <Profile profile={profile} onSaveProfile={updateProfile} />
+            )}
+            {activeTab === 'admin' && (
+              <AdminDashboard 
+                profile={profile} 
+                onNavigateTab={(tab) => setActiveTab(tab as any)} 
+              />
             )}
             {activeTab === 'gamification' && (
               <GamificationCenter profile={profile} onUpdateProfile={updateProfile} />
@@ -872,6 +901,7 @@ function AppContent() {
               <SmartGarden />
             )}
             </ErrorBoundary>
+          </div>
         </LayoutAnimationProvider>
       </main>
 
@@ -920,6 +950,7 @@ function AppContent() {
     <>
       <AutoTranslator />
       <OfflineIndicator />
+      <OfflineSyncBanner />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </>

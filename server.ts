@@ -439,21 +439,315 @@ async function startServer() {
     return res.json(DEFAULT_MEDICINAL_HERBS);
   });
 
+  // ========== TELEMETRY STORE FOR GEMINI & AI INTEGRATION METRICS ==========
+  interface AiLogEntry {
+    id: string;
+    functionName: string;
+    durationMs: number;
+    success: boolean;
+    timestamp: string;
+    error?: string;
+    type: 'gemini' | 'tts' | 'ping';
+  }
+
+  const aiTelemetryLogs: AiLogEntry[] = [
+    {
+      id: "ai_init_1",
+      functionName: "chatWithAiCoach",
+      durationMs: 780,
+      success: true,
+      timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+      type: "gemini"
+    },
+    {
+      id: "ai_init_2",
+      functionName: "generateMealPlan",
+      durationMs: 1420,
+      success: true,
+      timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+      type: "gemini"
+    },
+    {
+      id: "ai_init_3",
+      functionName: "textToSpeech",
+      durationMs: 650,
+      success: true,
+      timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
+      type: "tts"
+    }
+  ];
+  const MAX_TELEMETRY_LOGS = 300;
+
+  function recordAiTelemetry(entry: Omit<AiLogEntry, 'id' | 'timestamp'>) {
+    const log: AiLogEntry = {
+      ...entry,
+      id: `ai_log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString()
+    };
+    aiTelemetryLogs.unshift(log);
+    if (aiTelemetryLogs.length > MAX_TELEMETRY_LOGS) {
+      aiTelemetryLogs.pop();
+    }
+  }
+
   // Secure API Proxy for all Gemini queries
   app.post("/api/admin/library/upload", upload.single("file"), handleLibraryUpload);
   app.get("/api/admin/library/stats", getLibraryStats);
+
+  // Helper para categorização de rotas e estimativa de custos Gemini 2.5 Flash / Pro
+  function getCategoryForFunction(funcName: string): 'planos_alimentares' | 'receitas_culinaria' | 'analises_visao' | 'coaching_chat' | 'audio_tts' | 'outros' {
+    const f = (funcName || '').toLowerCase();
+    if (f.includes('plan') || f.includes('diet') || f.includes('menu') || f.includes('adjust') || f.includes('meal')) {
+      return 'planos_alimentares';
+    }
+    if (f.includes('recipe') || f.includes('pantry') || f.includes('ingredient') || f.includes('cook') || f.includes('herb') || f.includes('dish')) {
+      return 'receitas_culinaria';
+    }
+    if (f.includes('photo') || f.includes('plate') || f.includes('barcode') || f.includes('analyzer') || f.includes('body') || f.includes('vision') || f.includes('image')) {
+      return 'analises_visao';
+    }
+    if (f.includes('chat') || f.includes('coach') || f.includes('tip') || f.includes('motivation') || f.includes('wellness') || f.includes('advisor')) {
+      return 'coaching_chat';
+    }
+    if (f.includes('tts') || f.includes('speech') || f.includes('audio') || f.includes('voice')) {
+      return 'audio_tts';
+    }
+    return 'outros';
+  }
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    planos_alimentares: 'Planos Alimentares & Dietas',
+    receitas_culinaria: 'Receitas & Culinária Inteligente',
+    analises_visao: 'Análises de Fotos & Visão Computacional',
+    coaching_chat: 'Coaching Nutricional & Chat Assistente',
+    audio_tts: 'Síntese de Voz & Áudio (TTS)',
+    outros: 'Diagnósticos & Outros Endpoints'
+  };
+
+  const CATEGORY_COST_PER_REQ_USD: Record<string, number> = {
+    planos_alimentares: 0.00065,
+    receitas_culinaria: 0.00035,
+    analises_visao: 0.00050,
+    coaching_chat: 0.00020,
+    audio_tts: 0.00015,
+    outros: 0.00010
+  };
+
+  const BRL_EXCHANGE_RATE = 5.60;
+
+  // Endpoint de Métricas de Desempenho da IA para o Admin Dashboard
+  app.get("/api/admin/ai-performance", (req, res) => {
+    const totalCalls = aiTelemetryLogs.length;
+    const successfulCalls = aiTelemetryLogs.filter(l => l.success).length;
+    const failedCalls = aiTelemetryLogs.filter(l => !l.success).length;
+
+    const totalDuration = aiTelemetryLogs.reduce((acc, l) => acc + l.durationMs, 0);
+    const avgResponseTimeMs = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+    const successRatePercentage = totalCalls > 0 ? parseFloat(((successfulCalls / totalCalls) * 100).toFixed(1)) : 100;
+    const errorRatePercentage = totalCalls > 0 ? parseFloat(((failedCalls / totalCalls) * 100).toFixed(1)) : 0;
+
+    // Agrupamento por Categoria com Cálculo de Custos e Latências Min/Max
+    const categoryStatsMap: Record<string, {
+      id: string;
+      name: string;
+      calls: number;
+      successfulCalls: number;
+      failedCalls: number;
+      totalDuration: number;
+      minDuration: number;
+      maxDuration: number;
+      estimatedCostUsd: number;
+      estimatedCostBrl: number;
+    }> = {};
+
+    const allCatKeys = ['planos_alimentares', 'receitas_culinaria', 'analises_visao', 'coaching_chat', 'audio_tts', 'outros'];
+    allCatKeys.forEach(catKey => {
+      categoryStatsMap[catKey] = {
+        id: catKey,
+        name: CATEGORY_LABELS[catKey] || catKey,
+        calls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        totalDuration: 0,
+        minDuration: 0,
+        maxDuration: 0,
+        estimatedCostUsd: 0,
+        estimatedCostBrl: 0
+      };
+    });
+
+    aiTelemetryLogs.forEach(log => {
+      const catKey = getCategoryForFunction(log.functionName);
+      const cat = categoryStatsMap[catKey] || {
+        id: catKey,
+        name: CATEGORY_LABELS[catKey] || catKey,
+        calls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        totalDuration: 0,
+        minDuration: 0,
+        maxDuration: 0,
+        estimatedCostUsd: 0,
+        estimatedCostBrl: 0
+      };
+
+      cat.calls += 1;
+      if (log.success) cat.successfulCalls += 1;
+      else cat.failedCalls += 1;
+
+      cat.totalDuration += log.durationMs;
+      if (cat.minDuration === 0 || log.durationMs < cat.minDuration) cat.minDuration = log.durationMs;
+      if (log.durationMs > cat.maxDuration) cat.maxDuration = log.durationMs;
+
+      const unitCostUsd = CATEGORY_COST_PER_REQ_USD[catKey] || 0.00025;
+      cat.estimatedCostUsd += unitCostUsd;
+      cat.estimatedCostBrl = cat.estimatedCostUsd * BRL_EXCHANGE_RATE;
+      categoryStatsMap[catKey] = cat;
+    });
+
+    const categoryStats = Object.values(categoryStatsMap).map(c => ({
+      ...c,
+      avgLatencyMs: c.calls > 0 ? Math.round(c.totalDuration / c.calls) : 0,
+      successRatePercentage: c.calls > 0 ? parseFloat(((c.successfulCalls / c.calls) * 100).toFixed(1)) : 100,
+      estimatedCostUsdFormatted: `$${c.estimatedCostUsd.toFixed(4)}`,
+      estimatedCostBrlFormatted: `R$ ${c.estimatedCostBrl.toFixed(4)}`
+    })).sort((a, b) => b.calls - a.calls);
+
+    const totalEstimatedCostUsd = Object.values(categoryStatsMap).reduce((acc, c) => acc + c.estimatedCostUsd, 0);
+    const totalEstimatedCostBrl = totalEstimatedCostUsd * BRL_EXCHANGE_RATE;
+
+    // Agrupamento por Função
+    const functionStatsMap: Record<string, { name: string; category: string; calls: number; totalDuration: number; errors: number }> = {};
+
+    aiTelemetryLogs.forEach(log => {
+      const catKey = getCategoryForFunction(log.functionName);
+      if (!functionStatsMap[log.functionName]) {
+        functionStatsMap[log.functionName] = { name: log.functionName, category: CATEGORY_LABELS[catKey] || catKey, calls: 0, totalDuration: 0, errors: 0 };
+      }
+      functionStatsMap[log.functionName].calls += 1;
+      functionStatsMap[log.functionName].totalDuration += log.durationMs;
+      if (!log.success) {
+        functionStatsMap[log.functionName].errors += 1;
+      }
+    });
+
+    const functionStats = Object.values(functionStatsMap).map(f => ({
+      name: f.name,
+      category: f.category,
+      calls: f.calls,
+      avgLatencyMs: Math.round(f.totalDuration / f.calls),
+      errors: f.errors,
+      successRate: parseFloat((((f.calls - f.errors) / f.calls) * 100).toFixed(1))
+    })).sort((a, b) => b.calls - a.calls);
+
+    // Série Temporal para o gráfico
+    const latencyTimeSeries = aiTelemetryLogs
+      .slice(0, 30)
+      .reverse()
+      .map(log => ({
+        time: new Date(log.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        latency: log.durationMs,
+        functionName: log.functionName,
+        category: CATEGORY_LABELS[getCategoryForFunction(log.functionName)],
+        status: log.success ? "200 OK" : "500 Erro",
+        isError: !log.success
+      }));
+
+    res.json({
+      summary: {
+        totalCalls,
+        successfulCalls,
+        failedCalls,
+        avgResponseTimeMs,
+        successRatePercentage,
+        errorRatePercentage,
+        totalEstimatedCostUsd: parseFloat(totalEstimatedCostUsd.toFixed(4)),
+        totalEstimatedCostBrl: parseFloat(totalEstimatedCostBrl.toFixed(4)),
+        totalEstimatedCostUsdFormatted: `$${totalEstimatedCostUsd.toFixed(4)}`,
+        totalEstimatedCostBrlFormatted: `R$ ${totalEstimatedCostBrl.toFixed(4)}`,
+        exchangeRate: BRL_EXCHANGE_RATE,
+        geminiApiKeyConfigured: !!process.env.GEMINI_API_KEY,
+        activeModel: "Gemini 2.5 Flash / Pro (Google GenAI)"
+      },
+      categoryStats,
+      functionStats,
+      latencyTimeSeries,
+      recentLogs: aiTelemetryLogs.slice(0, 50).map(l => ({
+        ...l,
+        category: CATEGORY_LABELS[getCategoryForFunction(l.functionName)] || 'Outros'
+      }))
+    });
+  });
+
+  // Teste de Conectividade em Tempo Real com a API do Gemini
+  app.post("/api/admin/ai-performance/ping", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("Variável GEMINI_API_KEY não configurada no servidor.");
+      }
+      // Executa teste simples usando o geminiServer
+      await geminiServer.generateSingleTip("pt-BR");
+      const durationMs = Date.now() - startTime;
+
+      recordAiTelemetry({
+        functionName: "pingHealthCheck",
+        durationMs,
+        success: true,
+        type: "ping"
+      });
+
+      res.json({
+        success: true,
+        durationMs,
+        status: "OK",
+        message: `Conexão com Gemini API reestabelecida com sucesso em ${durationMs}ms.`
+      });
+    } catch (err: any) {
+      const durationMs = Date.now() - startTime;
+      recordAiTelemetry({
+        functionName: "pingHealthCheck",
+        durationMs,
+        success: false,
+        error: err?.message || "Erro no teste de ping",
+        type: "ping"
+      });
+
+      res.status(500).json({
+        success: false,
+        durationMs,
+        status: "ERROR",
+        error: err?.message || "Falha ao conectar com a API do Gemini."
+      });
+    }
+  });
 
   app.post("/api/gemini", async (req, res) => {
     console.log(`Received request for: ${req.body.functionName}`);
     const { functionName, args, language } = req.body;
     const reqLang = language || req.headers['x-app-language'] || 'pt-BR';
+    const startTime = Date.now();
     
     if (!functionName || typeof functionName !== "string") {
+      recordAiTelemetry({
+        functionName: functionName || "unknown",
+        durationMs: Date.now() - startTime,
+        success: false,
+        error: "Nome de função inválido ou ausente",
+        type: "gemini"
+      });
       return res.status(400).json({ error: "Nome de função inválido ou ausente." });
     }
 
     const func = (geminiServer as any)[functionName];
     if (!func || typeof func !== "function") {
+      recordAiTelemetry({
+        functionName,
+        durationMs: Date.now() - startTime,
+        success: false,
+        error: `Função '${functionName}' não localizada no backend`,
+        type: "gemini"
+      });
       return res.status(404).json({ error: `Função '${functionName}' não localizada no backend.` });
     }
 
@@ -469,9 +763,28 @@ async function startServer() {
       });
 
       const result = await func(...finalArgs);
+      const durationMs = Date.now() - startTime;
+
+      recordAiTelemetry({
+        functionName,
+        durationMs,
+        success: true,
+        type: "gemini"
+      });
+
       res.status(200).json(result !== undefined ? result : null);
     } catch (err: any) {
+      const durationMs = Date.now() - startTime;
       console.error(`Erro na execução da API Gemini '${functionName}':`, err);
+
+      recordAiTelemetry({
+        functionName,
+        durationMs,
+        success: false,
+        error: err?.message || "Erro de execução na API Gemini",
+        type: "gemini"
+      });
+
       res.status(200).json({ error: err?.message || "Erro ao processar.", fallback: true });
     }
   });
@@ -479,17 +792,48 @@ async function startServer() {
   app.post("/api/tts", express.json(), async (req, res) => {
     const { text, language } = req.body || {};
     const reqLang = language || req.headers['x-app-language'] || 'pt-BR';
-    if (!text) return res.status(400).json({ error: "No text provided" });
+    const startTime = Date.now();
+
+    if (!text) {
+      recordAiTelemetry({
+        functionName: "textToSpeech",
+        durationMs: Date.now() - startTime,
+        success: false,
+        error: "Sem texto fornecido",
+        type: "tts"
+      });
+      return res.status(400).json({ error: "No text provided" });
+    }
 
     try {
       const audio = await geminiServer.textToSpeech(text, String(reqLang));
+      const durationMs = Date.now() - startTime;
+
+      recordAiTelemetry({
+        functionName: "textToSpeech",
+        durationMs,
+        success: !!audio,
+        error: !audio ? "Falha na geração de áudio TTS" : undefined,
+        type: "tts"
+      });
+
       res.status(200).json({
         audio: audio || null,
         audioBase64: audio || null,
         success: !!audio
       });
     } catch (e: any) {
+      const durationMs = Date.now() - startTime;
       console.info("[TTS Route] Fallback active:", e?.message || e);
+
+      recordAiTelemetry({
+        functionName: "textToSpeech",
+        durationMs,
+        success: false,
+        error: e?.message || "Erro no serviço TTS",
+        type: "tts"
+      });
+
       res.status(200).json({ audio: null, audioBase64: null, error: e?.message, success: false });
     }
   });

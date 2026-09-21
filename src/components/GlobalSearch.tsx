@@ -541,7 +541,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err) {
-      console.error('Speech recognition start failed:', err);
+      console.warn('Speech recognition start notice:', err);
       setIsListening(false);
     }
   };

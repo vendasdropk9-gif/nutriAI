@@ -9,12 +9,13 @@ import {
   Camera, Upload, Sparkles, Trash2, Edit2, Plus, Search, Calendar, 
   AlertTriangle, ShieldCheck, CheckSquare, Square, ShoppingBag, 
   ChevronRight, RefreshCw, Loader2, Utensils, AlertOctagon, ListFilter,
-  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell, Package, ChefHat
+  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell, Package, ChefHat, Scale
 } from 'lucide-react';
 import { analyzeFridgeContents, FridgeAnalysisResult } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
 import { PantryScanner } from './PantryScanner';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
+import { FoodWasteCalculator } from './FoodWasteCalculator';
 
 interface FridgeItem {
   id: string;
@@ -64,7 +65,7 @@ interface FirestoreErrorInfo {
 export function SmartFridge() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'advisor'>('fridge');
+  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor'>('fridge');
   
   // Fridge items state
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
@@ -576,6 +577,18 @@ export function SmartFridge() {
         >
           <Package className="w-4 h-4 text-emerald-500" />
           Scanner de Despensa
+        </button>
+        <button
+          id="subtab-food-waste-btn"
+          onClick={() => { setActiveSubTab('waste'); playSfx('tap'); }}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
+            activeSubTab === 'waste' 
+              ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
+          }`}
+        >
+          <Scale className="w-4 h-4 text-emerald-500" />
+          Índice de Desperdício
         </button>
         <button
           id="subtab-cooking-advisor-btn"
@@ -1268,7 +1281,39 @@ export function SmartFridge() {
           </motion.div>
         )}
 
-        {/* VIEW 6: AI COOKING ADVISOR */}
+        {/* VIEW 6: FOOD WASTE CALCULATOR */}
+        {activeSubTab === 'waste' && (
+          <motion.div
+            key="waste-tab"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="pt-2 max-w-4xl mx-auto"
+          >
+            <FoodWasteCalculator 
+              items={fridgeItems.map(f => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const exp = new Date(f.expirationDate + 'T12:00:00');
+                const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                return {
+                  id: f.id,
+                  name: f.name,
+                  quantity: f.quantity,
+                  category: f.category,
+                  expirationDate: f.expirationDate,
+                  daysRemaining: diffDays,
+                  status: f.status,
+                  storageLocation: 'geladeira' as const,
+                  addedAt: f.addedAt
+                };
+              })} 
+              profile={user ? { id: user.uid, name: user.displayName || 'Usuário' } as any : null}
+            />
+          </motion.div>
+        )}
+
+        {/* VIEW 7: AI COOKING ADVISOR */}
         {activeSubTab === 'advisor' && (
           <motion.div
             key="advisor-tab"

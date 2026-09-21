@@ -185,6 +185,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
     goodbye: string;
     tryAgain: string;
     micError: string;
+    noMic: string;
     unsupported: string;
   }> = {
     pt: {
@@ -194,6 +195,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "Vou ficar por aqui. Quando precisar, é só me chamar.",
       tryAgain: "Tente novamente.",
       micError: "Não consegui acessar seu microfone. Verifique a permissão do navegador.",
+      noMic: "Nenhum microfone encontrado neste dispositivo. Conecte um microfone para falar com a Malu.",
       unsupported: "Reconhecimento de voz indisponível neste navegador."
     },
     en: {
@@ -203,6 +205,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "I'll be right here whenever you need me. Just tap to talk!",
       tryAgain: "Please try again.",
       micError: "Could not access microphone. Please check browser permissions.",
+      noMic: "No microphone found on this device. Please connect a microphone to talk with Malu.",
       unsupported: "Speech recognition is not available on this browser."
     },
     es: {
@@ -212,6 +215,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "Estaré aquí cuando me necesites. ¡Solo tienes que llamarme!",
       tryAgain: "Inténtalo de nuevo.",
       micError: "No se pudo acceder al micrófono. Verifica los permisos del navegador.",
+      noMic: "No se encontró ningún micrófono en este dispositivo. Conecta un micrófono para hablar con Malu.",
       unsupported: "Reconocimiento de voz no disponible en este navegador."
     },
     fr: {
@@ -221,6 +225,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "Je reste là si vous avez besoin. N'hésitez pas à me solliciter !",
       tryAgain: "Veuillez réessayer.",
       micError: "Impossible d'accéder au microphone. Vérifiez les autorisations.",
+      noMic: "Aucun microphone trouvé sur cet appareil. Connectez un microphone pour parler à Malu.",
       unsupported: "Reconnaissance vocale non disponible sur ce navigateur."
     },
     de: {
@@ -230,6 +235,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "Ich bin hier, wenn du mich brauchst. Ruf mich einfach!",
       tryAgain: "Bitte versuche es erneut.",
       micError: "Mikrofonzugriff nicht möglich. Bitte Berechtigungen prüfen.",
+      noMic: "Kein Mikrofon auf diesem Gerät gefunden. Bitte schließen Sie ein Mikrofon an.",
       unsupported: "Spracherkennung in diesem Browser nicht verfügbar."
     },
     it: {
@@ -239,6 +245,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "Rimango qui a disposizione. Quando hai bisogno, chiamami pure!",
       tryAgain: "Riprova per favore.",
       micError: "Impossibile accedere al microfono. Controlla i permessi.",
+      noMic: "Nessun microfono trovato su questo dispositivo. Collega un microfono per parlare con Malu.",
       unsupported: "Riconoscimento vocale non disponibile in questo browser."
     },
     zh: {
@@ -248,6 +255,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "我随时在此等候。需要时请随时叫我！",
       tryAgain: "请重试。",
       micError: "无法访问麦克风，请检查浏览器权限。",
+      noMic: "在此设备上未找到麦克风。请连接麦克风以与 Malu 对话。",
       unsupported: "此浏览器不支持语音识别。"
     },
     ja: {
@@ -257,6 +265,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "いつでもお呼びください。またお話ししましょう！",
       tryAgain: "もう一度お試しください。",
       micError: "マイクにアクセスできませんでした。権限を確認してください。",
+      noMic: "このデバイスでマイクが見つかりませんでした。マイクを接続してください。",
       unsupported: "このブラウザでは音声認識がサポートされていません。"
     },
     ko: {
@@ -266,6 +275,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "필요하실 때 언제든 불러주세요. 언제나 곁에 있을게요!",
       tryAgain: "다시 시도해 주세요.",
       micError: "마이크에 접근할 수 없습니다. 권한을 확인해 주세요.",
+      noMic: "이 기기에서 마이크를 찾을 수 없습니다. 마이크를 연결해 주세요.",
       unsupported: "이 브라우저에서는 음성 인식을 지원하지 않습니다."
     },
     hi: {
@@ -275,6 +285,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "जब भी ज़रूरत हो, बस मुझे बुला लीजिएगा। मैं यहीं हूँ!",
       tryAgain: "कृपया पुनः प्रयास करें।",
       micError: "माइक्रोफ़ोन तक पहुँच नहीं मिली। कृपया अनुमति जाँचें।",
+      noMic: "इस उपकरण पर कोई माइक्रोफ़ोन नहीं मिला। कृपया माइक्रोफ़ोन कनेक्ट करें।",
       unsupported: "इस ब्राउज़र में ध्वनि पहचान उपलब्ध नहीं है।"
     },
     ar: {
@@ -284,6 +295,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "سأكون هنا متى احتجتني. فقط اضغط للتحدث!",
       tryAgain: "يرجى المحاولة مرة أخرى.",
       micError: "تعذر الوصول إلى الميكروفون. يرجى التحقق من أذونات المتصفح.",
+      noMic: "لم يتم العثور على ميكروفون في هذا الجهاز. يرجى توصيل ميكروفون.",
       unsupported: "التعرف على الصوت غير مدعوم في هذا المتصفح."
     },
     tr: {
@@ -293,6 +305,7 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       goodbye: "İhtiyacınız olduğunda buradayım. İstediğiniz an seslenebilirsiniz!",
       tryAgain: "Lütfen tekrar deneyin.",
       micError: "Mikrofona erişilemedi. Lütfen tarayıcı izinlerini kontrol edin.",
+      noMic: "Bu cihazda mikrofon bulunamadı. Lütfen bir mikrofon bağlayın.",
       unsupported: "Bu tarayıcıda ses tanıma desteklenmiyor."
     }
   };
@@ -723,22 +736,51 @@ export function LiveAssistant({
   const animFrameIdRef = useRef<number | null>(null);
 
   // Check and request explicit microphone permission on user interaction
-  const checkAndRequestMicPermission = useCallback(async (): Promise<boolean> => {
+  const checkAndRequestMicPermission = useCallback(async (): Promise<{ granted: boolean; isDeviceNotFound?: boolean }> => {
     console.log('[NutriAI Mic] Probing microphone permissions...');
-    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      console.warn('[NutriAI Mic] navigator.mediaDevices.getUserMedia unavailable in this environment');
-      return true; // Fallback to SpeechRecognition attempt
+    if (typeof window === 'undefined' || !navigator?.mediaDevices) {
+      console.warn('[NutriAI Mic] navigator.mediaDevices unavailable in this environment');
+      return { granted: true }; // Fallback to SpeechRecognition attempt
     }
+
+    // Check device enumeration first if available
+    try {
+      if (typeof navigator.mediaDevices.enumerateDevices === 'function') {
+        const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        // If device enumeration lists devices and no audioinput exists, mic hardware is absent
+        if (devices.length > 0 && audioInputs.length === 0) {
+          console.warn('[NutriAI Mic] No audioinput devices detected on this system');
+          return { granted: false, isDeviceNotFound: true };
+        }
+      }
+    } catch {
+      // Ignore enumeration error and proceed
+    }
+
+    if (typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      return { granted: true };
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const tracks = stream.getAudioTracks();
       console.log(`[NutriAI Mic] Microphone permission granted! Active tracks: ${tracks.length}`);
       // Clean up probe tracks immediately so Web Speech API has exclusive access
-      tracks.forEach(track => track.stop());
-      return true;
+      tracks.forEach(track => {
+        try { track.stop(); } catch {}
+      });
+      return { granted: true };
     } catch (err: any) {
-      console.error('[NutriAI Mic] Microphone permission denied or device error:', err?.name, err?.message);
-      return false;
+      const isNotFound = err?.name === 'NotFoundError' || 
+                         err?.name === 'DevicesNotFoundError' || 
+                         (typeof err?.message === 'string' && (
+                           err.message.toLowerCase().includes('not found') ||
+                           err.message.toLowerCase().includes('requested device') ||
+                           err.message.toLowerCase().includes('device')
+                         ));
+      console.warn('[NutriAI Mic] Microphone probe notice:', err?.name || 'Error', err?.message || 'Device notice');
+      return { granted: false, isDeviceNotFound: isNotFound };
     }
   }, []);
 
@@ -765,9 +807,10 @@ export function LiveAssistant({
   const startAudioVisualizer = useCallback(async () => {
     try {
       stopAudioVisualizer();
-      if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+      if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) return;
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }).catch(() => null);
+      if (!stream) return;
       mediaStreamRef.current = stream;
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -808,8 +851,8 @@ export function LiveAssistant({
       };
 
       updateMeter();
-    } catch (err) {
-      console.warn('Microphone audio analyser unavailable, falling back to simulated breathing waves:', err);
+    } catch {
+      // Audio visualizer fallback handled silently
     }
   }, [stopAudioVisualizer]);
 
@@ -1107,10 +1150,12 @@ export function LiveAssistant({
       };
 
       recognition.onerror = (event: any) => {
-        console.error(`[NutriAI SpeechRecognition] Recognition error: "${event?.error}"`, event);
+        console.warn(`[NutriAI SpeechRecognition] Recognition event notice: "${event?.error}"`, event);
         clearInactivityTimer();
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           showStatus(t('malu_mic_error', locStrings.micError), 'error', 4500);
+        } else if (event.error === 'audio-capture') {
+          showStatus(t('malu_no_mic', locStrings.noMic), 'error', 4500);
         } else if (event.error === 'no-speech') {
           console.log('[NutriAI SpeechRecognition] No speech detected in listening window');
         } else if (event.error !== 'aborted') {
@@ -1228,11 +1273,17 @@ export function LiveAssistant({
       stopAll({ goodbye: true });
     } else {
       console.log('[NutriAI LiveAssistant] Requesting mic access on user click...');
-      const hasMicPermission = await checkAndRequestMicPermission();
-      if (!hasMicPermission) {
-        console.warn('[NutriAI LiveAssistant] Microphone access not granted');
+      const micResult = await checkAndRequestMicPermission();
+      if (!micResult.granted) {
+        console.warn('[NutriAI LiveAssistant] Microphone access not granted or device not found');
         const locStrings = getLocalizedAssistantStrings(currentLanguage);
-        showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
+        if (micResult.isDeviceNotFound) {
+          const noMicMsg = t('malu_no_mic', locStrings.noMic);
+          showStatus(noMicMsg, 'error', 5000);
+          speak(noMicMsg, { lang: currentLanguage });
+        } else {
+          showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
+        }
         return;
       }
       // 1st Tap: Activate Malu immediately with time-based greeting
@@ -1250,7 +1301,20 @@ export function LiveAssistant({
 
   // Listen for custom app open event
   useEffect(() => {
-    const handleOpen = () => {
+    const handleOpen = async () => {
+      const micResult = await checkAndRequestMicPermission();
+      if (!micResult.granted) {
+        console.warn('[NutriAI LiveAssistant] Microphone access not granted or device not found');
+        const locStrings = getLocalizedAssistantStrings(currentLanguage);
+        if (micResult.isDeviceNotFound) {
+          const noMicMsg = t('malu_no_mic', locStrings.noMic);
+          showStatus(noMicMsg, 'error', 5000);
+          speak(noMicMsg, { lang: currentLanguage });
+        } else {
+          showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
+        }
+        return;
+      }
       activateAssistantWithGreeting();
     };
     window.addEventListener('app:openLiveAssistant', handleOpen);
@@ -1258,7 +1322,7 @@ export function LiveAssistant({
       window.removeEventListener('app:openLiveAssistant', handleOpen);
       stopAll({ silent: true });
     };
-  }, [activateAssistantWithGreeting, stopAll]);
+  }, [activateAssistantWithGreeting, checkAndRequestMicPermission, currentLanguage, showStatus, stopAll, t]);
 
   // Process transcript automatically when user finishes speaking
   useEffect(() => {
@@ -1488,6 +1552,43 @@ export function LiveAssistant({
           )}
         </motion.button>
       </div>
+
+      {/* Floating Status Pill / Feedback Bubble */}
+      <AnimatePresence>
+        {statusText && (
+          <motion.div
+            initial={{ opacity: 0, x: -10, scale: 0.92 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -8, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`max-w-xs sm:max-w-sm px-3.5 py-2 rounded-2xl text-xs font-medium shadow-xl border backdrop-blur-md flex items-center gap-2 ${
+              statusType === 'error'
+                ? 'bg-rose-950/90 border-rose-500/50 text-rose-200'
+                : statusType === 'speaking'
+                ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+                : statusType === 'processing'
+                ? 'bg-cyan-950/90 border-cyan-500/50 text-cyan-200'
+                : statusType === 'listening'
+                ? 'bg-teal-950/90 border-teal-500/50 text-teal-200'
+                : 'bg-slate-900/90 border-slate-700/60 text-slate-200'
+            }`}
+          >
+            {statusType === 'error' && (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            {statusType === 'processing' && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400 shrink-0" />
+            )}
+            {statusType === 'speaking' && (
+              <Volume2 className="w-3.5 h-3.5 animate-pulse text-emerald-400 shrink-0" />
+            )}
+            {statusType === 'listening' && (
+              <Mic className="w-3.5 h-3.5 animate-pulse text-teal-400 shrink-0" />
+            )}
+            <span className="truncate">{statusText}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

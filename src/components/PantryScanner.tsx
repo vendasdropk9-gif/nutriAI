@@ -3,13 +3,14 @@ import {
   Barcode, PlusCircle, Calendar, AlertTriangle, CheckCircle2, 
   Trash2, Sparkles, ChefHat, Clock, Flame, Loader2, Camera, 
   Upload, Search, Filter, RefreshCw, Layers, ShieldAlert,
-  ArrowRight, Utensils, Check, HelpCircle, Package, ArrowDownUp
+  ArrowRight, Utensils, Check, HelpCircle, Package, ArrowDownUp, Scale
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { analyzeBarcodeProduct, generatePantryExpiringRecipes } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { PantryItem, PantryRecipeSuggestion, UserProfile, Recipe } from '../types';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
+import { FoodWasteCalculator } from './FoodWasteCalculator';
 import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '../lib/firebase';
 
 interface PantryScannerProps {
@@ -53,7 +54,7 @@ const SUGGESTED_ITEMS = [
 ];
 
 export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRecipe }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'scan' | 'manual' | 'recipes' | 'advisor'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'scan' | 'manual' | 'recipes' | 'waste' | 'advisor'>('inventory');
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterLocation, setFilterLocation] = useState<string>('todos');
@@ -547,6 +548,19 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                 {suggestedRecipes.length}
               </span>
             )}
+          </button>
+
+          <button
+            id="tab-pantry-waste-calculator"
+            onClick={() => setActiveTab('waste')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'waste'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            <Scale className="w-3.5 h-3.5" />
+            <span>Índice de Desperdício</span>
           </button>
 
           <button
@@ -1241,6 +1255,18 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB: WASTE CALCULATOR */}
+      {activeTab === 'waste' && (
+        <div className="space-y-4">
+          <FoodWasteCalculator 
+            items={pantryItems} 
+            profile={profile} 
+            onCookRecipe={onCookRecipe} 
+            onItemsUpdated={loadPantryItems} 
+          />
         </div>
       )}
 

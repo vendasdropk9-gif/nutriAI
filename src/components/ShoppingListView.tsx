@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { MealPlan } from '../types';
+import { MealPlan, SmartBudgetSubstitution } from '../types';
+import { BudgetPriceMonitor } from './BudgetPriceMonitor';
+import { PantryDepletionPredictor } from './PantryDepletionPredictor';
 import { 
   CheckCircle2, 
   Circle, 
@@ -31,8 +33,20 @@ import {
   DollarSign,
   Clock,
   Mic,
-  MicOff
+  MicOff,
+  BarChart3,
+  History
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Cell,
+  CartesianGrid
+} from 'recharts';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { motion, AnimatePresence } from 'motion/react';
 import { speak, stopSpeech } from '../lib/speech';
@@ -255,6 +269,27 @@ function getSupermarketItemPrice(itemName: string, marketPriceIndex: number, mar
   return finalPrice;
 }
 
+// Calculate the average local market price for an ingredient
+export function getAverageLocalItemPrice(itemName: string): number {
+  if (!itemName) return 0;
+  const prices = SUPERMARKETS_TEMPLATES.map(tpl => getSupermarketItemPrice(itemName, tpl.priceIndex, tpl.id));
+  const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+  return Number(avg.toFixed(2));
+}
+
+// Helper to determine the standard measurement unit for an ingredient
+export function getItemUnit(itemName: string): string {
+  const n = itemName.toLowerCase();
+  if (n.includes('morango')) return 'bandeja';
+  if (n.includes('ovo') || n.includes('ovos')) return 'dúzia';
+  if (n.includes('azeite')) return 'garrafa';
+  if (n.includes('aveia') || n.includes('chia') || n.includes('quinoa') || n.includes('linhaça')) return 'pct';
+  if (n.includes('espinafre') || n.includes('rúcula') || n.includes('couve') || n.includes('salsa') || n.includes('coentro') || n.includes('cebolinha') || n.includes('agrião')) return 'maço';
+  if (n.includes('alface') || n.includes('brócolis') || n.includes('iogurte') || n.includes('kit salada') || n.includes('abacaxi') || n.includes('melão') || n.includes('melancia')) return 'unid';
+  if (n.includes('frango') || n.includes('carne') || n.includes('peixe') || n.includes('salmão') || n.includes('tilápia') || n.includes('bife') || n.includes('abóbora') || n.includes('banana') || n.includes('tomate') || n.includes('cenoura') || n.includes('maçã') || n.includes('batata') || n.includes('cebola') || n.includes('alho')) return 'kg';
+  return 'unid';
+}
+
 // Helper to categorize ingredients
 function categorizeIngredient(name: string): string {
   const n = name.toLowerCase();
@@ -326,10 +361,76 @@ function getProductPrice(name: string, store: 'vida_verde' | 'hortifruti_premium
   }
 }
 
+// Color palette for category food distribution chart
+export const CATEGORY_CHART_COLORS: Record<string, string> = {
+  'Frutas': '#F59E0B',                 // Amber / Laranja
+  'Verduras': '#10B981',               // Esmeralda / Verde folha
+  'Legumes': '#84CC16',                // Lima / Verde horta
+  'Proteínas': '#F43F5E',             // Coral / Vermelho proteína
+  'Grãos, Cereais & Sementes': '#8B5CF6', // Roxo / Violeta grãos
+  'Outros': '#64748B',                 // Ardósia / Neutro
+};
+
+interface CustomCategoryTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
+
+function CustomCategoryCostTooltip({ active, payload }: CustomCategoryTooltipProps) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2 min-w-[200px] z-50">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2">
+          <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-white">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: data.color }} />
+            <span className="truncate">{data.category}</span>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+            {data.count} {data.count === 1 ? 'item' : 'itens'}
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+            <span>Custo Total Estimado:</span>
+            <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
+              R$ {data.total.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Participação na Lista:</span>
+            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+              {data.percent}% do total
+            </span>
+          </div>
+          {data.selected > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              <span>No Carrinho:</span>
+              <span className="font-mono font-bold">R$ {data.selected.toFixed(2)}</span>
+            </div>
+          )}
+          {data.pending > 0 && (
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <span>Restante a Comprar:</span>
+              <span className="font-mono font-bold">R$ {data.pending.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
-  const [activeTab, setActiveTab] = useState<'list' | 'compare' | 'promos'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'monitor' | 'pantry_forecast' | 'compare' | 'promos'>('list');
+  const [chartViewMode, setChartViewMode] = useState<'total' | 'status'>('total');
   const [checkedItems, setCheckedItems] = useLocalStorage<Record<string, boolean>>('nutri-shopping-checked', {});
   const [customItems, setCustomItems] = useLocalStorage<{ name: string; checked: boolean }[]>('nutri-shopping-custom-items', []);
+  const [budgetLimit, setBudgetLimit] = useLocalStorage<number>('nutri-budget-limit', 150);
+  const [substitutedItemsMap, setSubstitutedItemsMap] = useLocalStorage<Record<string, string>>('nutri-shopping-substitutions-map', {});
+  const [appliedSubstitutions, setAppliedSubstitutions] = useLocalStorage<SmartBudgetSubstitution[]>('nutri-applied-substitutions', []);
   const [newCustomName, setNewCustomName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
@@ -371,13 +472,16 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
     return Array.from(items);
   }, [mealPlan]);
 
-  // Combine mealPlan ingredients and customItems
+  // Combine mealPlan ingredients and customItems (respecting smart substitutions)
   const allListItems = useMemo(() => {
-    const list = mealPlanIngredients.map(name => ({
-      name,
-      checked: !!checkedItems[name],
-      isCustom: false
-    }));
+    const list = mealPlanIngredients.map(name => {
+      const displayName = substitutedItemsMap[name] || name;
+      return {
+        name: displayName,
+        checked: !!checkedItems[displayName] || !!checkedItems[name],
+        isCustom: false
+      };
+    });
 
     const customs = customItems.map(item => ({
       name: item.name,
@@ -394,7 +498,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
     });
 
     return finalItems;
-  }, [mealPlanIngredients, checkedItems, customItems]);
+  }, [mealPlanIngredients, checkedItems, customItems, substitutedItemsMap]);
 
   // Group items by category
   const groupedItems = useMemo(() => {
@@ -419,6 +523,81 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
   const totalCount = allListItems.length;
   const completedCount = allListItems.filter(i => i.checked).length;
   const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+  // Simple calculation estimating the total cost of the shopping list based on average local prices for the ingredients selected
+  const costEstimation = useMemo(() => {
+    let totalListCost = 0;
+    let selectedIngredientsCost = 0;
+    let pendingIngredientsCost = 0;
+
+    const itemPriceMap: Record<string, { price: number; unit: string }> = {};
+
+    allListItems.forEach(item => {
+      const avgPrice = getAverageLocalItemPrice(item.name);
+      const unit = getItemUnit(item.name);
+      itemPriceMap[item.name] = { price: avgPrice, unit };
+
+      totalListCost += avgPrice;
+      if (item.checked) {
+        selectedIngredientsCost += avgPrice;
+      } else {
+        pendingIngredientsCost += avgPrice;
+      }
+    });
+
+    const averagePerItem = allListItems.length > 0 ? totalListCost / allListItems.length : 0;
+    const selectedCount = allListItems.filter(i => i.checked).length;
+    const itemsCount = allListItems.length;
+
+    // Category cost breakdown
+    const categoryTotals: Record<string, { total: number; selected: number; count: number }> = {};
+    allListItems.forEach(item => {
+      const cat = categorizeIngredient(item.name);
+      const price = itemPriceMap[item.name]?.price || 0;
+      if (!categoryTotals[cat]) {
+        categoryTotals[cat] = { total: 0, selected: 0, count: 0 };
+      }
+      categoryTotals[cat].total += price;
+      categoryTotals[cat].count += 1;
+      if (item.checked) {
+        categoryTotals[cat].selected += price;
+      }
+    });
+
+    // Prepare formatted data for recharts bar chart
+    const chartData = Object.entries(categoryTotals)
+      .filter(([_, info]) => info.total > 0)
+      .map(([cat, info]) => {
+        const shortName = cat === 'Grãos, Cereais & Sementes' ? 'Grãos' : cat;
+        const total = Number(info.total.toFixed(2));
+        const selected = Number(info.selected.toFixed(2));
+        const pending = Number(Math.max(0, info.total - info.selected).toFixed(2));
+        const percent = totalListCost > 0 ? Math.round((total / totalListCost) * 100) : 0;
+        return {
+          category: cat,
+          shortName,
+          total,
+          selected,
+          pending,
+          count: info.count,
+          percent,
+          color: CATEGORY_CHART_COLORS[cat] || '#0EA5E9',
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      totalListCost: Number(totalListCost.toFixed(2)),
+      selectedIngredientsCost: Number(selectedIngredientsCost.toFixed(2)),
+      pendingIngredientsCost: Number(pendingIngredientsCost.toFixed(2)),
+      averagePerItem: Number(averagePerItem.toFixed(2)),
+      selectedCount,
+      totalCount: itemsCount,
+      itemPriceMap,
+      categoryTotals,
+      chartData,
+    };
+  }, [allListItems]);
 
   // Toggle item check state
   const toggleItem = (name: string, isCustom: boolean) => {
@@ -469,6 +648,80 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
     playSfx('scratch');
     setCheckedItems({});
     setCustomItems([]);
+    setSubstitutedItemsMap({});
+    setAppliedSubstitutions([]);
+  };
+
+  // Smart Budget Substitutions Handlers
+  const handleApplySubstitution = (substitution: SmartBudgetSubstitution) => {
+    // If original item exists in customItems, update it
+    setCustomItems(prev => prev.map(it => {
+      if (it.name.toLowerCase() === substitution.originalItem.toLowerCase()) {
+        return { ...it, name: substitution.substituteItem };
+      }
+      return it;
+    }));
+
+    // Update substituted items map for mealPlan ingredients
+    setSubstitutedItemsMap(prev => ({
+      ...prev,
+      [substitution.originalItem]: substitution.substituteItem
+    }));
+
+    setAppliedSubstitutions(prev => {
+      if (!prev.some(s => s.id === substitution.id || s.originalItem.toLowerCase() === substitution.originalItem.toLowerCase())) {
+        return [...prev, substitution];
+      }
+      return prev;
+    });
+  };
+
+  const handleApplyAllSubstitutions = (subs: SmartBudgetSubstitution[]) => {
+    subs.forEach(s => handleApplySubstitution(s));
+  };
+
+  const handleUndoSubstitution = (substitution: SmartBudgetSubstitution) => {
+    setCustomItems(prev => prev.map(it => {
+      if (it.name.toLowerCase() === substitution.substituteItem.toLowerCase()) {
+        return { ...it, name: substitution.originalItem };
+      }
+      return it;
+    }));
+
+    setSubstitutedItemsMap(prev => {
+      const next = { ...prev };
+      delete next[substitution.originalItem];
+      Object.keys(next).forEach(k => {
+        if (next[k] === substitution.substituteItem) {
+          delete next[k];
+        }
+      });
+      return next;
+    });
+
+    setAppliedSubstitutions(prev => prev.filter(s => s.id !== substitution.id && s.substituteItem !== substitution.substituteItem));
+  };
+
+  // Add predicted pantry items directly to customItems list
+  const handleAddItemFromPantry = (name: string) => {
+    const capitalized = name.trim().charAt(0).toUpperCase() + name.trim().slice(1);
+    if (allListItems.some(i => i.name.toLowerCase() === capitalized.toLowerCase())) return;
+    setCustomItems(prev => [...prev, { name: capitalized, checked: false }]);
+  };
+
+  const handleAddMultipleItemsFromPantry = (names: string[]) => {
+    const existingLower = new Set(allListItems.map(i => i.name.toLowerCase()));
+    const newToAdd: { name: string; checked: boolean }[] = [];
+    names.forEach(name => {
+      const cap = name.trim().charAt(0).toUpperCase() + name.trim().slice(1);
+      if (!existingLower.has(cap.toLowerCase())) {
+        newToAdd.push({ name: cap, checked: false });
+        existingLower.add(cap.toLowerCase());
+      }
+    });
+    if (newToAdd.length > 0) {
+      setCustomItems(prev => [...prev, ...newToAdd]);
+    }
   };
 
   // Voice Recognition handlers
@@ -805,6 +1058,8 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[24px] shadow-inner gap-1">
         {[
           { id: 'list', label: 'Lista Inteligente', icon: <CheckCircle2 className="w-4 h-4" /> },
+          { id: 'monitor', label: 'Monitor de Preços & IA', icon: <Sparkles className="w-4 h-4" /> },
+          { id: 'pantry_forecast', label: 'Previsão de Despensa', icon: <History className="w-4 h-4" /> },
           { id: 'compare', label: 'Comparar Preços', icon: <ArrowLeftRight className="w-4 h-4" /> },
           { id: 'promos', label: 'Promoções de Parceiros', icon: <Percent className="w-4 h-4" /> }
         ].map((tab) => {
@@ -852,15 +1107,24 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 let exportText = "🛒 *Minha Lista de Compras - NutriAI*\n\n";
                 Object.entries(groupedItems).forEach(([cat, items]) => {
                   if (items.length > 0) {
-                    exportText += `📦 *${cat}*\n`;
+                    const catTotal = items.reduce((acc, it) => acc + (costEstimation.itemPriceMap[it.name]?.price || 0), 0);
+                    exportText += `📦 *${cat}* (Est. R$ ${catTotal.toFixed(2)})\n`;
                     items.forEach(item => {
-                      exportText += `- [${item.checked ? 'x' : ' '}] ${item.name}\n`;
+                      const itemData = costEstimation.itemPriceMap[item.name];
+                      const priceStr = itemData ? ` (~R$ ${itemData.price.toFixed(2)}/${itemData.unit})` : '';
+                      exportText += `- [${item.checked ? 'x' : ' '}] ${item.name}${priceStr}\n`;
                     });
                     exportText += "\n";
                   }
                 });
+                exportText += `💰 *Custo Total Estimado:* R$ ${costEstimation.totalListCost.toFixed(2)}\n`;
+                if (costEstimation.selectedCount > 0) {
+                  exportText += `🛒 *Selecionados no Carrinho (${costEstimation.selectedCount} itens):* R$ ${costEstimation.selectedIngredientsCost.toFixed(2)}\n`;
+                  exportText += `⏳ *Restante a Comprar:* R$ ${costEstimation.pendingIngredientsCost.toFixed(2)}\n`;
+                }
+                exportText += `📍 Preços médios estimados com base no comércio local.\n`;
                 navigator.clipboard.writeText(exportText)
-                  .then(() => alert("Lista copiada para a área de transferência!"))
+                  .then(() => alert("Lista copiada com estimativas de preços locais!"))
                   .catch(() => alert("Erro ao copiar a lista."));
               }}
               className="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1 w-full sm:w-auto justify-center"
@@ -937,6 +1201,27 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
         {activeTab === 'list' && totalCount > 0 && (
           <div className="space-y-6">
             
+            {/* AI Budget & Price Monitor Section */}
+            <BudgetPriceMonitor
+              items={allListItems.map(i => ({ name: i.name, checked: i.checked }))}
+              budgetLimit={budgetLimit}
+              onBudgetLimitChange={setBudgetLimit}
+              appliedSubstitutions={appliedSubstitutions}
+              onApplySubstitution={handleApplySubstitution}
+              onApplyAllSubstitutions={handleApplyAllSubstitutions}
+              onUndoSubstitution={handleUndoSubstitution}
+              userLocationName={locationName}
+            />
+
+            {/* AI Pantry Depletion Predictor & Budget-Aware Restock */}
+            <PantryDepletionPredictor
+              shoppingItems={allListItems.map(i => ({ name: i.name, checked: i.checked }))}
+              currentTotalCost={costEstimation.totalListCost}
+              budgetLimit={budgetLimit}
+              onAddItemToShoppingList={handleAddItemFromPantry}
+              onAddMultipleItemsToShoppingList={handleAddMultipleItemsFromPantry}
+            />
+
             {/* Progress Card */}
             <div className="bg-white dark:bg-slate-900/60 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div className="space-y-1 text-center sm:text-left">
@@ -954,6 +1239,244 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 </div>
                 <span className="font-mono font-black text-xl text-emerald-600 dark:text-emerald-400">{progressPercent}%</span>
               </div>
+            </div>
+
+            {/* Estimated Cost Summary Card based on average local prices */}
+            <div className="bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900/80 dark:to-emerald-950/20 rounded-[32px] p-6 shadow-sm border border-emerald-100/80 dark:border-emerald-900/40 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100/60 dark:border-emerald-900/30 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-serif font-black text-slate-800 dark:text-white text-lg leading-tight">
+                        Estimativa de Custo Local
+                      </h4>
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                        Média Regional
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      Calculado com base na média de preços de sacolões e mercados da sua região
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="text-left sm:text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Média por item</span>
+                  <span className="text-sm font-mono font-black text-slate-700 dark:text-slate-200">
+                    ~R$ {costEstimation.averagePerItem.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Selected / In-cart Cost */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  costEstimation.selectedCount > 0 
+                    ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-300 dark:border-emerald-700/60 shadow-sm' 
+                    : 'bg-white/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between text-slate-400 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                      Itens Selecionados
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      {costEstimation.selectedCount}/{costEstimation.totalCount}
+                    </span>
+                  </div>
+                  <div className="text-2xl font-mono font-black text-emerald-600 dark:text-emerald-400">
+                    R$ {costEstimation.selectedIngredientsCost.toFixed(2)}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    {costEstimation.selectedCount === 0 
+                      ? 'Marque itens na lista para calcular' 
+                      : `${Math.round((costEstimation.selectedIngredientsCost / (costEstimation.totalListCost || 1)) * 100)}% do orçamento total`}
+                  </p>
+                </div>
+
+                {/* Total Estimated List Cost */}
+                <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-400 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Total Estimado da Lista
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      {costEstimation.totalCount} itens
+                    </span>
+                  </div>
+                  <div className="text-2xl font-mono font-black text-slate-800 dark:text-white">
+                    R$ {costEstimation.totalListCost.toFixed(2)}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    Para todos os ingredientes planejados
+                  </p>
+                </div>
+
+                {/* Pending / Remaining Cost */}
+                <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-slate-400 mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      Restante a Comprar
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      {costEstimation.totalCount - costEstimation.selectedCount} pendentes
+                    </span>
+                  </div>
+                  <div className="text-2xl font-mono font-black text-slate-600 dark:text-slate-300">
+                    R$ {costEstimation.pendingIngredientsCost.toFixed(2)}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    Falta adquirir no carrinho
+                  </p>
+                </div>
+              </div>
+
+              {/* Category subtotal breakdown */}
+              {Object.keys(costEstimation.categoryTotals).length > 0 && (
+                <div className="pt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                    Subtotais:
+                  </span>
+                  {Object.entries(costEstimation.categoryTotals).map(([cat, info]) => (
+                    <span 
+                      key={cat}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold text-slate-600 dark:text-slate-300 shadow-xs"
+                    >
+                      <span>{cat}:</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        R$ {info.total.toFixed(2)}
+                      </span>
+                      {info.selected > 0 && (
+                        <span className="text-[9px] text-emerald-500 font-bold">
+                          (R$ {info.selected.toFixed(2)} sel.)
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Category Cost Distribution Recharts Bar Chart */}
+              {costEstimation.chartData.length > 0 && (
+                <div className="pt-4 border-t border-emerald-100/60 dark:border-emerald-900/30 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <BarChart3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                          Distribuição de Custos por Categoria
+                        </h5>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Hortifrúti, Proteínas, Grãos e outros grupos da lista
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* View Mode Switcher */}
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setChartViewMode('total')}
+                        className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all border-none cursor-pointer ${
+                          chartViewMode === 'total'
+                            ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-transparent'
+                        }`}
+                      >
+                        Total por Grupo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChartViewMode('status')}
+                        className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all border-none cursor-pointer ${
+                          chartViewMode === 'status'
+                            ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-transparent'
+                        }`}
+                      >
+                        No Carrinho vs Pendente
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recharts Bar Chart Container */}
+                  <div className="w-full h-64 min-h-[256px] pt-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart
+                        data={costEstimation.chartData}
+                        margin={{ top: 12, right: 12, left: -16, bottom: 6 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" strokeOpacity={0.15} />
+                        <XAxis 
+                          dataKey="shortName" 
+                          tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }}
+                          tickLine={false}
+                          axisLine={{ stroke: '#cbd5e1', strokeOpacity: 0.3 }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'monospace' }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(val) => `R$${val}`}
+                        />
+                        <RechartsTooltip content={<CustomCategoryCostTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }} />
+                        {chartViewMode === 'total' ? (
+                          <Bar 
+                            dataKey="total" 
+                            name="Custo Total"
+                            radius={[8, 8, 0, 0]} 
+                            maxBarSize={48}
+                          >
+                            {costEstimation.chartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        ) : (
+                          <>
+                            <Bar 
+                              dataKey="selected" 
+                              name="No Carrinho" 
+                              stackId="costStack"
+                              fill="#10B981" 
+                              maxBarSize={48} 
+                            />
+                            <Bar 
+                              dataKey="pending" 
+                              name="Pendente" 
+                              stackId="costStack"
+                              fill="#94A3B8" 
+                              radius={[8, 8, 0, 0]} 
+                              maxBarSize={48} 
+                            />
+                          </>
+                        )}
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Interactive Category Chips Legend */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {costEstimation.chartData.map((item) => (
+                      <div
+                        key={item.category}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-300 shadow-xs"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                        <span className="font-semibold">{item.shortName}:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                          R$ {item.total.toFixed(2)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">({item.percent}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Custom item quick adder */}
@@ -1024,7 +1547,13 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                         </div>
                         <div>
                           <h4 className="font-serif font-bold text-slate-800 dark:text-white text-base leading-tight">{category}</h4>
-                          <span className="text-[10px] text-slate-400 font-medium font-mono">{checkedInCat} de {items.length} concluídos</span>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium font-mono">
+                            <span>{checkedInCat} de {items.length} concluídos</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                              Est. R$ {(costEstimation.categoryTotals[category]?.total || 0).toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       
@@ -1044,38 +1573,54 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                           className="border-t border-slate-100 dark:border-slate-800/60 overflow-hidden"
                         >
                           <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                            {items.map((item, idx) => (
-                              <li key={idx} className="group flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/20 dark:hover:bg-slate-800/10 transition-colors">
-                                <button
-                                  onClick={() => toggleItem(item.name, item.isCustom)}
-                                  className="flex-1 flex items-center gap-3 text-left border-none outline-none bg-transparent cursor-pointer"
-                                >
-                                  {item.checked ? (
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                                  ) : (
-                                    <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-emerald-400 shrink-0 transition-colors" />
-                                  )}
-                                  <span className={`text-sm font-semibold transition-all ${
-                                    item.checked ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'
-                                  }`}>
-                                    {item.name}
-                                  </span>
-                                  {item.isCustom && (
-                                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 text-[8px] rounded font-bold uppercase tracking-wider">Avulso</span>
-                                  )}
-                                </button>
-                                
-                                {item.isCustom && (
+                            {items.map((item, idx) => {
+                              const itemPricing = costEstimation.itemPriceMap[item.name];
+                              return (
+                                <li key={idx} className="group flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/20 dark:hover:bg-slate-800/10 transition-colors">
                                   <button
-                                    onClick={() => handleRemoveCustom(item.name)}
-                                    className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 border-none bg-transparent outline-none"
-                                    title="Excluir item"
+                                    onClick={() => toggleItem(item.name, item.isCustom)}
+                                    className="flex-1 flex items-center gap-3 text-left border-none outline-none bg-transparent cursor-pointer min-w-0"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    {item.checked ? (
+                                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                                    ) : (
+                                      <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-emerald-400 shrink-0 transition-colors" />
+                                    )}
+                                    <span className={`text-sm font-semibold truncate transition-all ${
+                                      item.checked ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'
+                                    }`}>
+                                      {item.name}
+                                    </span>
+                                    {item.isCustom && (
+                                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 text-[8px] rounded font-bold uppercase tracking-wider shrink-0">Avulso</span>
+                                    )}
                                   </button>
-                                )}
-                              </li>
-                            ))}
+                                  
+                                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                                    {itemPricing && (
+                                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-lg transition-all ${
+                                        item.checked 
+                                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40' 
+                                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                      }`}>
+                                        ~R$ {itemPricing.price.toFixed(2)}
+                                        <span className="text-[10px] text-slate-400 ml-0.5">/{itemPricing.unit}</span>
+                                      </span>
+                                    )}
+
+                                    {item.isCustom && (
+                                      <button
+                                        onClick={() => handleRemoveCustom(item.name)}
+                                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 border-none bg-transparent outline-none"
+                                        title="Excluir item"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </motion.div>
                       )}
@@ -1135,7 +1680,93 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
           </div>
         )}
 
-        {/* TAB 2: COMPARADOR DE ESTABELECIMENTOS GEOLOCALIZADO */}
+        {/* TAB 2: MONITOR DE PREÇOS & SUGESTÕES ECONÔMICAS IA */}
+        {activeTab === 'monitor' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <BudgetPriceMonitor
+              items={allListItems.map(i => ({ name: i.name, checked: i.checked }))}
+              budgetLimit={budgetLimit}
+              onBudgetLimitChange={setBudgetLimit}
+              appliedSubstitutions={appliedSubstitutions}
+              onApplySubstitution={handleApplySubstitution}
+              onApplyAllSubstitutions={handleApplyAllSubstitutions}
+              onUndoSubstitution={handleUndoSubstitution}
+              userLocationName={locationName}
+            />
+
+            <PantryDepletionPredictor
+              shoppingItems={allListItems.map(i => ({ name: i.name, checked: i.checked }))}
+              currentTotalCost={costEstimation.totalListCost}
+              budgetLimit={budgetLimit}
+              onAddItemToShoppingList={handleAddItemFromPantry}
+              onAddMultipleItemsToShoppingList={handleAddMultipleItemsFromPantry}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: PREVISÃO DE DESPENSA & REPOSIÇÃO INTELIGENTE (IA) */}
+        {activeTab === 'pantry_forecast' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <PantryDepletionPredictor
+              shoppingItems={allListItems.map(i => ({ name: i.name, checked: i.checked }))}
+              currentTotalCost={costEstimation.totalListCost}
+              budgetLimit={budgetLimit}
+              onAddItemToShoppingList={handleAddItemFromPantry}
+              onAddMultipleItemsToShoppingList={handleAddMultipleItemsFromPantry}
+            />
+
+            {/* Quick summary of current shopping list items vs predicted essentials */}
+            <div className="bg-white dark:bg-slate-900/60 rounded-[28px] p-6 shadow-sm border border-slate-100 dark:border-slate-800/80 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                    <History className="w-4 h-4" />
+                  </span>
+                  <h4 className="font-serif font-black text-slate-800 dark:text-white text-base">
+                    Como a Previsão de Despensa Funciona
+                  </h4>
+                </div>
+                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                  NutriAI Smart Inventory
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-black">1</span>
+                    <span>Análise do Histórico</span>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                    A IA analisa a frequência em que os alimentos aparecem no seu cardápio e calcula a taxa diária média de esgotamento.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-black">2</span>
+                    <span>Checagem Orçamentária</span>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                    Antes de sugerir, a IA verifica se a inclusão do item mantém sua lista dentro do teto de gastos configurado (R$ {budgetLimit.toFixed(2)}).
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-black">3</span>
+                    <span>Reposição em 1 Toque</span>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                    Adicione itens que estão acabando diretamente à sua lista de compras com um clique, sem esquecer nenhum ingrediente vital.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: COMPARADOR DE ESTABELECIMENTOS GEOLOCALIZADO */}
         {activeTab === 'compare' && totalCount > 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             

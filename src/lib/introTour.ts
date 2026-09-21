@@ -34,8 +34,34 @@ export function resetTourStatus(): void {
 export interface TourStepItem {
   title?: string;
   intro: string;
-  element?: HTMLElement | string;
+  element?: HTMLElement | string | (() => HTMLElement | null | undefined);
   position?: string;
+  tabKey?: string;
+}
+
+/**
+ * Rola suavemente o elemento do menu horizontal para o centro antes de exibir a tooltip
+ */
+function ensureNavElementVisible(el: HTMLElement | null | undefined) {
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const navScrollContainer = el.closest('.overflow-x-auto') as HTMLElement | null;
+    if (navScrollContainer) {
+      const containerRect = navScrollContainer.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const offset = (elRect.left + elRect.width / 2) - (containerRect.left + containerRect.width / 2);
+      navScrollContainer.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  } catch {}
+}
+
+interface StepConfig {
+  title: string;
+  intro: string;
+  element?: (() => HTMLElement | undefined) | string;
+  position?: string;
+  tabKey?: string;
 }
 
 /**
@@ -48,130 +74,209 @@ export function startIntroJsTour(options: TourOptions = {}) {
     return null;
   }
 
-  // Se o botão da despensa ou chef mágico não estiverem renderizados ainda, aguarda brevemente
   const intro = introJs();
 
-  const steps: TourStepItem[] = [
+  // Helper para buscar elementos no DOM com fallbacks
+  const getEl = (selector: string, fallbackSelector?: string): HTMLElement | undefined => {
+    if (typeof document === 'undefined') return undefined;
+    const found = document.querySelector(selector) as HTMLElement | null;
+    if (found) return found;
+    if (fallbackSelector) {
+      return (document.querySelector(fallbackSelector) as HTMLElement | null) || undefined;
+    }
+    return undefined;
+  };
+
+  const stepsConfig: StepConfig[] = [
     {
       title: '✨ Bem-vindo ao NutriAI!',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm font-medium leading-relaxed">
-            Seu ecossistema completo de <strong>nutrição inteligente, culinária prática e saúde preventiva</strong> com Inteligência Artificial.
+          <p class="text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-200">
+            Seu ecossistema completo de <strong>nutrição inteligente, culinária prática, economia e saúde</strong> com Inteligência Artificial.
           </p>
-          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
-            💡 Vamos fazer um tour rápido de 1 minuto para você conhecer os recursos mais poderosos do seu novo aplicativo!
+          <div class="p-3 rounded-xl bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/25 text-xs text-emerald-800 dark:text-emerald-300">
+            💡 <strong>Tour Rápido de 1 Minuto:</strong> Vamos apresentar as ferramentas essenciais, incluindo a <em>Lista de Compras Inteligente</em> e o <em>Monitor de Preços</em> para você economizar e se alimentar melhor!
           </div>
         </div>
-      `
+      `,
+      tabKey: undefined
     },
     {
-      element: (document.querySelector('#chef-magic-fab-btn') || document.querySelector('#nav-item-generator') || undefined) as HTMLElement | undefined,
-      title: '👨‍🍳 Gerador de Receitas & Chef Mágico',
+      element: () => getEl('#nav-item-shopping'),
+      title: '🛒 Lista de Compras Inteligente',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            Toque no <strong>Chef Mágico</strong> a qualquer momento para ditar ou digitar os ingredientes que você tem em casa.
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Organize suas idas ao mercado com praticidade e <strong>zero esquecimento</strong>:
           </p>
-          <ul class="text-xs space-y-1 text-slate-600 dark:text-slate-300">
-            <li>• Refeições personalizadas por objetivo (emagrecimento, hipertrofia, etc.)</li>
-            <li>• Cálculo preciso de calorias, proteínas e micronutrientes</li>
-            <li>• Cronômetros de cozimento e passo a passo guiado</li>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>✅ <strong>Sincronização Direta:</strong> adicione itens faltantes de receitas e da despensa com 1 toque.</li>
+            <li>📂 <strong>Categorização por Corredores:</strong> alimentos separados por Hortifrúti, Carnes, Laticínios e Mercearia.</li>
+            <li>💰 <strong>Estimativa de Gastos:</strong> calcule o total estimado do seu carrinho antes de sair de casa.</li>
+            <li>🛍️ <strong>Modo Mercado Interativo:</strong> marque itens em tempo real com checklists táteis rápidos.</li>
           </ul>
         </div>
       `,
-      position: 'auto'
+      position: 'auto',
+      tabKey: 'shopping'
     },
     {
-      element: (document.querySelector('#nav-item-habits') || undefined) as HTMLElement | undefined,
-      title: '📊 Rastreador de Hábitos & Metas',
+      element: () => getEl('#nav-item-market', '#nav-item-comparer'),
+      title: '🏷️ Monitor de Preços, Sacolões & Mercados',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            Mantenha sua constância diária monitorando seus hábitos em tempo real:
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Economize em todas as compras com o <strong>Economizômetro & Comparador</strong>:
           </p>
-          <ul class="text-xs space-y-1 text-slate-600 dark:text-slate-300">
-            <li>💧 <strong>Hidratação:</strong> registre seus copos e receba lembretes</li>
-            <li>⚡ <strong>Jejum & Atividades:</strong> metas de sono, passos e queima calórica</li>
-            <li>🔥 <strong>Streaks:</strong> acumule sequências para pontuar na comunidade</li>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>📈 <strong>Histórico de Preços:</strong> acompanhe a variação de valores de itens básicos e hortifrúti.</li>
+            <li>🏪 <strong>Mercados & Feiras Locais:</strong> descubra sacolões e feiras livres com as melhores ofertas na sua região.</li>
+            <li>🔄 <strong>Trocas Inteligentes:</strong> sugestões de ingredientes equivalentes com menor custo por porção.</li>
+            <li>⚖️ <strong>Comparador Nutri-Econômico:</strong> avalie qual produto oferece melhor custo por grama de proteína.</li>
           </ul>
         </div>
       `,
-      position: 'auto'
+      position: 'auto',
+      tabKey: 'market'
     },
     {
-      element: (document.querySelector('#nav-item-pantry') || undefined) as HTMLElement | undefined,
+      element: () => getEl('#chef-magic-fab-btn', '#nav-item-generator'),
+      title: '👨‍🍳 Gerador de Receitas & Chef Mágico IA',
+      intro: `
+        <div class="space-y-2 py-1">
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Crie refeições personalizadas em segundos com o que você já tem na cozinha:
+          </p>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>🎯 <strong>Filtros por Objetivo:</strong> emagrecimento, ganho de massa, low carb, diabéticos ou detox.</li>
+            <li>🔥 <strong>Tabela Nutricional Exata:</strong> calorias, proteínas, carboidratos e fibras calculadas na hora.</li>
+            <li>⏱️ <strong>Timers Integrados:</strong> cronômetros de cozimento em cada etapa para nunca queimar o prato.</li>
+          </ul>
+        </div>
+      `,
+      position: 'auto',
+      tabKey: 'generator'
+    },
+    {
+      element: () => getEl('#nav-item-pantry'),
       title: '📦 Scanner de Despensa & Validades',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            Aponte a câmera para o <strong>código de barras</strong> dos alimentos para cadastrá-los na despensa instantaneamente.
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Controle de estoque inteligente e <strong>desperdício zero</strong>:
           </p>
-          <p class="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-            Receba alertas de vencimento e gere receitas automáticas para evitar qualquer desperdício de comida!
-          </p>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>📷 <strong>Leitor de Código de Barras:</strong> aponte a câmera da embalagem para cadastrar sem digitar.</li>
+            <li>⏳ <strong>Alertas de Validade:</strong> saiba quais itens vão vencer primeiro para utilizá-los a tempo.</li>
+            <li>✨ <strong>Receitas de Aproveitamento:</strong> a IA sugere pratos focados nos alimentos perto do vencimento.</li>
+          </ul>
         </div>
       `,
-      position: 'auto'
+      position: 'auto',
+      tabKey: 'pantry'
     },
     {
-      element: (document.querySelector('#nav-item-fridge') || undefined) as HTMLElement | undefined,
+      element: () => getEl('#nav-item-fridge', '#nav-item-analyzer'),
       title: '🧊 Geladeira Inteligente com Câmera IA',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            Tire uma foto das prateleiras da sua geladeira ou do seu <strong>prato pronto</strong>:
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Tire uma foto das prateleiras ou do seu <strong>prato pronto</strong>:
           </p>
-          <p class="text-xs text-slate-600 dark:text-slate-300">
-            A visão computacional reconhece os alimentos, calcula a distribuição de carboidratos, proteínas e gorduras em segundos.
-          </p>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>🥗 <strong>Reconhecimento Visual Instantâneo:</strong> identifica alimentos e porções em segundos.</li>
+            <li>🍽️ <strong>Análise de Prato:</strong> distribuição de macronutrientes da refeição direto pela foto.</li>
+            <li>🌿 <strong>Controle de Frescor:</strong> acompanhe o estado dos vegetais e carnes armazenados.</li>
+          </ul>
         </div>
       `,
-      position: 'auto'
+      position: 'auto',
+      tabKey: 'fridge'
     },
     {
-      element: (document.querySelector('#header-feedback-trigger-btn') || document.querySelector('#nav-item-assistant360') || undefined) as HTMLElement | undefined,
-      title: '🎙️ Assistente Malu & Controle de Voz',
+      element: () => getEl('#nav-item-habits'),
+      title: '📊 Rastreador de Hábitos & Metas Diárias',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            A <strong>Chef Malu</strong> possui voz brasileira humanizada (Aoede) para ditar instruções na cozinha sem você precisar tocar na tela.
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Mantenha a constância com lembretes e gráficos interativos:
           </p>
-          <p class="text-xs text-slate-600 dark:text-slate-300">
-            Você pode ajustar o volume da síntese de voz de forma independente ou pedir conselhos nutricionais completos a qualquer hora.
-          </p>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>💧 <strong>Hidratação:</strong> registre cada copo de água e atinja sua meta diária com lembretes.</li>
+            <li>⚡ <strong>Jejum & Atividades:</strong> cronômetro de jejum intermitente, horas de sono e calorias queimadas.</li>
+            <li>🔥 <strong>Streaks & Conquistas:</strong> acumule dias consecutivos de disciplina e ganhe medalhas.</li>
+          </ul>
         </div>
       `,
-      position: 'bottom'
+      position: 'auto',
+      tabKey: 'habits'
     },
     {
-      element: (document.querySelector('#header-reading-mode-toggle-btn') || undefined) as HTMLElement | undefined,
+      element: () => getEl('#header-feedback-trigger-btn', '#nav-item-assistant360'),
+      title: '🎙️ Assistente Chef Malu & Voz Natural Aoede',
+      intro: `
+        <div class="space-y-2 py-1">
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Converse por voz natural com pronúncia brasileira humanizada:
+          </p>
+          <ul class="text-xs space-y-1.5 text-slate-600 dark:text-slate-300">
+            <li>🗣️ <strong>Instruções de Mãos-Livres:</strong> a Malu dita o passo a passo da receita enquanto você cozinha.</li>
+            <li>🔊 <strong>Controle de Volume Independente:</strong> ajuste o volume da voz da IA sem alterar outras mídias.</li>
+            <li>💬 <strong>Consultoria Nutricional 24/7:</strong> tire dúvidas de calorias, trocas de temperos e preparos.</li>
+          </ul>
+        </div>
+      `,
+      position: 'bottom',
+      tabKey: 'assistant360'
+    },
+    {
+      element: () => getEl('#header-reading-mode-toggle-btn'),
       title: '📖 Modo de Leitura & Acessibilidade',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            Ative fontes ampliadas, alto contraste e checklists táteis para seguir o preparo de receitas de longe na bancada com máximo conforto visual.
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            Cozinhe com o máximo conforto visual:
+          </p>
+          <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            Ative fontes ampliadas (até 30px), alto contraste e checklists gigantes para ler receitas de longe na bancada sem cansar a vista.
           </p>
         </div>
       `,
-      position: 'bottom'
+      position: 'bottom',
+      tabKey: undefined
     },
     {
-      element: (document.querySelector('#header-user-avatar-btn') || document.querySelector('#nav-item-profile') || undefined) as HTMLElement | undefined,
-      title: '👤 Seu Perfil, Metas & Notificações',
+      element: () => getEl('#header-user-avatar-btn', '#nav-item-profile'),
+      title: '👤 Seu Perfil, Metas & Conclusão',
       intro: `
         <div class="space-y-2 py-1">
-          <p class="text-sm leading-relaxed">
-            No seu perfil você personaliza seus objetivos (peso, alergias, restrições) e pode <strong>rever este tour interativo</strong> sempre que desejar!
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            No seu perfil você configura seu objetivo de peso, restrições alimentares e pode <strong>reabrir este tour a qualquer momento</strong>!
           </p>
-          <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center">
-            🎉 Parabéns! Você está pronto para explorar o NutriAI!
+          <div class="p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold text-center">
+            🎉 Tudo pronto! Aproveite ao máximo todas as ferramentas do NutriAI!
           </div>
         </div>
       `,
-      position: 'bottom'
+      position: 'bottom',
+      tabKey: 'profile'
     }
-  ].filter(step => !step.element || step.element !== undefined);
+  ];
+
+  // Resolve os elementos dinamicamente
+  const resolvedSteps = stepsConfig
+    .map(step => {
+      const el = typeof step.element === 'function' ? step.element() : (step.element ? getEl(step.element as string) : undefined);
+      return {
+        title: step.title,
+        intro: step.intro,
+        element: el,
+        position: step.position || 'auto',
+        tabKey: step.tabKey
+      };
+    })
+    .filter(step => !step.element || step.element !== undefined);
 
   intro.setOptions({
     nextLabel: 'Próximo →',
@@ -186,34 +291,43 @@ export function startIntroJsTour(options: TourOptions = {}) {
     exitOnEsc: true,
     exitOnOverlayClick: true,
     scrollToElement: true,
-    scrollPadding: 80,
-    overlayOpacity: 0.8,
+    scrollPadding: 90,
+    overlayOpacity: 0.82,
     disableInteraction: false,
     tooltipClass: 'nutri-intro-tooltip',
     highlightClass: 'nutri-intro-highlight',
-    steps: steps as any
+    steps: resolvedSteps as any
   });
 
-  // Efeitos sonoros e táteis durante a navegação do tour
+  // Eventos de navegação com áudio, vibração e transição de aba
   intro.onbeforechange(async function() {
     playSfx('pop');
     vibrate(12);
 
-    // Ajuste de aba se aplicável
     try {
       const stepIndex = intro.currentStep();
-      if (typeof stepIndex === 'number' && onNavigateTab) {
-        if (stepIndex === 1) onNavigateTab('generator');
-        else if (stepIndex === 2) onNavigateTab('habits');
-        else if (stepIndex === 3) onNavigateTab('pantry');
-        else if (stepIndex === 4) onNavigateTab('fridge');
+      if (typeof stepIndex === 'number' && stepIndex >= 0 && stepIndex < resolvedSteps.length) {
+        const currentStep = resolvedSteps[stepIndex];
+        
+        // Se a etapa estiver associada a uma aba e houver callback, sincroniza
+        if (currentStep?.tabKey && onNavigateTab) {
+          onNavigateTab(currentStep.tabKey);
+        }
+
+        // Rola suavemente o botão do menu para ficar visível
+        if (currentStep?.element) {
+          ensureNavElementVisible(currentStep.element as HTMLElement);
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Intro.js] Erro ao sincronizar etapa:', e);
+    }
     return true;
   });
 
   intro.onchange(function(targetElement) {
     if (targetElement) {
+      ensureNavElementVisible(targetElement);
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     }
   });
@@ -239,3 +353,4 @@ export function startIntroJsTour(options: TourOptions = {}) {
     return null;
   }
 }
+

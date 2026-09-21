@@ -27,6 +27,10 @@ import {
   getNotificationPermission 
 } from '../lib/pushScheduler';
 
+import { NutritionalReportPDF } from './NutritionalReportPDF';
+import { FamilyProfilesManager } from './FamilyProfilesManager';
+import { WearablesSync } from './WearablesSync';
+
 interface ProfileProps {
   profile: UserProfile | null;
   onSaveProfile: (profile: UserProfile) => void;
@@ -1530,6 +1534,15 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             </div>
           </div>
 
+          {/* Relatório PDF para Médicos/Nutricionistas */}
+          <NutritionalReportPDF profile={profile} />
+
+          {/* Gestão de Perfil Familiar & Pets */}
+          <FamilyProfilesManager currentProfile={profile} />
+
+          {/* Sincronização com Wearables & Sensores */}
+          <WearablesSync />
+
           {/* Tour Guiado Interativo com Setas */}
           <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -1577,6 +1590,43 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 <span>Tour com Setas</span>
               </button>
             </div>
+          </div>
+
+          {/* Painel Administrativo & Integridade do Banco */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-indigo-500 text-white shadow-md shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-slate-100">
+                    Painel Admin & Integridade do Banco
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-emerald-500/40">
+                    Online
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Monitoramento em tempo real do Firestore, integridade de tabelas, índices e gerador de migrações.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('pop');
+                vibrate(15);
+                window.dispatchEvent(new CustomEvent('navigate', { detail: 'admin' }));
+              }}
+              className="px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+              id="btn-open-admin-db-dashboard"
+              title="Abrir Painel Administrativo do Banco de Dados"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Abrir Admin Dashboard</span>
+            </button>
           </div>
 
           <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />

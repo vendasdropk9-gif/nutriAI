@@ -35,6 +35,7 @@ import { speak } from '../lib/speech';
 import { vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
+import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
 
 const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
 const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
@@ -58,6 +59,7 @@ interface MarketplaceProps {
 }
 
 export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap, addNotification }: MarketplaceProps) {
+  const [marketViewMode, setMarketViewMode] = useState<'catalog' | 'organizer'>('catalog');
   const [activeCategory, setActiveCategory] = useState<string>('Tudo');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('all');
   const [saleTypeFilter, setSaleTypeFilter] = useState<'all' | 'kg' | 'unidade'>('all');
@@ -266,6 +268,34 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           </div>
           
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
+            {/* Main View Mode Selector Tabs */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => { setMarketViewMode('catalog'); vibrate(5); }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                  marketViewMode === 'catalog'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
+                <span>Catálogo de Produtos</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMarketViewMode('organizer'); vibrate(5); }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                  marketViewMode === 'organizer'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                <span>Organizador Inteligente de Listas</span>
+              </button>
+            </div>
+
             <button 
               onClick={onOpenMap}
               className="flex items-center gap-1.5 p-1.5 px-3 bg-emerald-600 text-white rounded-xl border border-emerald-500 font-bold text-[11px] sm:text-xs hover:scale-105 transition-all shadow-sm group cursor-pointer"
@@ -294,6 +324,49 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           </div>
         </div>
       </div>
+
+      {/* Conditional View: Smart List Organizer OR Catalog */}
+      {marketViewMode === 'organizer' ? (
+        <SmartMarketListOrganizer
+          profile={profile}
+          cart={cart}
+          onAddToCart={addToCart}
+          onUpdateCart={(updatedCart) => {
+            setCart(updatedCart);
+            onUpdateCart(updatedCart);
+          }}
+          onOpenPartner={onOpenPartner}
+        />
+      ) : (
+        <>
+          {/* Smart Organizer Teaser Banner in Catalog Mode */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-emerald-600 animate-bounce" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  Organizador Inteligente de Listas
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    Estoque x Ofertas
+                  </span>
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Cruze seus itens com seu estoque em casa para evitar desperdício e encontre ofertas nos mercados locais!
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setMarketViewMode('organizer'); vibrate(10); }}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all cursor-pointer shrink-0 shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>Abrir Organizador</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
       {/* Partner Establishments Bar - Tabs with Proximity & Store details */}
       <div className="space-y-4">
@@ -1115,6 +1188,8 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
           </button>
         </motion.div>
       </div>
+      </>
+      )}
 
       <AnimatePresence>
         {showOrders && (

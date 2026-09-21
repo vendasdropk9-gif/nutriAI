@@ -7,7 +7,7 @@ import {
   RefreshCw, ChefHat, TrendingUp, Dumbbell, Store, Crown, 
   Map as MapIcon, Zap, Activity, Building2, Heart, BookOpen, Leaf,
   ShieldAlert, Scale, Apple, Sprout, Image as ImageIcon,
-  ChevronLeft, ChevronRight, Flame, Package
+  ChevronLeft, ChevronRight, Flame, Package, Database
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -60,6 +60,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { id: 'gamification', label: 'Conquistas', icon: <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />, color: 'from-emerald-400 to-teal-600' },
   { id: 'prediction', label: 'Previsão', icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" /> },
   { id: 'profile', label: 'Perfil', icon: <User className="w-4 h-4 sm:w-5 sm:h-5" /> },
+  { id: 'admin', label: 'Admin DB', icon: <Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />, color: 'from-indigo-600 to-blue-600' },
   { id: 'pricing', label: 'Premium', icon: <Crown className="w-4 h-4 sm:w-5 sm:h-5" />, isPremium: true },
   { id: 'partner', label: 'Parceiro', icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" /> },
 ];

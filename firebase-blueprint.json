@@ -487,9 +487,34 @@
         "notes": { "type": "string" }
       },
       "required": ["cropType", "plantedAt", "wateringIntervalHours", "lastWateredAt", "fertilizingIntervalDays", "lastFertilizedAt", "estimatedHarvestDate", "harvestCompleted"]
+    },
+    "UserPresence": {
+      "title": "User Real-Time Presence",
+      "description": "Real-time presence tracking of buyers and app users with active/inactive status, heartbeat timestamps, and browsing view",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "isOnline": { "type": "boolean" },
+        "currentView": { "type": "string" },
+        "currentAction": { "type": "string" },
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "deviceType": { "type": "string" },
+        "cartItemCount": { "type": "number" },
+        "role": { "type": "string" }
+      },
+      "required": ["userId", "userName", "status", "isOnline", "lastActiveAt", "updatedAt"]
     }
   },
   "firestore": {
+    "/presence/{userId}": {
+      "schema": "UserPresence",
+      "description": "Real-time presence indicator states for active and inactive buyers and users"
+    },
     "/feedbacks/{feedbackId}": {
       "schema": "AppFeedback",
       "description": "Global user feedback and reviews about the application"

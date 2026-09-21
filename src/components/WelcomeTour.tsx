@@ -7,7 +7,7 @@ import {
   Refrigerator, Activity, BookOpen, Volume2, ShieldCheck,
   Scan, Camera, Droplets, Dumbbell, ShoppingCart, HelpCircle,
   Clock, Flame, Apple, Brain, Smile, Package, ExternalLink,
-  RotateCcw
+  RotateCcw, TrendingDown, CheckCircle, MapPin, Scale
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { startIntroJsTour } from '../lib/introTour';
@@ -46,12 +46,24 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome',
     title: 'Bem-vindo ao NutriAI!',
-    subtitle: 'Seu ecossistema completo de nutrição, saúde e culinária inteligente.',
-    description: 'O NutriAI foi desenvolvido para simplificar sua alimentação diária com inteligência artificial de ponta, acompanhamento de saúde em tempo real e mais de 25 ferramentas integradas.',
+    subtitle: 'Seu ecossistema completo de nutrição, economia e culinária inteligente.',
+    description: 'O NutriAI foi desenvolvido para simplificar sua alimentação diária com inteligência artificial de ponta, acompanhamento de saúde em tempo real, lista de compras inteligente e monitor de preços.',
     icon: <Sparkles className="w-6 h-6 text-emerald-500 animate-pulse" />,
     badge: 'Visão Geral & Início Rápido',
-    primaryActionLabel: 'Iniciar Tour com Setas',
+    primaryActionLabel: 'Ver Lista de Compras',
     highlights: [
+      {
+        icon: <ShoppingCart className="w-4 h-4 text-emerald-500" />,
+        title: 'Lista de Compras Inteligente',
+        description: 'Organize itens por categorias, estime gastos e sincronize com ingredientes da despensa e receitas.',
+        tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+      },
+      {
+        icon: <TrendingDown className="w-4 h-4 text-teal-500" />,
+        title: 'Monitor de Preços & Mercados',
+        description: 'Compare valores entre redes locais, acompanhe ofertas de hortifrúti e receba trocas econômicas.',
+        tagColor: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
+      },
       {
         icon: <ChefHat className="w-4 h-4 text-amber-500" />,
         title: 'Chef IA & Gerador Mágico',
@@ -63,21 +75,79 @@ const TOUR_STEPS: TourStep[] = [
         title: 'Scanner de Despensa & Validades',
         description: 'Cadastre alimentos por código de barras, controle validades e evite o desperdício com receitas inteligentes.',
         tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+      }
+    ],
+    proTip: 'Dica: Neste tour, você pode navegar pelos tooltips interativos ou usar as setas luminosas direcionais.'
+  },
+  {
+    id: 'shopping-list',
+    title: 'Lista de Compras Inteligente',
+    subtitle: 'Praticidade, estimativa de custos e zero itens esquecidos no mercado.',
+    description: 'Observe a seta apontando para a aba Lista de Compras na barra de navegação. Aqui você organiza itens por corredores (hortifrúti, laticínios, carnes), sincroniza ingredientes de receitas e calcula o valor previsto do carrinho.',
+    targetSelector: '#nav-item-shopping',
+    secondaryTargetSelector: '#nav-item-shopping',
+    targetButtonName: 'Aba Lista de Compras',
+    preferredArrowDirection: 'up',
+    suggestedTab: 'shopping',
+    icon: <ShoppingCart className="w-6 h-6 text-emerald-500 animate-pulse" />,
+    badge: 'Lista de Compras',
+    primaryActionLabel: 'Ver Monitor de Preços',
+    highlights: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        title: 'Sincronização com Receitas',
+        description: 'Adicione todos os ingredientes que faltam para preparar uma receita com um único toque.',
+        tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
       },
       {
-        icon: <Volume2 className="w-4 h-4 text-teal-500" />,
-        title: 'Assistente Malu com Voz Real',
-        description: 'Converse por voz natural (Aoede), ouça o passo a passo na cozinha com controle independente de volume.',
+        icon: <TrendingDown className="w-4 h-4 text-teal-500" />,
+        title: 'Previsão de Gastos',
+        description: 'Acompanhe a estimativa do valor total da compra em tempo real conforme adiciona produtos.',
         tagColor: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
       },
       {
-        icon: <BookOpen className="w-4 h-4 text-sky-500" />,
-        title: 'Modo de Leitura Acessível',
-        description: 'Fontes ampliadas, alto contraste e checklist para facilitar o preparo sem cansar a visão.',
+        icon: <CheckCircle className="w-4 h-4 text-sky-500" />,
+        title: 'Modo Supermercado',
+        description: 'Checklist interativo com toque rápido para marcar o que já colocou no carrinho físico.',
         tagColor: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
       }
     ],
-    proTip: 'Dica: Neste tour, usaremos setas luminosas apontando diretamente para os botões reais na sua tela.'
+    proTip: 'Dica: Ao marcar um item como comprado, você pode transferi-lo diretamente para sua Despensa.'
+  },
+  {
+    id: 'price-monitor',
+    title: 'Monitor de Preços & Sacolões',
+    subtitle: 'Economia garantida com comparador e ofertas locais.',
+    description: 'Observe a seta apontando para a aba de Mercados e Preços. Acompanhe a cotação de itens da cesta básica, veja ofertas de feiras e sacolões próximos e encontre substituições mais baratas para economizar.',
+    targetSelector: '#nav-item-market',
+    secondaryTargetSelector: '#nav-item-comparer',
+    targetButtonName: 'Aba Monitor de Preços / Mercados',
+    preferredArrowDirection: 'up',
+    suggestedTab: 'market',
+    icon: <TrendingDown className="w-6 h-6 text-teal-500 animate-pulse" />,
+    badge: 'Monitor de Preços',
+    primaryActionLabel: 'Ver Gerador de Receitas',
+    highlights: [
+      {
+        icon: <TrendingDown className="w-4 h-4 text-teal-500" />,
+        title: 'Economizômetro',
+        description: 'Descubra quanto você economiza ao substituir marcas ou escolher redes mais em conta.',
+        tagColor: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
+      },
+      {
+        icon: <MapPin className="w-4 h-4 text-emerald-500" />,
+        title: 'Ofertas da Sua Região',
+        description: 'Mapeamento de feiras livres, quitandas e supermercados com os melhores preços.',
+        tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+      },
+      {
+        icon: <Scale className="w-4 h-4 text-amber-500" />,
+        title: 'Custo por Nutriente',
+        description: 'Compare fontes proteicas e vegetais pelo melhor custo-benefício por porção.',
+        tagColor: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+      }
+    ],
+    proTip: 'Consulte o monitor antes de montar a lista de compras para aproveitar as promoções do dia.'
   },
   {
     id: 'chef-recipes',
@@ -350,22 +420,26 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
   const step = TOUR_STEPS[currentStepIndex] || TOUR_STEPS[0];
   const isLastStep = currentStepIndex === TOUR_STEPS.length - 1;
 
-  // Auto show tour for new users
+  // Auto show tour for new users using Intro.js interactive tooltips
   useEffect(() => {
     try {
       const isCompleted = window.localStorage.getItem(STORAGE_KEY);
       if (!isCompleted) {
         const timer = setTimeout(() => {
-          setIsOpen(true);
-          playSfx('pop');
-          vibrate(20);
-        }, 900);
+          startIntroJsTour({
+            forceStart: false,
+            onNavigateTab,
+            onComplete: () => {
+              if (onFinish) onFinish();
+            }
+          });
+        }, 1100);
         return () => clearTimeout(timer);
       }
     } catch (err) {
       console.warn('Could not check tour status:', err);
     }
-  }, []);
+  }, [onNavigateTab, onFinish]);
 
   // Allow reopening tour via custom event 'app:openWelcomeTour'
   useEffect(() => {

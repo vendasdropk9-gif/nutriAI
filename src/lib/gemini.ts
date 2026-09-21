@@ -1266,3 +1266,18 @@ export const generateQuickTipsInsight = async (
   return callGeminiEndpoint('generateQuickTipsInsight', [profile, intakeLogs]);
 };
 
+export const analyzeBudgetAndSubstitutions = async (
+  items: { name: string; checked: boolean }[],
+  budgetLimit: number = 120,
+  userLocation: string = 'São Paulo'
+): Promise<any> => {
+  const res = await callGeminiEndpoint('analyzeBudgetAndSubstitutions', [items, budgetLimit, userLocation], 15000);
+  if (res && res.substitutions) {
+    return res;
+  }
+  // Dynamic import or fallback handling
+  const { analyzeShoppingListBudget } = await import('./priceMonitor');
+  return analyzeShoppingListBudget(items, budgetLimit);
+};
+
+

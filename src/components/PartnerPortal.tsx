@@ -5,13 +5,17 @@ import {
   ChevronRight, ChevronLeft, CheckCircle2, Upload, Plus, 
   Trash2, Package, TrendingUp, Inbox, Settings, Volume2, 
   Sparkles, Smartphone, LayoutDashboard, Utensils, Search, Edit, Check,
-  Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw, AlertTriangle, Megaphone, Zap, X
+  Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw, AlertTriangle, Megaphone, Zap, X,
+  Users, Radio, Eye, Activity
 } from 'lucide-react';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { UserPresenceAvatar } from './UserPresenceAvatar';
+import { useAllPresences } from '../hooks/usePresence';
+import { isPresenceActive, getPresenceStatusLabel } from '../lib/presenceService';
 
 // Custom Pin Icon for Leaflet Map
 const partnerMarkerIcon = typeof window !== 'undefined' ? L.divIcon({
@@ -97,6 +101,16 @@ interface PartnerForm {
 export function PartnerPortal() {
   const [step, setStep] = useState<Step>('onboarding');
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('panel');
+
+  // Real-time Presence for Buyers
+  const { 
+    presences: buyerPresences, 
+    activeCount: activeBuyerCount, 
+    inactiveCount: inactiveBuyerCount, 
+    toggleSimulation: toggleBuyerSimulation 
+  } = useAllPresences();
+  const [buyerPresenceFilter, setBuyerPresenceFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
   const [orders, setOrders] = useState([
     { id: '#4401', user: 'Ana Maria', items: 'Combo Detox + 5kg Laranja', total: 'R$ 89,90', status: 'Novo', time: '14:23' },
     { id: '#4402', user: 'Pedro S.', items: 'Abacaxi, Melancia, Uva', total: 'R$ 45,00', status: 'Preparando', time: '13:50' },
@@ -448,6 +462,126 @@ export function PartnerPortal() {
                 ))}
               </div>
 
+              {/* Indicador de Presença em Tempo Real de Compradores no Aplicativo */}
+              <div className="clay-card p-6 space-y-6 shadow-sm border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-slate-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Radio className="w-6 h-6 animate-pulse" />
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-ping" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        Compradores em Tempo Real
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-500/20">
+                          {activeBuyerCount} Ativos
+                        </span>
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Acompanhe o status dos clientes: <span className="text-emerald-600 font-bold">🟢 Verde (Ativo/Navegando)</span> e <span className="text-rose-600 font-bold">🔴 Vermelho (Inativo)</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Presence Filter Buttons */}
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => { setBuyerPresenceFilter('all'); vibrate(5); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${buyerPresenceFilter === 'all' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'}`}
+                    >
+                      Todos ({buyerPresences.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBuyerPresenceFilter('active'); vibrate(5); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${buyerPresenceFilter === 'active' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'}`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      Ativos ({activeBuyerCount})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBuyerPresenceFilter('inactive'); vibrate(5); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${buyerPresenceFilter === 'inactive' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-rose-600'}`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-400" />
+                      Inativos ({inactiveBuyerCount})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Buyer Presence Cards Grid */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {buyerPresences
+                    .filter(bp => {
+                      const isActive = isPresenceActive(bp);
+                      if (buyerPresenceFilter === 'active') return isActive;
+                      if (buyerPresenceFilter === 'inactive') return !isActive;
+                      return true;
+                    })
+                    .map((bp) => {
+                      const isActive = isPresenceActive(bp);
+                      const statusInfo = getPresenceStatusLabel(bp);
+
+                      return (
+                        <div 
+                          key={bp.userId}
+                          className={`p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-3 ${
+                            isActive 
+                              ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/50 hover:shadow-md' 
+                              : 'bg-white dark:bg-slate-900/80 border-slate-100 dark:border-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <UserPresenceAvatar 
+                              presenceOverride={bp}
+                              size="md"
+                              showTooltip={true}
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                                  {bp.userName}
+                                </h5>
+                                {bp.deviceType && (
+                                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                    {bp.deviceType}
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-xs font-semibold truncate ${statusInfo.color}`}>
+                                {statusInfo.label}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                {bp.currentView || 'NutriAI App'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Simulation Toggle Button for Seller Testing */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              vibrate(10);
+                              playSfx('tap');
+                              toggleBuyerSimulation(bp.userId);
+                            }}
+                            className={`p-2 rounded-xl text-[10px] font-bold shrink-0 transition-all cursor-pointer border ${
+                              isActive
+                                ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 hover:bg-rose-100'
+                                : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                            title="Alternar indicador de presença para teste em tempo real"
+                          >
+                            {isActive ? 'Tornar Inativo 🔴' : 'Tornar Ativo 🟢'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
               {/* Recent Orders in Panel */}
               <div className="clay-card p-6 overflow-hidden shadow-sm">
                 <div className="pb-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -469,7 +603,7 @@ export function PartnerPortal() {
                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase">
                       <tr>
                         <th className="px-6 py-4">ID</th>
-                        <th className="px-6 py-4">Cliente</th>
+                        <th className="px-6 py-4">Cliente (Indicador de Presença)</th>
                         <th className="px-6 py-4">Produtos</th>
                         <th className="px-6 py-4">Total</th>
                         <th className="px-6 py-4">Status</th>
@@ -480,7 +614,13 @@ export function PartnerPortal() {
                       {orders.slice(0, 4).map((order, i) => (
                         <tr key={i} className="text-sm dark:bg-transparent">
                           <td className="px-6 py-4 font-mono font-bold text-slate-400">{order.id}</td>
-                          <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{order.user}</td>
+                          <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                            <UserPresenceAvatar 
+                              userName={order.user} 
+                              size="sm" 
+                              showStatusBadge={true} 
+                            />
+                          </td>
                           <td className="px-6 py-4 text-slate-500 max-w-[200px] truncate" title={order.items}>{order.items}</td>
                           <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">{order.total}</td>
                           <td className="px-6 py-4">
@@ -607,8 +747,8 @@ export function PartnerPortal() {
                             <Clock className="w-3.5 h-3.5" /> {order.time}
                           </span>
                         </div>
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-slate-900 dark:text-white text-base">{order.user}</h4>
+                        <div className="space-y-2">
+                          <UserPresenceAvatar userName={order.user} size="md" showStatusBadge={true} />
                           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">{order.items}</p>
                         </div>
                       </div>

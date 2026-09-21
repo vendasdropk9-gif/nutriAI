@@ -2,15 +2,39 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { localesMap } from './locales';
+import { RUNTIME_DICTIONARY } from './runtimeDictionary';
 import { auth, db, doc, setDoc, serverTimestamp } from '../lib/firebase';
 
 // Construct resources for all locales
 const resources: Record<string, { common: any; translation: any }> = {};
 for (const [key, bundle] of Object.entries(localesMap)) {
   resources[key] = {
-    common: bundle,
-    translation: bundle,
+    common: { ...bundle },
+    translation: { ...bundle },
   };
+}
+
+// Populate runtime dictionary translations into resource bundles for instant lookup
+for (const [phraseKey, translations] of Object.entries(RUNTIME_DICTIONARY)) {
+  for (const [langCode, translatedText] of Object.entries(translations)) {
+    const targets = [langCode];
+    if (langCode === 'pt') targets.push('pt-BR', 'pt-PT');
+    else if (langCode === 'en') targets.push('en-US', 'en-GB', 'en-CA', 'en-AU');
+    else if (langCode === 'es') targets.push('es-ES', 'es-MX', 'es-AR', 'es-CO', 'es-CL', 'es-PE');
+    else targets.push(`${langCode}-${langCode.toUpperCase()}`);
+
+    for (const target of targets) {
+      if (!resources[target]) {
+        resources[target] = { common: {}, translation: {} };
+      }
+      if (!resources[target].common[phraseKey]) {
+        resources[target].common[phraseKey] = translatedText;
+      }
+      if (!resources[target].translation[phraseKey]) {
+        resources[target].translation[phraseKey] = translatedText;
+      }
+    }
+  }
 }
 
 // Safe helper to determine initial language based on strict priority:

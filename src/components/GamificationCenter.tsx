@@ -6,6 +6,7 @@ import { generateWeeklyChallenges } from '../lib/gemini';
 import { ScratchCard } from './ScratchCard';
 import { FitnessRoulette } from './FitnessRoulette';
 import { ConfettiCelebration } from './ConfettiCelebration';
+import { CommunityChallenges } from './CommunityChallenges';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
@@ -308,6 +309,9 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
           ))}
         </div>
       </div>
+
+      {/* Community Challenges Section */}
+      <CommunityChallenges />
 
       {/* Motivation Footer */}
       <div className="bg-white dark:bg-slate-800 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-white shadow-lg overflow-hidden relative transition-colors duration-300">
