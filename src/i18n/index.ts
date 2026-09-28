@@ -20,7 +20,24 @@ for (const [phraseKey, translations] of Object.entries(RUNTIME_DICTIONARY)) {
     const targets = [langCode];
     if (langCode === 'pt') targets.push('pt-BR', 'pt-PT');
     else if (langCode === 'en') targets.push('en-US', 'en-GB', 'en-CA', 'en-AU');
-    else if (langCode === 'es') targets.push('es-ES', 'es-MX', 'es-AR', 'es-CO', 'es-CL', 'es-PE');
+    else if (langCode === 'es') targets.push('es-ES', 'es-MX', 'es-AR', 'es-CL', 'es-CO', 'es-PE', 'es-UY', 'es-VE');
+    else if (langCode === 'nl') targets.push('nl-NL');
+    else if (langCode === 'pl') targets.push('pl-PL');
+    else if (langCode === 'sv') targets.push('sv-SE');
+    else if (langCode === 'no') targets.push('no-NO');
+    else if (langCode === 'da') targets.push('da-DK');
+    else if (langCode === 'fi') targets.push('fi-FI');
+    else if (langCode === 'el') targets.push('el-GR');
+    else if (langCode === 'cs') targets.push('cs-CZ');
+    else if (langCode === 'ro') targets.push('ro-RO');
+    else if (langCode === 'hu') targets.push('hu-HU');
+    else if (langCode === 'th') targets.push('th-TH');
+    else if (langCode === 'vi') targets.push('vi-VN');
+    else if (langCode === 'id') targets.push('id-ID');
+    else if (langCode === 'ms') targets.push('ms-MY');
+    else if (langCode === 'ar') targets.push('ar-SA', 'ar-AE');
+    else if (langCode === 'he') targets.push('he-IL');
+    else if (langCode === 'uk') targets.push('uk-UA');
     else targets.push(`${langCode}-${langCode.toUpperCase()}`);
 
     for (const target of targets) {
@@ -91,6 +108,7 @@ i18n
       'es-ES': ['es', 'pt-BR'],
       'es-MX': ['es', 'pt-BR'],
       'es-UY': ['es', 'pt-BR'],
+      'es-VE': ['es', 'pt-BR'],
       'pt-PT': ['pt-BR'],
       'pt': ['pt-BR'],
       'en-US': ['en', 'pt-BR'],
@@ -100,6 +118,7 @@ i18n
       'fr-FR': ['fr', 'pt-BR'],
       'de-DE': ['de', 'pt-BR'],
       'it-IT': ['it', 'pt-BR'],
+      'nl-NL': ['nl', 'en-US', 'pt-BR'],
       'zh-CN': ['zh', 'pt-BR'],
       'ja-JP': ['ja', 'pt-BR'],
       'ko-KR': ['ko', 'pt-BR'],
@@ -107,6 +126,21 @@ i18n
       'ar-SA': ['ar', 'pt-BR'],
       'tr-TR': ['tr', 'pt-BR'],
       'ru-RU': ['ru', 'pt-BR'],
+      'pl-PL': ['pl', 'en-US', 'pt-BR'],
+      'sv-SE': ['sv', 'en-US', 'pt-BR'],
+      'no-NO': ['no', 'en-US', 'pt-BR'],
+      'da-DK': ['da', 'en-US', 'pt-BR'],
+      'fi-FI': ['fi', 'en-US', 'pt-BR'],
+      'el-GR': ['el', 'en-US', 'pt-BR'],
+      'cs-CZ': ['cs', 'en-US', 'pt-BR'],
+      'ro-RO': ['ro', 'en-US', 'pt-BR'],
+      'hu-HU': ['hu', 'en-US', 'pt-BR'],
+      'th-TH': ['th', 'en-US', 'pt-BR'],
+      'vi-VN': ['vi', 'en-US', 'pt-BR'],
+      'id-ID': ['id', 'en-US', 'pt-BR'],
+      'ms-MY': ['ms', 'en-US', 'pt-BR'],
+      'he-IL': ['he', 'en-US', 'pt-BR'],
+      'uk-UA': ['uk', 'en-US', 'pt-BR'],
       'default': ['pt-BR']
     },
     ns: ['common', 'translation'],
@@ -128,7 +162,7 @@ i18n
 
 // Apply document attributes for initial language
 if (typeof document !== 'undefined') {
-  const isRtl = initialLanguage.startsWith('ar');
+  const isRtl = initialLanguage.startsWith('ar') || initialLanguage.startsWith('he');
   document.documentElement.lang = initialLanguage;
   document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
   if (document.body) {
@@ -153,16 +187,18 @@ export async function changeLanguage(lng: string, supabaseClient?: any, userId?:
     localStorage.setItem('i18nextLng', targetLng);
   } catch (e) {}
   
-  // 3. Update documentElement lang & dir (RTL support for Arabic)
+  // 3. Update documentElement lang & dir (RTL support for Arabic & Hebrew)
   if (typeof document !== 'undefined') {
-    const isRtl = targetLng.startsWith('ar');
+    const isRtl = targetLng.startsWith('ar') || targetLng.startsWith('he');
     document.documentElement.lang = targetLng;
     document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
     if (document.body) {
       if (isRtl) {
         document.body.classList.add('rtl-layout');
+        document.body.classList.remove('ltr-layout');
       } else {
         document.body.classList.remove('rtl-layout');
+        document.body.classList.add('ltr-layout');
       }
     }
   }

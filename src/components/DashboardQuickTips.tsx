@@ -12,8 +12,6 @@ import {
   Scale, 
   Moon, 
   Plus, 
-  CheckCircle2, 
-  Clock, 
   X,
   ArrowRight
 } from 'lucide-react';
@@ -22,6 +20,7 @@ import { generateHistoryQuickTips, DashboardQuickTip, identifyMealType } from '.
 import { generateQuickTipsInsight } from '../lib/gemini';
 import { VoicePlayButton } from './VoicePlayButton';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DashboardQuickTipsProps {
   profile: UserProfile | null;
@@ -30,6 +29,7 @@ interface DashboardQuickTipsProps {
 }
 
 export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: DashboardQuickTipsProps) {
+  const { language, t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [aiEnrichment, setAiEnrichment] = useState<{
@@ -46,10 +46,10 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
   const [customMealCalories, setCustomMealCalories] = useState('450');
   const cardContainerRef = useRef<HTMLDivElement>(null);
 
-  // Gera dicas locais instantâneas a partir do histórico
+  // Gera dicas locais instantâneas a partir do histórico no idioma ativo
   const localTips = useMemo(() => {
-    return generateHistoryQuickTips(profile);
-  }, [profile?.intakeLogs, profile?.goals, profile?.weight, profile?.targetWeight, profile?.hydrationLogs]);
+    return generateHistoryQuickTips(profile, language);
+  }, [profile?.intakeLogs, profile?.goals, profile?.weight, profile?.targetWeight, profile?.hydrationLogs, language]);
 
   // Se houver enriquecimento por IA, sobrepõe na primeira dica
   const currentTips = useMemo(() => {
@@ -103,7 +103,6 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
     else if (mealType === 'dinner') setCustomMealCalories('280');
     else setCustomMealCalories('450');
     setIsQuickLogOpen(true);
-    // Garante que o card esteja visível na frente dos olhos do usuário
     cardContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
@@ -172,13 +171,29 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
     onLogIntake(log);
     setIsQuickLogOpen(false);
     setCustomMealName('');
-    // Força ir para a primeira dica de adaptação
     setCurrentIndex(0);
   };
 
-  // Opções rápidas de 1 toque de acordo com a refeição selecionada
+  // Opções rápidas de 1 toque de acordo com a refeição selecionada e idioma
   const mealQuickOptions = useMemo(() => {
+    const isEn = language.startsWith('en');
+    const isEs = language.startsWith('es');
+
     if (selectedMealType === 'breakfast') {
+      if (isEn) {
+        return [
+          { name: 'Scrambled Eggs with Whole Grain Toast and Coffee', calories: 320, desc: 'Clean morning protein and energy', icon: '🍳' },
+          { name: 'Yogurt with Granola, Berries and Chia', calories: 290, desc: 'Probiotics and lasting satiety', icon: '🥣' },
+          { name: 'Oatmeal Banana Pancakes with Cinnamon', calories: 310, desc: 'Complex carbs without spikes', icon: '🥞' },
+        ];
+      }
+      if (isEs) {
+        return [
+          { name: 'Huevos Revueltos con Pan Integral y Café', calories: 320, desc: 'Proteína limpia y energía matutina', icon: '🍳' },
+          { name: 'Yogur con Granola, Frutas y Chía', calories: 290, desc: 'Probióticos y saciedad prolongada', icon: '🥣' },
+          { name: 'Tortitas de Avena, Plátano y Canela', calories: 310, desc: 'Carbohidratos complejos sin picos', icon: '🥞' },
+        ];
+      }
       return [
         { name: 'Ovos Mexidos com Pão Integral e Café', calories: 320, desc: 'Proteína e energia matinal limpa', icon: '🍳' },
         { name: 'Iogurte com Granola, Frutas e Chia', calories: 290, desc: 'Probióticos e saciedade duradoura', icon: '🥣' },
@@ -186,6 +201,20 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
       ];
     }
     if (selectedMealType === 'dinner') {
+      if (isEn) {
+        return [
+          { name: 'Functional Pumpkin Soup with Chicken', calories: 280, desc: 'Light digestion and evening comfort', icon: '🍲' },
+          { name: 'Egg White Omelet with Spinach and Ricotta', calories: 240, desc: 'Pure protein without gastric heaviness', icon: '🍳' },
+          { name: 'Salmon with Steamed Broccoli and Carrots', calories: 350, desc: 'Protective Omega-3 and micronutrients', icon: '🐟' },
+        ];
+      }
+      if (isEs) {
+        return [
+          { name: 'Sopa Funcional de Calabaza con Pollo', calories: 280, desc: 'Digestión ligera y confort nocturno', icon: '🍲' },
+          { name: 'Tortilla de Claras con Espinacas y Ricota', calories: 240, desc: 'Proteína pura sin pesadez gástrica', icon: '🍳' },
+          { name: 'Salmón con Brócoli y Zanahorias al Vapor', calories: 350, desc: 'Omega-3 protector y micronutrientes', icon: '🐟' },
+        ];
+      }
       return [
         { name: 'Sopa Funcional de Abóbora com Frango', calories: 280, desc: 'Digestão leve e conforto noturno', icon: '🍲' },
         { name: 'Omelete de Claras com Espinafre e Ricota', calories: 240, desc: 'Proteína pura e sem peso gástrico', icon: '🍳' },
@@ -193,18 +222,39 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
       ];
     }
     // lunch (default)
+    if (isEn) {
+      return [
+        { name: 'Caesar Salad with Grilled Chicken', calories: 420, desc: 'Lean protein + fresh leafy greens', icon: '🥗' },
+        { name: 'Quinoa Bowl with Eggs and Vegetables', calories: 480, desc: 'Slow-digesting fiber and minerals', icon: '🥣' },
+        { name: 'Fish with Mashed Roots and Steamed Broccoli', calories: 390, desc: 'Fast digestion and Omega-3', icon: '🐟' },
+      ];
+    }
+    if (isEs) {
+      return [
+        { name: 'Ensalada César con Pollo a la Parrilla', calories: 420, desc: 'Proteína magra + hojas verdes', icon: '🥗' },
+        { name: 'Bowl de Quinoa, Huevos y Vegetales', calories: 480, desc: 'Fibras lentas y minerales', icon: '🥣' },
+        { name: 'Pescado con Puré y Brócoli al Vapor', calories: 390, desc: 'Digestión rápida y omega-3', icon: '🐟' },
+      ];
+    }
     return [
       { name: 'Salada Caesar com Frango Grelhado', calories: 420, desc: 'Proteína magra + folhas verdes', icon: '🥗' },
       { name: 'Bowl de Quinoa, Ovos e Legumes', calories: 480, desc: 'Fibras lentas e minerais', icon: '🥣' },
       { name: 'Peixe com Purê de Mandioquinha e Brócolis', calories: 390, desc: 'Digestão rápida e ômega-3', icon: '🐟' },
     ];
-  }, [selectedMealType]);
+  }, [selectedMealType, language]);
 
   const customPlaceholder = useMemo(() => {
-    if (selectedMealType === 'breakfast') return 'Ex: Tapioca com ovos e suco verde';
-    if (selectedMealType === 'dinner') return 'Ex: Sopa de legumes ou salada com frango';
-    return 'Ex: Arroz integral, feijão e frango assado';
-  }, [selectedMealType]);
+    const isEn = language.startsWith('en');
+    const isEs = language.startsWith('es');
+
+    if (selectedMealType === 'breakfast') {
+      return isEn ? 'E.g.: Toast with eggs and green juice' : isEs ? 'Ej: Tostada con huevos y jugo verde' : 'Ex: Tapioca com ovos e suco verde';
+    }
+    if (selectedMealType === 'dinner') {
+      return isEn ? 'E.g.: Vegetable soup or chicken salad' : isEs ? 'Ej: Sopa de verduras o ensalada con pollo' : 'Ex: Sopa de legumes ou salada com frango';
+    }
+    return isEn ? 'E.g.: Brown rice, beans and roasted chicken' : isEs ? 'Ej: Arroz integral, frijoles y pollo asado' : 'Ex: Arroz integral, feijão e frango assado';
+  }, [selectedMealType, language]);
 
   const getTipIcon = (iconType: string) => {
     switch (iconType) {
@@ -245,31 +295,32 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-display font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">
-                Dicas Rápidas do Dia
+                {t('quick_tips_title', 'Dicas Rápidas do Dia')}
               </h3>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                Histórico Conectado
+                {t('history_connected', 'Histórico Conectado')}
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-[#B5BDC9]">
-              Recomendações adaptadas aos seus registros e objetivo
+              {t('quick_tips_desc', 'Recomendações adaptadas aos seus registros e objetivo')}
             </p>
           </div>
         </div>
 
         {/* Controles do topo: Voz Malu, Atualização e Navegação */}
         <div className="flex items-center gap-2">
-          {/* Botão de voz usando voz Aoede da Malu */}
+          {/* Botão de voz usando voz Aoede da Malu no idioma selecionado */}
           <VoicePlayButton 
             text={`${activeTip.suggestion} ${activeTip.details}`}
+            lang={language}
             size="sm"
           />
 
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            title="Atualizar dica com IA"
+            title={t('refresh_tip_ai', 'Atualizar dica com IA')}
             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2532] dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
@@ -280,7 +331,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               <button
                 onClick={handlePrev}
                 className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Dica anterior"
+                title={t('prev_tip', 'Dica anterior')}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -290,7 +341,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               <button
                 onClick={handleNext}
                 className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#253243] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Próxima dica"
+                title={t('next_tip', 'Próxima dica')}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -311,13 +362,15 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               ? 'bg-emerald-500/10 border border-emerald-500/20' 
               : 'bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05]'
           }`}
-          title="Clique para registrar ou revisar o Café da Manhã"
+          title={t('click_to_log_breakfast', 'Clique para registrar ou revisar o Café da Manhã')}
         >
           <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.breakfast ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
           <div className="truncate flex-1">
-            <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Café da Manhã</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">
+              {t('breakfast', 'Café da Manhã')}
+            </span>
             <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
-              {todayMealsStatus.breakfast ? 'Registrado ✓' : 'Não registrado'}
+              {todayMealsStatus.breakfast ? t('registered', 'Registrado ✓') : t('not_registered', 'Não registrado')}
             </span>
           </div>
         </button>
@@ -331,12 +384,14 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               ? 'bg-emerald-500/10 border border-emerald-500/20' 
               : 'bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 shadow-sm'
           }`}
-          title="Clique para abrir e registrar o Almoço na frente"
+          title={t('click_to_log_lunch', 'Clique para abrir e registrar o Almoço na frente')}
         >
           <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.lunch ? 'bg-emerald-500' : 'bg-orange-400 animate-pulse'}`} />
           <div className="truncate flex-1">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Almoço</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">
+                {t('lunch', 'Almoço')}
+              </span>
               {todayMealsStatus.lunch && (
                 <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
                   {todayMealsStatus.lunchCalories ? `${todayMealsStatus.lunchCalories} kcal` : '✓'}
@@ -345,8 +400,8 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
             </div>
             <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
               {todayMealsStatus.lunch 
-                ? (todayMealsStatus.lunchName || 'Registrado ✓')
-                : 'Pendente hoje'}
+                ? (todayMealsStatus.lunchName || t('registered', 'Registrado ✓'))
+                : t('pending_today', 'Pendente hoje')}
             </span>
           </div>
         </button>
@@ -360,31 +415,33 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               ? 'bg-emerald-500/10 border border-emerald-500/20' 
               : 'bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/[0.05]'
           }`}
-          title="Clique para registrar ou revisar o Jantar"
+          title={t('click_to_log_dinner', 'Clique para registrar ou revisar o Jantar')}
         >
           <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${todayMealsStatus.dinner ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
           <div className="truncate flex-1">
-            <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">Jantar</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px]">
+              {t('dinner', 'Jantar')}
+            </span>
             <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
               {todayMealsStatus.dinner 
-                ? (todayMealsStatus.dinnerName || 'Registrado ✓')
-                : 'Sugerido: Leve 🥗'}
+                ? (todayMealsStatus.dinnerName || t('registered', 'Registrado ✓'))
+                : t('suggested_light', 'Sugerido: Leve 🥗')}
             </span>
           </div>
         </button>
 
       </div>
 
-      {/* Conteúdo: Dica Ativa (Exatamente como no print do usuário) */}
+      {/* Conteúdo: Dica Ativa */}
       <div className="relative z-10 space-y-4">
         {/* Tag e Título */}
         <div className="flex items-center gap-2">
           <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase tracking-wider ${activeTip.badgeColor}`}>
-            {activeTip.tag}
+            {t(activeTip.tag, activeTip.tag)}
           </span>
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             {getTipIcon(activeTip.iconType)}
-            {activeTip.title}
+            {t(activeTip.title, activeTip.title)}
           </span>
         </div>
 
@@ -412,20 +469,20 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                 }}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-emerald-500/20 hover:opacity-95 transition-all cursor-pointer"
               >
-                <span>{activeTip.actionLabel}</span>
+                <span>{t(activeTip.actionLabel, activeTip.actionLabel)}</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             )}
 
-            {/* Botão de Registro Rápido de Almoço (Abre na frente desta aba) */}
+            {/* Botão de Registro Rápido de Almoço */}
             {!todayMealsStatus.lunch && onLogIntake && (
               <button
                 onClick={() => openQuickLog('lunch')}
                 className="px-4 py-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-600 dark:text-orange-400 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Abre o registro diretamente na frente desta aba"
+                title={t('open_quick_log_hint', 'Abre o registro diretamente na frente desta aba')}
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Registrar Almoço Rápido</span>
+                <span>{t('log_quick_lunch', 'Registrar Almoço Rápido')}</span>
               </button>
             )}
 
@@ -435,7 +492,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                 className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1E2836] dark:hover:bg-[#283648] text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Registrar Jantar Leve</span>
+                <span>{t('log_light_dinner', 'Registrar Jantar Leve')}</span>
               </button>
             )}
           </div>
@@ -460,7 +517,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
         </div>
       </div>
 
-      {/* PAINEL QUE ABRE DIRETAMENTE NA FRENTE DESTA ABA DO PRINT (FADE-IN-UP SUAVEMENTE SOBREPOSTO) */}
+      {/* PAINEL QUE ABRE DIRETAMENTE NA FRENTE DESTA ABA */}
       <AnimatePresence>
         {isQuickLogOpen && (
           <motion.div
@@ -481,17 +538,17 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                     <div className="flex items-center gap-2">
                       <h4 className="font-display font-black text-slate-900 dark:text-white text-base sm:text-lg">
                         {selectedMealType === 'breakfast' 
-                          ? 'Registrar Café da Manhã' 
+                          ? t('log_breakfast', 'Registrar Café da Manhã')
                           : selectedMealType === 'dinner' 
-                          ? 'Registrar Jantar' 
-                          : 'Registrar Almoço'}
+                          ? t('log_dinner', 'Registrar Jantar')
+                          : t('log_lunch', 'Registrar Almoço')}
                       </h4>
                       <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase tracking-wider border border-orange-500/20">
-                        Registro Rápido
+                        {t('quick_log_badge', 'Registro Rápido')}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-[#B5BDC9]">
-                      Alimenta o histórico para sugestões adaptativas da IA
+                      {t('quick_log_desc', 'Alimenta o histórico para sugestões adaptativas da IA')}
                     </p>
                   </div>
                 </div>
@@ -502,7 +559,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                     setIsQuickLogOpen(false);
                   }}
                   className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1E2836] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                  title="Fechar e voltar à dica"
+                  title={t('close_quick_log_hint', 'Fechar e voltar à dica')}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -523,7 +580,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                       : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
                   }`}
                 >
-                  Café da Manhã
+                  {t('breakfast', 'Café da Manhã')}
                 </button>
                 <button
                   type="button"
@@ -538,7 +595,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                       : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
                   }`}
                 >
-                  Almoço
+                  {t('lunch', 'Almoço')}
                 </button>
                 <button
                   type="button"
@@ -553,14 +610,14 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                       : 'bg-slate-100 dark:bg-[#1C2532] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#253243]'
                   }`}
                 >
-                  Jantar
+                  {t('dinner', 'Jantar')}
                 </button>
               </div>
 
               {/* Opções de 1 Toque */}
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
-                  Escolha rápida em 1 toque:
+                  {t('one_tap_quick_choice', 'Escolha rápida em 1 toque:')}
                 </span>
                 <div className="grid grid-cols-1 gap-2">
                   {mealQuickOptions.map((opt, idx) => (
@@ -589,7 +646,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
               {/* Ou digite seu prato */}
               <div className="pt-2 border-t border-slate-200/80 dark:border-[#263547] space-y-2.5">
                 <span className="text-[11px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider block">
-                  Ou digite seu prato:
+                  {t('or_type_your_dish', 'Ou digite seu prato:')}
                 </span>
                 <div className="space-y-2">
                   <input
@@ -603,7 +660,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                     <div className="flex-1">
                       <input
                         type="number"
-                        placeholder="Calorias estimadas (ex: 450)"
+                        placeholder={t('estimated_calories_placeholder', 'Calorias estimadas (ex: 450)')}
                         value={customMealCalories}
                         onChange={(e) => setCustomMealCalories(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#10151D] border border-slate-200 dark:border-[#263547] text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 transition-colors"
@@ -622,7 +679,7 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                       }}
                       className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 text-white font-bold text-xs transition-all cursor-pointer shrink-0 shadow-md shadow-orange-500/20"
                     >
-                      Salvar {selectedMealType === 'breakfast' ? 'Café' : selectedMealType === 'dinner' ? 'Jantar' : 'Almoço'}
+                      {t('save', 'Salvar')} {selectedMealType === 'breakfast' ? t('breakfast', 'Café') : selectedMealType === 'dinner' ? t('dinner', 'Jantar') : t('lunch', 'Almoço')}
                     </button>
                   </div>
                 </div>
@@ -631,13 +688,13 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
 
             {/* Rodapé do painel */}
             <div className="pt-3 mt-3 border-t border-slate-200/70 dark:border-[#243040] flex items-center justify-between text-xs text-slate-500">
-              <span>Toque no X para fechar e voltar para as dicas</span>
+              <span>{t('close_quick_log_hint', 'Toque no X para fechar e voltar para as dicas')}</span>
               <button
                 type="button"
                 onClick={() => setIsQuickLogOpen(false)}
                 className="font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
               >
-                Voltar à dica
+                {t('back_to_tip', 'Voltar à dica')}
               </button>
             </div>
           </motion.div>

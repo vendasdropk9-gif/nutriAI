@@ -92,7 +92,7 @@ const TAB_ORDER = [
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
-  const { language, changeLanguage, t } = useLanguage();
+  const { language, changeLanguage, t, renderKey } = useLanguage();
   const currentAppLang = language;
   const [showSplash, setShowSplash] = useState(true);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
@@ -955,13 +955,13 @@ function AppContent() {
   };
 
   return (
-    <>
+    <div key={renderKey} className="contents">
       <AutoTranslator />
       <OfflineIndicator />
       <OfflineSyncBanner />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
-    </>
+    </div>
   );
 }
 

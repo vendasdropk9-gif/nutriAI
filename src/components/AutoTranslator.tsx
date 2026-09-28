@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localesMap } from '../i18n/locales';
 import { useLanguage } from '../contexts/LanguageContext';
-
-import { RUNTIME_DICTIONARY } from "../i18n/runtimeDictionary";
+import { RUNTIME_DICTIONARY } from '../i18n/runtimeDictionary';
 
 // Global WeakMaps to store original textual content and attributes
-// This prevents loss of fidelity when cycling through multiple languages
+// This guarantees zero loss of fidelity when cycling through any language and back to Portuguese
 const originalTextMap = new WeakMap<Node, string>();
 const originalAttrMap = new WeakMap<HTMLElement, Record<string, string>>();
 
@@ -14,8 +13,9 @@ export function AutoTranslator() {
   const { language: contextLanguage } = useLanguage();
   const { i18n } = useTranslation();
   const activeLang = contextLanguage || i18n.language || 'pt-BR';
+  const isTranslatingRef = useRef(false);
 
-  // Load comprehensive bidirectional translation dictionary across all languages
+  // Build high-performance bidirectional translation dictionary
   const translationMap = useMemo(() => {
     const currentLang = activeLang;
     const cleanLang = currentLang.split('-')[0];
@@ -23,20 +23,23 @@ export function AutoTranslator() {
 
     const map = new Map<string, string>();
 
+    // Helper to get best language translation
+    const pickTranslation = (translations: Record<string, string>): string | null => {
+      if (!translations) return null;
+      return translations[currentLang] || translations[cleanLang] || translations['en'] || Object.values(translations)[0] || null;
+    };
+
     // 1. Process all entries in RUNTIME_DICTIONARY
-    for (const rawPtKey of Object.keys(RUNTIME_DICTIONARY)) {
-      const translations = RUNTIME_DICTIONARY[rawPtKey];
-      const targetText = isPortuguese 
-        ? rawPtKey 
-        : (translations[cleanLang] || translations[currentLang] || translations['en'] || rawPtKey);
+    for (const [rawPtKey, translations] of Object.entries(RUNTIME_DICTIONARY)) {
+      if (typeof rawPtKey !== 'string') continue;
+      const targetText = isPortuguese ? rawPtKey : pickTranslation(translations);
 
       if (targetText && typeof targetText === 'string') {
-        // Map Portuguese key to target language
-        map.set(rawPtKey.toLowerCase().trim(), targetText);
+        const cleanPtKey = rawPtKey.toLowerCase().trim();
+        map.set(cleanPtKey, targetText);
 
-        // Map every translation variant across all languages directly to target language
-        for (const langCode of Object.keys(translations)) {
-          const otherLangText = translations[langCode];
+        // Map every translation variant across all languages to target language
+        for (const [_, otherLangText] of Object.entries(translations)) {
           if (otherLangText && typeof otherLangText === 'string') {
             map.set(otherLangText.toLowerCase().trim(), targetText);
           }
@@ -45,22 +48,24 @@ export function AutoTranslator() {
     }
 
     // 2. Process all locale bundles in localesMap
-    const targetBundle = localesMap[currentLang] || localesMap[cleanLang] || localesMap['pt-BR'] || {};
+    const targetBundle = localesMap[currentLang] || localesMap[cleanLang] || localesMap['en-US'] || localesMap['pt-BR'] || {};
     const ptBundle = localesMap['pt-BR'] || {};
 
     const allKeys = new Set<string>();
     for (const bundle of Object.values(localesMap)) {
       if (bundle && typeof bundle === 'object') {
-        Object.keys(bundle).forEach(k => allKeys.add(k));
+        Object.keys(bundle).forEach((k) => allKeys.add(k));
       }
     }
 
     for (const key of allKeys) {
-      const targetText = isPortuguese 
-        ? (ptBundle[key] || key)
-        : (targetBundle[key] || localesMap['en-US']?.[key] || ptBundle[key] || key);
+      const targetText = isPortuguese
+        ? ptBundle[key] || key
+        : targetBundle[key] || localesMap['en-US']?.[key] || ptBundle[key] || key;
 
       if (targetText && typeof targetText === 'string') {
+        map.set(key.toLowerCase().trim(), targetText);
+
         for (const bundle of Object.values(localesMap)) {
           if (bundle && bundle[key] && typeof bundle[key] === 'string') {
             map.set(bundle[key].toLowerCase().trim(), targetText);
@@ -75,37 +80,43 @@ export function AutoTranslator() {
   useEffect(() => {
     const currentLang = activeLang;
     const isPortuguese = currentLang.startsWith('pt');
-    
-    // Sync document language and text direction (RTL support for Arabic)
-    if (currentLang.startsWith('ar')) {
-      document.documentElement.dir = 'rtl';
-      document.documentElement.lang = 'ar';
-      document.body.classList.add('rtl-layout');
-      document.body.classList.remove('ltr-layout');
-    } else {
-      document.documentElement.dir = 'ltr';
+    const isRtl = currentLang.startsWith('ar') || currentLang.startsWith('he');
+
+    // Synchronize HTML element attributes and layout class
+    if (typeof document !== 'undefined') {
+      document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
       document.documentElement.lang = currentLang;
-      document.body.classList.add('ltr-layout');
-      document.body.classList.remove('rtl-layout');
+      if (document.body) {
+        if (isRtl) {
+          document.body.classList.add('rtl-layout');
+          document.body.classList.remove('ltr-layout');
+        } else {
+          document.body.classList.remove('rtl-layout');
+          document.body.classList.add('ltr-layout');
+        }
+      }
     }
 
-    // Helper to translate single string safely with smart punctuation and emoji preservation
+    // Comprehensive string translation engine with segment parsing
     const translateString = (str: string): string => {
       if (!str || typeof str !== 'string') return str;
       const trimmed = str.trim();
       if (!trimmed) return str;
 
+      if (isPortuguese) {
+        return str;
+      }
+
       const prefix = str.slice(0, str.indexOf(trimmed));
       const suffix = str.slice(str.indexOf(trimmed) + trimmed.length);
 
-      // 1. Check exact match
+      // 1. Direct exact match
       const lower = trimmed.toLowerCase();
       if (translationMap.has(lower)) {
-        const match = translationMap.get(lower)!;
-        return prefix + match + suffix;
+        return prefix + translationMap.get(lower)! + suffix;
       }
 
-      // 2. Check for surrounding emojis or leading/trailing symbols
+      // 2. Surrounding emojis & icons
       const emojiRegex = /^([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)(.*?)([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)?$/u;
       const matchEmoji = trimmed.match(emojiRegex);
       if (matchEmoji && matchEmoji[2] && matchEmoji[2].trim().length > 0) {
@@ -119,7 +130,7 @@ export function AutoTranslator() {
         }
       }
 
-      // 3. Check for trailing punctuation (e.g., "Calorias:", "Salvo com sucesso!", "Esqueceu sua senha?")
+      // 3. Trailing punctuation
       const punctRegex = /^(.+?)([:!?,.;]+)$/;
       const matchPunct = trimmed.match(punctRegex);
       if (matchPunct && matchPunct[1]) {
@@ -131,136 +142,74 @@ export function AutoTranslator() {
         }
       }
 
-      // 4. Check for parentheses (e.g., "(Fácil)", "(35g+)")
+      // 4. Parentheses
       if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
         const inner = trimmed.slice(1, -1).trim();
         const innerLower = inner.toLowerCase();
         if (translationMap.has(innerLower)) {
-          const translatedInner = translationMap.get(innerLower)!;
-          return prefix + `(${translatedInner})` + suffix;
+          return prefix + `(${translationMap.get(innerLower)!})` + suffix;
         }
       }
 
-      // If in Portuguese and no translation found, return original string
-      if (isPortuguese) {
-        return str;
+      // 5. Segment-based translation for joined phrases (e.g. "Café da Manhã • 450 kcal" or "Início | 10 min")
+      if (trimmed.includes(' • ') || trimmed.includes(' | ') || trimmed.includes(' - ') || trimmed.includes(' — ')) {
+        const delimiter = trimmed.includes(' • ')
+          ? ' • '
+          : trimmed.includes(' | ')
+          ? ' | '
+          : trimmed.includes(' — ')
+          ? ' — '
+          : ' - ';
+        const parts = trimmed.split(delimiter);
+        let hasTranslatedPart = false;
+        const translatedParts = parts.map((part) => {
+          const subTrimmed = part.trim();
+          const subLower = subTrimmed.toLowerCase();
+          if (translationMap.has(subLower)) {
+            hasTranslatedPart = true;
+            return translationMap.get(subLower)!;
+          }
+          return part;
+        });
+
+        if (hasTranslatedPart) {
+          return prefix + translatedParts.join(delimiter) + suffix;
+        }
       }
 
-      // If no match, return original text safely
       return str;
     };
 
-    // Recursive function to scan and translate DOM nodes
+    // Recursive DOM walker that translates or restores original text
     const walkAndTranslate = (node: Node) => {
-      // Skip script, style and non-visual elements
+      if (!node) return;
+
       if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement;
-        const tagName = el.tagName.toLowerCase();
-        if (['script', 'style', 'iframe', 'canvas', 'noscript'].includes(tagName)) {
+        const tagName = el.tagName ? el.tagName.toLowerCase() : '';
+        if (['script', 'style', 'iframe', 'canvas', 'noscript', 'code', 'pre'].includes(tagName)) {
           return;
         }
 
-        // Translate attributes if applicable
+        // Handle attributes
         let attrStore = originalAttrMap.get(el);
         if (!attrStore) {
           attrStore = {};
           originalAttrMap.set(el, attrStore);
         }
 
-        for (const attr of ['placeholder', 'title', 'alt'] as const) {
+        for (const attr of ['placeholder', 'title', 'alt', 'aria-label'] as const) {
           const currentVal = el.getAttribute(attr);
           if (currentVal) {
             if (!attrStore[attr]) {
               attrStore[attr] = currentVal;
             }
-            const trans = translateString(attrStore[attr]);
-            if (trans && trans !== currentVal) {
-              el.setAttribute(attr, trans);
-            }
-          }
-        }
-      }
-
-      // Translate text nodes using lossless WeakMap cache
-      if (node.nodeType === Node.TEXT_NODE) {
-        let original = originalTextMap.get(node);
-        if (!original) {
-          original = node.nodeValue || '';
-          if (original.trim().length > 0) {
-            originalTextMap.set(node, original);
-          }
-        }
-        if (original && original.trim().length > 0) {
-          const targetText = translateString(original);
-          if (targetText && targetText !== node.nodeValue) {
-            node.nodeValue = targetText;
-          }
-        }
-      }
-
-      // Process children
-      let child = node.firstChild;
-      while (child) {
-        walkAndTranslate(child);
-        child = child.nextSibling;
-      }
-    };
-
-    // Immediate and staggered passes to guarantee full capture
-    walkAndTranslate(document.body);
-
-    const t0 = setTimeout(() => walkAndTranslate(document.body), 0);
-    const t1 = setTimeout(() => walkAndTranslate(document.body), 50);
-    const t2 = setTimeout(() => walkAndTranslate(document.body), 150);
-    const t3 = setTimeout(() => walkAndTranslate(document.body), 300);
-    const t4 = setTimeout(() => walkAndTranslate(document.body), 600);
-
-    const handleCustomLangEvent = () => {
-      walkAndTranslate(document.body);
-      setTimeout(() => walkAndTranslate(document.body), 50);
-    };
-
-    window.addEventListener('nutri:language-changed', handleCustomLangEvent);
-    window.addEventListener('languageChanged', handleCustomLangEvent);
-
-    // Create a MutationObserver to catch dynamic content additions (e.g. modals, notifications, AI chat bubbles)
-    const observer = new MutationObserver((mutations) => {
-      observer.disconnect();
-
-      for (const mutation of mutations) {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach(node => {
-            walkAndTranslate(node);
-          });
-        } else if (mutation.type === 'characterData') {
-          const targetNode = mutation.target;
-          let original = originalTextMap.get(targetNode);
-          if (!original) {
-            original = targetNode.nodeValue || '';
-            if (original.trim().length > 0) {
-              originalTextMap.set(targetNode, original);
-            }
-          }
-          if (original && original.trim().length > 0) {
-            const targetText = translateString(original);
-            if (targetText && targetText !== targetNode.nodeValue) {
-              targetNode.nodeValue = targetText;
-            }
-          }
-        } else if (mutation.type === 'attributes') {
-          const el = mutation.target as HTMLElement;
-          const attr = mutation.attributeName;
-          if (attr === 'placeholder' || attr === 'title' || attr === 'alt') {
-            let attrStore = originalAttrMap.get(el);
-            if (!attrStore) {
-              attrStore = {};
-              originalAttrMap.set(el, attrStore);
-            }
-            const currentVal = el.getAttribute(attr);
-            if (currentVal) {
-              if (!attrStore[attr]) {
-                attrStore[attr] = currentVal;
+            if (isPortuguese) {
+              const orig = attrStore[attr];
+              if (orig && currentVal !== orig) {
+                el.setAttribute(attr, orig);
               }
+            } else {
               const trans = translateString(attrStore[attr]);
               if (trans && trans !== currentVal) {
                 el.setAttribute(attr, trans);
@@ -270,20 +219,137 @@ export function AutoTranslator() {
         }
       }
 
-      connectObserver();
-    });
+      // Handle Text Nodes
+      if (node.nodeType === Node.TEXT_NODE) {
+        let original = originalTextMap.get(node);
+        if (!original) {
+          original = node.nodeValue || '';
+          if (original.trim().length > 0) {
+            originalTextMap.set(node, original);
+          }
+        }
 
-    const connectObserver = () => {
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-        attributeFilter: ['placeholder', 'title', 'alt']
-      });
+        if (original && original.trim().length > 0) {
+          if (isPortuguese) {
+            if (node.nodeValue !== original) {
+              node.nodeValue = original;
+            }
+          } else {
+            const targetText = translateString(original);
+            if (targetText && targetText !== node.nodeValue) {
+              node.nodeValue = targetText;
+            }
+          }
+        }
+      }
+
+      // Traverse children
+      let child = node.firstChild;
+      while (child) {
+        walkAndTranslate(child);
+        child = child.nextSibling;
+      }
     };
 
-    connectObserver();
+    const runFullScan = () => {
+      if (isTranslatingRef.current || typeof document === 'undefined' || !document.body) return;
+      try {
+        isTranslatingRef.current = true;
+        walkAndTranslate(document.body);
+      } finally {
+        isTranslatingRef.current = false;
+      }
+    };
+
+    // Initial immediate scan and staggered passes
+    runFullScan();
+    const t0 = setTimeout(runFullScan, 0);
+    const t1 = setTimeout(runFullScan, 50);
+    const t2 = setTimeout(runFullScan, 150);
+    const t3 = setTimeout(runFullScan, 350);
+    const t4 = setTimeout(runFullScan, 700);
+
+    const handleLanguageEvent = () => {
+      runFullScan();
+      setTimeout(runFullScan, 60);
+    };
+
+    window.addEventListener('nutri:language-changed', handleLanguageEvent);
+    window.addEventListener('languageChanged', handleLanguageEvent);
+
+    // MutationObserver to translate dynamically rendered components, modals, and toasts
+    const observer = new MutationObserver((mutations) => {
+      if (isTranslatingRef.current) return;
+      isTranslatingRef.current = true;
+
+      try {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              walkAndTranslate(node);
+            });
+          } else if (mutation.type === 'characterData') {
+            const targetNode = mutation.target;
+            let original = originalTextMap.get(targetNode);
+            if (!original) {
+              original = targetNode.nodeValue || '';
+              if (original.trim().length > 0) {
+                originalTextMap.set(targetNode, original);
+              }
+            }
+            if (original && original.trim().length > 0) {
+              if (isPortuguese) {
+                if (targetNode.nodeValue !== original) {
+                  targetNode.nodeValue = original;
+                }
+              } else {
+                const targetText = translateString(original);
+                if (targetText && targetText !== targetNode.nodeValue) {
+                  targetNode.nodeValue = targetText;
+                }
+              }
+            }
+          } else if (mutation.type === 'attributes') {
+            const el = mutation.target as HTMLElement;
+            const attr = mutation.attributeName;
+            if (attr === 'placeholder' || attr === 'title' || attr === 'alt' || attr === 'aria-label') {
+              let attrStore = originalAttrMap.get(el);
+              if (!attrStore) {
+                attrStore = {};
+                originalAttrMap.set(el, attrStore);
+              }
+              const currentVal = el.getAttribute(attr);
+              if (currentVal) {
+                if (!attrStore[attr]) {
+                  attrStore[attr] = currentVal;
+                }
+                if (isPortuguese) {
+                  const orig = attrStore[attr];
+                  if (orig && currentVal !== orig) {
+                    el.setAttribute(attr, orig);
+                  }
+                } else {
+                  const trans = translateString(attrStore[attr]);
+                  if (trans && trans !== currentVal) {
+                    el.setAttribute(attr, trans);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } finally {
+        isTranslatingRef.current = false;
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'alt', 'aria-label'],
+    });
 
     return () => {
       clearTimeout(t0);
@@ -291,11 +357,12 @@ export function AutoTranslator() {
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
-      window.removeEventListener('nutri:language-changed', handleCustomLangEvent);
-      window.removeEventListener('languageChanged', handleCustomLangEvent);
+      window.removeEventListener('nutri:language-changed', handleLanguageEvent);
+      window.removeEventListener('languageChanged', handleLanguageEvent);
       observer.disconnect();
     };
   }, [translationMap, activeLang]);
 
-  return null; // Invisible global manager
+  return null;
 }
+export default AutoTranslator;

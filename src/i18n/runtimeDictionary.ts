@@ -2012,6 +2012,204 @@ export const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ko": "맞춤 생성된 3가지 옵션",
     "zh": "3道专属定制菜品",
     "ar": "3 خيارات مخصصة لك"
+  },
+  "dicas rápidas do dia": {
+    "en": "Daily Quick Tips",
+    "es": "Consejos Rápidos del Día",
+    "fr": "Conseils Rapides du Jour",
+    "de": "Tägliche Schnelltipps",
+    "it": "Consigli Rapidi del Giorno",
+    "ja": "今日のクイックヒント",
+    "ko": "오늘의 빠른 팁",
+    "zh": "今日快捷贴士",
+    "ar": "نصائح سريعة لليوم"
+  },
+  "histórico conectado": {
+    "en": "Connected History",
+    "es": "Historial Conectado",
+    "fr": "Historique Connecté",
+    "de": "Verlauf Verbunden",
+    "it": "Cronologia Connessa",
+    "ja": "履歴連携中",
+    "ko": "기록 연동됨",
+    "zh": "历史已同步",
+    "ar": "السجل متصل"
+  },
+  "recomendações adaptadas aos seus registros e objetivo": {
+    "en": "Recommendations adapted to your logs and goals",
+    "es": "Recomendaciones adaptadas a tus registros y objetivo",
+    "fr": "Recommandations adaptées à vos journaux et objectifs",
+    "de": "Empfehlungen angepasst an Ihre Einträge und Ziele",
+    "it": "Raccomandazioni adattate ai tuoi registri e obiettivi",
+    "ja": "記録と目標に合わせたパーソナライズ提案",
+    "ko": "기록과 목표에 맞춘 맞춤 추천",
+    "zh": "针对您的记录与目标的个性化推荐",
+    "ar": "توصيات مخصصة لسجلاتك وأهدافك"
+  },
+  "dica proativa": {
+    "en": "Proactive Tip",
+    "es": "Consejo Proactivo",
+    "fr": "Conseil Proactif",
+    "de": "Proaktiver Tipp",
+    "it": "Consiglio Proattivo",
+    "ja": "プロアクティブなアドバイス",
+    "ko": "선제적 팁",
+    "zh": "主动建议",
+    "ar": "نصيحة استباقية"
+  },
+  "conecte seu histórico de pratos": {
+    "en": "Connect Your Plate History",
+    "es": "Conecta tu Historial de Platos",
+    "fr": "Connectez Votre Historique de Plats",
+    "de": "Verbinden Sie Ihren Mahlzeitenverlauf",
+    "it": "Connetti la Tua Cronologia Piatti",
+    "ja": "食事履歴を連携",
+    "ko": "식사 기록 연결",
+    "zh": "连接您的餐盘历史",
+    "ar": "اربط سجل وجباتك"
+  },
+  "como dica rápida para seu objetivo de perda de peso: ao registrar seu almoço, seu jantar poderá ser calibrado automaticamente para ser mais leve ou volumoso.": {
+    "en": "Quick tip for your weight loss goal: when you log your lunch, your dinner can be automatically calibrated to be lighter or more filling.",
+    "es": "Como consejo rápido para tu objetivo de pérdida de peso: al registrar tu almuerzo, tu cena podrá calibrarse automáticamente para ser más ligera o saciante.",
+    "fr": "Astuce rapide pour votre perte de poids : en enregistrant votre déjeuner, votre dîner sera calibré automatiquement pour être plus léger ou plus copieux.",
+    "de": "Schnelltipp für Ihr Abnehmziel: Wenn Sie Ihr Mittagessen erfassen, kann Ihr Abendessen automatisch leichter kalibriert werden.",
+    "it": "Consiglio rapido per il tuo obiettivo di perdita di peso: registrando il pranzo, la cena potrà essere calibrata automaticamente.",
+    "ja": "減量目標へのクイックヒント：昼食を記録すると、夕食が自動的に最適化されます。",
+    "ko": "체중 감량을 위한 빠른 팁: 점심을 기록하면 저녁 식사가 자동으로 최적화됩니다.",
+    "zh": "减重目标的快速贴士：记录午餐后，晚餐将自动调整为更轻盈或更饱腹的搭配。",
+    "ar": "نصيحة سريعة لإنقاص الوزن: عند تسجيل غدائك، يمكن ضبط عشائك تلقائياً ليكون خفيفاً ومتوازناً."
+  },
+  "o registro do almoço permite ao nutriai calcular com exatidão os macronutrientes restantes para você terminar o dia no déficit calórico ideal sem passar fome.": {
+    "en": "Logging your lunch allows NutriAI to accurately calculate remaining macronutrients so you finish the day in the ideal calorie deficit without going hungry.",
+    "es": "Registrar el almuerzo le permite a NutriAI calcular con precisión los macronutrientes restantes para terminar el día en el déficit calórico ideal sin pasar hambre.",
+    "fr": "Enregistrer le déjeuner permet à NutriAI de calculer avec précision les macronutriments restants pour rester en déficit sans avoir faim.",
+    "de": "Die Erfassung des Mittagessens ermöglicht NutriAI die genaue Berechnung der verbleibenden Makronährstoffe ohne Hungergefühl.",
+    "it": "Registrare il pranzo consente a NutriAI di calcolare con precisione i macronutrienti rimanenti per rimanere in deficit senza fame.",
+    "ja": "昼食を記録することで、NutriAIは残りの栄養素を正確に計算し、空腹感なしで理想のカロリー制限を達成できます。",
+    "ko": "점심을 기록하면 NutriAI가 남은 영양소를 정확히 계산하여 배고픔 없이 칼로리 목표를 달성할 수 있습니다.",
+    "zh": "记录午餐能让 NutriAI 精准计算剩余宏量营养素，让您在不挨饿的情况下保持理想的热量缺口。",
+    "ar": "يتيح تسجيل الغداء لـ NutriAI حساب العناصر الغذائية المتبقية بدقة لإنهاء اليوم بعجز حراري مثالي دون جوع."
+  },
+  "não registrado": {
+    "en": "Not logged",
+    "es": "No registrado",
+    "fr": "Non enregistré",
+    "de": "Nicht erfasst",
+    "it": "Non registrato",
+    "ja": "未記録",
+    "ko": "기록 없음",
+    "zh": "未记录",
+    "ar": "غير مسجل"
+  },
+  "pendente hoje": {
+    "en": "Pending today",
+    "es": "Pendiente hoy",
+    "fr": "En attente aujourd'hui",
+    "de": "Heute ausstehend",
+    "it": "In attesa oggi",
+    "ja": "本日保留中",
+    "ko": "오늘 대기 중",
+    "zh": "今日待记录",
+    "ar": "معلق اليوم"
+  },
+  "sugerido: leve 🥗": {
+    "en": "Suggested: Light 🥗",
+    "es": "Sugerido: Ligero 🥗",
+    "fr": "Suggéré : Léger 🥗",
+    "de": "Vorgeschlagen: Leicht 🥗",
+    "it": "Suggerito: Leggero 🥗",
+    "ja": "おすすめ: ヘルシー 🥗",
+    "ko": "추천: 가벼운 식사 🥗",
+    "zh": "建议：轻食 🥗",
+    "ar": "مقترح: وجبة خفيفة 🥗"
+  },
+  "resumo da sua saúde hoje": {
+    "en": "Today's Health Summary",
+    "es": "Resumen de tu Salud Hoy",
+    "fr": "Résumé de Votre Santé Aujourd'hui",
+    "de": "Ihre heutige Gesundheitsübersicht",
+    "it": "Riepilogo della Tua Salute Oggi",
+    "ja": "今日の健康サマリー",
+    "ko": "오늘의 건강 요약",
+    "zh": "今日健康概览",
+    "ar": "ملخص صحتك اليوم"
+  },
+  "insight em tempo real": {
+    "en": "Real-time Insight",
+    "es": "Insight en Tiempo Real",
+    "fr": "Aperçu en Temps Réel",
+    "de": "Echtzeit-Einblick",
+    "it": "Insight in Tempo Reale",
+    "ja": "リアルタイムインサイト",
+    "ko": "실시간 인사이트",
+    "zh": "实时洞察",
+    "ar": "تحليلات في الوقت الفعلي"
+  },
+  "1 toque • fotos ia • 3 opções": {
+    "en": "1 Tap • AI Photos • 3 Options",
+    "es": "1 Toque • Fotos IA • 3 Opciones",
+    "fr": "1 Clic • Photos IA • 3 Options",
+    "de": "1 Tipp • KI-Fotos • 3 Optionen",
+    "it": "1 Tocco • Foto IA • 3 Opzioni",
+    "ja": "1タップ • AI写真 • 3つの提案",
+    "ko": "1번 탭 • AI 사진 • 3가지 옵션",
+    "zh": "一键 • AI照片 • 3道搭配",
+    "ar": "لمسة واحدة • صور بالذكاء الاصطناعي • 3 خيارات"
+  },
+  "🍽️ pratos rápidos com ia": {
+    "en": "🍽️ AI Quick Dishes",
+    "es": "🍽️ Platos Rápidos con IA",
+    "fr": "🍽️ Plats Rapides avec IA",
+    "de": "🍽️ Schnelle Gerichte mit KI",
+    "it": "🍽️ Piatti Rapidi con IA",
+    "ja": "🍽️ AIクイック料理",
+    "ko": "🍽️ AI 빠른 요리",
+    "zh": "🍽️ AI快捷餐品",
+    "ar": "🍽️ أطباق سريعة بالذكاء الاصطناعي"
+  },
+  "gerar pratos rápidos": {
+    "en": "GENERATE QUICK DISHES",
+    "es": "GENERAR PLATOS RÁPIDOS",
+    "fr": "GÉNÉRER PLATS RAPIDES",
+    "de": "SCHNELLE GERICHTE GENERIEREN",
+    "it": "GENERA PIATTI RAPIDI",
+    "ja": "クイック料理を生成",
+    "ko": "빠른 요리 생성",
+    "zh": "一键生成快捷菜品",
+    "ar": "توليد أطباق سريعة"
+  },
+  "novidade exclusiva": {
+    "en": "EXCLUSIVE FEATURE",
+    "es": "NOVEDAD EXCLUSIVA",
+    "fr": "FONCTIONNALITÉ EXCLUSIVE",
+    "de": "EXKLUSIVES FEATURE",
+    "it": "NOVITÀ ESCLUSIVA",
+    "ja": "限定新機能",
+    "ko": "독점 신기능",
+    "zh": "专属新功能",
+    "ar": "ميزة حصرية"
+  },
+  "combinar prato": {
+    "en": "Combine Plate",
+    "es": "Combinar Plato",
+    "fr": "Composer l'Assiette",
+    "de": "Teller Kombinieren",
+    "it": "Componi Piatto",
+    "ja": "プレートを組み合わせる",
+    "ko": "식단 조합하기",
+    "zh": "组合搭配",
+    "ar": "تنسيق الوجبة"
+  },
+  "restaurante inteligente": {
+    "en": "Smart Restaurant",
+    "es": "Restaurante Inteligente",
+    "fr": "Restaurant Intelligent",
+    "de": "Intelligentes Restaurant",
+    "it": "Ristorante Intelligente",
+    "ja": "スマートレストラン",
+    "ko": "스마트 레스토랑",
+    "zh": "智能餐厅",
+    "ar": "مطعم ذكي"
   }
 };
 

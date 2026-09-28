@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Volume2, Loader2, VolumeX } from 'lucide-react';
+import { Play, Volume2, Loader2 } from 'lucide-react';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface VoicePlayButtonProps {
   text: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   title?: string;
+  lang?: string;
   onPlayStart?: () => void;
   onPlayEnd?: () => void;
 }
@@ -17,11 +19,15 @@ export function VoicePlayButton({
   size = 'md',
   className = '',
   title = 'Ouvir com a voz da Malu',
+  lang,
   onPlayStart,
   onPlayEnd,
 }: VoicePlayButtonProps) {
+  const { language } = useLanguage();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const activeLang = lang || language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') : null) || 'pt-BR';
 
   useEffect(() => {
     return () => {
@@ -55,6 +61,7 @@ export function VoicePlayButton({
     try {
       setIsPlaying(true);
       await speak(text, {
+        lang: activeLang,
         onEnded: () => {
           setIsPlaying(false);
           setIsLoading(false);

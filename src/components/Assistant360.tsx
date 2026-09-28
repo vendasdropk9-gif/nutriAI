@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
@@ -19,23 +19,46 @@ interface Assistant360Props {
   onUpdateProfile?: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
 }
 
-const PROACTIVE_TIPS = [
-  { text: "Sua meta de hidratação precisa de 600ml para ser concluída hoje.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
-  { text: "Ingestão de proteínas recomendada para o pós-treino: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
-  { text: "Caminhada leve de 20 min recomendada para estabilizar glicemia.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
-  { text: "Qualidade do sono ontem atingiu 88%. Excelente recuperação corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
-];
-
 export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile }: Assistant360Props) {
-  const { t } = useTranslation();
+  const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
+
+  const proactiveTips = useMemo(() => {
+    const isEn = language.startsWith('en');
+    const isEs = language.startsWith('es');
+
+    if (isEn) {
+      return [
+        { text: "Your hydration goal needs 600ml to be completed today.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
+        { text: "Recommended post-workout protein intake: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
+        { text: "Light 20-min walk recommended to stabilize blood sugar.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
+        { text: "Sleep quality last night reached 88%. Excellent physical recovery!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
+      ];
+    }
+
+    if (isEs) {
+      return [
+        { text: "Tu meta de hidratación necesita 600ml para completarse hoy.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
+        { text: "Ingesta de proteína recomendada post-entrenamiento: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
+        { text: "Caminata ligera de 20 min recomendada para estabilizar glucemia.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
+        { text: "La calidad del sueño anoche alcanzó el 88%. ¡Excelente recuperación corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
+      ];
+    }
+
+    return [
+      { text: "Sua meta de hidratação precisa de 600ml para ser concluída hoje.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
+      { text: "Ingestão de proteínas recomendada para o pós-treino: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
+      { text: "Caminhada leve de 20 min recomendada para estabilizar glicemia.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
+      { text: "Qualidade do sono ontem atingiu 88%. Excelente recuperação corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
+    ];
+  }, [language]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveTip((prev) => (prev + 1) % PROACTIVE_TIPS.length);
+      setActiveTip((prev) => (prev + 1) % proactiveTips.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [proactiveTips.length]);
 
   const isPremium = (profile as any)?.isPremium ?? false;
 
@@ -194,13 +217,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[11px] font-bold tracking-wide uppercase">
                 <Sparkles className="w-3 h-3" />
-                <span>1 Toque • Fotos IA • 3 Opções</span>
+                <span>{t('1 toque • fotos ia • 3 opções', '1 Toque • Fotos IA • 3 Opções')}</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                🍽️ Pratos Rápidos com IA
+                {t('🍽️ pratos rápidos com ia', '🍽️ Pratos Rápidos com IA')}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
-                Escolha <strong>Emagrecer</strong>, <strong>Ganhar Massa</strong> ou <strong>Lanches Fit</strong> e receba 3 sugestões imediatas com foto realista e macros.
+                {t('quick_dishes_desc', 'Escolha Emagrecer, Ganhar Massa ou Lanches Fit e receba 3 sugestões imediatas com foto realista e macros.')}
               </p>
             </div>
           </div>
@@ -210,7 +233,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             whileTap={{ scale: 0.95 }}
             className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 shrink-0 group-hover:shadow-orange-500/50 transition-all"
           >
-            <span>GERAR PRATOS RÁPIDOS</span>
+            <span>{t('gerar pratos rápidos', 'GERAR PRATOS RÁPIDOS')}</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </motion.button>
         </div>
@@ -227,14 +250,14 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       >
         <div className="flex items-center gap-4">
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl shrink-0">
-            {PROACTIVE_TIPS[activeTip].icon}
+            {proactiveTips[activeTip]?.icon}
           </div>
           <div>
             <div className="text-[10px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider mb-0.5">
-              Insight em Tempo Real
+              {t('realtime_insight', 'Insight em Tempo Real')}
             </div>
             <p className="text-sm font-semibold text-slate-800 dark:text-white leading-snug">
-              {PROACTIVE_TIPS[activeTip].text}
+              {proactiveTips[activeTip]?.text}
             </p>
           </div>
         </div>
@@ -257,10 +280,10 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-[#16C784]" />
-            Resumo da Sua Saúde Hoje
+            {t('daily_health_summary', 'Resumo da Sua Saúde Hoje')}
           </h3>
           <span className="text-xs font-semibold text-slate-400 dark:text-[#B5BDC9]">
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
+            {new Date().toLocaleDateString(language || 'pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
           </span>
         </div>
 
@@ -398,13 +421,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           </div>
           <div className="text-center sm:text-left flex-1">
             <div className={`text-[10px] uppercase font-bold tracking-wider mb-1 ${isPremium ? 'text-[#D8B14A]' : 'text-emerald-500'}`}>
-              NOVIDADE EXCLUSIVA
+              {t('exclusive_news', 'NOVIDADE EXCLUSIVA')}
             </div>
             <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 dark:text-white mb-2">
               {t('feature_smartplate', 'Restaurante Inteligente')}
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg">
-              Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo.
+              {t('smartplate_desc', 'Está comendo fora? Tire uma foto das opções ou do cardápio e deixe a IA montar a melhor combinação para o seu objetivo.')}
             </p>
           </div>
           <div className="shrink-0 mt-4 sm:mt-0">
