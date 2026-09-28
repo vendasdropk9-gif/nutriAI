@@ -78,6 +78,7 @@ import { OfflineSyncBanner } from './components/OfflineSyncBanner';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
+import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 
 const TAB_ORDER = [
   "admin_library",
@@ -504,6 +505,13 @@ function AppContent() {
           <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-100/40 dark:bg-emerald-900/20 blur-[120px] transition-colors duration-1000"></div>
           <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-slate-200/50 dark:bg-slate-800/40 blur-[100px] transition-colors duration-1000"></div>
         </div>
+
+        <SmartHydrationBanner 
+          profile={profile} 
+          onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+          onAwardPoints={awardPoints}
+          onNavigateToHabits={() => setActiveTab('habits')}
+        />
 
         <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500 w-full flex items-center justify-center">
           <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 h-[54px] flex items-center justify-between gap-2 sm:gap-4">
