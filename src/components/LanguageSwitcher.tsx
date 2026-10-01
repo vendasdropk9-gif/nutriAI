@@ -87,7 +87,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
   };
 
   return (
-    <div className="space-y-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80">
+    <div className="w-full space-y-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80">
       {/* Title */}
       <div className="flex items-start gap-4">
         <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">

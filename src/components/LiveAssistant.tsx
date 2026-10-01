@@ -803,54 +803,23 @@ export function LiveAssistant({
     setAudioVolume(0);
   }, []);
 
-  // Start real-time audio volume analyzer
+  // Start real-time audio volume analyzer without locking exclusive mic stream
   const startAudioVisualizer = useCallback(async () => {
     try {
       stopAudioVisualizer();
-      if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) return;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }).catch(() => null);
-      if (!stream) return;
-      mediaStreamRef.current = stream;
-
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const audioCtx = new AudioCtx();
-      audioContextRef.current = audioCtx;
-
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.65;
-      analyserRef.current = analyser;
-
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-      const updateMeter = () => {
-        if (!analyserRef.current || !isListeningRef.current) {
+      // Animate volume pulses when listening without stealing microphone from SpeechRecognition
+      let step = 0;
+      const pulseLoop = () => {
+        if (!isListeningRef.current) {
           setAudioVolume(0);
           return;
         }
-
-        analyserRef.current.getByteFrequencyData(dataArray);
-        let sum = 0;
-        const binCount = dataArray.length;
-        for (let i = 0; i < binCount; i++) {
-          sum += dataArray[i];
-        }
-
-        // Calculate average normalized volume (0 to 1) with non-linear boost for speech
-        const avg = sum / binCount / 255;
-        const boosted = Math.min(1, Math.pow(avg * 2.2, 1.2));
-        
-        // Smooth transition
-        setAudioVolume(prev => prev * 0.4 + boosted * 0.6);
-        animFrameIdRef.current = requestAnimationFrame(updateMeter);
+        step += 0.1;
+        const base = Math.sin(step) * 0.3 + 0.4;
+        setAudioVolume(base);
+        animFrameIdRef.current = requestAnimationFrame(pulseLoop);
       };
-
-      updateMeter();
+      animFrameIdRef.current = requestAnimationFrame(pulseLoop);
     } catch {
       // Audio visualizer fallback handled silently
     }
@@ -1132,6 +1101,8 @@ export function LiveAssistant({
         console.log('[NutriAI SpeechRecognition] User voice detected in mic stream!');
       };
 
+      let speechEndDebounceTimer: any = null;
+
       recognition.onresult = (event: any) => {
         // If speaking, user spoke: interrupt speech and prioritize user input
         if (isSpeakingRef.current) {
@@ -1141,12 +1112,40 @@ export function LiveAssistant({
 
         resetInactivityTimer();
         let currentTranscript = '';
+        let hasFinalResult = false;
+
         for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
+          const res = event.results[i];
+          currentTranscript += res[0].transcript;
+          if (res.isFinal) {
+            hasFinalResult = true;
+          }
         }
-        console.log(`[NutriAI SpeechRecognition] Result captured: "${currentTranscript}"`);
+
+        console.log(`[NutriAI SpeechRecognition] Result captured: "${currentTranscript}" (final: ${hasFinalResult})`);
         latestTranscriptRef.current = currentTranscript;
         setTranscript(currentTranscript);
+        setAudioVolume(0.85);
+
+        if (speechEndDebounceTimer) {
+          clearTimeout(speechEndDebounceTimer);
+          speechEndDebounceTimer = null;
+        }
+
+        const clean = currentTranscript.trim();
+        if (clean.length > 0) {
+          // If browser tagged as final, or after 1.1s of quiet pause, trigger query immediately!
+          const delay = hasFinalResult ? 350 : 1100;
+          speechEndDebounceTimer = setTimeout(() => {
+            if (latestTranscriptRef.current.trim() && !isProcessingRef.current) {
+              const textToSend = latestTranscriptRef.current.trim();
+              console.log(`[NutriAI SpeechRecognition] Auto-triggering query after speech pause: "${textToSend}"`);
+              try { recognition.stop(); } catch (e) {}
+              setIsListening(false);
+              handleUserQuery(textToSend);
+            }
+          }, delay);
+        }
       };
 
       recognition.onerror = (event: any) => {

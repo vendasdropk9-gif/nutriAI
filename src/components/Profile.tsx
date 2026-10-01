@@ -650,36 +650,36 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const userInitial = (formData.name || profile?.name || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 flex flex-col items-center gap-8">
       {/* Header Info */}
-      <div className="text-center space-y-3 mb-8">
-        <h2 className="font-serif text-3xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+      <div className="w-full text-center space-y-3 mb-2 px-2">
+        <h2 className="font-serif text-3xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400 text-center">
           Seu Perfil
         </h2>
-        <div className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3.5 py-1.5 rounded-full w-fit mx-auto border border-emerald-200 dark:border-emerald-800 shadow-sm">
-          <Cloud className="w-4 h-4" />
-          <span className="text-xs font-bold uppercase tracking-wider">Sincronizado na Nuvem & Firestore</span>
+        <div className="inline-flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3.5 py-1.5 rounded-full max-w-full border border-emerald-200 dark:border-emerald-800 shadow-sm text-center">
+          <Cloud className="w-4 h-4 shrink-0" />
+          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider truncate">Sincronizado na Nuvem & Firestore</span>
         </div>
-        <p className="font-sans text-slate-500 dark:text-slate-400 text-sm md:text-base max-w-lg mx-auto">
+        <p className="font-sans text-slate-500 dark:text-slate-400 text-xs sm:text-sm md:text-base max-w-lg mx-auto text-center">
           Mantenha seus dados físicos, objetivos e fotos atualizados para recomendações nutricionais e treinos 100% sob medida.
         </p>
       </div>
 
       {/* Admin Panel Link */}
-      <div className="mb-6 flex justify-center">
-        <button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: "admin_library" }))} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium shadow-md hover:bg-slate-800 transition-colors text-sm">
-          <Database className="w-4 h-4" />
-          Área Admin: Biblioteca Científica
+      <div className="w-full flex justify-center px-2">
+        <button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: "admin_library" }))} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium shadow-md hover:bg-slate-800 transition-colors text-xs sm:text-sm">
+          <Database className="w-4 h-4 shrink-0" />
+          <span>Área Admin: Biblioteca Científica</span>
         </button>
       </div>
 
       {/* Main Form Card */}
-      <div className="clay-card p-6 sm:p-10">
+      <form id="profile-main-form" onSubmit={handleSubmit} className="clay-card p-4 sm:p-8 md:p-10 w-full overflow-hidden bg-white/60 dark:bg-slate-800/60 shadow-xl rounded-3xl space-y-6">
         {/* Photo & Identity Hero Section */}
-        <div className="mb-10 pb-8 border-b border-slate-100 dark:border-slate-700/80">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div className="mb-10 pb-8 border-b border-slate-100 dark:border-slate-700/80 w-full">
+          <div className="flex flex-col items-center text-center gap-6 w-full">
             {/* Avatar with Actions */}
-            <div className="relative group shrink-0">
+            <div className="relative group shrink-0 mx-auto">
               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-emerald-500/30 dark:ring-emerald-400/20 overflow-hidden shadow-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center relative">
                 {formData.photoURL ? (
                   <img
@@ -723,22 +723,22 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             </div>
 
             {/* Profile Photo Controls & Metadata */}
-            <div className="flex-1 text-center sm:text-left space-y-3">
+            <div className="w-full text-center space-y-3">
               <div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">
                   {formData.name || 'Usuário NutriAI'}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-sans mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-sans mt-0.5 break-all">
                   {formData.email || 'Conta sincronizada'}
                 </p>
               </div>
 
               {/* Action Buttons for Avatar */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1 w-full max-w-lg mx-auto">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                  className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shrink-0"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>Trocar Foto</span>
@@ -748,7 +748,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   type="button"
                   id="open-3d-avatar-gallery-btn"
                   onClick={() => setShow3DAvatarGallery(true)}
-                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                  className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shrink-0"
                 >
                   <Cpu className="w-3.5 h-3.5 text-slate-950" />
                   <span>Avatar 3D (DRACO)</span>
@@ -757,7 +757,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() => setShowAvatarPicker(true)}
-                  className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl transition-all border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl transition-all border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>Fotos 2D</span>
@@ -766,7 +766,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 <button
                   type="button"
                   onClick={() => setShowUrlInputModal(true)}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-all border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-all border border-slate-200/80 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer shrink-0"
                   title="Inserir link da foto"
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
@@ -777,7 +777,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="px-3 py-2 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition-all border border-rose-200 dark:border-rose-900/50 flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-2 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition-all border border-rose-200 dark:border-rose-900/50 flex items-center gap-1 cursor-pointer shrink-0"
                     title="Remover foto atual"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -785,14 +785,14 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
                 Formatos aceitos: JPG, PNG, WEBP. A foto é ajustada e sincronizada instantaneamente.
               </p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Dados Pessoais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -1077,7 +1077,6 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             />
           </div>
 
-          {/* Health Integrations (Google Fit & Apple Health) */}
           <HealthIntegrationSettings
             profile={profile}
             onUpdateProfile={(updater) => {
@@ -1085,10 +1084,15 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               if (updated) onSaveProfile(updated);
             }}
           />
+        </div>
+      </form>
+
+      {/* Sibling Card Sections outside Form container for responsive safety */}
+      <div className="w-full flex flex-col gap-8 items-center">
 
           {/* Push Notifications & Schedule Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-4 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
                 Notificações Push Nativas & Agendamento
               </label>
@@ -1146,12 +1150,12 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
                   <button
                     type="button"
                     onClick={handleTestNativeNotification}
                     disabled={isTestingPush}
-                    className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-xl font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50 w-full sm:w-auto text-center"
                     title="Disparar notificação nativa de teste pelo Service Worker"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
@@ -1161,11 +1165,11 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   <button
                     type="button"
                     onClick={handleToggleMealReminders}
-                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer ${
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer flex items-center justify-center text-center ${
                       mealRemindersEnabled
                         ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
                         : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 hover:scale-105 active:scale-95'
-                    }`}
+                    } w-full sm:w-auto`}
                   >
                     {mealRemindersEnabled ? 'Desativar' : 'Ativar'}
                   </button>
@@ -1284,15 +1288,15 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
                   <button
                     type="button"
                     onClick={handleToggleChallengeReminders}
-                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer ${
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer flex items-center justify-center text-center ${
                       challengeRemindersEnabled
                         ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
                         : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 hover:scale-105 active:scale-95'
-                    }`}
+                    } w-full sm:w-auto`}
                   >
                     {challengeRemindersEnabled ? 'Desativar' : 'Ativar'}
                   </button>
@@ -1355,7 +1359,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
 
           {/* Biometrics Card */}
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
               Segurança e Biometria
             </label>
@@ -1442,11 +1446,11 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               </div>
 
               {biometricEnabled && (
-                <div className="pt-2 flex justify-center">
+                <div className="pt-2 flex justify-center w-full">
                   <button
                     type="button"
                     onClick={() => startBiometricTest(isFaceActive ? 'face' : 'fingerprint')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800 cursor-pointer"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800 cursor-pointer w-full sm:w-auto text-center"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Testar Validação de Biometria no Aparelho</span>
@@ -1457,7 +1461,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
 
           {/* Accessibility & High Contrast Card */}
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
               Acessibilidade & Visual
             </label>
@@ -1544,7 +1548,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           <WearablesSync />
 
           {/* Tour Guiado Interativo com Setas */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-emerald-500 text-white shadow-md shrink-0">
                 <Sparkles className="w-5 h-5" />
@@ -1559,7 +1563,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1567,7 +1571,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   vibrate(15);
                   window.dispatchEvent(new CustomEvent('app:openWelcomeTour', { detail: { mode: 'introjs' } }));
                 }}
-                className="px-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer w-full sm:w-auto text-center"
                 id="btn-reopen-introjs-tour-profile"
                 title="Iniciar tour passo a passo com Intro.js"
               >
@@ -1582,7 +1586,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   vibrate(15);
                   window.dispatchEvent(new CustomEvent('app:openWelcomeTour', { detail: { mode: 'spotlight' } }));
                 }}
-                className="px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto text-center"
                 id="btn-reopen-welcome-tour-profile"
                 title="Iniciar tour com setas visuais"
               >
@@ -1593,7 +1597,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           </div>
 
           {/* Painel Administrativo & Integridade do Banco */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+          <div className="w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-indigo-500 text-white shadow-md shrink-0">
                 <Database className="w-5 h-5" />
@@ -1620,7 +1624,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 vibrate(15);
                 window.dispatchEvent(new CustomEvent('navigate', { detail: 'admin' }));
               }}
-              className="px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+              className="px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer w-full sm:w-auto text-center shrink-0"
               id="btn-open-admin-db-dashboard"
               title="Abrir Painel Administrativo do Banco de Dados"
             >
@@ -1632,7 +1636,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           <LanguageSwitcher profile={profile} onSaveProfile={onSaveProfile} />
 
           {/* Form Action Footer */}
-          <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-slate-100 dark:border-slate-700">
+          <div className="w-full pt-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-slate-100 dark:border-slate-700">
             <button
               type="button"
               onClick={handleLogout}
@@ -1691,6 +1695,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
               <button
                 type="submit"
+                form="profile-main-form"
                 className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 text-white font-sans font-bold px-8 py-4 rounded-full transition-all duration-300 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-5 h-5" />
@@ -1698,8 +1703,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               </button>
             </div>
           </div>
-        </form>
-      </div>
+        </div>
 
       {/* Preset Avatars Modal */}
       <AnimatePresence>

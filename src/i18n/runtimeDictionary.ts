@@ -1,5 +1,138 @@
 // Comprehensive runtime translation mapping across all major languages
 export const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
+  // CategoryFilter Tags & Translations
+  "category_all": {
+    "en": "All",
+    "es": "Todas",
+    "fr": "Toutes",
+    "it": "Tutte",
+    "de": "Alle",
+    "ja": "すべて",
+    "ko": "전체",
+    "zh": "全部",
+    "ar": "الكل",
+    "ru": "Все"
+  },
+  "category_vegan": {
+    "en": "Vegan",
+    "es": "Vegano",
+    "fr": "Végétalien",
+    "it": "Vegano",
+    "de": "Vegan",
+    "ja": "ビーガン",
+    "ko": "비건",
+    "zh": "纯素",
+    "ar": "نباتي صرف",
+    "ru": "Веганское"
+  },
+  "category_high_protein": {
+    "en": "High-Protein",
+    "es": "Hiperproteico",
+    "fr": "Riche en protéines",
+    "it": "Iperproteico",
+    "de": "Proteinreich",
+    "ja": "高タンパク",
+    "ko": "고단백",
+    "zh": "高蛋白",
+    "ar": "عالي البروتين",
+    "ru": "Высокобелковое"
+  },
+  "category_quick_prep": {
+    "en": "Quick-Prep",
+    "es": "Preparación Rápida",
+    "fr": "Préparation rapide",
+    "it": "Preparazione rapida",
+    "de": "Schnelle Zubereitung",
+    "ja": "時短調理",
+    "ko": "빠른 조리",
+    "zh": "快速制作",
+    "ar": "تحضير سريع",
+    "ru": "Быстрое приготовление"
+  },
+  "category_low_carb": {
+    "en": "Low-Carb",
+    "es": "Low-Carb",
+    "fr": "Faible en glucides",
+    "it": "Low-Carb",
+    "de": "Low-Carb",
+    "ja": "低糖質",
+    "ko": "저탄수화물",
+    "zh": "低碳水",
+    "ar": "قليل الكربوهيدرات",
+    "ru": "Низкоуглеводное"
+  },
+  "vegano": {
+    "en": "Vegan",
+    "es": "Vegano",
+    "fr": "Végétalien",
+    "it": "Vegano",
+    "de": "Vegan",
+    "ja": "ビーガン",
+    "ko": "비건",
+    "zh": "纯素",
+    "ar": "نباتي",
+    "ru": "Веган"
+  },
+  "hiperproteico": {
+    "en": "High-Protein",
+    "es": "Hiperproteico",
+    "fr": "Riche en protéines",
+    "it": "Iperproteico",
+    "de": "Proteinreich",
+    "ja": "高タンパク",
+    "ko": "고단백",
+    "zh": "高蛋白",
+    "ar": "عالي البروتين",
+    "ru": "Высокобелковый"
+  },
+  "preparo rápido": {
+    "en": "Quick-Prep",
+    "es": "Preparación Rápida",
+    "fr": "Préparation rapide",
+    "it": "Preparazione rapida",
+    "de": "Schnelle Zubereitung",
+    "ja": "時短調理",
+    "ko": "빠른 조리",
+    "zh": "快速制作",
+    "ar": "تحضير سريع",
+    "ru": "Быстрое приготовление"
+  },
+  "low-carb": {
+    "en": "Low-Carb",
+    "es": "Low-Carb",
+    "fr": "Faible en glucides",
+    "it": "Low-Carb",
+    "de": "Low-Carb",
+    "ja": "低糖質",
+    "ko": "저탄수화물",
+    "zh": "低碳水",
+    "ar": "منخفض الكربوهيدرات",
+    "ru": "Низкоуглеводный"
+  },
+  "banco de receitas salvas": {
+    "en": "Saved Recipes Library",
+    "es": "Biblioteca de Recetas Guardadas",
+    "fr": "Bibliothèque de Recettes Enregistrées",
+    "it": "Raccolta Ricette Salvate",
+    "de": "Gespeicherte Rezepte",
+    "ja": "保存済みレシピ集",
+    "ko": "저장된 레시피 라이브러리",
+    "zh": "已保存食谱库",
+    "ar": "مكتبة الوصفات المحفوظة",
+    "ru": "Библиотека сохраненных рецептов"
+  },
+  "filtrar por categoria": {
+    "en": "Filter by Category",
+    "es": "Filtrar por Categoría",
+    "fr": "Filtrer par Catégorie",
+    "it": "Filtra per Categoria",
+    "de": "Nach Kategorie filtern",
+    "ja": "カテゴリーで絞り込む",
+    "ko": "카테고리별 필터",
+    "zh": "按分类筛选",
+    "ar": "تصفية حسب الفئة",
+    "ru": "Фильтр по категориям"
+  },
   // Navigation & Headers
   "deixe seu feedback": {
     "en": "Leave your feedback",
@@ -2023,6 +2156,17 @@ export const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
     "ko": "오늘의 빠른 팁",
     "zh": "今日快捷贴士",
     "ar": "نصائح سريعة لليوم"
+  },
+  "dicas rápidas": {
+    "en": "Quick Tips",
+    "es": "Consejos Rápidos",
+    "fr": "Conseils Rapides",
+    "de": "Schnelltipps",
+    "it": "Consigli Rapidi",
+    "ja": "クイックヒント",
+    "ko": "빠른 팁",
+    "zh": "快捷贴士",
+    "ar": "نصائح سريعة"
   },
   "histórico conectado": {
     "en": "Connected History",

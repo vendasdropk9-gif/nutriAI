@@ -159,28 +159,28 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+          <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 w-12 h-12 flex items-center justify-center">
             <Users className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <div className="min-w-0 w-full">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-slate-100 flex flex-wrap items-center gap-2">
               <span>Gestão de Perfil Familiar & Pets</span>
               <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
                 {members.length} Perfis Ativos
               </span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Gerencie dietas, restrições e calorias diárias de toda a família em uma única conta.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
           <button
             onClick={handleShareFamilyGoals}
-            className="px-4 py-2.5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer w-full sm:w-auto text-center"
           >
             {copiedLink ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-indigo-500" />}
             <span>{copiedLink ? 'Copiado!' : 'Compartilhar Metas'}</span>
@@ -188,7 +188,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
 
           <button
             onClick={() => { setShowAddModal(true); playSfx('tap'); }}
-            className="px-4 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
+            className="px-4 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md w-full sm:w-auto text-center"
           >
             <Plus className="w-4 h-4" />
             <span>Adicionar Familiar</span>

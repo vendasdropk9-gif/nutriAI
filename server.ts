@@ -10,6 +10,7 @@ import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, quer
 import firebaseConfig from "./firebase-applet-config.json";
 import { DEFAULT_MEDICINAL_HERBS } from "./src/data/medicinalHerbsData";
 import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController.ts";
+import { lookupRuntimeTranslation } from "./src/i18n/runtimeDictionary";
 
 async function startServer() {
   const firebaseApp = initializeApp(firebaseConfig);
@@ -1025,6 +1026,139 @@ async function startServer() {
 
       res.status(200).json({ audio: null, audioBase64: null, error: e?.message, success: false });
     }
+  });
+
+  // ========== UNIVERSAL BATCH TRANSLATION ENDPOINT ==========
+  const translationMemoryCache = new Map<string, string>();
+  let apiRateLimitUntil = 0;
+
+  app.post("/api/translate-batch", express.json(), async (req, res) => {
+    const { texts, targetLang } = req.body || {};
+    if (!Array.isArray(texts) || texts.length === 0) {
+      return res.status(200).json({ translations: [] });
+    }
+
+    const lang = (targetLang || 'en').toLowerCase().trim();
+    if (lang.startsWith('pt')) {
+      return res.status(200).json({ translations: texts });
+    }
+
+    const results: string[] = new Array(texts.length);
+    const missingIndices: number[] = [];
+    const missingTexts: string[] = [];
+
+    texts.forEach((text: any, i: number) => {
+      const clean = typeof text === 'string' ? text.trim() : '';
+      if (!clean) {
+        results[i] = text;
+        return;
+      }
+      const cacheKey = `${lang}:::${clean}`;
+      if (translationMemoryCache.has(cacheKey)) {
+        results[i] = translationMemoryCache.get(cacheKey)!;
+      } else {
+        // Check offline runtime dictionary first before calling Gemini
+        const dictTrans = lookupRuntimeTranslation(clean, lang);
+        if (dictTrans && dictTrans !== clean) {
+          results[i] = dictTrans;
+          translationMemoryCache.set(cacheKey, dictTrans);
+        } else {
+          missingIndices.push(i);
+          missingTexts.push(clean);
+        }
+      }
+    });
+
+    if (missingTexts.length === 0) {
+      return res.status(200).json({ translations: results });
+    }
+
+    // If currently in rate limit cooldown, return offline fallback immediately
+    if (Date.now() < apiRateLimitUntil) {
+      missingIndices.forEach((origIdx, idx) => {
+        results[origIdx] = missingTexts[idx];
+      });
+      return res.status(200).json({ translations: results });
+    }
+
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+      if (apiKey) {
+        const ai = new GoogleGenAI({ 
+          apiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+
+        // Limit to max 30 texts per request and max 2 chunks to avoid rate limits
+        const chunkSize = 30;
+        const maxChunks = 2;
+        const totalChunks = Math.min(Math.ceil(missingTexts.length / chunkSize), maxChunks);
+
+        for (let c = 0; c < totalChunks; c++) {
+          const startIdx = c * chunkSize;
+          const chunkTexts = missingTexts.slice(startIdx, startIdx + chunkSize);
+          const chunkIndices = missingIndices.slice(startIdx, startIdx + chunkSize);
+
+          const prompt = `You are a nutrition and health application localization translator.
+Translate the following array of Portuguese strings into the target language "${lang}".
+Keep numbers, units, formatting, brand names like "NutriAI" or "Malu", and emojis intact.
+Return ONLY valid JSON with format:
+{"translations": ["translated text 1", "translated text 2"]}
+
+Strings:
+${JSON.stringify(chunkTexts)}`;
+
+          const resp = await ai.models.generateContent({
+            model: "gemini-3.8-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json"
+            }
+          });
+
+          const rawText = resp.text || "{}";
+          let parsed: any = {};
+          try {
+            parsed = JSON.parse(rawText);
+          } catch {
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (match) parsed = JSON.parse(match[0]);
+          }
+
+          const translatedList = Array.isArray(parsed.translations) ? parsed.translations : [];
+          chunkTexts.forEach((originalText, idx) => {
+            const translated = translatedList[idx] || originalText;
+            const fullIndex = chunkIndices[idx];
+            results[fullIndex] = translated;
+            const cacheKey = `${lang}:::${originalText}`;
+            translationMemoryCache.set(cacheKey, translated);
+          });
+        }
+
+        // Fill any remaining texts that weren't processed due to chunk limits
+        missingIndices.forEach((origIdx, idx) => {
+          if (!results[origIdx]) {
+            results[origIdx] = missingTexts[idx];
+          }
+        });
+      } else {
+        missingIndices.forEach((origIdx, idx) => {
+          results[origIdx] = missingTexts[idx];
+        });
+      }
+    } catch (err: any) {
+      const errMsg = String(err?.message || '');
+      if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        apiRateLimitUntil = Date.now() + 60000; // 60s cooldown
+      }
+      missingIndices.forEach((origIdx, idx) => {
+        if (!results[origIdx]) {
+          results[origIdx] = missingTexts[idx];
+        }
+      });
+    }
+
+    return res.status(200).json({ translations: results });
   });
 
   // ========== BACKEND DATABASE REST API ==========

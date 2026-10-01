@@ -67,8 +67,9 @@ export function getGoalType(profile: UserProfile | null, lang: string = 'pt-BR')
   const targetWeight = profile?.targetWeight;
   const currentWeight = profile?.weight;
 
-  const isEn = lang.startsWith('en');
+  const isPt = lang.startsWith('pt');
   const isEs = lang.startsWith('es');
+  const isEn = lang.startsWith('en') || (!isPt && !isEs);
 
   if (
     rawGoals.includes('perda') ||
@@ -115,8 +116,9 @@ export function generateHistoryQuickTips(profile: UserProfile | null, lang: stri
   const isWeightLoss = goalInfo.type === 'weight_loss';
   const isMuscleGain = goalInfo.type === 'muscle_gain';
 
-  const isEn = lang.startsWith('en');
+  const isPt = lang.startsWith('pt');
   const isEs = lang.startsWith('es');
+  const isEn = lang.startsWith('en') || (!isPt && !isEs);
 
   // Filtra logs de hoje
   const todayStr = new Date().toISOString().split('T')[0];

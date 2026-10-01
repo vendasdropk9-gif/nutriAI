@@ -1,5 +1,6 @@
 
 import { textToSpeech } from './gemini';
+import { translateSpeechText } from './speechTranslator';
 
 export interface SpeechOptions {
   voice?: string;
@@ -109,6 +110,9 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   const activeLang = options?.lang || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
   const isPt = activeLang.toLowerCase().startsWith('pt');
 
+  // Translate text to target language if not Portuguese
+  const textToSpeak = isPt ? trimmedText : (translateSpeechText(trimmedText, activeLang) || trimmedText);
+
   // Stop any and all previous audio/speech instantly to prevent overlapping voices
   stopSpeech();
 
@@ -124,8 +128,8 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       audioUrl = '/audio/nutri_ai_malu.wav';
     } else {
       // For all full sentences, thank-you notes, greetings with names, recipes, advice:
-      // Synthesize through high-fidelity Gemini Aoede engine so every sentence is read in full!
-      audioUrl = await textToSpeech(trimmedText, activeLang);
+      // Synthesize through high-fidelity Gemini Aoede engine so every sentence is read in full in the active language!
+      audioUrl = await textToSpeech(textToSpeak, activeLang);
     }
     
     // If another speech request arrived in the meantime, abort immediately
@@ -167,7 +171,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        fallbackSpeak(trimmedText, { ...options, lang: activeLang });
+        fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
       };
       
       try {
@@ -178,16 +182,16 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
+        return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
       }
     } else {
       // Backend returned null - try localized browser fallback in active language
-      return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
+      return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
-    return fallbackSpeak(trimmedText, { ...options, lang: activeLang });
+    return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
   }
 };
 

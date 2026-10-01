@@ -1,12 +1,12 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import React, { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
 import './index.css';
 import './i18n';
-import { AuthProvider } from './contexts/AuthContext.tsx';
-import { LanguageProvider } from './contexts/LanguageContext.tsx';
-import { ErrorBoundary } from './components/ErrorBoundary.tsx';
-import { initDatabaseIntegrityMonitor } from './lib/databaseIntegrityMonitor.ts';
+import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { initDatabaseIntegrityMonitor } from './lib/databaseIntegrityMonitor';
 
 // Auto-run database integrity monitoring for Firestore & Supabase in dev/runtime
 initDatabaseIntegrityMonitor(2500);

@@ -61,7 +61,7 @@ import { WelcomeTour } from './components/WelcomeTour';
 import { AdminDashboard } from './components/AdminDashboard';
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders } from 'lucide-react';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 import { useTranslation } from 'react-i18next';
@@ -612,6 +612,22 @@ function AppContent() {
 
               {/* PWA Install Button */}
               <PWAInstallButton variant="header" />
+
+              {/* Interactive Tour Button (Intro.js) */}
+              <motion.button 
+                whileHover={{ scale: 1.06 }} 
+                whileTap={{ scale: 0.94 }}
+                onClick={() => {
+                  playSfx('crystal');
+                  vibrate(15);
+                  window.dispatchEvent(new CustomEvent('app:openWelcomeTour', { detail: { mode: 'introjs' } }));
+                }}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                title={t('start_tour', 'Iniciar Tour Interativo')}
+                id="header-tour-trigger-btn"
+              >
+                <HelpCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-500" />
+              </motion.button>
 
               {/* Language Switcher Button */}
               <motion.button 

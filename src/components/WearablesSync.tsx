@@ -78,14 +78,14 @@ export function WearablesSync() {
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+        <div className="flex items-center gap-3 w-full">
+          <div className="p-3 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
             <Watch className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <span>Sincronização com Wearables & Sensores</span>
-              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center gap-1">
+          <div className="w-full min-w-0">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-slate-100 flex flex-wrap items-center gap-2">
+              Sincronização com Wearables & Sensores
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center gap-1 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
                 Live Telemetry
               </span>
@@ -99,7 +99,7 @@ export function WearablesSync() {
         <button
           onClick={handleSyncTelemetry}
           disabled={isSyncing}
-          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-60"
+          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-60 w-full sm:w-auto text-center"
         >
           <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
           <span>{isSyncing ? 'Sincronizando Dados...' : 'Sincronizar Telemetria'}</span>
@@ -171,18 +171,18 @@ export function WearablesSync() {
           {devices.map(device => (
             <div
               key={device.id}
-              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 transition-all"
+              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all w-full"
             >
-              <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-sm ${device.iconColor}`}>
+              <div className="flex items-center gap-3 w-full min-w-0">
+                <div className={`p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-sm shrink-0 ${device.iconColor}`}>
                   <Watch className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-100">
+                <div className="min-w-0 w-full">
+                  <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate">
                     {device.name}
                   </h4>
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <span>Última sincronização: {device.lastSync}</span>
+                  <span className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <span className="truncate">Última sincronização: {device.lastSync}</span>
                     {device.batteryLevel && (
                       <>
                         <span>•</span>
@@ -195,7 +195,7 @@ export function WearablesSync() {
 
               <button
                 onClick={() => toggleDevice(device.id)}
-                className={`px-4 py-2 rounded-full font-bold text-xs transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-full font-bold text-xs transition-all cursor-pointer w-full sm:w-auto flex items-center justify-center text-center shrink-0 ${
                   device.connected
                     ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300'

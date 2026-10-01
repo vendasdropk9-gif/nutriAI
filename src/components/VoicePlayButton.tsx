@@ -3,6 +3,7 @@ import { Play, Volume2, Loader2 } from 'lucide-react';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLanguage } from '../contexts/LanguageContext';
+import { translateSpeechText } from '../lib/speechTranslator';
 
 interface VoicePlayButtonProps {
   text: string;
@@ -60,7 +61,8 @@ export function VoicePlayButton({
 
     try {
       setIsPlaying(true);
-      await speak(text, {
+      const textToSpeak = translateSpeechText(text, activeLang);
+      await speak(textToSpeak, {
         lang: activeLang,
         onEnded: () => {
           setIsPlaying(false);

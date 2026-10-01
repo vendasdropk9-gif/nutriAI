@@ -1,11 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
-import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles } from 'lucide-react';
+import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles, Search, BookOpen, Clock, Flame, Dumbbell, Leaf, Zap, Utensils, Check } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
+import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
+import { playSfx, vibrate } from '../lib/sensory';
 
 interface MealPlanProps {
   mealPlan: MealPlan;
@@ -98,6 +100,24 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   const [quickLogProtein, setQuickLogProtein] = useState<number>(15);
   const [quickLogCarbs, setQuickLogCarbs] = useState<number>(25);
   const [quickLogFat, setQuickLogFat] = useState<number>(5);
+
+  // States for CategoryFilter
+  const [selectedCategory, setSelectedCategory] = useState<RecipeCategoryTag>('all');
+  const [recipeSearch, setRecipeSearch] = useState('');
+
+  const categoryCounts = useMemo(() => getRecipeCategoryCounts(savedRecipes), [savedRecipes]);
+
+  const filteredSavedRecipes = useMemo(() => {
+    let list = filterRecipesByCategory(savedRecipes, selectedCategory);
+    if (recipeSearch.trim()) {
+      const q = recipeSearch.toLowerCase().trim();
+      list = list.filter(r => 
+        (r.name || r.title || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [savedRecipes, selectedCategory, recipeSearch]);
 
   const dayPlan = mealPlan[selectedDay]?.meals || {};
 
@@ -683,9 +703,13 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                 </div>
 
                 {recipe ? (
-                  <div className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 backdrop-blur-md rounded-[24px] p-4 border border-white/80 dark:border-slate-600/50 shadow-sm">
+                  <motion.div 
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 25 }}
+                    className="flex items-center justify-between bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-[24px] p-4 border border-white/80 dark:border-slate-600/50 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/40 transition-shadow group"
+                  >
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{recipe.name}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{recipe.name}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">{recipe.prepTime} • {recipe.nutrition.calories} kcal</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -709,38 +733,152 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                         <Info className="w-5 h-5" />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ) : (
                   <div>
                     {addingTo?.day === selectedDay && addingTo?.meal === mealType.id ? (
-                      <div className="space-y-4">
-                        <select 
-                          className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/60 dark:border-slate-600/50 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 shadow-sm"
-                          onChange={(e) => {
-                            onUpdatePlan(selectedDay, mealType.id, e.target.value);
-                            setAddingTo(null);
-                          }}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Escolha uma receita salva...</option>
-                          {savedRecipes.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                          ))}
-                        </select>
-                        <button 
-                          onClick={() => setAddingTo(null)}
-                          className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium px-2"
-                        >
-                          Cancelar
-                        </button>
+                      <div className="space-y-4 bg-white/70 dark:bg-slate-900/80 p-5 rounded-[24px] border border-emerald-500/30 shadow-md">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {t('select_recipe_for_meal', 'Selecionar Receita Salva')}
+                          </span>
+                          <button 
+                            onClick={() => {
+                              playSfx('tap');
+                              setAddingTo(null);
+                            }}
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                            title="Fechar"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Category Filter Pills */}
+                        <CategoryFilter
+                          selectedCategory={selectedCategory}
+                          onSelectCategory={setSelectedCategory}
+                          recipeCounts={categoryCounts}
+                          variant="compact"
+                          size="sm"
+                        />
+
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={recipeSearch}
+                            onChange={(e) => setRecipeSearch(e.target.value)}
+                            placeholder={t('search_recipes_placeholder', 'Buscar por nome ou ingrediente...')}
+                            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/30"
+                          />
+                        </div>
+
+                        {/* Filtered Recipes List */}
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                          {filteredSavedRecipes.length > 0 ? (
+                            filteredSavedRecipes.map((r) => {
+                              const protein = r.nutrition?.protein ?? r.protein ?? 0;
+                              const calories = r.nutrition?.calories ?? r.calories ?? 0;
+                              return (
+                                <motion.div
+                                  whileHover={{ scale: 1.015, x: 3 }}
+                                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                  key={r.id}
+                                  className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
+                                >
+                                  <div className="flex-1 min-w-0 pr-3">
+                                    <h5 className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                      {r.name || r.title}
+                                    </h5>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                      {r.prepTime && (
+                                        <span className="flex items-center gap-1 font-mono">
+                                          <Clock className="w-3 h-3 text-slate-400" />
+                                          {r.prepTime}
+                                        </span>
+                                      )}
+                                      {calories > 0 && (
+                                        <span className="flex items-center gap-1 font-mono">
+                                          <Flame className="w-3 h-3 text-orange-400" />
+                                          {calories} kcal
+                                        </span>
+                                      )}
+                                      {protein > 0 && (
+                                        <span className="flex items-center gap-1 font-mono text-blue-600 dark:text-blue-400">
+                                          <Dumbbell className="w-3 h-3" />
+                                          {protein}g prot
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewRecipe(r)}
+                                      className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                      title={t('view_recipe', 'Ver Receita')}
+                                    >
+                                      <Info className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        playSfx('success');
+                                        vibrate(20);
+                                        onUpdatePlan(selectedDay, mealType.id, r.id, r);
+                                        setAddingTo(null);
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      {t('select', 'Escolher')}
+                                    </button>
+                                  </div>
+                                </motion.div>
+                              );
+                            })
+                          ) : (
+                            <div className="text-center py-6 px-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                                {t('no_recipes_in_category', 'Nenhuma receita encontrada para esta categoria ou busca.')}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategory('all');
+                                  setRecipeSearch('');
+                                }}
+                                className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                              >
+                                {t('view_all_recipes', 'Ver todas as receitas')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex justify-end pt-1">
+                          <button 
+                            onClick={() => setAddingTo(null)}
+                            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium px-2 py-1"
+                          >
+                            {t('cancel', 'Cancelar')}
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
-                        onClick={() => setAddingTo({ day: selectedDay, meal: mealType.id })}
-                        className="w-full py-8 border-2 border-dashed border-white/80 dark:border-slate-700/50 bg-white/20 dark:bg-slate-800/20 rounded-[24px] text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-white/40 dark:hover:bg-slate-700/40 transition-all flex items-center justify-center gap-2 font-medium"
+                        onClick={() => {
+                          playSfx('tap');
+                          setAddingTo({ day: selectedDay, meal: mealType.id });
+                        }}
+                        className="w-full py-8 border-2 border-dashed border-white/80 dark:border-slate-700/50 bg-white/20 dark:bg-slate-800/20 rounded-[24px] text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-white/40 dark:hover:bg-slate-700/40 transition-all flex items-center justify-center gap-2 font-medium cursor-pointer"
                       >
                         <Plus className="w-5 h-5" />
-                        Adicionar Refeição
+                        {t('add_meal', 'Adicionar Refeição')}
                       </button>
                     )}
                   </div>
@@ -748,6 +886,114 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               </div>
             );
           })}
+          {/* Saved Recipes Explorer Section with CategoryFilter */}
+          {savedRecipes.length > 0 && (
+            <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>{t('saved_recipes_hub', 'Banco de Receitas Salvas')}</span>
+                  </div>
+                  <h4 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">
+                    {t('filter_by_category', 'Filtrar por Categoria')}
+                  </h4>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+                    {t('filter_recipes_desc', 'Explore suas receitas favoritas por tags como Vegano, Hiperproteico, Preparo Rápido e Low-Carb.')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Category Filter Component */}
+              <CategoryFilter
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                recipeCounts={categoryCounts}
+              />
+
+              {/* Grid of Filtered Recipes */}
+              {filteredSavedRecipes.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  {filteredSavedRecipes.map((recipe) => {
+                    const protein = recipe.nutrition?.protein ?? recipe.protein ?? 0;
+                    const calories = recipe.nutrition?.calories ?? recipe.calories ?? 0;
+                    return (
+                      <motion.div
+                        whileHover={{ scale: 1.03, y: -4 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 22 }}
+                        key={recipe.id}
+                        className="bg-white/90 dark:bg-slate-800/90 rounded-[24px] p-4 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-xl hover:shadow-emerald-500/15 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <h5 className="font-bold text-slate-800 dark:text-slate-100 text-sm line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                              {recipe.name || recipe.title}
+                            </h5>
+                            <button
+                              type="button"
+                              onClick={() => setViewRecipe(recipe)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                              title={t('view_recipe', 'Ver Receita')}
+                            >
+                              <Info className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
+                            {recipe.description}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                            {recipe.prepTime && (
+                              <span className="flex items-center gap-1 font-mono">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {recipe.prepTime}
+                              </span>
+                            )}
+                            {calories > 0 && (
+                              <span className="flex items-center gap-1 font-mono">
+                                <Flame className="w-3 h-3 text-orange-400" />
+                                {calories} kcal
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Quick Add Button to current selected day */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const emptyMeal = MEALS.find(m => !dayPlan[m.id as keyof typeof dayPlan])?.id || 'lunch';
+                              playSfx('success');
+                              vibrate(20);
+                              onUpdatePlan(selectedDay, emptyMeal, recipe.id, recipe);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] transition-colors"
+                            title={`Adicionar ao plano de ${selectedDay}`}
+                          >
+                            + {selectedDay.split('-')[0]}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-slate-50/60 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    {t('no_recipes_for_filter', 'Nenhuma receita salva encontrada com este filtro.')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    {t('view_all_recipes', 'Ver todas as receitas')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

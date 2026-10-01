@@ -159,29 +159,45 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     const defaultValue = typeof defaultValueOrParams === 'string' ? defaultValueOrParams : keyOrPhrase;
     const interpolationParams = typeof defaultValueOrParams === 'object' ? defaultValueOrParams : params;
 
-    const currentLang = language;
+    const currentLang = language || 'pt-BR';
     const cleanLang = currentLang.split('-')[0];
     const isPortuguese = currentLang.startsWith('pt');
 
+    // If target is Portuguese, return defaultValue or key
+    if (isPortuguese) {
+      let ptStr = defaultValue || keyOrPhrase;
+      if (interpolationParams && typeof interpolationParams === 'object') {
+        for (const [pKey, pVal] of Object.entries(interpolationParams)) {
+          ptStr = ptStr.replace(new RegExp(`{{\\s*${pKey}\\s*}}`, 'g'), String(pVal))
+                       .replace(new RegExp(`{\\s*${pKey}\\s*}`, 'g'), String(pVal));
+        }
+      }
+      return ptStr;
+    }
+
     let translated: string | null = null;
 
-    // 1. Try i18next initialized instance
+    // 1. Try i18next initialized instance with sentinel check (do not return defaultValue directly)
     try {
       if (i18n && i18n.isInitialized) {
+        const sentinel = '___I18N_MISSING___';
         const i18nRes = i18n.t(keyOrPhrase, {
           lng: currentLang,
-          defaultValue: defaultValue || keyOrPhrase,
+          defaultValue: sentinel,
           ...(interpolationParams || {})
         });
-        if (i18nRes && i18nRes !== keyOrPhrase) {
+        if (i18nRes && i18nRes !== sentinel && i18nRes !== keyOrPhrase) {
           translated = i18nRes;
         }
       }
     } catch (e) {}
 
-    // 2. If target is Portuguese and key is in Portuguese, return defaultValue or key
-    if (!translated && isPortuguese) {
-      translated = defaultValue || keyOrPhrase;
+    // 2. Try direct lookup in localesMap bundles by keyOrPhrase
+    if (!translated) {
+      const bundle = localesMap[currentLang] || localesMap[cleanLang] || localesMap['en-US'];
+      if (bundle && bundle[keyOrPhrase] && typeof bundle[keyOrPhrase] === 'string') {
+        translated = bundle[keyOrPhrase];
+      }
     }
 
     // 3. Try lookup in runtime dictionary with full normalization and emoji handling
@@ -190,18 +206,33 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
                    (defaultValue ? lookupRuntimeTranslation(defaultValue, currentLang) : null);
     }
 
-    // 4. Try direct lookup in localesMap bundles
-    if (!translated) {
+    // 4. Try sub-key if keyOrPhrase has dot notation
+    if (!translated && keyOrPhrase.includes('.')) {
+      const parts = keyOrPhrase.split('.');
+      const subKey = parts[parts.length - 1];
       const bundle = localesMap[currentLang] || localesMap[cleanLang] || localesMap['en-US'];
-      if (bundle && bundle[keyOrPhrase] && typeof bundle[keyOrPhrase] === 'string') {
-        translated = bundle[keyOrPhrase];
+      if (bundle && bundle[subKey] && typeof bundle[subKey] === 'string') {
+        translated = bundle[subKey];
+      } else {
+        translated = lookupRuntimeTranslation(subKey, currentLang);
       }
     }
 
-    // 5. Final fallback
+    // 5. If not Portuguese and still missing, check English translation fallback for the phrase
+    if (!translated && cleanLang !== 'en') {
+      const enBundle = localesMap['en-US'] || localesMap['en'];
+      if (enBundle && enBundle[keyOrPhrase] && typeof enBundle[keyOrPhrase] === 'string') {
+        translated = enBundle[keyOrPhrase];
+      } else {
+        translated = lookupRuntimeTranslation(keyOrPhrase, 'en-US') ||
+                     (defaultValue ? lookupRuntimeTranslation(defaultValue, 'en-US') : null);
+      }
+    }
+
+    // 6. Final fallback
     let finalStr = translated || defaultValue || keyOrPhrase;
 
-    // 6. Parameter interpolation
+    // 7. Parameter interpolation
     if (interpolationParams && typeof interpolationParams === 'object') {
       for (const [pKey, pVal] of Object.entries(interpolationParams)) {
         finalStr = finalStr.replace(new RegExp(`{{\\s*${pKey}\\s*}}`, 'g'), String(pVal))

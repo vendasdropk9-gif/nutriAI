@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
   GoogleAuthProvider, 
+  FacebookAuthProvider,
   signInWithPopup, 
   signInWithRedirect, 
   signInWithEmailAndPassword, 
@@ -36,6 +37,7 @@ import { safeGet, safeSet } from './storage';
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const facebookProvider = new FacebookAuthProvider();
 
 // Provisioned named Cloud Firestore Database
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -64,6 +66,34 @@ export const signInWithGoogle = async () => {
     }
   } catch (error) {
     console.error("Error signing in with Google", error);
+    throw error;
+  }
+};
+
+export const signInWithFacebook = async () => {
+  try {
+    const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = typeof window !== 'undefined' && window !== window.parent;
+
+    if ((isStandalone || isMobile) && !isIframe) {
+      await signInWithRedirect(auth, facebookProvider);
+      return null;
+    } else {
+      try {
+        const result = await signInWithPopup(auth, facebookProvider);
+        return result.user;
+      } catch (popupErr: any) {
+        if (popupErr?.code === 'auth/popup-blocked' || (popupErr?.code === 'auth/popup-closed-by-user' && isMobile)) {
+          console.warn("Popup blocked or closed on mobile, falling back to signInWithRedirect...");
+          await signInWithRedirect(auth, facebookProvider);
+          return null;
+        }
+        throw popupErr;
+      }
+    }
+  } catch (error) {
+    console.error("Error signing in with Facebook", error);
     throw error;
   }
 };

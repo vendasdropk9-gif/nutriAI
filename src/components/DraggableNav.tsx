@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { 
   Utensils, CalendarDays, ShoppingBasket, User, Camera, 
   Sparkles, GlassWater, Barcode, Brain, Trophy, Droplet, 

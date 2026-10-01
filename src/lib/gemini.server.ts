@@ -1224,6 +1224,22 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
           "gemini-3.8-flash"
         ];
 
+        let spokenText = cleanText;
+        if (!isPt && (/[áéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]/.test(cleanText) || /\b(como|você|voce|seu|sua|jantar|almoço|almoco|prato|refeição|refeicao|dica|meta|para|com|não|nao|uma|um|mais|menos|saudável|saudavel|hoje)\b/i.test(cleanText))) {
+          try {
+            const trResp = await ai.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: `Translate the following Portuguese text into natural, spoken ${language}. Return ONLY the direct translation, nothing else, no markdown, no quotes:\n\n${cleanText}`,
+            });
+            const transResult = (trResp.text || '').replace(/^["']|["']$/g, '').trim();
+            if (transResult && transResult.length > 3) {
+              spokenText = transResult;
+            }
+          } catch (trErr) {
+            // fallback to original cleanText
+          }
+        }
+
         for (const model of modelsToTry) {
           const maxRetries = 2;
           for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -1236,7 +1252,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
 
               const response = await ai.models.generateContent({
                 model,
-                contents: [{ parts: [{ text: cleanText }] }],
+                contents: [{ parts: [{ text: spokenText }] }],
                 config: {
                   responseModalities: [Modality.AUDIO],
                   speechConfig: {

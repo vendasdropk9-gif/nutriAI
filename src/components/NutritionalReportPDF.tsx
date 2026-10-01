@@ -190,19 +190,19 @@ export function NutritionalReportPDF({ profile, isOpen = true, onClose }: Nutrit
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+      <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-700 pb-4 gap-4 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full min-w-0">
+          <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 w-12 h-12 flex items-center justify-center">
             <FileText className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <span>Exportar Relatório Nutricional em PDF</span>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+          <div className="min-w-0 w-full">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-slate-100 flex flex-wrap items-center gap-2">
+              Exportar Relatório Nutricional em PDF
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold whitespace-nowrap shrink-0">
                 Para Médicos / Nutricionistas
               </span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Gere um documento PDF completo e formatado para apresentar na sua próxima consulta de saúde.
             </p>
           </div>
@@ -256,16 +256,16 @@ export function NutritionalReportPDF({ profile, isOpen = true, onClose }: Nutrit
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2">
-        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          <span>Formato A4 pronto para impressão física ou envio por e-mail/WhatsApp.</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 w-full">
+        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 min-w-0">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className="truncate">Formato A4 pronto para impressão física ou envio por e-mail/WhatsApp.</span>
         </span>
 
         <button
           onClick={generatePDF}
           disabled={isGenerating}
-          className="px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
+          className="px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 w-full sm:w-auto text-center shrink-0"
         >
           <Download className={`w-4 h-4 ${isGenerating ? 'animate-bounce' : ''}`} />
           <span>{isGenerating ? 'Gerando PDF...' : 'Baixar Relatório PDF'}</span>

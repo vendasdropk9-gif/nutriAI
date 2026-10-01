@@ -299,69 +299,15 @@ export default defineConfig(({mode}) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
-        'react': path.resolve(__dirname, 'node_modules/react'),
-        'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        '@': path.resolve(__dirname, 'src'),
       },
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
     },
     build: {
       target: 'esnext',
       sourcemap: false,
       minify: false,
       chunkSizeWarningLimit: 5000,
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (!id.includes('node_modules')) return;
-
-            // 1. Bibliotecas de animação (motion / framer-motion)
-            if (/[\\/]node_modules[\\/](motion|framer-motion)[\\/]/.test(id)) {
-              return 'vendor-motion';
-            }
-
-            // 2. Biblioteca de ícones (lucide-react)
-            if (/[\\/]node_modules[\\/]lucide-react[\\/]/.test(id)) {
-              return 'vendor-lucide';
-            }
-
-            // 3. Renderização 3D e canvas (three / @react-three)
-            if (/[\\/]node_modules[\\/](three|@react-three)[\\/]/.test(id)) {
-              return 'vendor-three';
-            }
-
-            // 4. Gráficos analíticos (recharts / d3)
-            if (/[\\/]node_modules[\\/](recharts|d3-[a-z0-9-]+|victory-vendor)[\\/]/.test(id)) {
-              return 'vendor-charts';
-            }
-
-            // 5. Mapas e geolocalização (leaflet / react-leaflet)
-            if (/[\\/]node_modules[\\/](leaflet|react-leaflet)[\\/]/.test(id)) {
-              return 'vendor-maps';
-            }
-
-            // 6. Firebase e autenticação/banco
-            if (/[\\/]node_modules[\\/](@firebase|firebase)[\\/]/.test(id)) {
-              return 'vendor-firebase';
-            }
-
-            // 7. Supabase client
-            if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id)) {
-              return 'vendor-supabase';
-            }
-
-            // 8. Utilitários de exportação (jspdf, html-to-image)
-            if (/[\\/]node_modules[\\/](jspdf|html-to-image|pdf-parse-new)[\\/]/.test(id)) {
-              return 'vendor-pdf';
-            }
-
-            // 9. React Core e runtime
-            if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) {
-              return 'vendor-react';
-            }
-          },
-        },
-      },
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

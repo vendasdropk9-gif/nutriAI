@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { safeGet, safeSet } from "../lib/storage";
 import { playSfx } from '../lib/sensory';
-import { signInWithGoogle, auth, db } from '../lib/firebase';
+import { signInWithGoogle, signInWithFacebook, auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   signInWithEmailAndPassword, 
@@ -313,6 +313,37 @@ export function Login() {
         setError('O login do Google pode ser bloqueado dentro de iFrames. Recomendamos abrir o app em uma nova janela.');
       } else {
         setError(err?.message || 'Não foi possível entrar com a conta do Google. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Facebook Login
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithFacebook();
+      playSfx('success');
+    } catch (err: any) {
+      console.warn("Facebook login failed", err);
+      playSfx('scratch');
+      if (err.code === 'auth/unauthorized-domain' || err?.message?.includes('authorized for OAuth operations')) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio';
+        setError(`Domínio "${currentHost}" não autorizado no Firebase. Adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Login cancelado: A janela do Facebook foi fechada antes da autorização.');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setError('Já existe uma conta cadastrada com este e-mail por outro provedor. Entre com o Google ou e-mail.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('O login com Facebook não está ativado no Firebase Console. Acesse Authentication > Sign-in method > Facebook.');
+      } else if (window !== window.parent) {
+        setError('O login do Facebook pode ser bloqueado dentro de iFrames. Recomendamos abrir o app em uma nova janela.');
+      } else {
+        setError(err?.message || 'Não foi possível entrar com a conta do Facebook. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -679,8 +710,8 @@ export function Login() {
               <div className="mt-6 space-y-4">
                 <div className="relative flex items-center justify-center">
                   <div className="absolute inset-0 border-t border-[#232C39]" />
-                  <span className="relative bg-[#151B23] px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Ou acesse com
+                  <span className="relative bg-[#151B23] px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">
+                    {view === 'register' ? 'Ou cadastre-se com' : 'Ou acesse com'}
                   </span>
                 </div>
 
@@ -698,6 +729,19 @@ export function Login() {
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
                   <span>Continuar com o Google</span>
+                </button>
+
+                {/* Facebook Sign-In Button */}
+                <button
+                  type="button"
+                  onClick={handleFacebookLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#166FE5] border border-[#1877F2] text-white py-3.5 px-4 rounded-xl transition-all cursor-pointer font-semibold text-xs shadow-sm shadow-[#1877F2]/25 active:scale-[0.99] disabled:opacity-50"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                  <span>Continuar com o Facebook</span>
                 </button>
 
                 {/* View Switch Link */}

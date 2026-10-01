@@ -410,12 +410,12 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
         </div>
 
         {/* Sync Action Button */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center justify-center gap-2 w-full sm:w-auto self-center sm:self-auto shrink-0">
           <button
             type="button"
             onClick={handleManualSync}
             disabled={isSyncing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 disabled:opacity-50 shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 disabled:opacity-50 shadow-sm w-full sm:w-auto text-center"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-500' : ''}`} />
             <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
@@ -431,8 +431,8 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
             ? 'bg-gradient-to-br from-blue-50/60 to-emerald-50/40 dark:from-blue-950/20 dark:to-emerald-950/10 border-blue-200 dark:border-blue-900/60 shadow-sm'
             : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
         }`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+            <div className="flex items-center gap-3 w-full min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center p-2 shrink-0">
                 <svg viewBox="0 0 24 24" className="w-6 h-6">
                   <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.93V17h-2v-2.07c-2.83-.48-5-2.94-5-5.93 0-3.31 2.69-6 6-6s6 2.69 6 6c0 2.99-2.17 5.45-5 5.93z" />
@@ -441,16 +441,16 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
                   <path fill="#EA4335" d="M12 17.5c-2.49 0-4.5-2.01-4.5-4.5 0-.41.06-.81.16-1.19L6.11 11.3C6.04 11.85 6 12.42 6 13c0 3.31 2.69 6 6 6 1.48 0 2.84-.54 3.89-1.43l-1.39-1.39c-.68.52-1.55.82-2.5.82z" />
                 </svg>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 w-full">
+                <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">Google Fit</h4>
                   {config.googleFit?.connected && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full shrink-0">
                       <CheckCircle2 className="w-3 h-3" /> Conectado
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                   {config.googleFit?.connected 
                     ? (config.googleFit.accountEmail || 'Conta vinculada')
                     : 'Sincronizar passos e calorias via Google Account'}
@@ -461,7 +461,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
             <button
               type="button"
               onClick={handleToggleGoogleFit}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm w-full sm:w-auto flex items-center justify-center text-center shrink-0 ${
                 config.googleFit?.connected
                   ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40'
                   : 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-700'
@@ -492,21 +492,21 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
             ? 'bg-gradient-to-br from-rose-50/60 to-purple-50/40 dark:from-rose-950/20 dark:to-purple-950/10 border-rose-200 dark:border-rose-900/60 shadow-sm'
             : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
         }`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+            <div className="flex items-center gap-3 w-full min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center p-2 shrink-0">
                 <Heart className="w-6 h-6 text-rose-500 fill-rose-500/20" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 w-full">
+                <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">Apple Health</h4>
                   {config.appleHealth?.connected && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 px-2 py-0.5 rounded-full shrink-0">
                       <CheckCircle2 className="w-3 h-3" /> Conectado
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                   {config.appleHealth?.connected 
                     ? (config.appleHealth.deviceId || 'HealthKit Conectado')
                     : 'Sincronizar passos e anéis de atividade do Apple Watch / iPhone'}
@@ -517,7 +517,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
             <button
               type="button"
               onClick={handleToggleAppleHealth}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm w-full sm:w-auto flex items-center justify-center text-center shrink-0 ${
                 config.appleHealth?.connected
                   ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40'
                   : 'bg-slate-900 hover:bg-black dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 border border-slate-800 dark:border-slate-200'
@@ -661,7 +661,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
                 <Sliders className="w-3.5 h-3.5 text-emerald-500" />
                 Fator de Compensação Calórica:
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {[
                   { value: 0.25, label: '25% Agressivo', desc: 'Déficit calórico máximo' },
                   { value: 0.5, label: '50% Balanceado', desc: 'Recomendado para emagrecimento' },
@@ -671,14 +671,14 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
                     key={item.value}
                     type="button"
                     onClick={() => handleFactorChange(item.value)}
-                    className={`p-2.5 rounded-xl text-left border transition-all ${
+                    className={`p-2.5 rounded-xl text-center flex flex-col items-center justify-center border transition-all ${
                       factor === item.value
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                         : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
                     }`}
                   >
-                    <p className="text-xs font-bold">{item.label}</p>
-                    <p className={`text-[10px] line-clamp-1 ${factor === item.value ? 'text-emerald-100' : 'text-slate-400'}`}>
+                    <p className="text-xs font-bold text-center">{item.label}</p>
+                    <p className={`text-[10px] leading-snug mt-0.5 text-center ${factor === item.value ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-400'}`}>
                       {item.desc}
                     </p>
                   </button>
@@ -707,7 +707,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
                 type="button"
                 onClick={handleSpeakMaluExplanation}
                 disabled={isSpeaking}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 transition-colors shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 transition-colors w-full sm:w-auto text-center shrink-0"
               >
                 <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-pulse text-emerald-600' : ''}`} />
                 <span>Ouvir Chef Malu</span>
