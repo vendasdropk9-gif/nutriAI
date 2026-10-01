@@ -980,7 +980,7 @@ async function startServer() {
   });
 
   app.post("/api/tts", express.json(), async (req, res) => {
-    const { text, language } = req.body || {};
+    const { text, language, model, voiceName, emotion, style } = req.body || {};
     const reqLang = language || req.headers['x-app-language'] || 'pt-BR';
     const startTime = Date.now();
 
@@ -996,7 +996,7 @@ async function startServer() {
     }
 
     try {
-      const audio = await geminiServer.textToSpeech(text, String(reqLang));
+      const audio = await geminiServer.textToSpeech(text, String(reqLang), { model, voiceName, emotion, style });
       const durationMs = Date.now() - startTime;
 
       recordAiTelemetry({
@@ -1010,11 +1010,20 @@ async function startServer() {
       res.status(200).json({
         audio: audio || null,
         audioBase64: audio || null,
-        success: !!audio
+        success: !!audio,
+        metadata: {
+          model: model || 'gemini-3.8-flash-tts',
+          voiceId: voiceName || 'Aoede',
+          locale: String(reqLang),
+          audioFormat: 'audio/wav',
+          sampleRate: 24000,
+          ttsLatency: durationMs,
+          fallbackUsed: false
+        }
       });
     } catch (e: any) {
       const durationMs = Date.now() - startTime;
-      console.info("[TTS Route] Fallback active:", e?.message || e);
+      console.info("[TTS Route] Error:", e?.message || e);
 
       recordAiTelemetry({
         functionName: "textToSpeech",
@@ -1024,7 +1033,21 @@ async function startServer() {
         type: "tts"
       });
 
-      res.status(200).json({ audio: null, audioBase64: null, error: e?.message, success: false });
+      res.status(200).json({ 
+        audio: null, 
+        audioBase64: null, 
+        error: e?.message, 
+        success: false,
+        metadata: {
+          model: model || 'gemini-3.8-flash-tts',
+          voiceId: voiceName || 'Aoede',
+          locale: String(reqLang),
+          audioFormat: 'audio/wav',
+          sampleRate: 24000,
+          ttsLatency: durationMs,
+          fallbackUsed: true
+        }
+      });
     }
   });
 

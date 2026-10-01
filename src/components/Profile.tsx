@@ -47,6 +47,22 @@ const PRESET_AVATARS = [
   { id: 'modern', label: 'Estilo & Foco', url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=300&h=300' }
 ];
 
+export const AVATAR_OPTIONS = [
+  { id: 'athletic-01', name: 'Athena Fit Pro', gender: 'Feminino', category: 'Atlético', description: 'Alta Performance & Definição Atlética' },
+  { id: 'fitness-02', name: 'Titan Iron', gender: 'Masculino', category: 'Hipertrofia', description: 'Hipertrofia & Força Máxima' },
+  { id: 'athletic-02', name: 'Valkyrie Prime', gender: 'Feminino', category: 'Cross-Training', description: 'Força Funcional & HIIT' },
+  { id: 'runner-01', name: 'Marcus Runner', gender: 'Masculino', category: 'Endurance', description: 'Cardio, Agilidade & Corrida' },
+  { id: 'cyberfit-01', name: 'CyberFit Biomechanic', gender: 'Unissex', category: 'Futurista', description: 'Scanner Anatômico em Tempo Real' },
+  { id: 'wellness-01', name: 'Maya ZenFlow', gender: 'Feminino', category: 'Wellness', description: 'Yoga, Mobilidade & Equilíbrio' },
+  { id: 'athena-fit-pro', name: 'Athena Fit Pro (Elite)', gender: 'Feminino', category: 'Pro 3D', description: 'Modelo 3D Quantizado DRACO' },
+  { id: 'titan-iron', name: 'Titan Iron (Elite)', gender: 'Masculino', category: 'Pro 3D', description: 'Modelo 3D Quantizado DRACO' },
+  { id: 'valkyrie-cross', name: 'Valkyrie Cross (Elite)', gender: 'Feminino', category: 'Pro 3D', description: 'Modelo 3D Quantizado DRACO' },
+  { id: 'leo-mesomorph', name: 'Leo Mesomorph', gender: 'Masculino', category: 'Atlético', description: 'Proporções Clássicas de Hipertrofia' },
+  { id: 'elena-wellness', name: 'Elena Vitality', gender: 'Feminino', category: 'Tonificação', description: 'Tonificação & Saúde Integral' },
+  { id: 'male-athletic-01', name: 'Treinador Masculino Padrão', gender: 'Masculino', category: 'Padrão', description: 'Instrutor de Calistenia & Força' },
+  { id: 'female-athletic-01', name: 'Treinadora Feminina Padrão', gender: 'Feminino', category: 'Padrão', description: 'Instrutora de Mobilidade & Força' },
+];
+
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const { logoutLocally } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +115,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     phone: profile?.phone || '',
     birthDate: profile?.birthDate || '',
     gender: profile?.gender || '',
+    avatarId: profile?.avatarId || 'athletic-01',
     age: profile?.age?.toString() || '',
     weight: profile?.weight?.toString() || '',
     targetWeight: profile?.targetWeight?.toString() || '',
@@ -128,6 +145,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         phone: profile.phone || prev.phone || '',
         birthDate: profile.birthDate || prev.birthDate || '',
         gender: profile.gender || prev.gender || '',
+        avatarId: profile.avatarId || prev.avatarId || 'athletic-01',
         age: profile.age !== undefined && profile.age !== null ? profile.age.toString() : prev.age,
         weight: profile.weight !== undefined && profile.weight !== null ? profile.weight.toString() : prev.weight,
         targetWeight: profile.targetWeight !== undefined && profile.targetWeight !== null ? profile.targetWeight.toString() : prev.targetWeight,
@@ -598,6 +616,27 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     showInAppToast('Foto Atualizada!', 'Link da foto salvo no perfil com sucesso.');
   };
 
+  const handleSelectAvatarId = (selectedId: string) => {
+    setFormData(prev => ({ ...prev, avatarId: selectedId }));
+    const avatarInfo = AVATAR_OPTIONS.find(a => a.id === selectedId);
+    const updatedProfile: UserProfile = {
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      ...(profile || {}),
+      name: formData.name || profile?.name || 'Usuário NutriAI',
+      avatarId: selectedId,
+      avatarName: avatarInfo?.name || selectedId,
+    };
+    onSaveProfile(updatedProfile);
+    safeSet('nutri-profile', JSON.stringify(updatedProfile));
+
+    playSfx('success');
+    vibrate([30, 40]);
+    showInAppToast('AvatarID Selecionado!', `Avatar '${selectedId}' (${avatarInfo?.name || ''}) salvo no Firebase e ativado para treinos!`);
+  };
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsSaved(false);
@@ -614,6 +653,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       phone: formData.phone.trim() || undefined,
       birthDate: formData.birthDate || undefined,
       gender: formData.gender || undefined,
+      avatarId: formData.avatarId || profile?.avatarId || 'athletic-01',
       age: formData.age ? Number(formData.age) : undefined,
       weight: formData.weight ? Number(formData.weight) : undefined,
       targetWeight: formData.targetWeight ? Number(formData.targetWeight) : undefined,
@@ -789,6 +829,73 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 Formatos aceitos: JPG, PNG, WEBP. A foto é ajustada e sincronizada instantaneamente.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Escolha de AvatarID Preferido (Simulador de Exercícios) */}
+        <div className="w-full bg-slate-900/90 dark:bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-emerald-500/30 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-emerald-400" />
+                AvatarID Preferido (Simulador de Treino)
+              </h3>
+              <p className="text-xs text-slate-300 font-sans mt-0.5">
+                Escolha o AvatarID para ser utilizado na execução dos treinos. Salvo e sincronizado no Firebase.
+              </p>
+            </div>
+            <div className="shrink-0 bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase text-emerald-300">AvatarID Ativo:</span>
+              <span className="text-xs font-black font-mono text-emerald-400">{formData.avatarId || 'athletic-01'}</span>
+            </div>
+          </div>
+
+          {/* Seletor Dropdown */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              Selecione seu AvatarID Preferido
+            </label>
+            <select
+              value={formData.avatarId}
+              onChange={(e) => handleSelectAvatarId(e.target.value)}
+              className="w-full p-3.5 bg-slate-950 border border-emerald-500/40 rounded-xl text-xs font-medium text-white outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+            >
+              {AVATAR_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.id} — {opt.name} ({opt.gender} • {opt.category})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Grid Interativo de Avatares */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-2">
+            {AVATAR_OPTIONS.map((opt) => {
+              const isSelected = formData.avatarId === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleSelectAvatarId(opt.id)}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                    isSelected
+                      ? 'bg-gradient-to-br from-emerald-950/80 to-teal-950/80 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/50'
+                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-md ${isSelected ? 'bg-emerald-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-300'}`}>
+                      {opt.id}
+                    </span>
+                    {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white truncate">{opt.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{opt.gender} • {opt.category}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -2,11 +2,12 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart } from 'lucide-react';
+import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
 import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
 import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
+import { WorkoutSummaryReportModal } from './WorkoutSummaryReportModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import avatarMaleSquat from '../assets/images/avatar_male_squat_1790881954417.jpg';
 import avatarFemaleSquat from '../assets/images/avatar_female_squat_1790881967238.jpg';
@@ -201,10 +202,26 @@ function createFullExercise3D(name: string, quantity: { reps?: number; duration?
 
 export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: PersonalTrainerProps) {
   const getRealisticAvatarImage = () => {
+    const avatarId = profile?.avatarId?.toLowerCase() || '';
     const gender = profile?.gender?.toLowerCase() || 'female';
     const name = currentExercise?.name?.toLowerCase() || '';
 
-    if (gender === 'male') {
+    const isMaleAvatar = avatarId.includes('male') || avatarId.includes('titan') || avatarId.includes('marcus') || avatarId.includes('leo') || avatarId === 'fitness-02';
+    const isFemaleAvatar = avatarId.includes('female') || avatarId.includes('athena') || avatarId.includes('valkyrie') || avatarId.includes('maya') || avatarId.includes('elena') || avatarId === 'athletic-01';
+
+    const effectiveGender = isMaleAvatar ? 'male' : isFemaleAvatar ? 'female' : (gender === 'male' ? 'male' : 'female');
+
+    if (effectiveGender === 'male') {
+      if (cameraView === 'side') {
+        if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) return avatarMalePlank;
+        if (name.includes('agach') || name.includes('perna') || name.includes('afundo')) return avatarMaleSquat;
+        return avatarMaleCurl;
+      }
+      if (cameraView === 'detail') {
+        if (name.includes('agach') || name.includes('perna')) return avatarMaleSquat;
+        return avatarMaleCurl;
+      }
+      // front view
       if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
         return avatarMaleSquat;
       }
@@ -213,6 +230,16 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       }
       return avatarMaleCurl;
     } else {
+      if (cameraView === 'side') {
+        if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) return avatarFemalePlank;
+        if (name.includes('agach') || name.includes('perna') || name.includes('afundo')) return avatarFemaleSquat;
+        return avatarFemaleCurl;
+      }
+      if (cameraView === 'detail') {
+        if (name.includes('agach') || name.includes('perna')) return avatarFemaleSquat;
+        return avatarFemaleCurl;
+      }
+      // front view
       if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
         return avatarFemaleSquat;
       }
@@ -226,21 +253,22 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const getCameraViewStyle = () => {
     if (cameraView === 'side') {
       return {
-        transform: 'perspective(1000px) rotateY(25deg) scale(0.95)',
-        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-        filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.4))'
+        transform: 'perspective(1000px) rotateY(-32deg) rotateX(3deg) scale(0.98) translateX(18px)',
+        transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'drop-shadow(-15px 20px 28px rgba(0,0,0,0.6)) contrast(1.08)'
       };
     }
     if (cameraView === 'detail') {
       return {
-        transform: 'scale(1.3) translateY(-6%)',
-        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-        filter: 'contrast(1.1) saturate(1.15) drop-shadow(0 0 35px rgba(16,185,129,0.4))'
+        transform: 'scale(1.52) translateY(-10%)',
+        transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'contrast(1.18) saturate(1.2) drop-shadow(0 0 45px rgba(16,185,129,0.55))'
       };
     }
     return {
-      transform: 'none',
-      transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+      transform: 'scale(1) rotateY(0deg) translate(0)',
+      transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
+      filter: 'drop-shadow(0 0 35px rgba(59,130,246,0.35))'
     };
   };
 
@@ -278,6 +306,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [isSpeakingTips, setIsSpeakingTips] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   
   // Background Music State
   const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
@@ -706,18 +735,28 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 </p>
               </div>
 
-              <button
-                onClick={handleGenerateWeeklyPlan}
-                disabled={isGeneratingWeekly}
-                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white dark:text-slate-950 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all disabled:opacity-50 active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                {isGeneratingWeekly ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                Regerar com IA
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto shrink-0">
+                <button
+                  onClick={() => setIsSummaryModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <FileText className="w-4 h-4" />
+                  Resumo Semanal (PDF / Card)
+                </button>
+
+                <button
+                  onClick={handleGenerateWeeklyPlan}
+                  disabled={isGeneratingWeekly}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all disabled:opacity-50 active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  {isGeneratingWeekly ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                  )}
+                  Regerar com IA
+                </button>
+              </div>
             </div>
 
             {/* Structured Insights Cards Grid */}
@@ -887,12 +926,21 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   <p className="text-2xl md:text-3xl font-bold font-serif">+150</p>
                </div>
             </div>
-            <button
-               onClick={() => setWorkout(null)}
-               className="w-full py-4 md:py-5 clay-btn px-6 py-3 font-bold text-base md:text-lg shadow-xl active:scale-95"
-            >
-               Voltar ao Menu
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                 onClick={() => setIsSummaryModalOpen(true)}
+                 className="flex-1 py-4 md:py-5 bg-white/20 hover:bg-white/30 text-white rounded-2xl font-bold text-sm md:text-base transition-all flex items-center justify-center gap-2 active:scale-95 border border-white/20"
+              >
+                 <FileText className="w-5 h-5" />
+                 Gerar Card / PDF Semanal
+              </button>
+              <button
+                 onClick={() => setWorkout(null)}
+                 className="flex-1 py-4 md:py-5 clay-btn px-6 py-3 font-bold text-base md:text-lg shadow-xl active:scale-95"
+              >
+                 Voltar ao Menu
+              </button>
+            </div>
         </motion.div>
       ) : (
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start justify-center">
@@ -970,10 +1018,14 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
               {/* Avatar Mode & Viewpoint Controls */}
               <div className="absolute top-6 left-6 md:top-8 md:left-8 flex flex-col gap-2 z-10">
-                {/* Mode indicator (Realista) */}
-                <div className="flex items-center gap-1 p-1 bg-slate-950/80 backdrop-blur-md rounded-full border border-emerald-500/30">
+                {/* Mode indicator (Realista) & AvatarID badge */}
+                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-emerald-500/30">
                   <span className="px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md">
                     Realista
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 flex items-center gap-1">
+                    <Cpu className="w-3 h-3 text-emerald-400" />
+                    <span>Avatar: <strong className="font-mono text-white">{profile?.avatarId || 'athletic-01'}</strong></span>
                   </span>
                 </div>
 
@@ -981,11 +1033,15 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   {(['front', 'side', 'detail'] as const).map(v => (
                     <button
                       key={v}
-                      onClick={() => setCameraView(v)}
-                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all ${
+                      onClick={() => {
+                        playSfx('tap');
+                        vibrate(12);
+                        setCameraView(v);
+                      }}
+                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all cursor-pointer ${
                         cameraView === v 
-                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' 
-                        : 'bg-white/10 text-white border-white/20 active:bg-white/30'
+                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30 scale-105' 
+                        : 'bg-slate-900/80 text-slate-300 border-white/10 hover:bg-white/20 active:scale-95'
                       }`}
                     >
                       {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
@@ -1326,6 +1382,13 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Weekly Workout Summary Report Modal (Card Compartilhável & PDF) */}
+      <WorkoutSummaryReportModal 
+        profile={profile}
+        isOpen={isSummaryModalOpen}
+        onClose={() => setIsSummaryModalOpen(false)}
+      />
     </div>
   );
 }

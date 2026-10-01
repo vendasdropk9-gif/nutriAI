@@ -114,32 +114,29 @@ export const generateQuickDishes = async (
 
 import { safeGet, safeSet } from './storage';
 
-export const textToSpeech = async (text: string, language?: string): Promise<string | null> => {
+export interface TtsOptions {
+  model?: string;
+  voiceName?: string;
+  emotion?: string;
+  style?: string;
+}
+
+export const textToSpeech = async (text: string, language?: string, options?: TtsOptions): Promise<string | null> => {
   if (!text || !text.trim()) return null;
   const currentLang = language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
   const cleanKey = text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 40);
-  const cacheKey = `tts_v4_${currentLang}_${cleanKey}`;
+  const cacheKey = `tts_v5_${currentLang}_${options?.voiceName || 'Aoede'}_${cleanKey}`;
   
-  try {
-    const cached = safeGet(cacheKey);
-    if (cached) return cached;
-  } catch (e) {
-    // ignore local storage errors
-  }
-
-  // 1. Try /api/gemini proxy
-  try {
-    const res = await callGeminiEndpoint('textToSpeech', [text, currentLang]);
-    const audioData = typeof res === 'string' ? res : res?.audio || null;
-    if (audioData) {
-      safeSet(cacheKey, audioData);
-      return audioData;
+  if (!options) {
+    try {
+      const cached = safeGet(cacheKey);
+      if (cached) return cached;
+    } catch (e) {
+      // ignore local storage errors
     }
-  } catch (error) {
-    console.warn("TTS backend errored, trying /api/tts fallback:", error);
   }
 
-  // 2. Direct fallback to /api/tts endpoint
+  // 1. Try /api/tts endpoint directly
   try {
     const response = await fetch('/api/tts', {
       method: 'POST',
@@ -147,18 +144,37 @@ export const textToSpeech = async (text: string, language?: string): Promise<str
         'Content-Type': 'application/json',
         'x-app-language': currentLang
       },
-      body: JSON.stringify({ text, language: currentLang }),
+      body: JSON.stringify({ 
+        text, 
+        language: currentLang,
+        model: options?.model,
+        voiceName: options?.voiceName,
+        emotion: options?.emotion,
+        style: options?.style
+      }),
     });
     if (response.ok) {
       const data = await response.json();
       const audioData = typeof data === 'string' ? data : data?.audio || null;
       if (audioData) {
-        safeSet(cacheKey, audioData);
+        if (!options) safeSet(cacheKey, audioData);
         return audioData;
       }
     }
   } catch (e) {
     console.warn("Direct /api/tts failed:", e);
+  }
+
+  // 2. Try /api/gemini proxy fallback
+  try {
+    const res = await callGeminiEndpoint('textToSpeech', [text, currentLang, options]);
+    const audioData = typeof res === 'string' ? res : res?.audio || null;
+    if (audioData) {
+      if (!options) safeSet(cacheKey, audioData);
+      return audioData;
+    }
+  } catch (error) {
+    console.warn("TTS backend errored:", error);
   }
 
   return null;

@@ -1178,18 +1178,23 @@ const getElevenLabsTTS = async (rawText: string): Promise<string | null> => {
 
 const ttsServerCache = new Map<string, string>();
 
-export const textToSpeech = async (text: string, language: string = 'pt-BR'): Promise<string | null> => {
+export const textToSpeech = async (
+  text: string, 
+  language: string = 'pt-BR',
+  options?: { model?: string; voiceName?: string; emotion?: string; style?: string }
+): Promise<string | null> => {
   const normalized = (text || '').trim().toLowerCase();
   const fs = await import('fs');
   const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+  const targetVoiceName = options?.voiceName || 'Aoede';
 
-  const cacheKey = `${language || 'pt-BR'}_${normalized.replace(/[^a-zA-Z0-9]/g, '').substring(0, 100)}`;
+  const cacheKey = `v5_${language || 'pt-BR'}_${targetVoiceName}_${options?.model || 'default'}_${normalized.replace(/[^a-zA-Z0-9]/g, '').substring(0, 100)}`;
   if (ttsServerCache.has(cacheKey)) {
     return ttsServerCache.get(cacheKey)!;
   }
   
-  // Resposta instantânea pré-renderizada com a autêntica voz da Malu (apenas quando for exclusivamente o áudio de marca "Nutri AI")
-  if (isPt && (normalized === 'nutri ai' || normalized === 'nutriai')) {
+  // Resposta instantânea pré-renderizada com a autêntica voz da Malu (apenas para áudio exclusivo de marca "Nutri AI")
+  if (isPt && targetVoiceName === 'Aoede' && (normalized === 'nutri ai' || normalized === 'nutriai')) {
     try {
       const p = './public/audio/nutri_ai_malu.wav';
       if (fs.existsSync(p)) {
@@ -1201,7 +1206,7 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
     } catch (e) {}
   }
 
-  // 1. Synthesize with Gemini Aoede voice (gemini-3.1-flash-tts-preview / Live Aoede)
+  // Synthesize with Gemini TTS (gemini-3.8-flash-tts / gemini-3.8-flash-lite-tts)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {
@@ -1219,17 +1224,19 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
           httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
         });
         
+        const preferredModel = options?.model || "gemini-3.8-flash-tts";
         const modelsToTry = [
-          "gemini-3.1-flash-tts-preview",
+          preferredModel,
+          "gemini-3.8-flash-lite-tts",
           "gemini-3.8-flash"
-        ];
+        ].filter((v, i, a) => a.indexOf(v) === i);
 
         let spokenText = cleanText;
         if (!isPt && (/[áéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]/.test(cleanText) || /\b(como|você|voce|seu|sua|jantar|almoço|almoco|prato|refeição|refeicao|dica|meta|para|com|não|nao|uma|um|mais|menos|saudável|saudavel|hoje)\b/i.test(cleanText))) {
           try {
             const trResp = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
-              contents: `Translate the following Portuguese text into natural, spoken ${language}. Return ONLY the direct translation, nothing else, no markdown, no quotes:\n\n${cleanText}`,
+              model: "gemini-3.8-flash",
+              contents: `Translate the following text into natural, spoken ${language}. Return ONLY the direct translation, nothing else, no markdown, no quotes:\n\n${cleanText}`,
             });
             const transResult = (trResp.text || '').replace(/^["']|["']$/g, '').trim();
             if (transResult && transResult.length > 3) {
@@ -1240,24 +1247,59 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
           }
         }
 
+        // Prompt de Direção Vocal Malu (Director's Notes)
+        const emotionPrompt = options?.emotion ? `Emotion & Persona: ${options.emotion}.` : 'Persona: Warm, intelligent, confident, friendly and personal Brazilian female assistant.';
+        const customStyle = options?.style ? `Style Notes: ${options.style}.` : '';
+
+        const systemInstruction = `Audio Profile:
+You are Malu, a warm, intelligent and human female virtual assistant for NutriAI.
+
+Scene:
+You are speaking directly to a user in a modern nutrition, health and wellness application.
+The conversation should feel personal, calm, warm, articulate, and natural like a real person.
+
+Director's Notes:
+Speak naturally and conversationally like a real human friend and professional.
+Use a warm Brazilian female delivery when the locale is pt-BR.
+${emotionPrompt}
+${customStyle}
+Use natural sentence rhythm, gentle inflection, and expressive intonation.
+Use short natural pauses between ideas.
+Emphasize key words subtly according to meaning.
+Do not sound like a commercial announcer or voiceover narrator.
+Do not sound robotic, synthetic or overly formal.
+Do not read punctuation marks literally.
+Sound like a real person helping another person.
+
+Current language:
+${language}
+
+Always speak in the current application language (${language}).`;
+
         for (const model of modelsToTry) {
           const maxRetries = 2;
           for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
               if (attempt > 0) {
-                // Exponential backoff with small jitter for transient demand spikes
-                const delayMs = 300 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 150);
+                const delayMs = 250 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 100);
                 await new Promise(r => setTimeout(r, delayMs));
               }
 
               const response = await ai.models.generateContent({
                 model,
-                contents: [{ parts: [{ text: spokenText }] }],
+                contents: {
+                  parts: [
+                    {
+                      text: spokenText,
+                    },
+                  ],
+                },
                 config: {
+                  systemInstruction,
                   responseModalities: [Modality.AUDIO],
                   speechConfig: {
                     voiceConfig: {
-                      prebuiltVoiceConfig: { voiceName: 'Aoede' },
+                      prebuiltVoiceConfig: { voiceName: targetVoiceName },
                     },
                   },
                 },
@@ -1273,13 +1315,20 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
               }
 
               if (base64Audio) {
-                const pcmBuf = Buffer.from(base64Audio, 'base64');
-                // Minimum PCM size check (> 320 bytes is valid audio, avoids rejecting short phrases)
-                if (pcmBuf.length < 320) {
+                const rawBuf = Buffer.from(base64Audio, 'base64');
+                if (rawBuf.length < 200) {
                   continue;
                 }
-                const wavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
-                const b64 = wavBuf.toString('base64');
+
+                let finalWavBuf: Buffer;
+                // Check if buffer is already a complete RIFF/WAV file
+                if (rawBuf.slice(0, 4).toString('ascii') === 'RIFF') {
+                  finalWavBuf = rawBuf;
+                } else {
+                  finalWavBuf = wrapPcmInWavBuffer(base64Audio, 24000);
+                }
+
+                const b64 = finalWavBuf.toString('base64');
                 const dataUrl = `data:audio/wav;base64,${b64}`;
                 ttsServerCache.set(cacheKey, dataUrl);
                 return dataUrl;
@@ -1298,40 +1347,28 @@ export const textToSpeech = async (text: string, language: string = 'pt-BR'): Pr
                 msg.includes('504');
 
               if (isTransient) {
-                // If retries remain, attempt retry on temporary high demand
                 if (attempt < maxRetries) {
                   continue;
                 }
-                console.info(`[TTS Engine] Model ${model} is experiencing temporary high demand (503/429). Falling back to Live Aoede...`);
+                console.info(`[TTS Engine] Model ${model} transient limit reached. Trying next model...`);
               } else {
-                console.warn(`[TTS Engine] Non-transient error with model ${model}:`, msg);
+                console.warn(`[TTS Engine] Error with model ${model}:`, msg);
                 break;
               }
             }
           }
         }
 
-        // 2. Fallback to Live API Aoede
+        // Fallback to Live API Aoede if unary TTS had transient issues
         const liveAudio = await synthesizeLiveAoede(cleanText, apiKey, language);
         if (liveAudio) {
           ttsServerCache.set(cacheKey, liveAudio);
           return liveAudio;
         }
       } catch (error: any) {
-        // Handled silently
+        console.warn("[TTS Engine] Pipeline error:", error?.message || error);
       }
     }
-  }
-
-  // 3. Fallback to ElevenLabs if configured and permitted
-  try {
-    const elevenAudio = await getElevenLabsTTS(text);
-    if (elevenAudio) {
-      ttsServerCache.set(cacheKey, elevenAudio);
-      return elevenAudio;
-    }
-  } catch (e) {
-    // Handled silently
   }
 
   return null;

@@ -8,6 +8,10 @@ export interface SpeechOptions {
   rate?: number;
   pitch?: number;
   volume?: number;
+  allowBrowserFallback?: boolean;
+  model?: string;
+  emotion?: string;
+  style?: string;
   onEnded?: () => void;
   onError?: (error: any) => void;
 }
@@ -129,7 +133,12 @@ export const speak = async (text: string, options?: SpeechOptions) => {
     } else {
       // For all full sentences, thank-you notes, greetings with names, recipes, advice:
       // Synthesize through high-fidelity Gemini Aoede engine so every sentence is read in full in the active language!
-      audioUrl = await textToSpeech(textToSpeak, activeLang);
+      audioUrl = await textToSpeech(textToSpeak, activeLang, {
+        model: options?.model,
+        voiceName: options?.voice || 'Aoede',
+        emotion: options?.emotion,
+        style: options?.style
+      });
     }
     
     // If another speech request arrived in the meantime, abort immediately
@@ -167,11 +176,16 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
 
       audio.onerror = (e) => {
-        console.warn("Audio element playback error, attempting localized browser fallback:", e);
+        console.warn("Audio element playback error with Gemini TTS:", e);
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+        if (options?.allowBrowserFallback) {
+          return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+        }
+        options?.onError?.(e);
+        options?.onEnded?.();
+        return { method: 'none' as const };
       };
       
       try {
@@ -182,16 +196,28 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+        if (options?.allowBrowserFallback) {
+          return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+        }
+        options?.onEnded?.();
+        return { method: 'none' as const };
       }
     } else {
-      // Backend returned null - try localized browser fallback in active language
-      return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+      // Backend returned null - check if browser fallback is explicitly requested
+      if (options?.allowBrowserFallback) {
+        return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+      }
+      options?.onEnded?.();
+      return { method: 'none' as const };
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
-    return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+    if (options?.allowBrowserFallback) {
+      return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
+    }
+    options?.onEnded?.();
+    return { method: 'none' as const };
   }
 };
 

@@ -8,8 +8,9 @@ import {
   BarChart3, Settings, ShieldAlert, ArrowUpRight, Flame,
   Archive, CloudUpload, RotateCcw, FolderArchive, ArrowDownToLine,
   CheckCircle, Play, CheckCheck, FileJson, Shield, AlertCircle,
-  Wrench, History, Trash2, ChevronDown, ChevronUp, CheckSquare
+  Wrench, History, Trash2, ChevronDown, ChevronUp, CheckSquare, Mic
 } from 'lucide-react';
+import { MaluVoiceTestView } from './MaluVoiceTestView';
 import { 
   checkDatabaseIntegrity, 
   getLatestDatabaseReport, 
@@ -52,7 +53,7 @@ interface AdminDashboardProps {
 export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) {
   const [report, setReport] = useState<DatabaseIntegrityReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance' | 'macros'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance' | 'macros' | 'malu_voice'>('overview');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'firestore' | 'supabase'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ok' | 'warning' | 'error' | 'missing'>('all');
@@ -620,6 +621,19 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
         >
           <Activity className="w-4 h-4 text-teal-400" />
           <span>Logs de Sistema</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
+
+        <button
+          onClick={() => { setActiveSubTab('malu_voice'); playSfx('tap'); }}
+          className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'malu_voice'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-md shadow-emerald-500/20 scale-105'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <Mic className="w-4 h-4 text-emerald-400" />
+          <span>Voz Malu & AI Studio</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
 
@@ -1804,6 +1818,13 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
       {activeSubTab === 'macros' && (
         <div className="animate-fade-in">
           <MacronutrientAnalyticsView />
+        </div>
+      )}
+
+      {/* Tab 8: Teste e Calibração Vocal Malu & AI Studio */}
+      {activeSubTab === 'malu_voice' && (
+        <div className="animate-fade-in">
+          <MaluVoiceTestView />
         </div>
       )}
 
