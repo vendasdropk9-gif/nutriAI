@@ -8,7 +8,7 @@ import {
   Scan, Cpu, ShieldCheck, Activity, X
 } from 'lucide-react';
 import { analyzePlate } from '../lib/gemini';
-import { speak } from '../lib/speech';
+import { speak, stopSpeech } from '../lib/speech';
 import { VoicePlayButton } from './VoicePlayButton';
 import { PlateAnalysisResult, UserProfile } from '../types';
 import { exportElementAsImage, downloadBlobUrl, copyBlobToClipboard, shareFileOrBlob } from '../lib/cardExport';
@@ -74,7 +74,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
       audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
-    window.speechSynthesis?.cancel();
+    stopSpeech();
     setIsPlaying(false);
   };
 

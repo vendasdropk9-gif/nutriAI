@@ -1,4 +1,3 @@
-
 import { textToSpeech } from './gemini';
 import { translateSpeechText } from './speechTranslator';
 
@@ -8,7 +7,6 @@ export interface SpeechOptions {
   rate?: number;
   pitch?: number;
   volume?: number;
-  allowBrowserFallback?: boolean;
   model?: string;
   emotion?: string;
   style?: string;
@@ -49,12 +47,40 @@ export const setVoiceVolume = (volume: number): void => {
   }
 };
 
+/**
+ * Automatically detects and resolves the active locale based on:
+ * 1. Explicitly requested lang parameter
+ * 2. Stored user language preference (localStorage / i18n)
+ * 3. Browser locale (navigator.language / navigator.languages)
+ * 4. Fallback default ('pt-BR')
+ */
+export const resolveAutoLocale = (requestedLang?: string): string => {
+  if (requestedLang && requestedLang.trim()) {
+    return requestedLang.trim();
+  }
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng');
+      if (saved && saved.trim()) {
+        return saved.trim();
+      }
+    } catch (e) {}
+  }
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+    if (navigator.language && navigator.language.trim()) {
+      return navigator.language.trim();
+    }
+    if (navigator.languages && navigator.languages.length > 0 && navigator.languages[0]) {
+      return navigator.languages[0].trim();
+    }
+  }
+  return 'pt-BR';
+};
+
 let activeAudio: HTMLAudioElement | null = null;
-let activeUtterance: SpeechSynthesisUtterance | null = null;
-let speechResumeInterval: any = null;
 let currentSpeechId = 0;
 
-// Pre-unlock audio on user click for iOS/Safari/Chrome autoplay restrictions
+// Pre-unlock HTML5 Audio on user click for iOS/Safari/Chrome autoplay restrictions
 export const unlockAudio = () => {
   try {
     if (typeof window !== 'undefined') {
@@ -65,11 +91,6 @@ export const unlockAudio = () => {
           ctx.resume();
         }
       }
-      if ('speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.resume();
-        } catch (e) {}
-      }
       const dummyAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
       dummyAudio.volume = 0.01;
       dummyAudio.play().then(() => {
@@ -79,28 +100,26 @@ export const unlockAudio = () => {
   } catch (e) {}
 };
 
+/**
+ * Instantly interrupts and stops any active speech or audio playback.
+ */
 export const stopSpeech = () => {
   currentSpeechId++;
-  if (speechResumeInterval) {
-    clearInterval(speechResumeInterval);
-    speechResumeInterval = null;
-  }
-  activeUtterance = null;
   if (activeAudio) {
     try {
       activeAudio.pause();
+      activeAudio.currentTime = 0;
       activeAudio.onended = null;
       activeAudio.onerror = null;
       activeAudio = null;
     } catch (e) {}
   }
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    try {
-      window.speechSynthesis.cancel();
-    } catch (e) {}
-  }
 };
 
+/**
+ * Centralized Voice Synthesis engine powered exclusively by gemini-3.8-flash-tts.
+ * Automatically resolves browser locale and synthesizes high-fidelity 24kHz audio.
+ */
 export const speak = async (text: string, options?: SpeechOptions) => {
   if (!text || !text.trim()) {
     options?.onEnded?.();
@@ -110,38 +129,37 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   const trimmedText = text.trim();
   const lower = trimmedText.toLowerCase();
 
-  // Active language resolution
-  const activeLang = options?.lang || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+  // Automatic Browser Locale Resolution
+  const activeLang = resolveAutoLocale(options?.lang);
   const isPt = activeLang.toLowerCase().startsWith('pt');
 
   // Translate text to target language if not Portuguese
   const textToSpeak = isPt ? trimmedText : (translateSpeechText(trimmedText, activeLang) || trimmedText);
 
-  // Stop any and all previous audio/speech instantly to prevent overlapping voices
+  // Stop any previous speech immediately for instant interruption
   stopSpeech();
 
   currentSpeechId++;
   const speechId = currentSpeechId;
 
   try {
-    // 0. Pre-cached authentic Malu (Aoede) recordings ONLY for exact standalone brand sound ("Nutri AI" only)
     let audioUrl: string | null = null;
     const cleanLower = lower.replace(/[!.,?]/g, '').trim();
 
+    // Standalone brand sound audio
     if (isPt && (cleanLower === 'nutri ai' || cleanLower === 'nutriai')) {
       audioUrl = '/audio/nutri_ai_malu.wav';
     } else {
-      // For all full sentences, thank-you notes, greetings with names, recipes, advice:
-      // Synthesize through high-fidelity Gemini Aoede engine so every sentence is read in full in the active language!
+      // Synthesize through centralized Gemini 3.8 TTS engine
       audioUrl = await textToSpeech(textToSpeak, activeLang, {
-        model: options?.model,
+        model: options?.model || 'gemini-3.8-flash-tts',
         voiceName: options?.voice || 'Aoede',
         emotion: options?.emotion,
         style: options?.style
       });
     }
     
-    // If another speech request arrived in the meantime, abort immediately
+    // Abort if another speech request arrived in the meantime
     if (speechId !== currentSpeechId) return { method: 'none' as const };
 
     if (audioUrl) {
@@ -176,16 +194,12 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
 
       audio.onerror = (e) => {
-        console.warn("Audio element playback error with Gemini TTS:", e);
+        console.warn("Gemini TTS audio playback error:", e);
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        if (options?.allowBrowserFallback) {
-          return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
-        }
         options?.onError?.(e);
         options?.onEnded?.();
-        return { method: 'none' as const };
       };
       
       try {
@@ -196,127 +210,19 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         if (activeAudio === audio) {
           activeAudio = null;
         }
-        if (options?.allowBrowserFallback) {
-          return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
-        }
+        options?.onError?.(playErr);
         options?.onEnded?.();
         return { method: 'none' as const };
       }
     } else {
-      // Backend returned null - check if browser fallback is explicitly requested
-      if (options?.allowBrowserFallback) {
-        return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
-      }
+      options?.onError?.("TTS generation failed");
       options?.onEnded?.();
       return { method: 'none' as const };
     }
   } catch (error) {
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
-    if (options?.allowBrowserFallback) {
-      return fallbackSpeak(textToSpeak, { ...options, lang: activeLang });
-    }
-    options?.onEnded?.();
-    return { method: 'none' as const };
-  }
-};
-
-export const fallbackSpeak = (text: string, options?: SpeechOptions) => {
-  const activeLang = options?.lang || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
-  const normLang = activeLang.toLowerCase().replace('_', '-');
-  const basePrefix = normLang.split('-')[0];
-
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    const voices = window.speechSynthesis.getVoices();
-    
-    // 1. Exact match with preferred female/natural voice for the selected language
-    let matchedVoice = voices.find(v => {
-      const vLang = v.lang.toLowerCase().replace('_', '-');
-      const vName = v.name.toLowerCase();
-      return (vLang === normLang) && (vName.includes('natural') || vName.includes('neural') || vName.includes('online') || vName.includes('female') || vName.includes('google') || vName.includes('siri') || vName.includes('maria') || vName.includes('samantha') || vName.includes('monica') || vName.includes('victoria'));
-    }) || voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(normLang));
-
-    // 2. Base prefix match (e.g., 'es', 'en', 'fr', 'de', 'it', 'zh', 'ja', 'ko', 'hi', 'ar', 'tr', 'pt')
-    if (!matchedVoice) {
-      matchedVoice = voices.find(v => {
-        const vLang = v.lang.toLowerCase().replace('_', '-');
-        const vName = v.name.toLowerCase();
-        return (vLang.startsWith(basePrefix)) && (vName.includes('natural') || vName.includes('neural') || vName.includes('online') || vName.includes('female') || vName.includes('google'));
-      }) || voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(basePrefix));
-    }
-
-    return executeBrowserTTS(text, { ...options, lang: activeLang }, matchedVoice || (voices.length > 0 ? voices[0] : undefined));
-  }
-
-  options?.onEnded?.();
-  return { method: 'none' as const };
-};
-
-const executeBrowserTTS = (text: string, options?: SpeechOptions, selectedVoice?: SpeechSynthesisVoice) => {
-  if (!('speechSynthesis' in window)) {
-    options?.onError?.("Not supported");
-    options?.onEnded?.();
-    return { method: 'none' as const };
-  }
-
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  activeUtterance = utterance;
-
-  utterance.lang = options?.lang || 'pt-BR';
-  utterance.rate = options?.rate ?? 1.0; 
-  utterance.pitch = options?.pitch ?? 1.0; 
-  const browserVolume = typeof options?.volume === 'number' 
-    ? Math.max(0, Math.min(1, options.volume)) 
-    : getVoiceVolume();
-  utterance.volume = browserVolume;
-
-  if (selectedVoice) {
-    utterance.voice = selectedVoice;
-  }
-
-  const cleanupUtterance = () => {
-    if (speechResumeInterval) {
-      clearInterval(speechResumeInterval);
-      speechResumeInterval = null;
-    }
-    if (activeUtterance === utterance) {
-      activeUtterance = null;
-    }
-  };
-
-  utterance.onend = () => {
-    cleanupUtterance();
-    options?.onEnded?.();
-  };
-  
-  utterance.onerror = (e) => {
-    cleanupUtterance();
-    options?.onError?.(e);
-    options?.onEnded?.();
-  };
-
-  // Chromium Web Speech API Keep-Alive: Chrome pauses or stops long utterances (>15s)
-  // or garbage collects them unless kept in module reference and pulsed periodically.
-  if (speechResumeInterval) {
-    clearInterval(speechResumeInterval);
-  }
-  speechResumeInterval = setInterval(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      }
-    }
-  }, 4000);
-
-  try {
-    window.speechSynthesis.speak(utterance);
-    return { method: 'browser' as const, utterance };
-  } catch (e) {
-    cleanupUtterance();
-    console.warn("Browser TTS failed:", e);
+    options?.onError?.(error);
     options?.onEnded?.();
     return { method: 'none' as const };
   }

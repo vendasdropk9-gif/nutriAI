@@ -77,7 +77,6 @@ export const MaluVoiceTestView: React.FC = () => {
         emotion: selectedEmotion,
         rate: playbackRate,
         volume,
-        allowBrowserFallback: false,
         onEnded: () => {
           setIsPlaying(false);
         },
