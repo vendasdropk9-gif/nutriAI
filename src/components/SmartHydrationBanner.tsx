@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Droplet, Sparkles, X, Check, Bell } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, HydrationLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -55,6 +56,19 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     return () => clearInterval(checkInterval);
   }, [latestLog, reminderEnabled, intervalMinutes, dismissed, todayHydration.length]);
 
+  // Auto-dismiss after 5 seconds whenever the banner is shown
+  useEffect(() => {
+    const isVisible = showPrompt || (!dismissed && currentTotalWater < goalWater);
+    if (!isVisible) return;
+
+    const autoDismissTimer = setTimeout(() => {
+      setShowPrompt(false);
+      setDismissed(true);
+    }, 5000);
+
+    return () => clearTimeout(autoDismissTimer);
+  }, [showPrompt, dismissed, currentTotalWater, goalWater]);
+
   const handleQuickLog = (amount: number) => {
     const newLog: HydrationLog = {
       id: crypto.randomUUID(),
@@ -71,62 +85,78 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     setTimeout(() => setDismissed(false), 45 * 60 * 1000);
   };
 
-  if (!showPrompt && currentTotalWater >= goalWater) return null;
-  if (dismissed && !showPrompt) return null;
+  const isVisible = (showPrompt || (!dismissed && currentTotalWater < goalWater));
+  if (!isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 text-white px-4 py-3 shadow-lg relative z-40 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner animate-pulse">
-          <Droplet className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-              💧 Pausa para Hidratação
-            </span>
-            <span className="text-xs font-medium text-cyan-100">
-              Hoje: {currentTotalWater}ml / {goalWater}ml
-            </span>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 text-white px-4 py-3 shadow-lg relative z-40 flex flex-wrap items-center justify-between gap-3 overflow-hidden"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner animate-pulse">
+            <Droplet className="w-5 h-5 text-white" />
           </div>
-          <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
-            Hora de fazer uma pausa inteligente! Beba um copo d'água para manter sua energia e metabolismo ativos.
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                💧 Pausa para Hidratação
+              </span>
+              <span className="text-xs font-medium text-cyan-100">
+                Hoje: {currentTotalWater}ml / {goalWater}ml
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+              Hora de fazer uma pausa inteligente! Beba um copo d'água para manter sua energia e metabolismo ativos.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={() => handleQuickLog(250)}
-          className="px-3 py-1.5 bg-white text-cyan-700 hover:bg-cyan-50 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1 cursor-pointer"
-        >
-          <Check className="w-3.5 h-3.5" /> +250ml Copo
-        </button>
-
-        <button
-          onClick={() => handleQuickLog(500)}
-          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer hidden sm:inline-flex"
-        >
-          +500ml Garrafa
-        </button>
-
-        {onNavigateToHabits && (
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={onNavigateToHabits}
-            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium transition cursor-pointer"
+            onClick={() => handleQuickLog(250)}
+            className="px-3 py-1.5 bg-white text-cyan-700 hover:bg-cyan-50 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1 cursor-pointer"
           >
-            Abrir HabitTracker
+            <Check className="w-3.5 h-3.5" /> +250ml Copo
           </button>
-        )}
 
-        <button
-          onClick={() => { setShowPrompt(false); setDismissed(true); }}
-          className="p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
-          title="Dispensar"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
+          <button
+            onClick={() => handleQuickLog(500)}
+            className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer hidden sm:inline-flex"
+          >
+            +500ml Garrafa
+          </button>
+
+          {onNavigateToHabits && (
+            <button
+              onClick={onNavigateToHabits}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-medium transition cursor-pointer"
+            >
+              Abrir HabitTracker
+            </button>
+          )}
+
+          <button
+            onClick={() => { setShowPrompt(false); setDismissed(true); }}
+            className="p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+            title="Dispensar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 5-second countdown indicator bar at bottom */}
+        <motion.div
+          initial={{ width: "100%" }}
+          animate={{ width: "0%" }}
+          transition={{ duration: 5, ease: "linear" }}
+          className="absolute bottom-0 left-0 h-1 bg-white/70"
+        />
+      </motion.div>
+    </AnimatePresence>
   );
 };

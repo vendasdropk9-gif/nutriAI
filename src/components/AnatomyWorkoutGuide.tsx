@@ -26,7 +26,14 @@ import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { ErrorBoundary } from './ErrorBoundary';
 import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
-import realisticAvatarImg from '../assets/images/realistic_fitness_avatar_1789485014929.jpg';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { UserProfile } from '../types';
+import avatarMaleSquat from '../assets/images/avatar_male_squat_1790881954417.jpg';
+import avatarFemaleSquat from '../assets/images/avatar_female_squat_1790881967238.jpg';
+import avatarMaleCurl from '../assets/images/avatar_male_curl_1790881979757.jpg';
+import avatarFemaleCurl from '../assets/images/avatar_female_curl_1790881993449.jpg';
+import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jpg';
+import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
 
 // Lazy load the Three.js 3D Canvas Stage to optimize tab switching performance
 const Anatomy3DCanvasStage = lazy(() => import('./Anatomy3DCanvasStage'));
@@ -719,6 +726,52 @@ export const MUSCLE_GROUPS: MuscleGroup[] = [
 
 // Interactive 3D Anatomy Guide Tab Component
 export function AnatomyWorkoutGuide() {
+  const [profile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+
+  const getRealisticAvatarImage = () => {
+    const gender = profile?.gender?.toLowerCase() || 'female';
+    const name = currentExercise?.name?.toLowerCase() || '';
+
+    if (gender === 'male') {
+      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
+        return avatarMaleSquat;
+      }
+      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
+        return avatarMalePlank;
+      }
+      return avatarMaleCurl;
+    } else {
+      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
+        return avatarFemaleSquat;
+      }
+      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
+        return avatarFemalePlank;
+      }
+      return avatarFemaleCurl;
+    }
+  };
+
+  const getCameraViewStyle = () => {
+    if (cameraView === 'side') {
+      return {
+        transform: 'perspective(1000px) rotateY(25deg) scale(0.95)',
+        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.4))'
+      };
+    }
+    if (cameraView === 'close') {
+      return {
+        transform: 'scale(1.3) translateY(-6%)',
+        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'contrast(1.1) saturate(1.15) drop-shadow(0 0 35px rgba(16,185,129,0.4))'
+      };
+    }
+    return {
+      transform: 'none',
+      transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+    };
+  };
+
   const { t } = useTranslation();
   const [selectedMuscleId, setSelectedMuscleId] = useState<string>('side_delts');
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
@@ -1088,8 +1141,9 @@ export function AnatomyWorkoutGuide() {
                   }}
                 >
                   <img
-                    src={realisticAvatarImg}
+                    src={getRealisticAvatarImage()}
                     alt={currentExercise.name}
+                    style={getCameraViewStyle()}
                     className="max-h-[370px] sm:max-h-[440px] w-auto object-contain rounded-2xl drop-shadow-[0_0_35px_rgba(59,130,246,0.35)]"
                     referrerPolicy="no-referrer"
                   />

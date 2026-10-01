@@ -7,7 +7,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
 import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
 import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
-import realisticAvatarImg from '../assets/images/realistic_fitness_avatar_1789485014929.jpg';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import avatarMaleSquat from '../assets/images/avatar_male_squat_1790881954417.jpg';
+import avatarFemaleSquat from '../assets/images/avatar_female_squat_1790881967238.jpg';
+import avatarMaleCurl from '../assets/images/avatar_male_curl_1790881979757.jpg';
+import avatarFemaleCurl from '../assets/images/avatar_female_curl_1790881993449.jpg';
+import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jpg';
+import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
 
 // Lazy load Avatar3D to eliminate main-thread blocking on tab switch
 const Avatar3D = lazy(() => import('./Avatar3D'));
@@ -194,6 +200,62 @@ function createFullExercise3D(name: string, quantity: { reps?: number; duration?
 }
 
 export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: PersonalTrainerProps) {
+  const getRealisticAvatarImage = () => {
+    const gender = profile?.gender?.toLowerCase() || 'female';
+    const name = currentExercise?.name?.toLowerCase() || '';
+
+    if (gender === 'male') {
+      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
+        return avatarMaleSquat;
+      }
+      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
+        return avatarMalePlank;
+      }
+      return avatarMaleCurl;
+    } else {
+      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
+        return avatarFemaleSquat;
+      }
+      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
+        return avatarFemalePlank;
+      }
+      return avatarFemaleCurl;
+    }
+  };
+
+  const getCameraViewStyle = () => {
+    if (cameraView === 'side') {
+      return {
+        transform: 'perspective(1000px) rotateY(25deg) scale(0.95)',
+        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.4))'
+      };
+    }
+    if (cameraView === 'detail') {
+      return {
+        transform: 'scale(1.3) translateY(-6%)',
+        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        filter: 'contrast(1.1) saturate(1.15) drop-shadow(0 0 35px rgba(16,185,129,0.4))'
+      };
+    }
+    return {
+      transform: 'none',
+      transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+    };
+  };
+
+  const handleSaveGender = (g: 'male' | 'female') => {
+    playSfx('success');
+    vibrate(20);
+    if (onUpdateProfile && profile) {
+      onUpdateProfile({
+        ...profile,
+        gender: g,
+        avatarId: g === 'male' ? 'male-athletic-01' : 'female-athletic-01'
+      });
+    }
+  };
+
   const { t } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'plan' | 'training'>('plan');
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyWorkoutPlan | null>(null);
@@ -538,14 +600,62 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     }, 200);
   };
 
+  if (profile && (!profile.gender || (profile.gender !== 'male' && profile.gender !== 'female'))) {
+    return (
+      <div className="w-full max-w-2xl mx-auto px-4 py-12 flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 space-y-8">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 border border-emerald-200">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h3 className="font-serif text-3xl font-bold text-slate-800 dark:text-slate-100">Escolha seu Avatar Fitness</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+            Selecione o perfil do seu treinador para garantir a representação perfeita dos movimentos e consistência visual durante todos os treinos.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-xl">
+          {/* Male Instructor */}
+          <button
+            type="button"
+            onClick={() => handleSaveGender('male')}
+            className="group p-6 rounded-3xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-center space-y-4"
+          >
+            <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-4 border-slate-100 dark:border-slate-700 group-hover:border-emerald-500 transition-colors">
+              <img src={avatarMaleSquat} alt="Treinador Masculino" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <div>
+              <h4 className="font-bold text-base text-slate-800 dark:text-slate-100">Treinador Masculino</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Avatar fotorealista focado em força e execução natural.</p>
+            </div>
+          </button>
+
+          {/* Female Instructor */}
+          <button
+            type="button"
+            onClick={() => handleSaveGender('female')}
+            className="group p-6 rounded-3xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-center space-y-4"
+          >
+            <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-4 border-slate-100 dark:border-slate-700 group-hover:border-emerald-500 transition-colors">
+              <img src={avatarFemaleSquat} alt="Treinadora Feminina" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <div>
+              <h4 className="font-bold text-base text-slate-800 dark:text-slate-100">Treinadora Feminina</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Avatar fotorealista focado em técnica correta e tônus muscular.</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       <div className="text-center space-y-4 w-full max-w-3xl mx-auto">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
-          Personal Trainer 3D
+          Personal Trainer
         </h2>
         <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-          Treine em casa com precisão. Siga seu plano de exercícios semanais sugerido pela IA ou inicie o treino guiado em 3D.
+          Treine em casa com precisão. Siga seu plano de exercícios semanais sugerido pela IA ou inicie o treino guiado.
         </p>
       </div>
 
@@ -572,7 +682,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
             }`}
           >
             <Dumbbell className="w-4 h-4" />
-            Treino 3D Ativo
+            Treino Ativo
           </button>
         </div>
       </div>
@@ -718,7 +828,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                       className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                     >
                       <Play className="w-4 h-4 fill-current" />
-                      Treinar no Simulador 3D
+                      Treinar no Simulador
                     </button>
                   </div>
                 </motion.div>
@@ -736,7 +846,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 <div className="space-y-3 md:space-y-4">
                    <h3 className="font-serif text-2xl md:text-3xl font-medium text-slate-800 dark:text-slate-100">Pronto para Treinar?</h3>
                    <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base leading-relaxed max-w-md mx-auto">
-                     Inicie uma sessão 3D interativa! Escolha um dia específico na aba **Plano Semanal** ou gere um Treino Inteligente personalizado agora mesmo.
+                     Inicie uma sessão interativa! Escolha um dia específico na aba **Plano Semanal** ou gere um Treino Inteligente personalizado agora mesmo.
                    </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -790,39 +900,52 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            <div className="lg:col-span-7 space-y-6 relative w-full">
              <div className="relative w-full min-h-[420px] rounded-[32px] md:rounded-[40px] overflow-hidden bg-slate-950/80 dark:bg-slate-900/90 shadow-2xl border border-emerald-500/20 flex items-center justify-center">
                {avatarDisplayMode === 'realistic' ? (
-                 <div className="w-full h-full min-h-[420px] relative flex items-center justify-center p-4">
-                   {/* Background ambient lighting */}
-                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-950/30 via-transparent to-transparent pointer-events-none" />
-                   
-                   <motion.div
-                     className="relative max-h-full max-w-full flex items-center justify-center"
-                     animate={isTimerActive ? {
-                       scale: [1, 1.02, 1],
-                       y: [0, -3, 0],
-                     } : { scale: 1, y: 0 }}
-                     transition={{
-                       duration: (2.5 / playbackSpeed),
-                       repeat: Infinity,
-                       ease: "easeInOut"
-                     }}
-                   >
-                     <img
-                       src={realisticAvatarImg}
-                       alt={currentExercise?.name || "Exercício"}
-                       className="max-h-[360px] md:max-h-[400px] w-auto object-contain drop-shadow-[0_0_35px_rgba(59,130,246,0.35)] rounded-2xl"
-                       referrerPolicy="no-referrer"
-                     />
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`exercise_${currentExercise?.id || currentExerciseIndex}_${cameraView}_${profile?.gender || 'default'}`}
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-full h-full min-h-[420px] relative flex items-center justify-center p-4"
+                    >
+                      {/* Background ambient lighting */}
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-950/30 via-transparent to-transparent pointer-events-none" />
+                      
+                      <motion.div
+                        className="relative max-h-full max-w-full flex items-center justify-center"
+                        animate={isTimerActive ? {
+                          scale: [1, 1.02, 1],
+                          y: [0, -3, 0],
+                        } : { scale: 1, y: 0 }}
+                        transition={{
+                          duration: (2.5 / playbackSpeed),
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <motion.img
+                          key={getRealisticAvatarImage() + cameraView}
+                          initial={{ opacity: 0, scale: 0.97 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4, ease: "easeOut" }}
+                          src={getRealisticAvatarImage()}
+                          alt={currentExercise?.name || "Exercício"} style={getCameraViewStyle()}
+                          className="max-h-[360px] md:max-h-[400px] w-auto object-contain drop-shadow-[0_0_35px_rgba(59,130,246,0.35)] rounded-2xl transition-all duration-300"
+                          referrerPolicy="no-referrer"
+                        />
 
-                     {/* Biomechanical Target Highlight Overlays */}
-                     {currentExercise?.primaryMuscles?.[0] && (
-                       <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5">
-                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                         <span className="text-[10px] md:text-xs font-bold text-white uppercase">{currentExercise.primaryMuscles[0]}</span>
-                       </div>
-                     )}
-                   </motion.div>
-                 </div>
-               ) : (
+                        {/* Biomechanical Target Highlight Overlays */}
+                        {currentExercise?.primaryMuscles?.[0] && (
+                          <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-[10px] md:text-xs font-bold text-white uppercase">{currentExercise.primaryMuscles[0]}</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    </motion.div>
+                  </AnimatePresence>
+                ) : (
                  <Suspense
                    fallback={
                      <Static3DAvatarPlaceholder
@@ -847,47 +970,28 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
               {/* Avatar Mode & Viewpoint Controls */}
               <div className="absolute top-6 left-6 md:top-8 md:left-8 flex flex-col gap-2 z-10">
-                {/* Mode toggle (Realista vs 3D) */}
+                {/* Mode indicator (Realista) */}
                 <div className="flex items-center gap-1 p-1 bg-slate-950/80 backdrop-blur-md rounded-full border border-emerald-500/30">
-                  <button
-                    onClick={() => setAvatarDisplayMode('realistic')}
-                    className={`px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${
-                      avatarDisplayMode === 'realistic'
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md'
-                        : 'text-emerald-400 hover:text-white'
-                    }`}
-                  >
+                  <span className="px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md">
                     Realista
-                  </button>
-                  <button
-                    onClick={() => setAvatarDisplayMode('3d')}
-                    className={`px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all ${
-                      avatarDisplayMode === '3d'
-                        ? 'bg-emerald-600 text-white shadow-md'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    3D
-                  </button>
+                  </span>
                 </div>
 
-                {avatarDisplayMode === '3d' && (
-                  <div className="flex flex-col gap-1.5">
-                    {(['front', 'side', 'detail'] as const).map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setCameraView(v)}
-                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all ${
-                          cameraView === v 
-                          ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' 
-                          : 'bg-white/10 text-white border-white/20 active:bg-white/30'
-                        }`}
-                      >
-                        {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col gap-1.5">
+                  {(['front', 'side', 'detail'] as const).map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setCameraView(v)}
+                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all ${
+                        cameraView === v 
+                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' 
+                        : 'bg-white/10 text-white border-white/20 active:bg-white/30'
+                      }`}
+                    >
+                      {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Ambient Music Controls Overlay */}
@@ -963,12 +1067,12 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            </div>
 
            {/* Right Column: Exercise Details & Controls */}
-           <div className="lg:col-span-5 space-y-6 w-full">
+           <div className="lg:col-span-5 space-y-6 w-full max-w-full min-w-0">
               <motion.div 
                 key={currentExercise?.id + activeMode}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white/40 dark:bg-slate-800/40 p-6 md:p-8 rounded-[24px] md:rounded-[32px] clay-card border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6 md:space-y-8"
+                className="bg-white/40 dark:bg-slate-800/40 p-5 sm:p-6 md:p-8 rounded-[24px] md:rounded-[32px] clay-card border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6 md:space-y-8 w-full max-w-full overflow-hidden"
               >
                  <div className="flex items-center justify-between">
                     <div className="space-y-1 md:space-y-2">
@@ -1094,12 +1198,12 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                         </div>
                      </div>
 
-                     <div className="pt-4 md:pt-8 space-y-4">
-                        <div className="flex gap-3 md:gap-4">
+                     <div className="pt-4 md:pt-8 space-y-4 w-full max-w-full">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 md:gap-4 w-full overflow-hidden">
                            {!isTimerActive ? (
                              <button
                                onClick={startExercise}
-                               className="flex-1 py-4 md:py-5 bg-emerald-500 text-white hover:clay-primary px-6 py-3 md:rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
+                               className="flex-1 py-4 md:py-5 bg-emerald-500 text-white hover:clay-primary px-3 sm:px-6 py-3 md:rounded-2xl rounded-xl font-bold text-xs sm:text-base md:text-lg min-w-0 flex-1 shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
                              >
                                <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
                                Começar
@@ -1116,7 +1220,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                            
                            <button
                              onClick={startTutorial}
-                             className="px-4 md:px-6 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 rounded-xl md:rounded-2xl font-bold active:bg-slate-200 transition-all flex items-center gap-2"
+                             className="p-3 sm:px-4 md:px-6 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 rounded-xl md:rounded-2xl font-bold active:bg-slate-200 transition-all flex items-center justify-center gap-1.5 shrink-0"
                              title="Ver Tutorial"
                            >
                               <Info className="w-5 h-5 md:w-6 md:h-6" />
@@ -1125,7 +1229,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
                            <button
                              onClick={handleExerciseSuccess}
-                             className="px-4 md:px-6 bg-emerald-500 text-white rounded-xl md:rounded-2xl font-bold hover:bg-emerald-600 active:bg-emerald-700 transition-all flex items-center justify-center"
+                             className="p-3 sm:px-4 md:px-6 bg-emerald-500 text-white rounded-xl md:rounded-2xl font-bold hover:bg-emerald-600 active:bg-emerald-700 transition-all flex items-center justify-center shrink-0"
                              title="Concluir O Movimento"
                            >
                               <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
@@ -1133,7 +1237,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
                            <button
                              onClick={nextExercise}
-                             className="px-4 md:px-6 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-white rounded-xl md:rounded-2xl font-bold active:bg-slate-300 transition-all"
+                             className="p-3 sm:px-4 md:px-6 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-white rounded-xl md:rounded-2xl font-bold active:bg-slate-300 transition-all flex items-center justify-center shrink-0"
                              title="Pular"
                            >
                               <SkipForward className="w-5 h-5 md:w-6 md:h-6" />

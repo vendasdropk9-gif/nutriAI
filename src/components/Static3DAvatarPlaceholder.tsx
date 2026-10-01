@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Activity, Sparkles, Zap, Layers, Cpu } from 'lucide-react';
-import realisticAvatarImg from '../assets/images/realistic_fitness_avatar_1789485014929.jpg';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { UserProfile } from '../types';
+import avatarMaleSquat from '../assets/images/avatar_male_squat_1790881954417.jpg';
+import avatarFemaleSquat from '../assets/images/avatar_female_squat_1790881967238.jpg';
 
 interface Static3DAvatarPlaceholderProps {
   title?: string;
@@ -18,6 +21,9 @@ export function Static3DAvatarPlaceholder({
   badgeText = '3D GPU Engine',
   showMetrics = true,
 }: Static3DAvatarPlaceholderProps) {
+  const [profile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+  const gender = profile?.gender?.toLowerCase() || 'female';
+  const realisticAvatarImg = gender === 'male' ? avatarMaleSquat : avatarFemaleSquat;
   return (
     <div
       className={`w-full ${heightClass} relative flex flex-col items-center justify-center overflow-hidden rounded-[28px] sm:rounded-[36px] bg-gradient-to-b from-[#09101d] via-[#040810] to-[#020408] border border-emerald-500/20 select-none p-4`}
