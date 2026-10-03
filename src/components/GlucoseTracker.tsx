@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
 import { db, doc, setDoc, collection, getDocs, serverTimestamp } from '../lib/firebase';
 import { safeGet, safeSet } from '../lib/storage';
 
@@ -39,6 +40,7 @@ const DEFAULT_LOGS: GlucoseLog[] = [
 ];
 
 export function GlucoseTracker() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [logs, setLogs] = useState<GlucoseLog[]>(() => {
     const saved = safeGet('nutri-glucose-logs');
@@ -635,17 +637,17 @@ export function GlucoseTracker() {
                 </button>
               </div>
 
-              <form onSubmit={handleAddMeasurement} className="space-y-4">
+               <form onSubmit={handleAddMeasurement} className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Nível de Glicemia (mg/dL)
+                    {t('label_glucose_level', 'Nível de Glicemia (mg/dL)')}
                   </label>
                   <div className="relative">
                     <input
                       type="number"
                       value={newValue}
                       onChange={(e) => setNewValue(e.target.value)}
-                      placeholder="Ex: 92"
+                      placeholder={t('placeholder_glucose_example', 'Ex: 92')}
                       required
                       min="30"
                       max="400"
@@ -659,29 +661,29 @@ export function GlucoseTracker() {
 
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Momento da Medição
+                    {t('label_measurement_moment', 'Momento da Medição')}
                   </label>
                   <select
                     value={newContext}
                     onChange={(e: any) => setNewContext(e.target.value)}
                     className="w-full bg-[#0B0F14] border border-[#232C39] rounded-2xl py-3 px-4 text-sm font-semibold text-white outline-none focus:border-[#16C784]"
                   >
-                    <option value="fasting">Em Jejum (Manhã)</option>
-                    <option value="post_meal">Pós-Refeição (2h após comer)</option>
-                    <option value="bedtime">Antes de Dormir</option>
-                    <option value="random">Ao Acaso / Outro</option>
+                    <option value="fasting">{t('fasting_morning', 'Em Jejum (Manhã)')}</option>
+                    <option value="post_meal">{t('post_meal_2h', 'Pós-Refeição (2h após comer)')}</option>
+                    <option value="bedtime">{t('before_sleep', 'Antes de Dormir')}</option>
+                    <option value="random">{t('random_other', 'Ao Acaso / Outro')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Observações (Opcional)
+                    {t('label_notes_optional', 'Observações (Opcional)')}
                   </label>
                   <input
                     type="text"
                     value={newNotes}
                     onChange={(e) => setNewNotes(e.target.value)}
-                    placeholder="Ex: Após treino leve ou café com aveia"
+                    placeholder={t('placeholder_glucose_notes', 'Ex: Após treino leve ou café com aveia')}
                     className="w-full bg-[#0B0F14] border border-[#232C39] rounded-2xl py-2.5 px-3.5 text-xs text-white outline-none focus:border-[#16C784]"
                   />
                 </div>

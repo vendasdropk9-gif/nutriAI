@@ -10,6 +10,8 @@ import { db } from './firebase';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { doc, getDocFromServer, collection, getDocs, limit, query, setDoc, serverTimestamp } from 'firebase/firestore';
 
+console.log('🔍 [NutriAI DatabaseIntegrityMonitor] Carregado e inicializado com sucesso!');
+
 export interface IntegrityCheckItem {
   name: string;
   type: 'firestore_collection' | 'supabase_table' | 'firestore_index' | 'supabase_index';

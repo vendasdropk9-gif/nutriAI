@@ -3,6 +3,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { analyzeBarcodeProduct, analyzeProductImage } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { UserProfile } from '../types';
+import { useTranslation } from '../contexts/LanguageContext';
 import { Barcode, Loader2, Play, Volume2, Info, AlertTriangle, CheckCircle2, RefreshCw, X, ShieldAlert, Camera, Upload, Target, Lock } from 'lucide-react';
 
 interface BarcodeScannerProps {
@@ -10,6 +11,7 @@ interface BarcodeScannerProps {
 }
 
 export function BarcodeScanner({ profile }: BarcodeScannerProps) {
+  const { t } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
   const [productData, setProductData] = useState<any | null>(null);
   const [analysis, setAnalysis] = useState<any | null>(null);
@@ -379,7 +381,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
               }} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ex: 7891000077008"
+                  placeholder={t('placeholder_barcode', 'Ex: 7891000077008')}
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
                   className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -613,7 +615,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
                 { label: 'Gorduras', value: `${analysis.nutrition?.fat ?? 0}g`, color: 'text-rose-500' }
               ].map((stat, i) => (
                 <div key={i} className="clay-card p-6 text-center space-y-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 rounded-2xl shadow-sm">
-                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t(stat.label)}</p>
                   <p className={`text-2xl font-serif font-medium ${stat.color}`}>{stat.value}</p>
                 </div>
               ))}

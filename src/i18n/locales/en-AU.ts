@@ -1,29 +1,30 @@
 import enJson from '../../locales/en/common.json';
 
 /**
- * American English (US / en-US) Localization Bundle
- * Features standard US terminology, American spelling (color, flavor, customize, fiber),
- * US customary unit support, and $ USD.
+ * Australian English (AU / en-AU) Localization Bundle
+ * Features Australian spelling (colour, flavour, customise, fibre, analyse),
+ * Australian food terminology (capsicum, rocket, coriander),
+ * Metric units (kg, grams, kJ), and $ AUD currency.
  */
-export const enUS = {
+export const enAU = {
   ...enJson,
-  locale: 'en-US',
-  country: 'United States',
-  currency: 'USD',
+  locale: 'en-AU',
+  country: 'Australia',
+  currency: 'AUD',
   currency_symbol: '$',
-  region_name: 'United States',
+  region_name: 'Australia',
 
-  // American spellings & vocabulary
+  // Australian spellings & vocabulary
   quickdishes: 'Quick Dishes',
   coach: 'AI Health Coach',
-  smartplate: 'Smart Plate Analyzer',
+  smartplate: 'Smart Plate Analyser',
   generator: 'Recipe Generator',
   fridge: 'Smart Fridge',
-  analyzer: 'Plate Analyzer',
-  plate_analysis: 'Plate Analyzer',
+  analyzer: 'Plate Analyser',
+  plate_analysis: 'Plate Analyser',
   shopping: 'Shopping List',
   shopping_list: 'Shopping List',
-  weight_control: 'Weight Tracker (lbs)',
+  weight_control: 'Weight Tracker (kg)',
   workouts: 'Workouts',
   trainer: 'Personal Trainer',
   habits: 'Daily Habits',
@@ -34,13 +35,13 @@ export const enUS = {
   settings: 'Settings & Preferences',
   pricing: 'Premium Plan',
 
-  // US food & ingredient nomenclature
+  // Australian food & ingredient nomenclature
   eggplant: 'Eggplant',
   zucchini: 'Zucchini',
-  arugula: 'Arugula',
-  cilantro: 'Cilantro',
-  bell_pepper: 'Bell Pepper',
-  breakfast: 'Breakfast',
+  arugula: 'Rocket',
+  cilantro: 'Coriander',
+  bell_pepper: 'Capsicum',
+  breakfast: 'Brekkie & Breakfast',
   pantry: 'Pantry',
 
   common: {
@@ -55,18 +56,18 @@ export const enUS = {
     loading: 'Loading...',
     close: 'Close',
     confirm: 'Confirm',
-    customize: 'Customize',
-    favorites: 'Favorites',
-    color: 'Color',
-    flavor: 'Flavor',
-    fiber: 'Fiber',
+    customize: 'Customise',
+    favorites: 'Favourites',
+    color: 'Colour',
+    flavor: 'Flavour',
+    fiber: 'Fibre',
     program: 'Program',
-    optimized: 'Optimized',
-    personalized: 'Personalized'
+    optimized: 'Optimised',
+    personalized: 'Personalised'
   },
   my_progress: 'My Progress',
   lose_weight: 'I want to lose weight',
   gain_mass: 'I want to build muscle',
 };
 
-export default enUS;
+export default enAU;

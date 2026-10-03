@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { 
   Flame, 
   Dumbbell, 
@@ -13,6 +13,7 @@ import {
   RotateCw, 
   Check, 
   ChevronRight, 
+  ChevronLeft,
   Utensils, 
   AlertCircle, 
   X, 
@@ -64,6 +65,7 @@ export function QuickDishes({
   const [isLoading, setIsLoading] = useState(false);
   const [activeRecipeCardId, setActiveRecipeCardId] = useState<string | null>(null);
   const [selectedDishForModal, setSelectedDishForModal] = useState<QuickDish | null>(null);
+  const [modalVisibleSteps, setModalVisibleSteps] = useState<number>(1);
   const [favoriteIds, setFavoriteIds] = useState<Record<string, boolean>>({});
   const [registeredMeals, setRegisteredMeals] = useState<Record<string, boolean>>({});
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
@@ -1042,19 +1044,80 @@ export function QuickDishes({
 
               {/* Preparation Steps */}
               <div className="space-y-3">
-                <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <ChefHat className="w-4 h-4 text-emerald-500" />
-                  <span>Modo de Preparo Passo a Passo</span>
-                </h4>
-                <div className="space-y-2.5">
-                  {selectedDishForModal.instructions.map((step, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1A222C] border border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <ChefHat className="w-4 h-4 text-emerald-500" />
+                    <span>Modo de Preparo Passo a Passo</span>
+                  </h4>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                    {modalVisibleSteps} de {selectedDishForModal.instructions.length}
+                  </span>
+                </div>
+
+                {/* Staggered Animated Steps List */}
+                <motion.div 
+                  key={`quick_steps_${modalVisibleSteps}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ staggerChildren: 0.1 }}
+                  className="space-y-2.5"
+                >
+                  {selectedDishForModal.instructions.slice(0, modalVisibleSteps).map((step, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+                      className={`flex items-start gap-3 p-3.5 rounded-2xl border text-xs sm:text-sm text-slate-700 dark:text-slate-300 transition-all ${
+                        idx === modalVisibleSteps - 1 
+                          ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/40 shadow-sm' 
+                          : 'bg-slate-50 dark:bg-[#1A222C] border-slate-100 dark:border-slate-800'
+                      }`}
+                    >
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center">
                         {idx + 1}
                       </span>
-                      <p className="leading-relaxed pt-0.5">{step}</p>
-                    </div>
+                      <p className="leading-relaxed pt-0.5 flex-1">{step}</p>
+                    </motion.div>
                   ))}
+                </motion.div>
+
+                {/* Next Step Controls */}
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (modalVisibleSteps > 1) {
+                        setModalVisibleSteps(prev => prev - 1);
+                        playSfx('tap');
+                      }
+                    }}
+                    disabled={modalVisibleSteps <= 1}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Anterior</span>
+                  </button>
+
+                  {modalVisibleSteps < selectedDishForModal.instructions.length ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalVisibleSteps(prev => Math.min(prev + 1, selectedDishForModal.instructions.length));
+                        playSfx('tap');
+                        vibrate(12);
+                      }}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <span>Próximo Passo ({modalVisibleSteps + 1}/{selectedDishForModal.instructions.length})</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Todas as etapas prontas!</span>
+                    </span>
+                  )}
                 </div>
               </div>
 

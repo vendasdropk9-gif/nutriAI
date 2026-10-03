@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Camera, Upload, Sparkles, Check, X } from 'lucide-react';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface HeaderAvatarProps {
   profile: UserProfile | null;
@@ -21,6 +22,7 @@ const PRESET_AVATARS = [
 ];
 
 export function HeaderAvatar({ profile, onSaveProfile, onOpenProfileTab }: HeaderAvatarProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -227,11 +229,11 @@ export function HeaderAvatar({ profile, onSaveProfile, onOpenProfileTab }: Heade
                               ? 'border-emerald-500 ring-2 ring-emerald-500/40 shadow-sm'
                               : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
-                          title={av.label}
+                          title={t(av.label)}
                         >
                           <img
                             src={av.url}
-                            alt={av.label}
+                            alt={t(av.label)}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                           />

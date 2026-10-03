@@ -8,6 +8,7 @@ import {
   BookOpen, Sprout, Sun, Droplet, HelpCircle, Compass, X
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Mockup preset images for easy 1-click testing of mushrooms
 const PRESET_MUSHROOMS = [
@@ -63,6 +64,7 @@ interface MushroomIdentificationResult {
 
 export function SmartMushroomIdentifier() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Scanned history from DB
   const [history, setHistory] = useState<any[]>([]);
@@ -476,12 +478,12 @@ Estou pronto para responder dúvidas adicionais sobre habitat, toxicidade ou cur
                     <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-[8px] font-bold text-white rounded uppercase tracking-wider ${
                       m.edibility === 'Comestível' ? 'bg-emerald-600' : m.edibility === 'Tóxico' ? 'bg-red-600' : 'bg-orange-600'
                     }`}>
-                      {m.edibility}
+                      {t(m.edibility)}
                     </div>
                   </div>
                   <div className="p-2">
                     <h4 className="text-xs font-bold text-gray-800 dark:text-white group-hover:text-emerald-600 transition-colors">
-                      {m.name}
+                      {t(m.name)}
                     </h4>
                     <p className="text-[9px] text-gray-400 italic mt-0.5">{m.scientific}</p>
                   </div>

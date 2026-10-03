@@ -48,6 +48,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useTranslation } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -424,6 +425,7 @@ function CustomCategoryCostTooltip({ active, payload }: CustomCategoryTooltipPro
 }
 
 export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'list' | 'monitor' | 'pantry_forecast' | 'compare' | 'promos'>('list');
   const [chartViewMode, setChartViewMode] = useState<'total' | 'status'>('total');
   const [checkedItems, setCheckedItems] = useLocalStorage<Record<string, boolean>>('nutri-shopping-checked', {});

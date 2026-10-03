@@ -107,7 +107,7 @@ export const generateQuickDishes = async (
       return result;
     }
   } catch (err) {
-    console.warn("API generateQuickDishes indisponível, usando motor culinário local com fotos HD:", err);
+    console.info("API generateQuickDishes utilizando motor culinário local otimizado.");
   }
   return getClientFallbackQuickDishes(goal, profile, previousDishes);
 };

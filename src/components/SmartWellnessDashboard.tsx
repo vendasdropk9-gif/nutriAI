@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Droplet, Moon, Bell, BellOff, Info, Clock, Activity, Settings, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function SmartWellnessDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   
   // Hydration state
@@ -153,7 +155,7 @@ export function SmartWellnessDashboard() {
               >
                 <div className="space-y-3 pt-2 pb-4 border-b border-blue-200/50 dark:border-blue-800/50">
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Meta Diária Base (ml)</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">{t('base_hydration_goal', 'Meta Diária Base (ml)')}</label>
                     <input 
                       type="range" 
                       min="1000" max="5000" step="100" 
@@ -163,16 +165,16 @@ export function SmartWellnessDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Intervalo Lembretes (min)</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">{t('reminder_interval', 'Intervalo Lembretes (min)')}</label>
                     <select 
                       value={hydrationInterval}
                       onChange={(e) => setHydrationInterval(Number(e.target.value))}
                       className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300"
                     >
-                      <option value="30">A cada 30 min</option>
-                      <option value="60">A cada 1 hora</option>
-                      <option value="90">A cada 1.5 horas</option>
-                      <option value="120">A cada 2 horas</option>
+                      <option value="30">{t('every_30_min', 'A cada 30 min')}</option>
+                      <option value="60">{t('every_1_hour', 'A cada 1 hora')}</option>
+                      <option value="90">{t('every_1_5_hours', 'A cada 1.5 horas')}</option>
+                      <option value="120">{t('every_2_hours', 'A cada 2 horas')}</option>
                     </select>
                   </div>
                   
@@ -267,7 +269,7 @@ export function SmartWellnessDashboard() {
               >
                 <div className="space-y-3 pt-2 pb-4 border-b border-indigo-200/50 dark:border-indigo-800/50">
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Meta de Sono (horas)</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">{t('sleep_target_label', 'Meta de Sono (horas)')}</label>
                     <input 
                       type="range" 
                       min="5" max="12" step="0.5" 
@@ -277,7 +279,7 @@ export function SmartWellnessDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Horário de Acordar</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">{t('wake_time_label', 'Horário de Acordar')}</label>
                     <input 
                       type="time" 
                       value={wakeTime}

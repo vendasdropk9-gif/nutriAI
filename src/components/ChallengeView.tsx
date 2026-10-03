@@ -15,6 +15,7 @@ import { ConfettiCelebration } from './ConfettiCelebration';
 import { VoicePlayButton } from './VoicePlayButton';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface ChallengeViewProps {
   profile: UserProfile | null;
@@ -33,6 +34,7 @@ export function ChallengeView({
   onNavigate,
   onSaveRecipe 
 }: ChallengeViewProps) {
+  const { t } = useTranslation();
   // Main view mode: 'culinary' (AI Culinary Challenges) or 'habit' (Fast Habit Tracker)
   const [mainMode, setMainMode] = useState<'culinary' | 'habit'>('culinary');
 
@@ -892,7 +894,7 @@ export function ChallengeView({
 
               <div className="space-y-4">
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
-                  Duração do Desafio
+                  {t('challenge_duration', 'Duração do Desafio')}
                 </label>
                 <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
                   {[7, 15, 30].map(days => (
@@ -909,7 +911,7 @@ export function ChallengeView({
                       }`}
                     >
                       <span className="text-2xl sm:text-3xl font-serif font-bold">{days}</span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider">Dias</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider">{t('days_unit', 'Dias')}</span>
                     </button>
                   ))}
                 </div>
@@ -917,13 +919,13 @@ export function ChallengeView({
 
               <div className="space-y-3 max-w-lg mx-auto">
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
-                  Qual sua única meta diária?
+                  {t('your_single_daily_goal', 'Qual sua única meta diária?')}
                 </label>
                 <input
                   type="text"
                   value={habitGoal}
                   onChange={(e) => setHabitGoal(e.target.value)}
-                  placeholder="Ex: Beber 3L de água / Sem açúcar / Comer vegetal em toda refeição"
+                  placeholder={t('placeholder_daily_goal', 'Ex: Beber 3L de água / Sem açúcar / Comer vegetal em toda refeição')}
                   className="w-full p-4 bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/40 text-center font-serif text-lg text-slate-800 dark:text-slate-100"
                 />
               </div>
@@ -1068,7 +1070,7 @@ export function ChallengeView({
 
             {/* Duration Selector */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Duração do Desafio</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{t('challenge_duration', 'Duração do Desafio')}</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -1079,8 +1081,8 @@ export function ChallengeView({
                       : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                   }`}
                 >
-                  <span className="font-serif font-bold text-lg">Semanal (7 Dias)</span>
-                  <span className="text-[11px] opacity-80">Rápido, dinâmico e focado</span>
+                  <span className="font-serif font-bold text-lg">{t('weekly_7_days', 'Semanal (7 Dias)')}</span>
+                  <span className="text-[11px] opacity-80">{t('fast_dynamic_focused', 'Rápido, dinâmico e focado')}</span>
                 </button>
 
                 <button
@@ -1092,8 +1094,8 @@ export function ChallengeView({
                       : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                   }`}
                 >
-                  <span className="font-serif font-bold text-lg">Mensal (30 Dias)</span>
-                  <span className="text-[11px] opacity-80">Transformação de hábitos</span>
+                  <span className="font-serif font-bold text-lg">{t('monthly_30_days', 'Mensal (30 Dias)')}</span>
+                  <span className="text-[11px] opacity-80">{t('habit_transformation', 'Transformação de hábitos')}</span>
                 </button>
               </div>
             </div>
@@ -1101,7 +1103,7 @@ export function ChallengeView({
             {/* Topic Suggestions in 1 click */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Ou Escolha um Tema Sugerido
+                {t('choose_suggested_theme', 'Ou Escolha um Tema Sugerido')}
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -1124,7 +1126,7 @@ export function ChallengeView({
                         : 'bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    {sugg}
+                    {t(sugg)}
                   </button>
                 ))}
               </div>
@@ -1133,13 +1135,13 @@ export function ChallengeView({
             {/* Custom Input */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Tema / Foco Personalizado (Opcional)
+                {t('custom_theme_optional', 'Tema / Foco Personalizado (Opcional)')}
               </label>
               <input
                 type="text"
                 value={customThemeInput}
                 onChange={(e) => setCustomThemeInput(e.target.value)}
-                placeholder="Ex: Quero focar em cogumelos e saladas quentes..."
+                placeholder={t('placeholder_custom_theme', 'Ex: Quero focar em cogumelos e saladas quentes...')}
                 className="w-full p-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 text-sm text-slate-800 dark:text-slate-100"
               />
             </div>

@@ -8,6 +8,7 @@ import {
   BookOpen, Sprout, Sun, Droplet, HelpCircle, FileText, Compass, ChevronRight, X
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Mockup preset images for easy 1-click testing in preview environment
 const PRESET_PLANTS = [
@@ -84,6 +85,7 @@ interface PlantIdentificationResult {
 
 export function SmartPlantIdentifier() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Scanned history from DB
   const [history, setHistory] = useState<any[]>([]);
@@ -503,13 +505,13 @@ export function SmartPlantIdentifier() {
                     />
                     {plant.isToxic && (
                       <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-red-600/90 text-[8px] font-bold text-white rounded uppercase tracking-wider">
-                        Perigo
+                        {t('perigo_danger', 'Perigo')}
                       </div>
                     )}
                   </div>
                   <div className="p-2">
                     <h4 className="text-xs font-bold text-gray-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                      {plant.name}
+                      {t(plant.name)}
                     </h4>
                     <p className="text-[9px] text-gray-400 italic mt-0.5">{plant.scientific}</p>
                   </div>

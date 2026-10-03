@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { generateJuiceRecipe } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { GlassWater, Loader2, Sparkles, Plus, Leaf, Flame, HeartPulse, PiggyBank, Clock, CheckCircle2, Image as ImageIcon, Maximize2, X } from 'lucide-react';
@@ -84,10 +84,10 @@ export function JuiceGenerator({ profile, onAwardPoints }: { profile: any; onAwa
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => handleGenerate(undefined, sug.text)}
+                  onClick={() => handleGenerate(undefined, t(sug.text))}
                   className="text-xs px-3 py-1.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/50 dark:border-emerald-800/40 transition-all hover:scale-105"
                 >
-                  {sug.label}
+                  {t(sug.label)}
                 </button>
               ))}
             </div>

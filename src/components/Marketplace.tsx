@@ -37,6 +37,7 @@ import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
 import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
 const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
@@ -60,6 +61,7 @@ interface MarketplaceProps {
 }
 
 export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap, addNotification }: MarketplaceProps) {
+  const { t } = useTranslation();
   const [marketViewMode, setMarketViewMode] = useState<'catalog' | 'organizer'>('catalog');
   const [activeCategory, setActiveCategory] = useState<string>('Tudo');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('all');
@@ -523,10 +525,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 md:p-12 flex flex-col justify-end items-start text-left space-y-1 sm:space-y-2 md:space-y-4 box-border z-20">
                    <div className="flex items-center gap-1.5 sm:gap-3">
                       <div className="px-2 py-0.5 sm:px-3 sm:py-1 clay-primary text-[8px] sm:text-[10px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap">
-                         {cur.price}
+                         {t(cur.price)}
                       </div>
                       <button 
-                        onClick={() => handleSpeak(cur.tip)}
+                        onClick={() => handleSpeak(t(cur.tip))}
                         className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
                         style={{ color: '#ffffff' }}
                       >
@@ -534,15 +536,15 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                       </button>
                    </div>
                    <h3 className="text-sm sm:text-2xl md:text-5xl font-serif font-bold text-white leading-tight break-words">
-                      {cur.title}
+                      {t(cur.title)}
                    </h3>
-                   <p className="hidden sm:block text-white text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{cur.subtitle}</p>
+                   <p className="hidden sm:block text-white text-xs sm:text-base md:text-xl font-medium break-words max-w-lg">{t(cur.subtitle)}</p>
                    <button 
                       style={{ color: '#ffffff', backgroundColor: '#528f5c' }} onClick={() => addToCart(PRODUCTS[0])}
                       className="px-3 py-1 sm:py-3.5 md:px-8 md:py-4 clay-primary md:rounded-2xl font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 sm:gap-2 w-auto mt-0.5 sm:mt-2 text-white cursor-pointer"
                    >
                       <ShoppingCart style={{ color: '#ffffff' }} className="w-3 h-3 sm:w-5 sm:h-5 flex-shrink-0" />
-                      <span style={{ color: '#ffffff' }} className="text-[10px] sm:text-sm md:text-base truncate text-white">Comprar Agora</span>
+                      <span style={{ color: '#ffffff' }} className="text-[10px] sm:text-sm md:text-base truncate text-white">{t('buy_now', 'Comprar Agora')}</span>
                    </button>
                 </div>
               </motion.div>

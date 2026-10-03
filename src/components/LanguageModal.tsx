@@ -23,7 +23,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
     vibrate(30);
     
     // Call the centralized LanguageContext provider which updates context, i18next,
-    // localStorage (nutriai_language), documentElement (lang & dir for RTL), window events, Supabase, and Firestore
+    // localStorage (nutriai_language), documentElement, window events, Supabase, and Firestore
     await setAppLanguage(targetLng, supabase, profile?.id);
     
     if (profile && onUpdateProfile) {
@@ -40,21 +40,12 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
   };
 
   const filtered = searchLanguages(searchQuery);
-
-  const premiumMarkets = filtered.filter(l => l.priority === 'premium');
-  const growthMarkets = filtered.filter(l => l.priority === 'growth');
-  const globalMarkets = filtered.filter(l => l.priority === 'global');
-
   const hasResults = filtered.length > 0;
 
   const renderLanguageButton = (lng: LanguageOption) => {
-    // Single source of truth: compare with i18n.language
     const isSelected = 
       currentLanguage === lng.subtag ||
-      (lng.subtag === 'pt-BR' && currentLanguage === 'pt') ||
-      (lng.subtag === 'es-ES' && currentLanguage === 'es') ||
-      (lng.subtag === 'en-US' && currentLanguage === 'en') ||
-      (currentLanguage === lng.code && !lng.subtag);
+      currentLanguage === lng.code;
 
     const countryCode = (lng.subtag.split('-')[1] || lng.code).toUpperCase();
 
@@ -71,22 +62,32 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
             : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700'
         }`}
       >
-        {/* Country Badge matching screenshot */}
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-mono font-bold tracking-wider shrink-0 transition-colors ${
+        {/* Country Flag & Code Badge */}
+        <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center shrink-0 transition-colors ${
           isSelected
-            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+            ? 'bg-emerald-500/20 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)] text-emerald-400'
             : 'bg-slate-800 text-slate-300 border border-slate-700/60'
         }`}>
-          {countryCode}
+          <span className="text-base select-none leading-none mb-0.5">{lng.flag}</span>
+          <span className="text-[9px] font-mono font-bold leading-none">{countryCode}</span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className={`text-xs font-bold uppercase tracking-wider truncate ${
-            isSelected ? 'text-emerald-400' : 'text-slate-200'
-          }`}>
-            {lng.originalName}
-          </p>
-          <p className="text-[11px] opacity-75 font-normal text-slate-400 truncate">
+          <div className="flex items-center gap-2">
+            <p className={`text-xs font-bold uppercase tracking-wider truncate ${
+              isSelected ? 'text-emerald-400' : 'text-slate-200'
+            }`}>
+              {lng.originalName}
+            </p>
+            {lng.currency && (
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
+                isSelected ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+              }`}>
+                {lng.currencySymbol} {lng.currency}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] opacity-75 font-normal text-slate-400 truncate mt-0.5">
             {lng.translatedName} • <span className="opacity-90">{lng.country}</span>
           </p>
         </div>
@@ -137,7 +138,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Globe className="h-5 w-5 animate-spin-slow" />
                 <h3 className="font-serif text-lg font-bold tracking-wide">
-                  {t('settings_language', 'Idioma / Language')}
+                  {t('settings_language', 'Idioma e Região / Language & Region')}
                 </h3>
               </div>
               <button
@@ -151,7 +152,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
 
             {/* Subtitle / Description */}
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 mb-3 leading-relaxed">
-              {t('settings_select_lang', 'Selecione o idioma de sua preferência para utilizar todo o aplicativo.')}
+              {t('settings_select_lang', 'Selecione a sua localização para adaptar o idioma, métricas e moedas.')}
             </p>
 
             {/* Instant Search Bar */}
@@ -161,7 +162,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('settings_search_placeholder', 'Buscar por idioma, país, nativo ou ISO...')}
+                placeholder={t('settings_search_placeholder', 'Buscar por país, idioma ou ISO...')}
                 className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 text-xs font-medium text-slate-700 dark:text-slate-200 placeholder-slate-450 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
               />
               {searchQuery && (
@@ -175,7 +176,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
               )}
             </div>
 
-            {/* Language Priority Scroll Container */}
+            {/* Language Scroll Container */}
             <div className="space-y-4 max-h-[340px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-emerald-500/20 scroll-smooth">
               {!hasResults ? (
                 <div className="text-center py-8 text-slate-450 dark:text-slate-500 text-xs">
@@ -183,50 +184,24 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
                   <p>{t('settings_no_results', 'Nenhum idioma encontrado para a busca.')}</p>
                 </div>
               ) : (
-                <>
-                  {/* Category: Premium Markets */}
-                  {premiumMarkets.length > 0 && (
-                    <div className="space-y-2">
-                      <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                        {t('settings_premium_markets', 'Mercados Premium')}
-                      </h5>
-                      <div className="space-y-2">
-                        {premiumMarkets.map(renderLanguageButton)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Category: Growth Markets */}
-                  {growthMarkets.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                        {t('settings_growth_markets', 'Mercados em Crescimento')}
-                      </h5>
-                      <div className="space-y-2">
-                        {growthMarkets.map(renderLanguageButton)}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Category: Global Expansion */}
-                  {globalMarkets.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                        {t('settings_global_expansion', 'Expansão Global')}
-                      </h5>
-                      <div className="space-y-2">
-                        {globalMarkets.map(renderLanguageButton)}
-                      </div>
-                    </div>
-                  )}
-                </>
+                <div className="space-y-2">
+                  <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
+                    {t('settings_supported_markets', 'Países e Regiões Disponíveis')}
+                  </h5>
+                  <div className="space-y-2">
+                    {filtered.map(renderLanguageButton)}
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Bottom Accent Decoration */}
-            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-center gap-1.5 text-slate-400 dark:text-slate-500">
-              <Heart className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-              <span className="text-[10px] uppercase tracking-widest font-mono">NutriAI Premium Experience</span>
+            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">🇺🇸 US • 🇬🇧 UK • 🇦🇺 AU • 🇧🇷 BR</span>
+              <div className="flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                <span className="text-[10px] uppercase tracking-widest font-mono">NutriAI Global</span>
+              </div>
             </div>
           </motion.div>
         </div>

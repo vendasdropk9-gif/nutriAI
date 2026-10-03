@@ -11,6 +11,7 @@ import {
   Bookmark, RefreshCcw, X, Check, Award, BarChart2
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Helper to extract numeric values from strings like "115 kcal", "6.2g", "5690mg"
 function parseNutrientValue(val: string | number | undefined): number {
@@ -146,6 +147,7 @@ const USER_GOALS = [
 
 export function ProductComparer() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Goal state
   const [selectedGoal, setSelectedGoal] = useState<string>("emagrecimento");
@@ -505,7 +507,7 @@ export function ProductComparer() {
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 shadow-xs">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <Zap className="w-4 h-4 text-emerald-500 animate-pulse" />
-              1. Qual é o seu Objetivo Alimentar?
+              {t('comparer_step1_goal', '1. Qual é o seu Objetivo Alimentar?')}
             </h3>
             <div className="space-y-2">
               {USER_GOALS.map((goal) => {
@@ -523,10 +525,10 @@ export function ProductComparer() {
                     <span className="text-xl shrink-0 mt-0.5">{goal.icon}</span>
                     <div className="min-w-0">
                       <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                        {goal.name}
+                        {t(goal.name)}
                       </h4>
                       <p className="text-[10px] text-gray-400 mt-0.5">
-                        {goal.desc}
+                        {t(goal.desc)}
                       </p>
                     </div>
                   </div>

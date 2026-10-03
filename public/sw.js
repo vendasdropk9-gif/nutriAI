@@ -52,13 +52,19 @@ self.addEventListener('fetch', (event) => {
 
   const url = event.request.url;
 
-  // Never cache backend API calls, OAuth, Supabase, Firebase, or external API endpoints
+  // Never cache backend API calls, OAuth, Supabase, Firebase, Vite dev modules, or cookie checks
   if (
     url.includes('/api/') ||
     url.includes('/sso-api') ||
     url.includes('googleapis.com') ||
     url.includes('firebaseapp.com') ||
-    url.includes('supabase.co')
+    url.includes('supabase.co') ||
+    url.includes('/@vite') ||
+    url.includes('/@fs') ||
+    url.includes('/src/') ||
+    url.includes('html-proxy') ||
+    url.includes('__cookie_check') ||
+    url.includes('node_modules')
   ) {
     return;
   }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
 import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles, Search, BookOpen, Clock, Flame, Dumbbell, Leaf, Zap, Utensils, Check } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
@@ -377,7 +377,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                   : 'bg-white/40 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700/60 border border-white/60 dark:border-slate-700/50 backdrop-blur-md'
               }`}
             >
-              {day}
+              {t(day)}
             </button>
           ))}
         </div>
@@ -385,7 +385,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
         <div className="lg:col-span-3 space-y-6">
           <div className="flex justify-between items-center clay-card p-8 shadow-sm">
             <div>
-              <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">{selectedDay}</h3>
+              <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">{t(selectedDay)}</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">{t('mealplan_plan_hint', 'Planeje suas 3 principais refeições.')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -394,7 +394,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                 className="bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <Share2 className="w-4 h-4" />
-                Compartilhar
+                {t('share', 'Compartilhar')}
               </button>
               <button
                 onClick={handleGenerateDay}
@@ -606,10 +606,10 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider font-bold">Nome do Alimento</label>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider font-bold">{t('food_name_label', 'Nome do Alimento')}</label>
                     <input
                       type="text"
-                      placeholder="Ex: Banana com aveia, Whey protein"
+                      placeholder={t('placeholder_quick_log_food', 'Ex: Banana com aveia, Whey protein')}
                       value={quickLogName}
                       onChange={(e) => setQuickLogName(e.target.value)}
                       required
@@ -618,7 +618,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">Kcal</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">{t('kcal_label', 'Kcal')}</label>
                       <input
                         type="number"
                         min="0"
@@ -640,7 +640,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">Carbos</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">{t('carbs_label', 'Carbos')}</label>
                       <input
                         type="number"
                         min="0"
@@ -651,7 +651,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">Gorduras</label>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase font-bold">{t('fats_label', 'Gorduras')}</label>
                       <input
                         type="number"
                         min="0"
@@ -689,13 +689,13 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               <div key={mealType.id} className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">
-                    {mealType.label}
+                    {t(mealType.label)}
                   </h3>
                   {recipe && (
                     <button
                       onClick={() => onUpdatePlan(selectedDay, mealType.id, null)}
                       className="text-slate-400 hover:text-red-500 p-2 rounded-full hover:bg-white/60 dark:hover:bg-slate-700/60 transition-colors"
-                      title="Remover refeição"
+                      title={t('remove_meal', 'Remover refeição')}
                     >
                       <X className="w-5 h-5" />
                     </button>

@@ -21,6 +21,7 @@ import {
 import { UserProfile, HealthIntegrationConfig } from '../types';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface HealthIntegrationSettingsProps {
   profile: UserProfile | null;
@@ -35,6 +36,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
   className = '',
   isCompact = false
 }) => {
+  const { t } = useTranslation();
   const [isSyncing, setIsSyncing] = useState(false);
   const [activeModal, setActiveModal] = useState<'google' | 'apple' | null>(null);
   const [googleEmail, setGoogleEmail] = useState(profile?.email || 'usuario@gmail.com');
@@ -659,7 +661,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-emerald-500" />
-                Fator de Compensação Calórica:
+                {t('caloric_compensation_factor', 'Fator de Compensação Calórica:')}
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {[
@@ -677,9 +679,9 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
                         : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
                     }`}
                   >
-                    <p className="text-xs font-bold text-center">{item.label}</p>
+                    <p className="text-xs font-bold text-center">{t(item.label)}</p>
                     <p className={`text-[10px] leading-snug mt-0.5 text-center ${factor === item.value ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-400'}`}>
-                      {item.desc}
+                      {t(item.desc)}
                     </p>
                   </button>
                 ))}
@@ -770,13 +772,13 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Conta Google Conectada:
+                    {t('connected_google_account', 'Conta Google Conectada:')}
                   </label>
                   <input
                     type="email"
                     value={googleEmail}
                     onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="seu.email@gmail.com"
+                    placeholder={t('placeholder_google_email', 'seu.email@gmail.com')}
                     className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

@@ -33,6 +33,7 @@ import { Product, CartItem, UserProfile, PantryItem } from '../types';
 import { LOCAL_PRODUCTS_CATALOG, PARTNER_ESTABLISHMENTS } from '../data/marketPartnersData';
 import { speak, stopSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Baseline fallback shopping list items if user list is empty
 const INITIAL_SMART_LIST = [
@@ -101,6 +102,7 @@ export function SmartMarketListOrganizer({
   onUpdateCart,
   onOpenPartner
 }: SmartMarketListOrganizerProps) {
+  const { t } = useTranslation();
   // 1. Shopping List State
   const [listItems, setListItems] = useState<Array<{ id: string; name: string; quantity: number; unit: string; checked: boolean; category: string }>>(() => {
     try {
@@ -591,12 +593,12 @@ export function SmartMarketListOrganizer({
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className={`font-bold text-base md:text-lg ${item.checked ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>
-                          {item.name}
+                          {t(item.name)}
                         </h4>
 
                         {/* Category Tag */}
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                          {item.category}
+                          {t(item.category)}
                         </span>
 
                         {/* Stock Alert Badge */}

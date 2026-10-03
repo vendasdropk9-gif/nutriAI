@@ -212,7 +212,7 @@ JSON RESPONSE SCHEMA:
 - text: Spoken sentence in the appropriate language (if switching language, respond in the new language).
 - action: 'NONE' | 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
 - actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
-- CRITICAL: If the user asks to change or speak another language (e.g. "muda para inglês", "fale em espanhol", "speak english", "change language to spanish", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (such as 'en-US', 'es-ES', 'pt-BR', 'fr-FR', 'de-DE', 'it-IT', 'zh-CN', 'ja-JP', 'ru-RU', 'ar-SA'), and speak the confirmation in that target language!`;
+- CRITICAL: NutriAI exclusively supports 4 locations/languages: United States ('en-US'), United Kingdom ('en-GB'), Australia ('en-AU'), and Brazil ('pt-BR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em inglês britânico", "muda para Austrália", "speak english", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'en-US', 'en-GB', 'en-AU', 'pt-BR'), and speak the confirmation in that target language!`;
 
   const schema: Schema = {
     type: Type.OBJECT,
@@ -270,27 +270,8 @@ JSON RESPONSE SCHEMA:
     const fallbackResponses: Record<string, string> = {
       'en': "I'm right here with you! Could you please tell me again what you need? 💚",
       'en-US': "I'm right here with you! Could you please tell me again what you need? 💚",
-      'es': "¡Aquí estoy contigo! ¿Podrías decirme de nuevo qué necesitas hoy? 💚",
-      'es-ES': "¡Aquí estoy contigo! ¿Podrías decirme de nuevo qué necesitas hoy? 💚",
-      'es-AR': "¡Acá estoy con vos! ¿Me contás de nuevo qué necesitás hoy? 💚",
-      'fr': "Je suis bien là avec vous ! Pouvez-vous me redire ce dont vous avez besoin ? 💚",
-      'fr-FR': "Je suis bien là avec vous ! Pouvez-vous me redire ce dont vous avez besoin ? 💚",
-      'de': "Ich bin hier für dich! Kannst du mir noch einmal sagen, was du brauchst? 💚",
-      'de-DE': "Ich bin hier für dich! Kannst du mir noch einmal sagen, was du brauchst? 💚",
-      'it': "Sono qui con te! Puoi ripetermi come posso aiutarti oggi? 💚",
-      'it-IT': "Sono qui con te! Puoi ripetermi come posso aiutarti oggi? 💚",
-      'zh': "我一直陪伴在您身边！请问您需要什么帮助，能再说一次吗？💚",
-      'zh-CN': "我一直陪伴在您身边！请问您需要什么帮助，能再说一次吗？💚",
-      'ja': "ここにいますよ！今日どのようなお手伝いができますか、もう一度教えてくださいね。💚",
-      'ja-JP': "ここにいますよ！今日どのようなお手伝いができますか、もう一度教えてくださいね。💚",
-      'ko': "제가 곁에 있어요! 어떤 도움이 필요하신지 다시 말씀해 주시겠어요? 💚",
-      'ko-KR': "제가 곁에 있어요! 어떤 도움이 필요하신지 다시 말씀해 주시겠어요? 💚",
-      'hi': "मैं आपके साथ हूँ! क्या आप बता सकते हैं कि आज मैं आपकी कैसे मदद कर सकती हूँ? 💚",
-      'hi-IN': "मैं आपके साथ हूँ! क्या आप बता सकते हैं कि आज मैं आपकी कैसे मदद कर सकती हूँ? 💚",
-      'ar': "أنا هنا معك! هل يمكنك إخباري مرة أخرى بما تحتاجه اليوم؟ 💚",
-      'ar-SA': "أنا هنا معك! هل يمكنك إخباري مرة أخرى بما تحتاجه اليوم؟ 💚",
-      'tr': "Buradayım! Bugün size nasıl yardımcı olabileceğimi tekrar söyler misiniz? 💚",
-      'tr-TR': "Buradayım! Bugün size nasıl yardımcı olabileceğimi tekrar söyler misiniz? 💚",
+      'en-GB': "I'm right here with you! Could you please tell me again what you need today? 💚",
+      'en-AU': "G'day! I'm right here with you! Could you please let me know what you need today? 💚",
       'pt-BR': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚",
       'pt': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚"
     };
@@ -1228,8 +1209,8 @@ export const textToSpeech = async (
         const modelsToTry = [
           preferredModel,
           "gemini-3.8-flash-lite-tts",
-          "gemini-3.8-flash"
-        ].filter((v, i, a) => a.indexOf(v) === i);
+          "gemini-3.8-flash-tts"
+        ].filter((v, i, a) => a.indexOf(v) === i && (v === "gemini-3.8-flash-tts" || v === "gemini-3.8-flash-lite-tts"));
 
         let spokenText = cleanText;
         if (!isPt && (/[áéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]/.test(cleanText) || /\b(como|você|voce|seu|sua|jantar|almoço|almoco|prato|refeição|refeicao|dica|meta|para|com|não|nao|uma|um|mais|menos|saudável|saudavel|hoje)\b/i.test(cleanText))) {
@@ -1247,34 +1228,12 @@ export const textToSpeech = async (
           }
         }
 
-        // Prompt de Direção Vocal Malu (Director's Notes)
-        const emotionPrompt = options?.emotion ? `Emotion & Persona: ${options.emotion}.` : 'Persona: Warm, intelligent, confident, friendly and personal Brazilian female assistant.';
-        const customStyle = options?.style ? `Style Notes: ${options.style}.` : '';
-
-        const systemInstruction = `Audio Profile:
-You are Malu, a warm, intelligent and human female virtual assistant for NutriAI.
-
-Scene:
-You are speaking directly to a user in a modern nutrition, health and wellness application.
-The conversation should feel personal, calm, warm, articulate, and natural like a real person.
-
-Director's Notes:
-Speak naturally and conversationally like a real human friend and professional.
-Use a warm Brazilian female delivery when the locale is pt-BR.
-${emotionPrompt}
-${customStyle}
-Use natural sentence rhythm, gentle inflection, and expressive intonation.
-Use short natural pauses between ideas.
-Emphasize key words subtly according to meaning.
-Do not sound like a commercial announcer or voiceover narrator.
-Do not sound robotic, synthetic or overly formal.
-Do not read punctuation marks literally.
-Sound like a real person helping another person.
-
-Current language:
-${language}
-
-Always speak in the current application language (${language}).`;
+        // Voice style direction in speechMetadata (TTS models use speechMetadata.style on parts, not systemInstruction)
+        const voiceStyle = options?.style || options?.emotion || (
+          isPt 
+            ? "Warm, articulate, friendly, expressive and natural Brazilian female assistant" 
+            : `Clear, articulate, natural, friendly and expressive spoken ${language}`
+        );
 
         for (const model of modelsToTry) {
           const maxRetries = 2;
@@ -1291,11 +1250,13 @@ Always speak in the current application language (${language}).`;
                   parts: [
                     {
                       text: spokenText,
-                    },
+                      speechMetadata: {
+                        style: voiceStyle,
+                      },
+                    } as any,
                   ],
                 },
                 config: {
-                  systemInstruction,
                   responseModalities: [Modality.AUDIO],
                   speechConfig: {
                     voiceConfig: {
@@ -5467,7 +5428,7 @@ REGRAS RÍGIDAS:
       };
     });
   } catch (error: any) {
-    console.info("[QuickDishes] Gerando pratos balanceados sob medida (fallback ativo):", error?.message || error);
+    console.info("[QuickDishes] Gerando pratos balanceados sob medida (motor local otimizado ativo).");
     
     // High-quality deterministic fallback options based on goal
     if (goal === 'muscle_gain') {

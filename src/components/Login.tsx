@@ -8,6 +8,7 @@ import { safeGet, safeSet } from "../lib/storage";
 import { playSfx } from '../lib/sensory';
 import { signInWithGoogle, signInWithFacebook, auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -19,6 +20,7 @@ import {
 import { doc, setDoc, serverTimestamp } from '../lib/firebase';
 
 export function Login() {
+  const { t } = useTranslation();
   const { loginLocally } = useAuth();
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   
@@ -499,7 +501,7 @@ export function Login() {
                   <div className="relative">
                     <input 
                       type="text" 
-                      placeholder="Nome" 
+                      placeholder={t('first_name', 'Nome')} 
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full bg-[#0B0F14] border border-[#232C39] rounded-xl px-3.5 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#16C784] transition"
@@ -509,7 +511,7 @@ export function Login() {
                   <div className="relative">
                     <input 
                       type="text" 
-                      placeholder="Sobrenome" 
+                      placeholder={t('last_name', 'Sobrenome')} 
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full bg-[#0B0F14] border border-[#232C39] rounded-xl px-3.5 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#16C784] transition"
@@ -525,7 +527,7 @@ export function Login() {
                 </div>
                 <input 
                   type="email" 
-                  placeholder="Seu melhor e-mail" 
+                  placeholder={t('placeholder_best_email', 'Seu melhor e-mail')} 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#0B0F14] border border-[#232C39] rounded-xl pl-10 pr-3.5 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#16C784] transition"
@@ -542,7 +544,7 @@ export function Login() {
                   </div>
                   <input 
                     type={showPassword ? 'text' : 'password'} 
-                    placeholder={view === 'register' ? 'Crie uma senha forte' : 'Sua senha'} 
+                    placeholder={view === 'register' ? t('placeholder_create_strong_password', 'Crie uma senha forte') : t('placeholder_your_password', 'Sua senha')} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-[#0B0F14] border border-[#232C39] rounded-xl pl-10 pr-10 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#16C784] transition"
@@ -567,7 +569,7 @@ export function Login() {
                   </div>
                   <input 
                     type={showConfirmPassword ? 'text' : 'password'} 
-                    placeholder="Confirme sua senha" 
+                    placeholder={t('placeholder_confirm_password', 'Confirme sua senha')} 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full bg-[#0B0F14] border border-[#232C39] rounded-xl pl-10 pr-10 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#16C784] transition"

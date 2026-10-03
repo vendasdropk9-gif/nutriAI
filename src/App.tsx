@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { Recipe, MealPlan, UserProfile } from './types';
@@ -8,64 +8,65 @@ import { LockScreen } from './components/LockScreen';
 import { VerifyEmailScreen } from './components/VerifyEmailScreen';
 import { useProfileSync } from './lib/profileSync';
 import { Generator } from './components/Generator';
-import { MealPlanView } from './components/MealPlanCalendar';
-import { ShoppingListView } from './components/ShoppingListView';
 import { Profile } from './components/Profile';
-import { PlateAnalyzer } from './components/PlateAnalyzer';
-import { JuiceGenerator } from './components/JuiceGenerator';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { BarcodeScanner } from './components/BarcodeScanner';
-import { FoodAllergyDetector } from './components/FoodAllergyDetector';
-import { ProductComparer } from './components/ProductComparer';
-import { EmotionalTracker } from './components/EmotionalTracker';
-import { ChallengeView } from './components/ChallengeView';
-import { HabitTracker } from './components/HabitTracker';
-import { SmartSwaps } from './components/SmartSwaps';
-import { DiningOut } from './components/DiningOut';
-import { RankingView } from './components/RankingView';
+import { LazyTabLoader } from './components/LazyTabLoader';
 import { FoodGalleryBanner } from './components/FoodGalleryBanner';
-import { ResultPrediction } from './components/ResultPrediction';
-import { PersonalTrainer } from './components/PersonalTrainer';
-import { Marketplace } from './components/Marketplace';
-import { Pricing } from './components/Pricing';
-import { PartnerPortal } from './components/PartnerPortal';
-import { FreshnessMap } from './components/FreshnessMap';
-import { AdaptiveCoach } from './components/AdaptiveCoach';
-import { BodyAnalyzer } from './components/BodyAnalyzer';
 import { SplashScreen } from './components/SplashScreen';
-import { ScientificLibraryAdmin } from './components/ScientificLibraryAdmin';
 import { PartnerBanner } from './components/PartnerBanner';
-import { DeliveryPartnerPortal } from './components/DeliveryPartnerPortal';
-import { GamificationCenter } from './components/GamificationCenter';
 import { DraggableNav } from './components/DraggableNav';
-import { AcademyPortal } from './components/AcademyPortal';
-import { BloodPressureTracker } from './components/BloodPressureTracker';
-import { GlucoseTracker } from './components/GlucoseTracker';
-import { Notebook } from './components/Notebook';
-import { MedicinalHerbs } from './components/MedicinalHerbs';
-import { SmartFridge } from './components/SmartFridge';
-import { SmartPlateCombiner } from './components/SmartPlateCombiner';
-import { SmartGarden } from './components/SmartGarden';
-import { PantryScanner } from './components/PantryScanner';
-import { AiCookingAdvisor } from './components/AiCookingAdvisor';
-import { WellnessHub } from './components/WellnessHub';
-import { PhotoEvolution } from './components/PhotoEvolution';
-import { AnatomyWorkoutGuide } from './components/AnatomyWorkoutGuide';
-import { Assistant360 } from './components/Assistant360';
-import { QuickDishes } from './components/QuickDishes';
 import { prefetchCuratedRecipeCatalog } from './lib/recipeImagePrefetcher';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
 import { LiveAssistant } from './components/LiveAssistant';
 import { FeedbackSystem } from './components/FeedbackSystem';
 import { WelcomeTour } from './components/WelcomeTour';
-import { AdminDashboard } from './components/AdminDashboard';
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
+
+// Code Splitting (React.lazy) for heavy modules to minimize main bundle & accelerate initial load
+const Assistant360 = lazy(() => import('./components/Assistant360').then(m => ({ default: m.Assistant360 })));
+const MealPlanView = lazy(() => import('./components/MealPlanCalendar').then(m => ({ default: m.MealPlanView })));
+const Marketplace = lazy(() => import('./components/Marketplace').then(m => ({ default: m.Marketplace })));
+const PersonalTrainer = lazy(() => import('./components/PersonalTrainer').then(m => ({ default: m.PersonalTrainer })));
+const AcademyPortal = lazy(() => import('./components/AcademyPortal').then(m => ({ default: m.AcademyPortal })));
+const ScientificLibraryAdmin = lazy(() => import('./components/ScientificLibraryAdmin').then(m => ({ default: m.ScientificLibraryAdmin })));
+const BodyAnalyzer = lazy(() => import('./components/BodyAnalyzer').then(m => ({ default: m.BodyAnalyzer })));
+const PlateAnalyzer = lazy(() => import('./components/PlateAnalyzer').then(m => ({ default: m.PlateAnalyzer })));
+const SmartFridge = lazy(() => import('./components/SmartFridge').then(m => ({ default: m.SmartFridge })));
+const PantryScanner = lazy(() => import('./components/PantryScanner').then(m => ({ default: m.PantryScanner })));
+const AiCookingAdvisor = lazy(() => import('./components/AiCookingAdvisor').then(m => ({ default: m.AiCookingAdvisor })));
+const SmartGarden = lazy(() => import('./components/SmartGarden').then(m => ({ default: m.SmartGarden })));
+const SmartSwaps = lazy(() => import('./components/SmartSwaps').then(m => ({ default: m.SmartSwaps })));
+const MedicinalHerbs = lazy(() => import('./components/MedicinalHerbs').then(m => ({ default: m.MedicinalHerbs })));
+const GamificationCenter = lazy(() => import('./components/GamificationCenter').then(m => ({ default: m.GamificationCenter })));
+const RankingView = lazy(() => import('./components/RankingView').then(m => ({ default: m.RankingView })));
+const FreshnessMap = lazy(() => import('./components/FreshnessMap').then(m => ({ default: m.FreshnessMap })));
+const PartnerPortal = lazy(() => import('./components/PartnerPortal').then(m => ({ default: m.PartnerPortal })));
+const DeliveryPartnerPortal = lazy(() => import('./components/DeliveryPartnerPortal').then(m => ({ default: m.DeliveryPartnerPortal })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const BloodPressureTracker = lazy(() => import('./components/BloodPressureTracker').then(m => ({ default: m.BloodPressureTracker })));
+const GlucoseTracker = lazy(() => import('./components/GlucoseTracker').then(m => ({ default: m.GlucoseTracker })));
+const BarcodeScanner = lazy(() => import('./components/BarcodeScanner').then(m => ({ default: m.BarcodeScanner })));
+const FoodAllergyDetector = lazy(() => import('./components/FoodAllergyDetector').then(m => ({ default: m.FoodAllergyDetector })));
+const ProductComparer = lazy(() => import('./components/ProductComparer').then(m => ({ default: m.ProductComparer })));
+const EmotionalTracker = lazy(() => import('./components/EmotionalTracker').then(m => ({ default: m.EmotionalTracker })));
+const HabitTracker = lazy(() => import('./components/HabitTracker').then(m => ({ default: m.HabitTracker })));
+const PhotoEvolution = lazy(() => import('./components/PhotoEvolution').then(m => ({ default: m.PhotoEvolution })));
+const ChallengeView = lazy(() => import('./components/ChallengeView').then(m => ({ default: m.ChallengeView })));
+const DiningOut = lazy(() => import('./components/DiningOut').then(m => ({ default: m.DiningOut })));
+const Pricing = lazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })));
+const AdaptiveCoach = lazy(() => import('./components/AdaptiveCoach').then(m => ({ default: m.AdaptiveCoach })));
+const WellnessHub = lazy(() => import('./components/WellnessHub').then(m => ({ default: m.WellnessHub })));
+const SmartPlateCombiner = lazy(() => import('./components/SmartPlateCombiner').then(m => ({ default: m.SmartPlateCombiner })));
+const JuiceGenerator = lazy(() => import('./components/JuiceGenerator').then(m => ({ default: m.JuiceGenerator })));
+const Notebook = lazy(() => import('./components/Notebook').then(m => ({ default: m.Notebook })));
+const ResultPrediction = lazy(() => import('./components/ResultPrediction').then(m => ({ default: m.ResultPrediction })));
+const QuickDishes = lazy(() => import('./components/QuickDishes').then(m => ({ default: m.QuickDishes })));
+const ShoppingListView = lazy(() => import('./components/ShoppingListView').then(m => ({ default: m.ShoppingListView })));
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
-import { useTranslation } from 'react-i18next';
-import { changeLanguage as changeAppLanguage } from './i18n';
+import { changeLanguage as changeAppLanguage, normalizeToSupportedLocale } from './i18n';
 import { LanguageProvider, useLanguage, LanguageContext } from './contexts/LanguageContext';
 
 import { MagicRecipeFAB } from './components/MagicRecipeFAB';
@@ -79,6 +80,8 @@ import { OfflineSyncBanner } from './components/OfflineSyncBanner';
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 import { SmartHydrationBanner } from './components/SmartHydrationBanner';
+
+import { bootManager } from './lib/bootManager';
 
 const TAB_ORDER = [
   "admin_library",
@@ -95,6 +98,15 @@ function AppContent() {
   const { language, changeLanguage, t, renderKey } = useLanguage();
   const currentAppLang = language;
   const [showSplash, setShowSplash] = useState(true);
+
+  // Strict fallback timer to guarantee splash screen never hangs more than 2.2 seconds
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+      bootManager.dismissHtmlLoader();
+    }, 2200);
+    return () => clearTimeout(splashTimer);
+  }, []);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
   const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
@@ -132,10 +144,7 @@ function AppContent() {
     const rawProfileLang = profile?.preferred_language || profile?.language;
     if (rawProfileLang) {
       hasInitProfileLangRef.current = true;
-      let targetLng = rawProfileLang;
-      if (targetLng === 'pt') targetLng = 'pt-BR';
-      if (targetLng === 'en') targetLng = 'en-US';
-      if (targetLng === 'es') targetLng = 'es-ES';
+      const targetLng = normalizeToSupportedLocale(rawProfileLang);
       if (targetLng !== language) {
         changeLanguage(targetLng);
       }
@@ -318,12 +327,6 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const handleNav = (e: any) => setActiveTab(e.detail);
-    window.addEventListener("navigate", handleNav);
-    return () => window.removeEventListener("navigate", handleNav);
-  }, []);
-
-  useEffect(() => {
     if (!profile) return;
     const today = new Date().toISOString().split('T')[0];
     const hasSleepToday = profile.sleepLogs?.some(log => log.date.startsWith(today));
@@ -358,24 +361,12 @@ function AppContent() {
   };
 
   useEffect(() => {
-    const handleNav = (e: any) => setActiveTab(e.detail);
-    window.addEventListener("navigate", handleNav);
-    return () => window.removeEventListener("navigate", handleNav);
-  }, []);
-
-  useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
-
-  useEffect(() => {
-    const handleNav = (e: any) => setActiveTab(e.detail);
-    window.addEventListener("navigate", handleNav);
-    return () => window.removeEventListener("navigate", handleNav);
-  }, []);
 
   useEffect(() => {
     const storedContrast = window.localStorage.getItem('nutri-high-contrast') === 'true';
@@ -455,8 +446,32 @@ function AppContent() {
     });
   };
 
-  const renderContent = () => {
+  // Safety timer to prevent authLoading from stalling renderContent indefinitely
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+  useEffect(() => {
     if (authLoading) {
+      const timer = setTimeout(() => {
+        console.warn('[NutriAI Boot] authLoading demorando mais de 1.8s, forçando liberação de tela.');
+        setAuthTimedOut(true);
+      }, 1800);
+      return () => clearTimeout(timer);
+    } else {
+      setAuthTimedOut(false);
+    }
+  }, [authLoading]);
+
+  const effectiveAuthLoading = authLoading && !authTimedOut;
+
+  // Track boot state transitions
+  useEffect(() => {
+    if (!effectiveAuthLoading) {
+      bootManager.setStage('READY', 'Autenticação resolvida, aplicação pronta para exibição.');
+      bootManager.dismissHtmlLoader();
+    }
+  }, [effectiveAuthLoading]);
+
+  const renderContent = () => {
+    if (effectiveAuthLoading) {
       return (
         <div className="w-full h-[100vh] bg-[#f4f9f6] dark:bg-[#08111d] flex flex-col items-center justify-center box-border overflow-hidden">
           {!showSplash && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>}
@@ -679,251 +694,251 @@ function AppContent() {
         <LayoutAnimationProvider animationKey={activeTab}>
           <div key={`tab-view-${activeTab}-${currentAppLang}`} className="w-full flex-1 flex flex-col items-center">
             <ErrorBoundary>
-              {(activeTab === 'generator' || activeTab === 'plan') && (
-              <FoodGalleryBanner 
-                onNavigateToMarket={() => setActiveTab('market')} 
-                isGenerating={isRecipesGenerating} 
-                recipesCount={savedRecipes.length}
-              />
-            )}
-            {activeTab === 'assistant360' && (
-              <Assistant360 
-                profile={profile} 
-                onNavigate={(tab) => {
-                  if (tab === 'live') {
-                    // handle opening live assistant (we might have a state or we can just keep the floating button for it)
-                    // Let's just dispatch an event to open live assistant
-                    window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
-                  } else {
-                    setActiveTab(tab as any);
-                  }
-                }} 
-                onLogIntake={handleLogIntake}
-                onUpdateProfile={updateProfile}
-              />
-            )}
-            {activeTab === 'quickdishes' && (
-              <motion.div
-                initial={{ opacity: 0, y: 28 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full animate-fade-in-up"
-              >
-                <QuickDishes
-                  profile={profile}
-                  onSaveRecipe={handleSaveRecipe}
-                  onAwardPoints={awardPoints}
-                  onUpdateProfile={updateProfile}
-                />
-              </motion.div>
-            )}
-            {activeTab === 'generator' && (
-              <Generator 
-                onSaveRecipe={handleSaveRecipe} 
-                profile={profile} 
-                onAwardPoints={awardPoints} 
-                onGeneratingChange={setIsRecipesGenerating}
-              />
-            )}
-            {activeTab === 'juice' && (
-              <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
-            )}
-            {activeTab === 'habits' && (
-              <HabitTracker 
-                profile={profile} 
-                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
-                onAwardPoints={awardPoints}
-                addNotification={addNotification}
-              />
-            )}
-            {activeTab === 'notes' && (
-              <Notebook 
-                profile={profile} 
-                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
-                onAwardPoints={awardPoints}
-              />
-            )}
-            {activeTab === 'bloodpressure' && (
-              <BloodPressureTracker 
-                profile={profile} 
-                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
-                onAwardPoints={awardPoints}
-              />
-            )}
-            {activeTab === 'glucose' && (
-              <GlucoseTracker />
-            )}
-            {activeTab === 'barcode' && (
-              <BarcodeScanner profile={profile} />
-            )}
-            {activeTab === 'allergy' && (
-              <FoodAllergyDetector />
-            )}
-            {activeTab === 'comparer' && (
-              <ProductComparer />
-            )}
-            {activeTab === 'emotional' && (
-              <EmotionalTracker 
-                profile={profile} 
-                onUpdateLogs={(newLogs) => updateProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
-              />
-            )}
-            {activeTab === 'plan' && (
-              <MealPlanView 
-                mealPlan={mealPlan} 
-                savedRecipes={savedRecipes} 
-                onUpdatePlan={handleUpdatePlan} 
-                onLogIntake={handleLogIntake}
-                profile={profile}
-                onGeneratingChange={setIsRecipesGenerating}
-              />
-            )}
-            {activeTab === 'coach' && (
-              <AdaptiveCoach 
-                profile={profile} 
-                onUpdateProfile={updateProfile}
-                onUpdatePlan={handleUpdatePlan}
-              />
-            )}
-            {activeTab === 'shopping' && (
-              <ShoppingListView mealPlan={mealPlan} />
-            )}
-            {activeTab === 'profile' && (
-              <Profile profile={profile} onSaveProfile={updateProfile} />
-            )}
-            {activeTab === 'admin' && (
-              <AdminDashboard 
-                profile={profile} 
-                onNavigateTab={(tab) => setActiveTab(tab as any)} 
-              />
-            )}
-            {activeTab === 'gamification' && (
-              <GamificationCenter profile={profile} onUpdateProfile={updateProfile} />
-            )}
-            {activeTab === 'ranking' && (
-              <RankingView profile={profile} />
-            )}
-            {activeTab === 'market' && (
-              <Marketplace 
-                profile={profile} 
-                onUpdateCart={(cart) => updateProfile(prev => prev ? { ...prev, cart } : null)} 
-                onUpdateFavorites={(favorites) => updateProfile(prev => prev ? { ...prev, favorites } : null)}
-                onOpenPartner={() => setActiveTab('partner')}
-                onOpenMap={() => setActiveTab('frescor')}
-                addNotification={addNotification}
-              />
-            )}
-            {activeTab === 'frescor' && (
-              <FreshnessMap onBack={() => setActiveTab('market')} />
-            )}
-            {activeTab === 'trainer' && (
-              <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={updateProfile} />
-            )}
-            {activeTab === 'wellness' && (
-              <WellnessHub />
-            )}
-            {activeTab === 'prediction' && (
-              <ResultPrediction 
-                profile={profile} 
-                onUpdatePrediction={(prediction) => updateProfile(prev => prev ? { ...prev, prediction } : null)} 
-              />
-            )}
-            {activeTab === 'analyzer' && (
-              <PlateAnalyzer profile={profile} onAwardPoints={awardPoints} />
-            )}
-            {activeTab === 'body' && (
-              <BodyAnalyzer 
-                profile={profile} 
-                onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
-                onAwardPoints={awardPoints} 
-              />
-            )}
-            {activeTab === 'evolution' && (
-              <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />
-            )}
-            {activeTab === 'challenge' && (
-              <ChallengeView 
-                profile={profile} 
-                onUpdateProfile={updateProfile}
-                onUpdateChallenge={(challenge) => updateProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
-                onAwardPoints={awardPoints}
-                onNavigate={(tab) => setActiveTab(tab as any)}
-                onSaveRecipe={handleSaveRecipe}
-              />
-            )}
-            {activeTab === 'swaps' && (
-              <SmartSwaps profile={profile} onAwardPoints={awardPoints} />
-            )}
-            {activeTab === 'dining' && (
-              <DiningOut profile={profile} onAwardPoints={awardPoints} />
-            )}
-            {activeTab === 'pricing' && (
-              <Pricing
-                profile={profile}
-                onUpgradeSuccess={(planId) => {
-                  const planTitle = planId === 'pro' ? 'NutriAI Elite PRO' : 'NutriAI Premium';
-                  const updatedProfile: UserProfile = {
-                    ...(profile || {
-                      name: user?.displayName || 'Usuário VIP',
-                      restrictions: [],
-                      allergies: [],
-                      goals: 'Saúde, Longevidade e IA',
-                      equipment: []
-                    }),
-                    plan: 'Premium',
-                    isPremium: true,
-                    subscriptionStatus: 'active'
-                  };
-                  setProfile(updatedProfile);
-                  if (user) {
-                    syncToFirestore(updatedProfile);
-                  }
-                  addNotification({
-                    title: 'Assinatura VIP Ativada!',
-                    message: `Parabéns! Seu plano ${planTitle} foi ativado com sucesso com IA ilimitada.`,
-                    type: 'success'
-                  });
-                }}
-              />
-            )}
-            {activeTab === 'partner' && (
-              <PartnerPortal />
-            )}
-            {activeTab === 'delivery' && (
-              <DeliveryPartnerPortal onBack={() => setActiveTab('market')} addNotification={addNotification} />
-            )}
-            {activeTab === 'academies' && (
-              <AcademyPortal />
-            )}
-            {activeTab === 'herbs' && (
-              <MedicinalHerbs />
-            )}
-            {activeTab === 'smartplate' && (
-              <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} profile={profile} />
-            )}
-            {activeTab === 'fridge' && (
-              <SmartFridge />
-            )}
-            {activeTab === 'pantry' && (
-              <div className="max-w-6xl mx-auto px-4 py-6">
-                <PantryScanner 
-                  profile={profile} 
-                  onCookRecipe={(recipe) => {
-                    handleSaveRecipe(recipe);
-                    setActiveTab('generator');
-                  }}
-                />
-              </div>
-            )}
-            {activeTab === 'cooking_advisor' && (
-              <div className="max-w-4xl mx-auto px-4 py-6">
-                <AiCookingAdvisor profile={profile} />
-              </div>
-            )}
-            {activeTab === 'garden' && (
-              <SmartGarden />
-            )}
+              <Suspense fallback={<LazyTabLoader label={t('loading_module', 'Carregando módulo inteligente...')} />}>
+                {(activeTab === 'generator' || activeTab === 'plan') && (
+                  <FoodGalleryBanner 
+                    onNavigateToMarket={() => setActiveTab('market')} 
+                    isGenerating={isRecipesGenerating} 
+                    recipesCount={savedRecipes.length}
+                  />
+                )}
+                {activeTab === 'assistant360' && (
+                  <Assistant360 
+                    profile={profile} 
+                    onNavigate={(tab) => {
+                      if (tab === 'live') {
+                        window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
+                      } else {
+                        setActiveTab(tab as any);
+                      }
+                    }} 
+                    onLogIntake={handleLogIntake}
+                    onUpdateProfile={updateProfile}
+                  />
+                )}
+                {activeTab === 'quickdishes' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 28 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                    className="w-full animate-fade-in-up"
+                  >
+                    <QuickDishes
+                      profile={profile}
+                      onSaveRecipe={handleSaveRecipe}
+                      onAwardPoints={awardPoints}
+                      onUpdateProfile={updateProfile}
+                    />
+                  </motion.div>
+                )}
+                {activeTab === 'generator' && (
+                  <Generator 
+                    onSaveRecipe={handleSaveRecipe} 
+                    profile={profile} 
+                    onAwardPoints={awardPoints} 
+                    onGeneratingChange={setIsRecipesGenerating}
+                  />
+                )}
+                {activeTab === 'juice' && (
+                  <JuiceGenerator profile={profile} onAwardPoints={awardPoints} />
+                )}
+                {activeTab === 'habits' && (
+                  <HabitTracker 
+                    profile={profile} 
+                    onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
+                    onAwardPoints={awardPoints}
+                    addNotification={addNotification}
+                  />
+                )}
+                {activeTab === 'notes' && (
+                  <Notebook 
+                    profile={profile} 
+                    onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
+                    onAwardPoints={awardPoints}
+                  />
+                )}
+                {activeTab === 'bloodpressure' && (
+                  <BloodPressureTracker 
+                    profile={profile} 
+                    onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)} 
+                    onAwardPoints={awardPoints}
+                  />
+                )}
+                {activeTab === 'glucose' && (
+                  <GlucoseTracker />
+                )}
+                {activeTab === 'barcode' && (
+                  <BarcodeScanner profile={profile} />
+                )}
+                {activeTab === 'allergy' && (
+                  <FoodAllergyDetector />
+                )}
+                {activeTab === 'comparer' && (
+                  <ProductComparer />
+                )}
+                {activeTab === 'emotional' && (
+                  <EmotionalTracker 
+                    profile={profile} 
+                    onUpdateLogs={(newLogs) => updateProfile(prev => prev ? { ...prev, emotionalLogs: newLogs } : null)} 
+                  />
+                )}
+                {activeTab === 'plan' && (
+                  <MealPlanView 
+                    mealPlan={mealPlan} 
+                    savedRecipes={savedRecipes} 
+                    onUpdatePlan={handleUpdatePlan} 
+                    onLogIntake={handleLogIntake}
+                    profile={profile}
+                    onGeneratingChange={setIsRecipesGenerating}
+                  />
+                )}
+                {activeTab === 'coach' && (
+                  <AdaptiveCoach 
+                    profile={profile} 
+                    onUpdateProfile={updateProfile}
+                    onUpdatePlan={handleUpdatePlan}
+                  />
+                )}
+                {activeTab === 'shopping' && (
+                  <ShoppingListView mealPlan={mealPlan} />
+                )}
+                {activeTab === 'profile' && (
+                  <Profile profile={profile} onSaveProfile={updateProfile} />
+                )}
+                {activeTab === 'admin' && (
+                  <AdminDashboard 
+                    profile={profile} 
+                    onNavigateTab={(tab) => setActiveTab(tab as any)} 
+                  />
+                )}
+                {activeTab === 'gamification' && (
+                  <GamificationCenter profile={profile} onUpdateProfile={updateProfile} />
+                )}
+                {activeTab === 'ranking' && (
+                  <RankingView profile={profile} />
+                )}
+                {activeTab === 'market' && (
+                  <Marketplace 
+                    profile={profile} 
+                    onUpdateCart={(cart) => updateProfile(prev => prev ? { ...prev, cart } : null)} 
+                    onUpdateFavorites={(favorites) => updateProfile(prev => prev ? { ...prev, favorites } : null)}
+                    onOpenPartner={() => setActiveTab('partner')}
+                    onOpenMap={() => setActiveTab('frescor')}
+                    addNotification={addNotification}
+                  />
+                )}
+                {activeTab === 'frescor' && (
+                  <FreshnessMap onBack={() => setActiveTab('market')} />
+                )}
+                {activeTab === 'trainer' && (
+                  <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={updateProfile} />
+                )}
+                {activeTab === 'wellness' && (
+                  <WellnessHub />
+                )}
+                {activeTab === 'prediction' && (
+                  <ResultPrediction 
+                    profile={profile} 
+                    onUpdatePrediction={(prediction) => updateProfile(prev => prev ? { ...prev, prediction } : null)} 
+                  />
+                )}
+                {activeTab === 'analyzer' && (
+                  <PlateAnalyzer profile={profile} onAwardPoints={awardPoints} />
+                )}
+                {activeTab === 'body' && (
+                  <BodyAnalyzer 
+                    profile={profile} 
+                    onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+                    onAwardPoints={awardPoints} 
+                  />
+                )}
+                {activeTab === 'evolution' && (
+                  <PhotoEvolution profile={profile} onAwardPoints={awardPoints} />
+                )}
+                {activeTab === 'challenge' && (
+                  <ChallengeView 
+                    profile={profile} 
+                    onUpdateProfile={updateProfile}
+                    onUpdateChallenge={(challenge) => updateProfile(prev => prev ? { ...prev, currentChallenge: challenge } : null)} 
+                    onAwardPoints={awardPoints}
+                    onNavigate={(tab) => setActiveTab(tab as any)}
+                    onSaveRecipe={handleSaveRecipe}
+                  />
+                )}
+                {activeTab === 'swaps' && (
+                  <SmartSwaps profile={profile} onAwardPoints={awardPoints} />
+                )}
+                {activeTab === 'dining' && (
+                  <DiningOut profile={profile} onAwardPoints={awardPoints} />
+                )}
+                {activeTab === 'pricing' && (
+                  <Pricing
+                    profile={profile}
+                    onUpgradeSuccess={(planId) => {
+                      const planTitle = planId === 'pro' ? 'NutriAI Elite PRO' : 'NutriAI Premium';
+                      const updatedProfile: UserProfile = {
+                        ...(profile || {
+                          name: user?.displayName || 'Usuário VIP',
+                          restrictions: [],
+                          allergies: [],
+                          goals: 'Saúde, Longevidade e IA',
+                          equipment: []
+                        }),
+                        plan: 'Premium',
+                        isPremium: true,
+                        subscriptionStatus: 'active'
+                      };
+                      setProfile(updatedProfile);
+                      if (user) {
+                        syncToFirestore(updatedProfile);
+                      }
+                      addNotification({
+                        title: 'Assinatura VIP Ativada!',
+                        message: `Parabéns! Seu plano ${planTitle} foi ativado com sucesso com IA ilimitada.`,
+                        type: 'success'
+                      });
+                    }}
+                  />
+                )}
+                {activeTab === 'partner' && (
+                  <PartnerPortal />
+                )}
+                {activeTab === 'delivery' && (
+                  <DeliveryPartnerPortal onBack={() => setActiveTab('market')} addNotification={addNotification} />
+                )}
+                {activeTab === 'academies' && (
+                  <AcademyPortal />
+                )}
+                {activeTab === 'herbs' && (
+                  <MedicinalHerbs />
+                )}
+                {activeTab === 'smartplate' && (
+                  <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} profile={profile} />
+                )}
+                {activeTab === 'fridge' && (
+                  <SmartFridge />
+                )}
+                {activeTab === 'pantry' && (
+                  <div className="max-w-6xl mx-auto px-4 py-6">
+                    <PantryScanner 
+                      profile={profile} 
+                      onCookRecipe={(recipe) => {
+                        handleSaveRecipe(recipe);
+                        setActiveTab('generator');
+                      }}
+                    />
+                  </div>
+                )}
+                {activeTab === 'cooking_advisor' && (
+                  <div className="max-w-4xl mx-auto px-4 py-6">
+                    <AiCookingAdvisor profile={profile} />
+                  </div>
+                )}
+                {activeTab === 'garden' && (
+                  <SmartGarden />
+                )}
+              </Suspense>
             </ErrorBoundary>
           </div>
         </LayoutAnimationProvider>

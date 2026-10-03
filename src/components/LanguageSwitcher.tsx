@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Globe, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { languagesList, searchLanguages, LanguageOption } from '../lib/languages';
+import { searchLanguages, LanguageOption } from '../lib/languages';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { supabase } from '../lib/supabase';
@@ -33,20 +33,14 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
   };
 
   const filtered = searchLanguages(searchQuery);
-
-  const premiumMarkets = filtered.filter(l => l.priority === 'premium');
-  const growthMarkets = filtered.filter(l => l.priority === 'growth');
-  const globalMarkets = filtered.filter(l => l.priority === 'global');
-
   const hasResults = filtered.length > 0;
 
   const renderLanguageButton = (lng: LanguageOption) => {
     const isSelected = 
       currentLang === lng.subtag ||
-      (lng.subtag === 'pt-BR' && currentLang === 'pt') ||
-      (lng.subtag === 'es-ES' && currentLang === 'es') ||
-      (lng.subtag === 'en-US' && currentLang === 'en') ||
-      (currentLang === lng.code && !lng.subtag);
+      currentLang === lng.code;
+
+    const countryCode = (lng.subtag.split('-')[1] || lng.code).toUpperCase();
 
     return (
       <motion.button
@@ -57,23 +51,30 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
         onClick={() => handleLanguageChange(lng.subtag || lng.code)}
         className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all text-left outline-none cursor-pointer ${
           isSelected
-            ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold'
+            ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold shadow-sm'
             : 'bg-slate-50/50 dark:bg-slate-900/40 border-slate-100/40 dark:border-slate-800/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/40'
         }`}
       >
-        <div className="flex flex-col items-center gap-1 min-w-[32px]">
-          <span className="text-2xl select-none" role="img" aria-label={lng.translatedName}>
+        <div className="flex flex-col items-center justify-center min-w-[36px] h-10 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50">
+          <span className="text-xl select-none leading-none" role="img" aria-label={lng.translatedName}>
             {lng.flag}
           </span>
-          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
-            {lng.subtag.split('-')[1] || lng.code.toUpperCase()}
+          <span className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 leading-tight">
+            {countryCode}
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-xs tracking-wider truncate text-slate-700 dark:text-slate-200">
-            {lng.originalName}
-          </p>
-          <p className="text-[10px] opacity-70 truncate font-normal">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-xs tracking-wider truncate text-slate-700 dark:text-slate-200">
+              {lng.originalName}
+            </p>
+            {lng.currency && (
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                {lng.currencySymbol} {lng.currency}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] opacity-75 truncate font-normal mt-0.5">
             {lng.translatedName} • <span className="italic opacity-90">{lng.country}</span>
           </p>
         </div>
@@ -95,10 +96,10 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
         </div>
         <div className="flex-1">
           <h4 className="font-semibold text-slate-800 dark:text-slate-200">
-            {t('settings_language_title', 'Idioma / Language')}
+            {t('settings_language_title', 'Idioma e Localização / Language & Location')}
           </h4>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('settings_language_description', 'Selecione o idioma de sua preferência para utilizar todo o aplicativo.')}
+            {t('settings_language_description', 'Suporte exclusivo para Estados Unidos, Reino Unido, Austrália e Brasil.')}
           </p>
         </div>
       </div>
@@ -110,7 +111,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('settings_search_placeholder', 'Buscar por idioma, país, nativo ou ISO...')}
+          placeholder={t('settings_search_placeholder', 'Buscar por idioma, país ou ISO...')}
           className="w-full pl-11 pr-10 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100/40 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 placeholder-slate-450 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
         />
         {searchQuery && (
@@ -124,51 +125,22 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ profile, onS
         )}
       </div>
 
-      {/* Language Priority Lists */}
-      <div className="space-y-5 max-h-[460px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-emerald-500/20 scroll-smooth">
+      {/* Language Lists */}
+      <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-emerald-500/20 scroll-smooth">
         {!hasResults ? (
           <div className="text-center py-8 text-slate-450 dark:text-slate-500 text-xs">
             <Globe className="w-8 h-8 mx-auto mb-2 opacity-30 animate-pulse" />
             <p>{t('settings_no_results', 'Nenhum idioma encontrado para a busca.')}</p>
           </div>
         ) : (
-          <>
-            {/* Category: Premium Markets */}
-            {premiumMarkets.length > 0 && (
-              <div className="space-y-2">
-                <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                  {t('settings_premium_markets', 'Mercados Premium')}
-                </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {premiumMarkets.map(renderLanguageButton)}
-                </div>
-              </div>
-            )}
-
-            {/* Category: Growth Markets */}
-            {growthMarkets.length > 0 && (
-              <div className="space-y-2 pt-1">
-                <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                  {t('settings_growth_markets', 'Mercados em Crescimento')}
-                </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {growthMarkets.map(renderLanguageButton)}
-                </div>
-              </div>
-            )}
-
-            {/* Category: Global Expansion */}
-            {globalMarkets.length > 0 && (
-              <div className="space-y-2 pt-1">
-                <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
-                  {t('settings_global_expansion', 'Expansão Global')}
-                </h5>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {globalMarkets.map(renderLanguageButton)}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="space-y-2">
+            <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 pl-1">
+              {t('settings_exclusive_markets', 'Países e Regiões Suportadas')}
+            </h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filtered.map(renderLanguageButton)}
+            </div>
+          </div>
         )}
       </div>
     </div>

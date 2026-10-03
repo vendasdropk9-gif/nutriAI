@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertTriangle, Info, History, ArrowLeft, ArrowRight, Upload, X, CheckCircle2, ChevronRight, Scale, Zap, Flame, Target, Eye, Maximize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { combineSmartPlate } from '../lib/gemini';
@@ -262,13 +262,13 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
             
             <div className="text-center space-y-4 py-8">
               <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                Está no restaurante e não sabe o que escolher?
+                {t('spc_restaurant_headline', 'Está no restaurante e não sabe o que escolher?')}
               </h2>
               <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                Tire fotos das opções disponíveis e deixe a Inteligência Artificial encontrar uma combinação mais adequada ao seu objetivo com fotos dos pratos.
+                {t('spc_restaurant_sub', 'Tire fotos das opções disponíveis e deixe a Inteligência Artificial encontrar uma combinação mais adequada ao seu objetivo com fotos dos pratos.')}
               </p>
               <div className="inline-block bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-6 py-3 rounded-full font-medium mt-4">
-                Você escolhe o restaurante. A IA ajuda você a escolher o prato.
+                {t('spc_restaurant_tagline', 'Você escolhe o restaurante. A IA ajuda você a escolher o prato.')}
               </div>
             </div>
 
@@ -279,7 +279,7 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
               </div>
               <h3 className="text-xl font-bold text-white mb-2">{t('spc_photo_options', 'Fotografe as opções')}</h3>
               <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                Tire fotos do buffet, das travessas, ou do cardápio do restaurante. (Máx. 5 fotos)
+                {t('spc_instructions', 'Tire fotos do buffet, das travessas, ou do cardápio do restaurante. (Máx. 5 fotos)')}
               </p>
               
               <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -288,14 +288,14 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
                   className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold transition-colors shadow-lg shadow-emerald-500/20"
                 >
                   <Camera className="w-5 h-5" />
-                  TIRAR FOTO
+                  {t('take_photo', 'TIRAR FOTO')}
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-bold transition-colors"
                 >
                   <ImageIcon className="w-5 h-5" />
-                  ESCOLHER DA GALERIA
+                  {t('choose_from_gallery', 'ESCOLHER DA GALERIA')}
                 </button>
                 <input
                   type="file"
@@ -348,7 +348,7 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
                       }`}
                     >
                       {goal.icon}
-                      <span className="font-medium text-sm">{goal.label}</span>
+                      <span className="font-medium text-sm">{t(goal.label)}</span>
                     </button>
                   ))}
                 </div>
@@ -362,12 +362,12 @@ export function SmartPlateCombiner({ onClose, profile }: { onClose: () => void; 
                     {isAnalyzing ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin" />
-                        Analisando opções e montando prato...
+                        {t('analyzing_options', 'Analisando opções e montando prato...')}
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-6 h-6" />
-                        Combinar Prato com Fotos em Alta Qualidade
+                        {t('combine_plate_hq', 'Combinar Prato com Fotos em Alta Qualidade')}
                       </>
                     )}
                   </button>

@@ -74,13 +74,10 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const getLabel = (item: NavItem): string => {
-    // Check specific translation keys first, fallback to item.id, then nav.item.id, then item.label
-    const translated = t(item.id, { 
-      defaultValue: t(`nav.${item.id}`, { 
-        defaultValue: item.label 
-      }) 
-    });
-    return (translated as string) || item.label;
+    // Translate by item.id or fallback to item.label
+    const res = t(item.id, item.label);
+    if (res && res !== item.id) return res;
+    return t(item.label, item.label) || item.label;
   };
 
   // Adaptive Navigation Items based on time of day

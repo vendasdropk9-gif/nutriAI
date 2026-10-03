@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Moon, Activity, Clock, Bell, Check, Plus, Trash2, Smartphone, Coffee, Dumbbell, Utensils } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useTranslation } from '../contexts/LanguageContext';
 
 type ActivityType = 'workout' | 'screen' | 'caffeine' | 'meal';
 
@@ -20,6 +21,7 @@ const ACTIVITY_META: Record<ActivityType, { icon: any; color: string; delayMinut
 };
 
 export function SleepActivityAdvisor() {
+  const { t } = useTranslation();
   const [activities, setActivities] = useLocalStorage<ActivityRecord[]>('wellness_daily_activities', []);
   const [baseSleepTime, setBaseSleepTime] = useLocalStorage('base_sleep_time', '22:30');
   
@@ -178,20 +180,20 @@ export function SleepActivityAdvisor() {
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">{t('type_label', 'Tipo')}</label>
                         <select 
                           value={newType}
                           onChange={(e) => setNewType(e.target.value as ActivityType)}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300"
                         >
-                          <option value="screen">Telas / Trabalho</option>
-                          <option value="workout">Treino Intenso</option>
-                          <option value="caffeine">Cafeína / Pré-treino</option>
-                          <option value="meal">Refeição Pesada</option>
+                          <option value="screen">{t('screens_work', 'Telas / Trabalho')}</option>
+                          <option value="workout">{t('intense_workout', 'Treino Intenso')}</option>
+                          <option value="caffeine">{t('caffeine_preworkout', 'Cafeína / Pré-treino')}</option>
+                          <option value="meal">{t('heavy_meal', 'Refeição Pesada')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Horário</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">{t('time_label', 'Horário')}</label>
                         <input 
                           type="time" 
                           value={newTime}
@@ -201,10 +203,10 @@ export function SleepActivityAdvisor() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição (Opcional)</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">{t('description_optional', 'Descrição (Opcional)')}</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: Café Expresso, Treino de Pernas..."
+                        placeholder={t('placeholder_activity_desc', 'Ex: Café Expresso, Treino de Pernas...')}
                         value={newLabel}
                         onChange={(e) => setNewLabel(e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300"

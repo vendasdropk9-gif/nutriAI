@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { 
   Mic, 
   Loader2, 
@@ -32,129 +32,56 @@ export interface LiveAssistantProps {
 // Inactivity timeout in milliseconds (8 seconds of silence closes the session)
 const INACTIVITY_TIMEOUT_MS = 8000;
 
-// Compute time-appropriate greeting in active language
+// Compute time-appropriate greeting in active language (US, UK, AU, BR)
 function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): { spoken: string; display: string } {
   const currentHour = new Date().getHours();
-  const baseLang = (lang || 'pt-BR').split('-')[0].toLowerCase();
+  const normalizedLang = (lang || 'pt-BR').toLowerCase();
+  const isEn = normalizedLang.startsWith('en');
+  const isAu = normalizedLang.includes('au');
+  const isGb = normalizedLang.includes('gb') || normalizedLang.includes('uk');
   
   let timeGreeting = "Boa noite";
   let icon = "🌙";
   let question = "Como posso ajudar você hoje?";
 
-  if (baseLang === 'en') {
-    question = "How can I help you today?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "Good morning";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "Good afternoon";
-      icon = "🌤️";
+  if (isEn) {
+    if (isAu) {
+      question = "How can I help you today?";
+      if (currentHour >= 5 && currentHour < 12) {
+        timeGreeting = "Good morning";
+        icon = "☀️";
+      } else if (currentHour >= 12 && currentHour < 18) {
+        timeGreeting = "G'day! Good afternoon";
+        icon = "🌤️";
+      } else {
+        timeGreeting = "Good evening";
+      }
+    } else if (isGb) {
+      question = "How may I help you today?";
+      if (currentHour >= 5 && currentHour < 12) {
+        timeGreeting = "Good morning";
+        icon = "☀️";
+      } else if (currentHour >= 12 && currentHour < 18) {
+        timeGreeting = "Good afternoon";
+        icon = "🌤️";
+      } else {
+        timeGreeting = "Good evening";
+      }
     } else {
-      timeGreeting = "Good evening";
-    }
-  } else if (baseLang === 'es') {
-    question = "¿Cómo puedo ayudarte hoy?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "¡Buenos días";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "¡Buenas tardes";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "¡Buenas noches";
-    }
-  } else if (baseLang === 'de') {
-    question = "Wie kann ich dir heute helfen?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "Guten Morgen";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "Guten Tag";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "Guten Abend";
-    }
-  } else if (baseLang === 'fr') {
-    question = "Comment puis-je vous aider aujourd'hui ?";
-    if (currentHour >= 5 && currentHour < 18) {
-      timeGreeting = "Bonjour";
-      icon = "☀️";
-    } else {
-      timeGreeting = "Bonsoir";
-    }
-  } else if (baseLang === 'it') {
-    question = "Come posso aiutarti oggi?";
-    if (currentHour >= 5 && currentHour < 17) {
-      timeGreeting = "Buongiorno";
-      icon = "☀️";
-    } else {
-      timeGreeting = "Buonasera";
-    }
-  } else if (baseLang === 'zh') {
-    question = "今天我可以怎样帮助你？";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "早上好";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "下午好";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "晚上好";
-    }
-  } else if (baseLang === 'ja') {
-    question = "今日はどのようにお手伝いできますか？";
-    if (currentHour >= 5 && currentHour < 11) {
-      timeGreeting = "おはようございます";
-      icon = "☀️";
-    } else if (currentHour >= 11 && currentHour < 18) {
-      timeGreeting = "こんにちは";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "こんばんは";
-    }
-  } else if (baseLang === 'ko') {
-    question = "오늘 어떻게 도와드릴까요?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "좋은 아침이에요";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "좋은 오후예요";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "좋은 저녁이에요";
-    }
-  } else if (baseLang === 'hi') {
-    question = "आज मैं आपकी कैसे मदद कर सकती हूँ?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "शुभ प्रभात";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "शुभ दोपहर";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "शुभ संध्या";
-    }
-  } else if (baseLang === 'ar') {
-    question = "كيف يمكنني مساعدتك اليوم؟";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "صباح الخير";
-      icon = "☀️";
-    } else {
-      timeGreeting = "مساء الخير";
-      icon = "🌙";
-    }
-  } else if (baseLang === 'tr') {
-    question = "Bugün size nasıl yardımcı olabilirim?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "Günaydın";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 18) {
-      timeGreeting = "İyi günler";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "İyi akşamlar";
+      // US English
+      question = "How can I help you today?";
+      if (currentHour >= 5 && currentHour < 12) {
+        timeGreeting = "Good morning";
+        icon = "☀️";
+      } else if (currentHour >= 12 && currentHour < 18) {
+        timeGreeting = "Good afternoon";
+        icon = "🌤️";
+      } else {
+        timeGreeting = "Good evening";
+      }
     }
   } else {
+    // pt-BR (Brazil)
     if (currentHour >= 5 && currentHour < 12) {
       timeGreeting = "Bom dia";
       icon = "☀️";
@@ -177,28 +104,36 @@ function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): 
 }
 
 function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
-  const base = (lang || 'pt-BR').split('-')[0].toLowerCase();
-  const map: Record<string, {
-    listening: string;
-    thinking: string;
-    speaking: string;
-    goodbye: string;
-    tryAgain: string;
-    micError: string;
-    noMic: string;
-    unsupported: string;
-  }> = {
-    pt: {
-      listening: "Estou ouvindo...",
-      thinking: "Pensando...",
-      speaking: "Respondendo...",
-      goodbye: "Vou ficar por aqui. Quando precisar, é só me chamar.",
-      tryAgain: "Tente novamente.",
-      micError: "Não consegui acessar seu microfone. Verifique a permissão do navegador.",
-      noMic: "Nenhum microfone encontrado neste dispositivo. Conecte um microfone para falar com a Malu.",
-      unsupported: "Reconhecimento de voz indisponível neste navegador."
-    },
-    en: {
+  const norm = (lang || 'pt-BR').toLowerCase();
+  const isGb = norm.includes('gb') || norm.includes('uk');
+  const isAu = norm.includes('au');
+
+  if (norm.startsWith('en')) {
+    if (isGb) {
+      return {
+        listening: "Listening...",
+        thinking: "Thinking...",
+        speaking: "Speaking...",
+        goodbye: "I'll be right here whenever you need me. Cheers!",
+        tryAgain: "Please try again.",
+        micError: "Could not access microphone. Please check browser permissions.",
+        noMic: "No microphone found on this device. Please connect a microphone to talk with Malu.",
+        unsupported: "Speech recognition is not available on this browser."
+      };
+    }
+    if (isAu) {
+      return {
+        listening: "Listening...",
+        thinking: "Thinking...",
+        speaking: "Speaking...",
+        goodbye: "I'll be right here whenever you need me. Catch you later!",
+        tryAgain: "Please try again.",
+        micError: "Could not access microphone. Please check browser permissions.",
+        noMic: "No microphone found on this device. Please connect a microphone to talk with Malu.",
+        unsupported: "Speech recognition is not available on this browser."
+      };
+    }
+    return {
       listening: "Listening...",
       thinking: "Thinking...",
       speaking: "Speaking...",
@@ -207,109 +142,20 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
       micError: "Could not access microphone. Please check browser permissions.",
       noMic: "No microphone found on this device. Please connect a microphone to talk with Malu.",
       unsupported: "Speech recognition is not available on this browser."
-    },
-    es: {
-      listening: "Escuchando...",
-      thinking: "Pensando...",
-      speaking: "Hablando...",
-      goodbye: "Estaré aquí cuando me necesites. ¡Solo tienes que llamarme!",
-      tryAgain: "Inténtalo de nuevo.",
-      micError: "No se pudo acceder al micrófono. Verifica los permisos del navegador.",
-      noMic: "No se encontró ningún micrófono en este dispositivo. Conecta un micrófono para hablar con Malu.",
-      unsupported: "Reconocimiento de voz no disponible en este navegador."
-    },
-    fr: {
-      listening: "À votre écoute...",
-      thinking: "Réflexion...",
-      speaking: "En train de parler...",
-      goodbye: "Je reste là si vous avez besoin. N'hésitez pas à me solliciter !",
-      tryAgain: "Veuillez réessayer.",
-      micError: "Impossible d'accéder au microphone. Vérifiez les autorisations.",
-      noMic: "Aucun microphone trouvé sur cet appareil. Connectez un microphone pour parler à Malu.",
-      unsupported: "Reconnaissance vocale non disponible sur ce navigateur."
-    },
-    de: {
-      listening: "Höre zu...",
-      thinking: "Nachdenken...",
-      speaking: "Spreche...",
-      goodbye: "Ich bin hier, wenn du mich brauchst. Ruf mich einfach!",
-      tryAgain: "Bitte versuche es erneut.",
-      micError: "Mikrofonzugriff nicht möglich. Bitte Berechtigungen prüfen.",
-      noMic: "Kein Mikrofon auf diesem Gerät gefunden. Bitte schließen Sie ein Mikrofon an.",
-      unsupported: "Spracherkennung in diesem Browser nicht verfügbar."
-    },
-    it: {
-      listening: "Sto ascoltando...",
-      thinking: "Sto pensando...",
-      speaking: "Sto rispondendo...",
-      goodbye: "Rimango qui a disposizione. Quando hai bisogno, chiamami pure!",
-      tryAgain: "Riprova per favore.",
-      micError: "Impossibile accedere al microfono. Controlla i permessi.",
-      noMic: "Nessun microfono trovato su questo dispositivo. Collega un microfono per parlare con Malu.",
-      unsupported: "Riconoscimento vocale non disponibile in questo browser."
-    },
-    zh: {
-      listening: "正在倾听...",
-      thinking: "正在思考...",
-      speaking: "正在回答...",
-      goodbye: "我随时在此等候。需要时请随时叫我！",
-      tryAgain: "请重试。",
-      micError: "无法访问麦克风，请检查浏览器权限。",
-      noMic: "在此设备上未找到麦克风。请连接麦克风以与 Malu 对话。",
-      unsupported: "此浏览器不支持语音识别。"
-    },
-    ja: {
-      listening: "聞いています...",
-      thinking: "考えています...",
-      speaking: "話しています...",
-      goodbye: "いつでもお呼びください。またお話ししましょう！",
-      tryAgain: "もう一度お試しください。",
-      micError: "マイクにアクセスできませんでした。権限を確認してください。",
-      noMic: "このデバイスでマイクが見つかりませんでした。マイクを接続してください。",
-      unsupported: "このブラウザでは音声認識がサポートされていません。"
-    },
-    ko: {
-      listening: "듣고 있어요...",
-      thinking: "생각 중...",
-      speaking: "말씀드리는 중...",
-      goodbye: "필요하실 때 언제든 불러주세요. 언제나 곁에 있을게요!",
-      tryAgain: "다시 시도해 주세요.",
-      micError: "마이크에 접근할 수 없습니다. 권한을 확인해 주세요.",
-      noMic: "이 기기에서 마이크를 찾을 수 없습니다. 마이크를 연결해 주세요.",
-      unsupported: "이 브라우저에서는 음성 인식을 지원하지 않습니다."
-    },
-    hi: {
-      listening: "सुन रही हूँ...",
-      thinking: "सोच रही हूँ...",
-      speaking: "बोल रही हूँ...",
-      goodbye: "जब भी ज़रूरत हो, बस मुझे बुला लीजिएगा। मैं यहीं हूँ!",
-      tryAgain: "कृपया पुनः प्रयास करें।",
-      micError: "माइक्रोफ़ोन तक पहुँच नहीं मिली। कृपया अनुमति जाँचें।",
-      noMic: "इस उपकरण पर कोई माइक्रोफ़ोन नहीं मिला। कृपया माइक्रोफ़ोन कनेक्ट करें।",
-      unsupported: "इस ब्राउज़र में ध्वनि पहचान उपलब्ध नहीं है।"
-    },
-    ar: {
-      listening: "أستمع إليك...",
-      thinking: "جارٍ التفكير...",
-      speaking: "أتحدث...",
-      goodbye: "سأكون هنا متى احتجتني. فقط اضغط للتحدث!",
-      tryAgain: "يرجى المحاولة مرة أخرى.",
-      micError: "تعذر الوصول إلى الميكروفون. يرجى التحقق من أذونات المتصفح.",
-      noMic: "لم يتم العثور على ميكروفون في هذا الجهاز. يرجى توصيل ميكروفون.",
-      unsupported: "التعرف على الصوت غير مدعوم في هذا المتصفح."
-    },
-    tr: {
-      listening: "Dinliyorum...",
-      thinking: "Düşünüyor...",
-      speaking: "Konuşuyor...",
-      goodbye: "İhtiyacınız olduğunda buradayım. İstediğiniz an seslenebilirsiniz!",
-      tryAgain: "Lütfen tekrar deneyin.",
-      micError: "Mikrofona erişilemedi. Lütfen tarayıcı izinlerini kontrol edin.",
-      noMic: "Bu cihazda mikrofon bulunamadı. Lütfen bir mikrofon bağlayın.",
-      unsupported: "Bu tarayıcıda ses tanıma desteklenmiyor."
-    }
+    };
+  }
+
+  // pt-BR (Brazil) default
+  return {
+    listening: "Estou ouvindo...",
+    thinking: "Pensando...",
+    speaking: "Respondendo...",
+    goodbye: "Vou ficar por aqui. Quando precisar, é só me chamar.",
+    tryAgain: "Tente novamente.",
+    micError: "Não consegui acessar seu microfone. Verifique a permissão do navegador.",
+    noMic: "Nenhum microfone encontrado neste dispositivo. Conecte um microfone para falar com a Malu.",
+    unsupported: "Reconhecimento de voz indisponível neste navegador."
   };
-  return map[base] || map['pt'];
 }
 
 // Local fast-intent classifier for zero-latency instant navigation & actions
@@ -602,23 +448,30 @@ function classifyLocalIntent(query: string, profile?: UserProfile | null): {
     q.includes('mudar idioma') || q.includes('trocar idioma') || q.includes('alterar idioma') || q.includes('idiomas') || q.includes('língua') || q.includes('lingua') ||
     q.includes('change language') || q.includes('cambiar idioma')
   ) {
-    if (q.includes('espanhol') || q.includes('spanish') || q.includes('español')) {
+    if (q.includes('reino unido') || q.includes('uk') || q.includes('british')) {
       return {
-        text: "¡Cambiando el idioma a español! Todo el aplicativo se ha actualizado.",
+        text: "Switching language to British English! The entire app has been updated.",
         action: "CHANGE_LANGUAGE",
-        actionData: { language: "es-ES" }
+        actionData: { language: "en-GB" }
       };
     }
-    if (q.includes('inglês') || q.includes('ingles') || q.includes('english')) {
+    if (q.includes('austrália') || q.includes('australia') || q.includes('australian')) {
       return {
-        text: "Switching language to English! The entire app has been updated.",
+        text: "Switching language to Australian English! The entire app has been updated.",
+        action: "CHANGE_LANGUAGE",
+        actionData: { language: "en-AU" }
+      };
+    }
+    if (q.includes('estados unidos') || q.includes('us') || q.includes('usa') || q.includes('american') || q.includes('inglês') || q.includes('ingles') || q.includes('english')) {
+      return {
+        text: "Switching language to American English! The entire app has been updated.",
         action: "CHANGE_LANGUAGE",
         actionData: { language: "en-US" }
       };
     }
-    if (q.includes('português') || q.includes('portugues') || q.includes('portuguese')) {
+    if (q.includes('brasil') || q.includes('brazil') || q.includes('português') || q.includes('portugues') || q.includes('portuguese')) {
       return {
-        text: "Mudando o idioma para português! Todo o aplicativo foi atualizado.",
+        text: "Mudando o idioma para Português do Brasil! Todo o aplicativo foi atualizado.",
         action: "CHANGE_LANGUAGE",
         actionData: { language: "pt-BR" }
       };

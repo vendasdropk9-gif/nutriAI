@@ -1,8 +1,8 @@
 import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Cpu } from 'lucide-react';
+import { useTranslation } from '../contexts/LanguageContext';
+import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Cpu, Eye, Compass, ZoomIn, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
 import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
@@ -690,10 +690,10 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
       {/* Sub-tabs Navigation */}
       <div className="flex justify-center w-full">
-        <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-full flex gap-1 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
+        <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-full flex flex-wrap justify-center gap-1 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
           <button
             onClick={() => setActiveSubTab('plan')}
-            className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'plan'
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -704,7 +704,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
           </button>
           <button
             onClick={() => setActiveSubTab('training')}
-            className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 ${
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'training'
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -983,13 +983,6 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                           referrerPolicy="no-referrer"
                         />
 
-                        {/* Biomechanical Target Highlight Overlays */}
-                        {currentExercise?.primaryMuscles?.[0] && (
-                          <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1 rounded-xl shadow-lg flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-[10px] md:text-xs font-bold text-white uppercase">{currentExercise.primaryMuscles[0]}</span>
-                          </div>
-                        )}
                       </motion.div>
                     </motion.div>
                   </AnimatePresence>
@@ -1016,38 +1009,110 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                  </Suspense>
                )}
 
-              {/* Avatar Mode & Viewpoint Controls */}
-              <div className="absolute top-6 left-6 md:top-8 md:left-8 flex flex-col gap-2 z-10">
-                {/* Mode indicator (Realista) & AvatarID badge */}
-                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-emerald-500/30">
-                  <span className="px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md">
-                    Realista
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 flex items-center gap-1">
-                    <Cpu className="w-3 h-3 text-emerald-400" />
-                    <span>Avatar: <strong className="font-mono text-white">{profile?.avatarId || 'athletic-01'}</strong></span>
-                  </span>
-                </div>
+              {/* Top Left: Active Target Muscle Badge & Avatar Mode Toggle */}
+              <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20 flex flex-wrap items-center gap-2 pointer-events-auto">
+                {currentExercise?.primaryMuscles?.[0] && (
+                  <div className="bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider">
+                      {currentExercise.primaryMuscles[0]}
+                    </span>
+                  </div>
+                )}
 
-                <div className="flex flex-col gap-1.5">
-                  {(['front', 'side', 'detail'] as const).map(v => (
+                {/* Display Mode Switcher (Realista / 3D) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(12);
+                    setAvatarDisplayMode(m => m === 'realistic' ? '3d' : 'realistic');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-slate-950/85 hover:bg-slate-900 text-emerald-400 border border-emerald-500/30 backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                  title={avatarDisplayMode === 'realistic' ? "Alternar para Modelo 3D Interativo" : "Alternar para Foto Realista"}
+                >
+                  {avatarDisplayMode === 'realistic' ? (
+                    <>
+                      <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Ver em 3D</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Ver Realista</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* View-specific feedback HUD overlays */}
+              <AnimatePresence>
+                {cameraView === 'detail' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute top-16 left-4 md:left-6 z-20 max-w-[270px] bg-slate-950/90 backdrop-blur-md border border-emerald-500/40 p-2.5 rounded-2xl shadow-xl pointer-events-none"
+                  >
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">
+                      <Zap className="w-3 h-3 text-emerald-400 animate-pulse" />
+                      <span>Zoom Biomecânico Ativo</span>
+                    </div>
+                    <p className="text-[11px] text-slate-200 font-medium leading-snug">
+                      Foco em <strong className="text-emerald-300">{currentExercise?.primaryMuscles?.join(', ') || 'Músculo Alvo'}</strong> sob tensão constante.
+                    </p>
+                  </motion.div>
+                )}
+
+                {cameraView === 'side' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute top-16 left-4 md:left-6 z-20 max-w-[270px] bg-slate-950/90 backdrop-blur-md border border-cyan-500/40 p-2.5 rounded-2xl shadow-xl pointer-events-none"
+                  >
+                    <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">
+                      <Compass className="w-3 h-3 text-cyan-400" />
+                      <span>Visão Lateral Sagital</span>
+                    </div>
+                    <p className="text-[11px] text-slate-200 font-medium leading-snug">
+                      Avalie alinhamento de coluna, joelhos e trajetória articular.
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Bottom Center: Camera View Perspective Controls (Frente, Lateral, Detalhe) */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-700/60 shadow-2xl">
+                {([
+                  { id: 'front' as const, label: 'Frente', icon: Eye, title: 'Visão Frontal • Simetria e amplitude' },
+                  { id: 'side' as const, label: 'Lateral', icon: Compass, title: 'Visão Lateral • Alinhamento postural' },
+                  { id: 'detail' as const, label: 'Detalhe', icon: ZoomIn, title: 'Zoom de Detalhe • Músculo sob tensão' },
+                ]).map(({ id, label, icon: Icon, title }) => {
+                  const isSelected = cameraView === id;
+                  return (
                     <button
-                      key={v}
+                      key={id}
+                      type="button"
+                      title={title}
                       onClick={() => {
                         playSfx('tap');
-                        vibrate(12);
-                        setCameraView(v);
+                        vibrate(14);
+                        setCameraView(id);
                       }}
-                      className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest backdrop-blur-md border transition-all cursor-pointer ${
-                        cameraView === v 
-                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-500/30 scale-105' 
-                        : 'bg-slate-900/80 text-slate-300 border-white/10 hover:bg-white/20 active:scale-95'
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer outline-none select-none ${
+                        isSelected
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-102 font-black'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 active:scale-98'
                       }`}
                     >
-                      {v === 'front' ? 'Frente' : v === 'side' ? 'Lateral' : 'Detalhe'}
+                      <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{label}</span>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
 
               {/* Ambient Music Controls Overlay */}

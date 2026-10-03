@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, Upload, Loader2, Target, CheckCircle2, RefreshCw, Brain, 
@@ -8,7 +8,7 @@ import {
   Scan, Cpu, ShieldCheck, Activity, X
 } from 'lucide-react';
 import { analyzePlate } from '../lib/gemini';
-import { speak, stopSpeech } from '../lib/speech';
+import { speak } from '../lib/speech';
 import { VoicePlayButton } from './VoicePlayButton';
 import { PlateAnalysisResult, UserProfile } from '../types';
 import { exportElementAsImage, downloadBlobUrl, copyBlobToClipboard, shareFileOrBlob } from '../lib/cardExport';
@@ -74,7 +74,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
       audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
-    stopSpeech();
+    window.speechSynthesis?.cancel();
     setIsPlaying(false);
   };
 

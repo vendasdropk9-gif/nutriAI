@@ -6,6 +6,7 @@ import {
   Crown, Zap
 } from 'lucide-react';
 import { speak } from '../lib/speech';
+import { useTranslation } from '../contexts/LanguageContext';
 
 export interface PlanItem {
   id: string;
@@ -34,6 +35,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   userName,
   onSuccess
 }) => {
+  const { t } = useTranslation();
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix');
   const [copiedPix, setCopiedPix] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -374,12 +376,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
 
                 <div>
-                  <label className="text-xs font-medium text-slate-300 block mb-1">Número do Cartão</label>
+                  <label className="text-xs font-medium text-slate-300 block mb-1">{t('card_number', 'Número do Cartão')}</label>
                   <div className="relative">
                     <input
                       type="text"
                       maxLength={19}
-                      placeholder="0000 0000 0000 0000"
+                      placeholder={t('placeholder_card_number', '0000 0000 0000 0000')}
                       value={cardNumber}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
@@ -392,10 +394,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-300 block mb-1">Nome Impresso no Cartão</label>
+                  <label className="text-xs font-medium text-slate-300 block mb-1">{t('card_holder_name', 'Nome Impresso no Cartão')}</label>
                   <input
                     type="text"
-                    placeholder="Ex: CARLOS A SANTOS"
+                    placeholder={t('placeholder_card_holder', 'Ex: CARLOS A SANTOS')}
                     value={cardHolder}
                     onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 uppercase"
@@ -404,11 +406,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-slate-300 block mb-1">Validade (MM/AA)</label>
+                    <label className="text-xs font-medium text-slate-300 block mb-1">{t('card_expiry', 'Validade (MM/AA)')}</label>
                     <input
                       type="text"
                       maxLength={5}
-                      placeholder="12/28"
+                      placeholder={t('placeholder_card_expiry', '12/28')}
                       value={cardExpiry}
                       onChange={(e) => {
                         let val = e.target.value.replace(/\D/g, '');
@@ -419,12 +421,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-300 block mb-1">CVV</label>
+                    <label className="text-xs font-medium text-slate-300 block mb-1">{t('cvv', 'CVV')}</label>
                     <div className="relative">
                       <input
                         type="password"
                         maxLength={4}
-                        placeholder="123"
+                        placeholder={t('placeholder_cvv', '123')}
                         value={cardCvv}
                         onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"

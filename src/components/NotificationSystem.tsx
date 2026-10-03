@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, X, Trophy, Star, Flame, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export interface AppNotification {
   id: string;
@@ -15,6 +16,7 @@ interface NotificationSystemProps {
 }
 
 export function NotificationSystem({ notifications, onDismiss }: NotificationSystemProps) {
+  const { t } = useLanguage();
   useEffect(() => {
     if (notifications.length > 0) {
       // Optional subtle "pop" sound
@@ -68,8 +70,8 @@ export function NotificationSystem({ notifications, onDismiss }: NotificationSys
             </div>
             
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{notif.title}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{notif.message}</p>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t(notif.title, notif.title)}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{t(notif.message, notif.message)}</p>
             </div>
 
             <button 

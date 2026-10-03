@@ -12,6 +12,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
+import { withTimeout } from './bootManager';
 
 export function useProfileSync(
   user: User | null,
@@ -39,17 +40,31 @@ export function useProfileSync(
           if (docSnap.exists()) {
             const data = docSnap.data();
             
-            // Fetch subcollections from Firestore
+            // Fetch subcollections safely with individual 1.5s timeout per query
             const fetchSubcollection = async (subName: string) => {
               try {
                 const subRef = collection(db, 'users', user.uid, subName);
-                const querySnap = await getDocs(subRef);
-                return querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const querySnapPromise = getDocs(subRef);
+                const querySnap = await withTimeout<any>(querySnapPromise, 1500, null, `subcol-${subName}`);
+                return querySnap && querySnap.docs ? querySnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) : [];
               } catch (e) {
                 console.warn(`Could not load subcollection ${subName}:`, e);
                 return [];
               }
             };
+
+            const subcolPromise = Promise.all([
+              fetchSubcollection('intakeLogs'),
+              fetchSubcollection('progressLogs'),
+              fetchSubcollection('hydrationLogs'),
+              fetchSubcollection('workoutLogs'),
+              fetchSubcollection('sleepLogs'),
+              fetchSubcollection('emotionalLogs'),
+              fetchSubcollection('fastingLogs'),
+              fetchSubcollection('bloodPressureLogs'),
+              fetchSubcollection('bodyMonitorLogs'),
+              fetchSubcollection('notes')
+            ]);
 
             const [
               intakeLogs,
@@ -62,18 +77,12 @@ export function useProfileSync(
               bloodPressureLogs,
               bodyMonitorLogs,
               notes
-            ] = await Promise.all([
-              fetchSubcollection('intakeLogs'),
-              fetchSubcollection('progressLogs'),
-              fetchSubcollection('hydrationLogs'),
-              fetchSubcollection('workoutLogs'),
-              fetchSubcollection('sleepLogs'),
-              fetchSubcollection('emotionalLogs'),
-              fetchSubcollection('fastingLogs'),
-              fetchSubcollection('bloodPressureLogs'),
-              fetchSubcollection('bodyMonitorLogs'),
-              fetchSubcollection('notes')
-            ]);
+            ] = await withTimeout(
+              subcolPromise, 
+              2500, 
+              [[], [], [], [], [], [], [], [], [], []],
+              'All Profile Subcollections'
+            );
 
             const remoteProfile: UserProfile = {
               id: user.uid,

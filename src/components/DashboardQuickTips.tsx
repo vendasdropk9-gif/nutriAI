@@ -174,10 +174,9 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
     setCurrentIndex(0);
   };
 
-  // Opções rápidas de 1 toque de acordo com a refeição selecionada e idioma
+  // Opções rápidas de 1 toque de acordo com a refeição selecionada e idioma (US, UK, AU, BR)
   const mealQuickOptions = useMemo(() => {
     const isEn = language.startsWith('en');
-    const isEs = language.startsWith('es');
 
     if (selectedMealType === 'breakfast') {
       if (isEn) {
@@ -185,13 +184,6 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
           { name: 'Scrambled Eggs with Whole Grain Toast and Coffee', calories: 320, desc: 'Clean morning protein and energy', icon: '🍳' },
           { name: 'Yogurt with Granola, Berries and Chia', calories: 290, desc: 'Probiotics and lasting satiety', icon: '🥣' },
           { name: 'Oatmeal Banana Pancakes with Cinnamon', calories: 310, desc: 'Complex carbs without spikes', icon: '🥞' },
-        ];
-      }
-      if (isEs) {
-        return [
-          { name: 'Huevos Revueltos con Pan Integral y Café', calories: 320, desc: 'Proteína limpia y energía matutina', icon: '🍳' },
-          { name: 'Yogur con Granola, Frutas y Chía', calories: 290, desc: 'Probióticos y saciedad prolongada', icon: '🥣' },
-          { name: 'Tortitas de Avena, Plátano y Canela', calories: 310, desc: 'Carbohidratos complejos sin picos', icon: '🥞' },
         ];
       }
       return [
@@ -208,13 +200,6 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
           { name: 'Salmon with Steamed Broccoli and Carrots', calories: 350, desc: 'Protective Omega-3 and micronutrients', icon: '🐟' },
         ];
       }
-      if (isEs) {
-        return [
-          { name: 'Sopa Funcional de Calabaza con Pollo', calories: 280, desc: 'Digestión ligera y confort nocturno', icon: '🍲' },
-          { name: 'Tortilla de Claras con Espinacas y Ricota', calories: 240, desc: 'Proteína pura sin pesadez gástrica', icon: '🍳' },
-          { name: 'Salmón con Brócoli y Zanahorias al Vapor', calories: 350, desc: 'Omega-3 protector y micronutrientes', icon: '🐟' },
-        ];
-      }
       return [
         { name: 'Sopa Funcional de Abóbora com Frango', calories: 280, desc: 'Digestão leve e conforto noturno', icon: '🍲' },
         { name: 'Omelete de Claras com Espinafre e Ricota', calories: 240, desc: 'Proteína pura e sem peso gástrico', icon: '🍳' },
@@ -229,13 +214,6 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
         { name: 'Fish with Mashed Roots and Steamed Broccoli', calories: 390, desc: 'Fast digestion and Omega-3', icon: '🐟' },
       ];
     }
-    if (isEs) {
-      return [
-        { name: 'Ensalada César con Pollo a la Parrilla', calories: 420, desc: 'Proteína magra + hojas verdes', icon: '🥗' },
-        { name: 'Bowl de Quinoa, Huevos y Vegetales', calories: 480, desc: 'Fibras lentas y minerales', icon: '🥣' },
-        { name: 'Pescado con Puré y Brócoli al Vapor', calories: 390, desc: 'Digestión rápida y omega-3', icon: '🐟' },
-      ];
-    }
     return [
       { name: 'Salada Caesar com Frango Grelhado', calories: 420, desc: 'Proteína magra + folhas verdes', icon: '🥗' },
       { name: 'Bowl de Quinoa, Ovos e Legumes', calories: 480, desc: 'Fibras lentas e minerais', icon: '🥣' },
@@ -245,15 +223,14 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
 
   const customPlaceholder = useMemo(() => {
     const isEn = language.startsWith('en');
-    const isEs = language.startsWith('es');
 
     if (selectedMealType === 'breakfast') {
-      return isEn ? 'E.g.: Toast with eggs and green juice' : isEs ? 'Ej: Tostada con huevos y jugo verde' : 'Ex: Tapioca com ovos e suco verde';
+      return isEn ? 'E.g.: Toast with eggs and green juice' : 'Ex: Tapioca com ovos e suco verde';
     }
     if (selectedMealType === 'dinner') {
-      return isEn ? 'E.g.: Vegetable soup or chicken salad' : isEs ? 'Ej: Sopa de verduras o ensalada con pollo' : 'Ex: Sopa de legumes ou salada com frango';
+      return isEn ? 'E.g.: Vegetable soup or chicken salad' : 'Ex: Sopa de legumes ou salada com frango';
     }
-    return isEn ? 'E.g.: Brown rice, beans and roasted chicken' : isEs ? 'Ej: Arroz integral, frijoles y pollo asado' : 'Ex: Arroz integral, feijão e frango assado';
+    return isEn ? 'E.g.: Brown rice, beans and roasted chicken' : 'Ex: Arroz integral, feijão e frango assado';
   }, [selectedMealType, language]);
 
   const getTipIcon = (iconType: string) => {
@@ -623,16 +600,16 @@ export function DashboardQuickTips({ profile, onNavigate, onLogIntake }: Dashboa
                   {mealQuickOptions.map((opt, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handlePerformQuickLog(opt.name, opt.calories, selectedMealType)}
+                      onClick={() => handlePerformQuickLog(t(opt.name), opt.calories, selectedMealType)}
                       className="w-full text-left p-3 rounded-2xl bg-slate-50/90 hover:bg-emerald-50/70 dark:bg-[#1C2532] dark:hover:bg-[#223040] border border-slate-200/80 dark:border-[#263547] hover:border-emerald-500/50 transition-all flex items-center justify-between group cursor-pointer"
                     >
                       <div>
                         <div className="font-bold text-xs text-slate-800 dark:text-slate-100 group-hover:text-emerald-500 flex items-center gap-1.5">
                           <span className="text-sm">{opt.icon}</span>
-                          <span>{opt.name}</span>
+                          <span>{t(opt.name)}</span>
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {opt.desc}
+                          {t(opt.desc)}
                         </div>
                       </div>
                       <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg shrink-0 ml-2 border border-emerald-500/20">

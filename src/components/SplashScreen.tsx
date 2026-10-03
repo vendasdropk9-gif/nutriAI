@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Utensils, Sparkles, Volume2 } from 'lucide-react';
 import { playLogoIntroSound, playSfx } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
+  const { t } = useLanguage();
   const [isVisible, setIsVisible] = useState(true);
   const hasPlayedAudioRef = useRef(false);
   const hasPlayedSfxRef = useRef(false);
@@ -89,11 +91,16 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     window.addEventListener('pointerdown', handleUserInteraction, { passive: true, once: true });
     window.addEventListener('keydown', handleUserInteraction, { passive: true, once: true });
 
-    // Duração confortável para a animação da logo
+    // Duração rápida para a animação da logo (1.0s)
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 400);
-    }, 2500);
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && (window as any).__NUTRI_DISMISS_HTML_LOADER) {
+          (window as any).__NUTRI_DISMISS_HTML_LOADER();
+        }
+        onComplete();
+      }, 200);
+    }, 1000);
 
     return () => {
       clearTimeout(timer);
@@ -191,7 +198,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6, duration: 0.6 }}
                 >
-                  Inteligência Premium
+                  {t('Inteligência Premium', 'Premium Intelligence')}
                 </motion.span>
                 <motion.div
                   initial={{ width: 0, opacity: 0 }}
@@ -219,7 +226,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                   className="mt-5 mx-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-medium cursor-pointer shadow-lg transition-all"
                 >
                   <Volume2 className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-                  <span>Toque para ouvir a Malu</span>
+                  <span>{t('Toque para ouvir a Malu', 'Tap to hear Malu')}</span>
                 </motion.button>
               )}
             </motion.div>
@@ -234,7 +241,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             onClick={handleSkip}
             className="absolute bottom-8 right-8 text-[11px] text-slate-400 font-medium tracking-wider uppercase bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full cursor-pointer transition-all duration-200 z-[110]"
           >
-            Pular →
+            {t('Pular →', 'Skip →')}
           </motion.button>
 
           {/* Elegant Loading Line (Bottom) */}

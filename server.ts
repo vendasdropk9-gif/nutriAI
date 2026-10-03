@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { WebSocketServer } from "ws";
@@ -9,7 +10,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, up
 import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
 import firebaseConfig from "./firebase-applet-config.json";
 import { DEFAULT_MEDICINAL_HERBS } from "./src/data/medicinalHerbsData";
-import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController.ts";
+import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController";
 import { lookupRuntimeTranslation } from "./src/i18n/runtimeDictionary";
 
 async function startServer() {
@@ -407,6 +408,33 @@ async function startServer() {
 
   const app = express();
   const PORT = 3000;
+
+  // Configure explicit MIME type headers for all static assets (JS, CSS, JSON, PWA, Audio, Fonts)
+  const staticAssetOptions: express.ServeStaticOptions = {
+    maxAge: '1d',
+    setHeaders: (res, filePath) => {
+      const lower = filePath.toLowerCase();
+      if (lower.endsWith('.js') || lower.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (lower.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (lower.endsWith('.json') || lower.endsWith('.webmanifest') || lower.endsWith('.manifest')) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      } else if (lower.endsWith('.wasm')) {
+        res.setHeader('Content-Type', 'application/wasm');
+      } else if (lower.endsWith('.wav')) {
+        res.setHeader('Content-Type', 'audio/wav');
+      } else if (lower.endsWith('.mp3')) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+      } else if (lower.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+    }
+  };
+
+  // Serve static files from public directory with explicit MIME type enforcement
+  const publicDir = path.join(process.cwd(), "public");
+  app.use(express.static(publicDir, staticAssetOptions));
 
   // Add JSON parsing middleware (increase limit for image base64 uploads)
   app.use(express.json({ limit: '50mb' }));
@@ -996,7 +1024,12 @@ async function startServer() {
     }
 
     try {
-      const audio = await geminiServer.textToSpeech(text, String(reqLang), { model, voiceName, emotion, style });
+      const audio = await geminiServer.textToSpeech(text, String(reqLang), {
+        model,
+        voiceName: voiceName || 'Aoede',
+        emotion,
+        style
+      });
       const durationMs = Date.now() - startTime;
 
       recordAiTelemetry({
@@ -1010,20 +1043,11 @@ async function startServer() {
       res.status(200).json({
         audio: audio || null,
         audioBase64: audio || null,
-        success: !!audio,
-        metadata: {
-          model: model || 'gemini-3.8-flash-tts',
-          voiceId: voiceName || 'Aoede',
-          locale: String(reqLang),
-          audioFormat: 'audio/wav',
-          sampleRate: 24000,
-          ttsLatency: durationMs,
-          fallbackUsed: false
-        }
+        success: !!audio
       });
     } catch (e: any) {
       const durationMs = Date.now() - startTime;
-      console.info("[TTS Route] Error:", e?.message || e);
+      console.info("[TTS Route] Fallback active:", e?.message || e);
 
       recordAiTelemetry({
         functionName: "textToSpeech",
@@ -1033,21 +1057,7 @@ async function startServer() {
         type: "tts"
       });
 
-      res.status(200).json({ 
-        audio: null, 
-        audioBase64: null, 
-        error: e?.message, 
-        success: false,
-        metadata: {
-          model: model || 'gemini-3.8-flash-tts',
-          voiceId: voiceName || 'Aoede',
-          locale: String(reqLang),
-          audioFormat: 'audio/wav',
-          sampleRate: 24000,
-          ttsLatency: durationMs,
-          fallbackUsed: true
-        }
-      });
+      res.status(200).json({ audio: null, audioBase64: null, error: e?.message, success: false });
     }
   });
 
@@ -1998,7 +2008,7 @@ ${JSON.stringify(chunkTexts)}`;
 
   // ================================================
 
-    // Vite middleware for development
+  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { 
@@ -2007,12 +2017,27 @@ ${JSON.stringify(chunkTexts)}`;
       },
       appType: "spa",
     });
+    
     app.use(vite.middlewares);
   } else {
     // Production static serving
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, staticAssetOptions));
+    app.use(express.static(publicDir, staticAssetOptions));
+
     app.get("*", (req, res) => {
+      // Do not serve index.html for requested files that have an extension but are missing (e.g. .js, .css, .json, .png)
+      const ext = path.extname(req.path).toLowerCase();
+      if (ext && ext !== '.html') {
+        const mimeMap: Record<string, string> = {
+          '.js': 'application/javascript; charset=utf-8',
+          '.mjs': 'application/javascript; charset=utf-8',
+          '.css': 'text/css; charset=utf-8',
+          '.json': 'application/json; charset=utf-8'
+        };
+        const contentType = mimeMap[ext] || 'text/plain; charset=utf-8';
+        return res.status(404).type(contentType).send(`Asset not found: ${req.path}`);
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
@@ -2034,7 +2059,7 @@ ${JSON.stringify(chunkTexts)}`;
     
     try {
       session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-3.8-live",
         callbacks: {
           onmessage: (message: LiveServerMessage) => {
             if (clientWs.readyState !== clientWs.OPEN) return;

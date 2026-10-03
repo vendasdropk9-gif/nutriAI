@@ -17,6 +17,7 @@ import { auth, db, doc, deleteDoc } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext';
 import { MealNotificationTimes } from '../types';
 import { 
   DEFAULT_MEAL_TIMES, 
@@ -64,6 +65,7 @@ export const AVATAR_OPTIONS = [
 ];
 
 export function Profile({ profile, onSaveProfile }: ProfileProps) {
+  const { t } = useTranslation();
   const { logoutLocally } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
@@ -862,7 +864,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             >
               {AVATAR_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
-                  {opt.id} — {opt.name} ({opt.gender} • {opt.category})
+                  {opt.id} — {t(opt.name)} ({t(opt.gender)} • {t(opt.category)})
                 </option>
               ))}
             </select>
@@ -890,8 +892,8 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                     {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white truncate">{opt.name}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{opt.gender} • {opt.category}</div>
+                    <div className="text-xs font-bold text-white truncate">{t(opt.name)}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{t(opt.gender)} • {t(opt.category)}</div>
                   </div>
                 </button>
               );
@@ -904,13 +906,13 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Nome Completo / Como quer ser chamado
+                {t('full_name_label', 'Nome Completo / Como quer ser chamado')}
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="Ex: Lucas Silva"
+                placeholder={t('placeholder_name_ex', 'Ex: Lucas Silva')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
@@ -941,20 +943,20 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
-                placeholder="seuemail@exemplo.com"
+                placeholder={t('placeholder_email', 'seuemail@exemplo.com')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
 
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Telefone / WhatsApp
+                {t('phone_whatsapp_label', 'Telefone / WhatsApp')}
               </label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleChange('phone', e.target.value)}
-                placeholder="(11) 99999-9999"
+                placeholder={t('placeholder_phone', '(11) 99999-9999')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
@@ -964,51 +966,51 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Idade
+                {t('age_label', 'Idade')}
               </label>
               <input
                 type="number"
                 value={formData.age}
                 onChange={(e) => handleChange('age', e.target.value)}
-                placeholder="Anos"
+                placeholder={t('placeholder_years', 'Anos')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Peso Atual (kg)
+                {t('current_weight_kg', 'Peso Atual (kg)')}
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={formData.weight}
                 onChange={(e) => handleChange('weight', e.target.value)}
-                placeholder="Ex: 72.5"
+                placeholder={t('placeholder_weight_ex', 'Ex: 72.5')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Peso Alvo (kg)
+                {t('target_weight_kg', 'Peso Alvo (kg)')}
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={formData.targetWeight}
                 onChange={(e) => handleChange('targetWeight', e.target.value)}
-                placeholder="Ex: 65.0"
+                placeholder={t('placeholder_target_weight_ex', 'Ex: 65.0')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
             <div className="space-y-2">
               <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                Altura (cm)
+                {t('height_cm', 'Altura (cm)')}
               </label>
               <input
                 type="number"
                 value={formData.height}
                 onChange={(e) => handleChange('height', e.target.value)}
-                placeholder="Ex: 175"
+                placeholder={t('placeholder_height_ex', 'Ex: 175')}
                 className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
               />
             </div>
@@ -1849,10 +1851,10 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                     className="group flex flex-col items-center p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all cursor-pointer text-center"
                   >
                     <div className="w-16 h-16 rounded-full overflow-hidden mb-2 ring-2 ring-transparent group-hover:ring-emerald-500 transition-all shadow-md">
-                      <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={avatar.url} alt={t(avatar.label)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                      {avatar.label}
+                      {t(avatar.label)}
                     </span>
                   </button>
                 ))}

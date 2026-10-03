@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Volume2, VolumeX, Store, Utensils, Sparkles, Music, Megaphone, Zap, X, Gift } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "../contexts/LanguageContext";
 import { playSfx, vibrate } from "../lib/sensory";
 import { speak } from "../lib/speech";
 
@@ -502,17 +502,17 @@ export function PartnerBanner() {
                   >
                     <div className="min-w-0">
                       <span className="font-sans text-sm sm:text-base md:text-lg font-bold text-white tracking-wide block truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                        {slides[index]?.title}
+                        {t(slides[index]?.title)}
                       </span>
                       {slides[index]?.subtitle && (
                         <span className="text-[10px] sm:text-xs text-emerald-300 font-semibold block truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                          {slides[index]?.subtitle}
+                          {t(slides[index]?.subtitle)}
                         </span>
                       )}
                     </div>
                     <span className="text-[10px] sm:text-xs font-bold text-white shrink-0 bg-emerald-500/80 px-3 py-1 rounded-full border border-emerald-400/50 shadow-md drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-1">
                       <Zap className="w-3 h-3 text-amber-300 animate-pulse fill-amber-300" />
-                      {slides[index]?.price || "Desconto NutriAI"}
+                      {t(slides[index]?.price || "Desconto NutriAI")}
                     </span>
                   </motion.div>
                 </AnimatePresence>

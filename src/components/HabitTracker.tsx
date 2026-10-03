@@ -9,6 +9,7 @@ import { UserProfile, HydrationLog, SleepLog, FastingLog } from '../types';
 import { playAudioUrl } from '../lib/speech';
 import { textToSpeech, generateHabitsInsight, getWaterQualityAdvice } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface HabitTrackerProps {
   profile: UserProfile | null;
@@ -27,6 +28,7 @@ const WATER_SOURCES = [
 ] as const;
 
 export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotification }: HabitTrackerProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'hydration' | 'sleep' | 'fasting'>('hydration');
   
   const [isPlaying, setIsPlaying] = useState(false);
@@ -425,7 +427,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                   {/* Water Source Picker */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <Filter className="w-3 h-3 text-cyan-500" /> Origem da Água
+                      <Filter className="w-3 h-3 text-cyan-500" /> {t('water_source_label', 'Origem da Água')}
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {WATER_SOURCES.map(src => (
@@ -439,7 +441,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                           }`}
                         >
                           <span className="text-xl mb-1">{src.icon}</span>
-                          <span className="text-xs font-bold leading-tight">{src.label}</span>
+                          <span className="text-xs font-bold leading-tight">{t(src.label)}</span>
                           <span className="text-[9px] text-slate-400 mt-0.5">{src.pH}</span>
                         </button>
                       ))}
@@ -449,7 +451,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                   {/* Water Quantity Picker */}
                   <div className="space-y-2 pt-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      Volume Consumido
+                      {t('volume_consumed', 'Volume Consumido')}
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[

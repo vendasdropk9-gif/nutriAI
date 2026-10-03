@@ -9,6 +9,7 @@ import {
   Send, User, AlertTriangle, Plus, Trash2, Edit, ChevronLeft, Check, Play, FileText, X
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface Academy {
   id: string;
@@ -259,6 +260,7 @@ const PRESET_COVERS = [
 ];
 
 export function AcademyPortal() {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'explore' | 'partner' | 'admin'>('explore');
   
   // Academies List State
@@ -773,9 +775,9 @@ export function AcademyPortal() {
                   onChange={e => setSelectedModality(e.target.value)}
                   className="w-full p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 outline-none border-none cursor-pointer"
                 >
-                  <option value="Todos">🏋️ Modalidades</option>
+                  <option value="Todos">🏋️ {t('modalidades', 'Modalidades')}</option>
                   {MODALIDADE_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>{t(opt)}</option>
                   ))}
                 </select>
               </div>
@@ -1105,7 +1107,7 @@ export function AcademyPortal() {
                           }`}>
                             {isChecked && '✓'}
                           </span>
-                          <span className="text-xs font-semibold">{mod}</span>
+                          <span className="text-xs font-semibold">{t(mod)}</span>
                         </label>
                       );
                     })}

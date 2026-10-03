@@ -5,36 +5,14 @@ import i18n from '../i18n';
  * Localizes dates, times, currencies, numbers and percentages seamlessly across all 12+ supported locales.
  */
 
-// Mapping of language code to regional currency default
+// Mapping of language code to regional currency default (US, UK, AU, BR)
 const CURRENCY_MAP: Record<string, string> = {
-  'pt-BR': 'BRL',
-  'pt': 'BRL',
   'en-US': 'USD',
   'en': 'USD',
   'en-GB': 'GBP',
-  'es-ES': 'EUR',
-  'es': 'EUR',
-  'es-MX': 'MXN',
-  'fr-FR': 'EUR',
-  'fr': 'EUR',
-  'de-DE': 'EUR',
-  'de': 'EUR',
-  'it-IT': 'EUR',
-  'it': 'EUR',
-  'ja-JP': 'JPY',
-  'ja': 'JPY',
-  'ko-KR': 'KRW',
-  'ko': 'KRW',
-  'zh-CN': 'CNY',
-  'zh': 'CNY',
-  'hi-IN': 'INR',
-  'hi': 'INR',
-  'ar-SA': 'SAR',
-  'ar': 'SAR',
-  'tr-TR': 'TRY',
-  'tr': 'TRY',
-  'ru-RU': 'RUB',
-  'ru': 'RUB',
+  'en-AU': 'AUD',
+  'pt-BR': 'BRL',
+  'pt': 'BRL',
 };
 
 export function getActiveLocale(): string {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../contexts/LanguageContext';
 import { Camera, Link as LinkIcon, X, Check, Loader2, AlertCircle, Play, ShieldCheck, MapPin } from 'lucide-react';
 
 export interface NewCameraPayload {
@@ -14,6 +15,7 @@ interface CameraSetupModalProps {
 }
 
 export const CameraSetupModal: React.FC<CameraSetupModalProps> = ({ isOpen, onClose, onAdd }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('Entrada Principal');
   const [streamUrl, setStreamUrl] = useState('');
@@ -75,10 +77,10 @@ export const CameraSetupModal: React.FC<CameraSetupModalProps> = ({ isOpen, onCl
         {/* Body */}
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 max-h-[calc(85vh-140px)]">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nome de Identificação</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('camera_name_label', 'Nome de Identificação')}</label>
             <input 
               type="text" 
-              placeholder="Ex: Cam 07 - Corredor Laticínios"
+              placeholder={t('placeholder_camera_name', 'Ex: Cam 07 - Corredor Laticínios')}
               value={name}
               onChange={e => setName(e.target.value)}
               className="w-full min-h-[48px] p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white text-base"
@@ -86,7 +88,7 @@ export const CameraSetupModal: React.FC<CameraSetupModalProps> = ({ isOpen, onCl
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Setor / Localização</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('sector_location_label', 'Setor / Localização')}</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
               <select 
@@ -94,25 +96,25 @@ export const CameraSetupModal: React.FC<CameraSetupModalProps> = ({ isOpen, onCl
                 onChange={e => setLocation(e.target.value)}
                 className="w-full min-h-[48px] p-4 pl-12 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-900 dark:text-white appearance-none text-base"
               >
-                <option value="Entrada Principal">Entrada Principal</option>
-                <option value="Frente de Caixa">Frente de Caixa</option>
-                <option value="Estoque">Estoque</option>
-                <option value="Cozinha / Preparo">Cozinha / Preparo</option>
-                <option value="Corredores">Corredores</option>
-                <option value="Estacionamento">Estacionamento</option>
-                <option value="Administração">Administração</option>
-                <option value="Outro">Outro</option>
+                <option value="Entrada Principal">{t('main_entrance', 'Entrada Principal')}</option>
+                <option value="Frente de Caixa">{t('checkout_front', 'Frente de Caixa')}</option>
+                <option value="Estoque">{t('storage_room', 'Estoque')}</option>
+                <option value="Cozinha / Preparo">{t('kitchen_prep', 'Cozinha / Preparo')}</option>
+                <option value="Corredores">{t('hallways', 'Corredores')}</option>
+                <option value="Estacionamento">{t('parking_lot', 'Estacionamento')}</option>
+                <option value="Administração">{t('administration', 'Administração')}</option>
+                <option value="Outro">{t('other', 'Outro')}</option>
               </select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Endereço de Stream (RTSP/HTTP)</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('stream_url_label', 'Endereço de Stream (RTSP/HTTP)')}</label>
             <div className="relative">
               <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
               <input 
                 type="text" 
-                placeholder="Ex: rtsp://192.168.1.100:554/stream"
+                placeholder={t('placeholder_stream_url', 'Ex: rtsp://192.168.1.100:554/stream')}
                 value={streamUrl}
                 onChange={e => {
                   setStreamUrl(e.target.value);

@@ -7,6 +7,7 @@ import {
 import { askCookingAssistant } from '../lib/gemini';
 import { speak, stopSpeech } from '../lib/speech';
 import { CookingAdviceResult, UserProfile } from '../types';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface AiCookingAdvisorProps {
   profile?: UserProfile | null;
@@ -67,6 +68,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
   onRepeatStep,
   onSelectStep
 }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CookingAdviceResult | null>(null);
@@ -609,7 +611,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
           {/* Quick Suggestions Chips */}
           <div>
             <p className="text-xs text-zinc-400 font-medium mb-1.5 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Perguntas frequentes para testar agora:
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> {t('frequent_questions_test', 'Perguntas frequentes para testar agora:')}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_QUESTIONS.map((item, i) => (
@@ -622,7 +624,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
                   className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 hover:bg-emerald-50 dark:bg-zinc-800 dark:hover:bg-emerald-950/40 text-zinc-700 dark:text-zinc-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-zinc-200/80 dark:border-zinc-700/60 transition flex items-center gap-1.5 text-left"
                 >
                   <span>{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span>{t(item.label)}</span>
                 </button>
               ))}
             </div>

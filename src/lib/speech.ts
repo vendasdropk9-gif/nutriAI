@@ -55,25 +55,29 @@ export const setVoiceVolume = (volume: number): void => {
  * 4. Fallback default ('pt-BR')
  */
 export const resolveAutoLocale = (requestedLang?: string): string => {
+  let raw = 'pt-BR';
   if (requestedLang && requestedLang.trim()) {
-    return requestedLang.trim();
-  }
-  if (typeof localStorage !== 'undefined') {
+    raw = requestedLang.trim();
+  } else if (typeof localStorage !== 'undefined') {
     try {
       const saved = localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng');
       if (saved && saved.trim()) {
-        return saved.trim();
+        raw = saved.trim();
       }
     } catch (e) {}
-  }
-  if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+  } else if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
     if (navigator.language && navigator.language.trim()) {
-      return navigator.language.trim();
-    }
-    if (navigator.languages && navigator.languages.length > 0 && navigator.languages[0]) {
-      return navigator.languages[0].trim();
+      raw = navigator.language.trim();
+    } else if (navigator.languages && navigator.languages.length > 0 && navigator.languages[0]) {
+      raw = navigator.languages[0].trim();
     }
   }
+
+  const clean = raw.toLowerCase();
+  if (clean.startsWith('pt')) return 'pt-BR';
+  if (clean.includes('gb') || clean.includes('uk')) return 'en-GB';
+  if (clean.includes('au') || clean.includes('australia')) return 'en-AU';
+  if (clean.startsWith('en')) return 'en-US';
   return 'pt-BR';
 };
 
@@ -105,6 +109,11 @@ export const unlockAudio = () => {
  */
 export const stopSpeech = () => {
   currentSpeechId++;
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
   if (activeAudio) {
     try {
       activeAudio.pause();
@@ -113,6 +122,79 @@ export const stopSpeech = () => {
       activeAudio.onerror = null;
       activeAudio = null;
     } catch (e) {}
+  }
+};
+
+/**
+ * Web Speech API browser-native speech synthesis engine.
+ * Reads recipe instructions and steps aloud in real-time, respecting the user's selected language.
+ */
+export const speakWithWebSpeech = (text: string, options?: SpeechOptions): boolean => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text || !text.trim()) {
+    options?.onEnded?.();
+    return false;
+  }
+
+  try {
+    stopSpeech();
+    currentSpeechId++;
+    const speechId = currentSpeechId;
+
+    const trimmedText = text.trim();
+    const activeLang = resolveAutoLocale(options?.lang);
+    const isPt = activeLang.toLowerCase().startsWith('pt');
+    const textToSpeak = isPt ? trimmedText : (translateSpeechText(trimmedText, activeLang) || trimmedText);
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = activeLang;
+
+    // Pick a voice that matches target language (e.g. en-US, en-GB, en-AU, pt-BR)
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+      if (isPt) {
+        const femalePt = voices.find(v => (v.lang.toLowerCase().includes('pt') || v.lang.toLowerCase().includes('br')) && /luciana|maria|leticia|fernanda|helena|francisca|female|mulher|google português/i.test(v.name));
+        const ptBr = voices.find(v => v.lang.replace('_', '-').toLowerCase() === 'pt-br');
+        const anyPt = voices.find(v => v.lang.toLowerCase().startsWith('pt'));
+        utterance.voice = femalePt || ptBr || anyPt || null;
+      } else {
+        const exactMatch = voices.find(v => v.lang.replace('_', '-').toLowerCase() === activeLang.toLowerCase());
+        const prefixMatch = voices.find(v => v.lang.toLowerCase().startsWith(activeLang.slice(0, 2).toLowerCase()));
+        if (exactMatch) {
+          utterance.voice = exactMatch;
+        } else if (prefixMatch) {
+          utterance.voice = prefixMatch;
+        }
+      }
+    }
+
+    const targetVolume = typeof options?.volume === 'number'
+      ? Math.max(0, Math.min(1, options.volume))
+      : getVoiceVolume();
+    utterance.volume = targetVolume;
+    utterance.rate = options?.rate || 1.0;
+    utterance.pitch = options?.pitch || 1.0;
+
+    utterance.onend = () => {
+      if (speechId === currentSpeechId) {
+        options?.onEnded?.();
+      }
+    };
+
+    utterance.onerror = (e) => {
+      console.warn("Web Speech API synthesis error:", e);
+      if (speechId === currentSpeechId) {
+        options?.onError?.(e);
+        options?.onEnded?.();
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+    return true;
+  } catch (err) {
+    console.warn("Web Speech API speak exception:", err);
+    options?.onError?.(err);
+    options?.onEnded?.();
+    return false;
   }
 };
 
@@ -206,15 +288,24 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         await audio.play();
         return { method: 'gemini' as const, audio };
       } catch (playErr) {
-        console.warn("Audio play blocked or interrupted:", playErr);
+        console.warn("Audio play blocked or interrupted, attempting WebSpeech fallback:", playErr);
         if (activeAudio === audio) {
           activeAudio = null;
+        }
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          const success = speakWithWebSpeech(textToSpeak, options);
+          if (success) return { method: 'webspeech' as const };
         }
         options?.onError?.(playErr);
         options?.onEnded?.();
         return { method: 'none' as const };
       }
     } else {
+      console.warn("Centralized TTS returned no audio, attempting WebSpeech fallback");
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const success = speakWithWebSpeech(textToSpeak, options);
+        if (success) return { method: 'webspeech' as const };
+      }
       options?.onError?.("TTS generation failed");
       options?.onEnded?.();
       return { method: 'none' as const };

@@ -15,6 +15,7 @@ import { db } from '../lib/firebase';
 import { playSfx, vibrate } from '../lib/sensory';
 import { AnimatedCounter } from './AnimatedCounter';
 import { IntakeLog } from '../types';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface DailyMacroAggregate {
   date: string; // YYYY-MM-DD
@@ -96,6 +97,7 @@ function generateSampleIntakeLogs(): IntakeLog[] {
 }
 
 export function MacronutrientAnalyticsView() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<IntakeLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isFirestoreSource, setIsFirestoreSource] = useState<boolean>(false);
@@ -319,9 +321,9 @@ export function MacronutrientAnalyticsView() {
 
   // Pie chart data for macro split
   const macroPieData = [
-    { name: 'Proteínas', value: summary.avgProtein, percentage: summary.proteinPct, color: MACRO_COLORS.protein, kcal: summary.avgProtein * 4 },
-    { name: 'Carboidratos', value: summary.avgCarbs, percentage: summary.carbsPct, color: MACRO_COLORS.carbs, kcal: summary.avgCarbs * 4 },
-    { name: 'Gorduras', value: summary.avgFat, percentage: summary.fatPct, color: MACRO_COLORS.fat, kcal: summary.avgFat * 9 }
+    { name: t('proteins', 'Proteínas'), value: summary.avgProtein, percentage: summary.proteinPct, color: MACRO_COLORS.protein, kcal: summary.avgProtein * 4 },
+    { name: t('carbohydrates', 'Carboidratos'), value: summary.avgCarbs, percentage: summary.carbsPct, color: MACRO_COLORS.carbs, kcal: summary.avgCarbs * 4 },
+    { name: t('fats', 'Gorduras'), value: summary.avgFat, percentage: summary.fatPct, color: MACRO_COLORS.fat, kcal: summary.avgFat * 9 }
   ];
 
   // CSV Export
@@ -426,12 +428,12 @@ export function MacronutrientAnalyticsView() {
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </button>
               ))}
             </div>
 
-            <span className="text-slate-400 font-medium ml-2">Refeição:</span>
+            <span className="text-slate-400 font-medium ml-2">{t('refeicao_label', 'Refeição:')}</span>
             <select
               value={selectedMealType}
               onChange={(e) => {
@@ -440,11 +442,11 @@ export function MacronutrientAnalyticsView() {
               }}
               className="bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-1.5 font-medium text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              <option value="all">Todas as Refeições</option>
-              <option value="breakfast">Café da Manhã</option>
-              <option value="lunch">Almoço</option>
-              <option value="snack">Lanche Intermediário</option>
-              <option value="dinner">Jantar</option>
+              <option value="all">{t('all_meals', 'Todas as Refeições')}</option>
+              <option value="breakfast">{t('breakfast', 'Café da Manhã')}</option>
+              <option value="lunch">{t('lunch', 'Almoço')}</option>
+              <option value="snack">{t('snack', 'Lanche Intermediário')}</option>
+              <option value="dinner">{t('dinner', 'Jantar')}</option>
             </select>
           </div>
 
@@ -452,7 +454,7 @@ export function MacronutrientAnalyticsView() {
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar receita ou tipo..."
+              placeholder={t('search_recipe_placeholder', 'Buscar receita ou tipo...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-emerald-500"

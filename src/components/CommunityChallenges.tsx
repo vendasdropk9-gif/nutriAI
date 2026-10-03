@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 export interface ChallengeItem {
   id: string;
@@ -89,6 +90,7 @@ const LEADERBOARD_RANKING = [
 ];
 
 export function CommunityChallenges() {
+  const { t } = useTranslation();
   const [challenges, setChallenges] = useLocalStorage<ChallengeItem[]>('nutri-community-challenges', INITIAL_CHALLENGES);
   const [userXp, setUserXp] = useLocalStorage<number>('nutri-user-xp', 3400);
 
@@ -294,14 +296,14 @@ export function CommunityChallenges() {
 
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                    <span>{member.name}</span>
+                    <span>{t(member.name)}</span>
                     {member.isUser && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold">
-                        Você
+                        {t('you_label', 'Você')}
                       </span>
                     )}
                   </h4>
-                  <span className="text-[10px] text-slate-400">{member.level}</span>
+                  <span className="text-[10px] text-slate-400">{t(member.level)}</span>
                 </div>
               </div>
 

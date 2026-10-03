@@ -43,12 +43,35 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.state.error.name}: {this.state.error.message}
             </pre>
           )}
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-500/20"
-          >
-            Recarregar
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer"
+            >
+              🔄 Recarregar Página
+            </button>
+            <button 
+              onClick={() => {
+                try {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                } catch(e) {}
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(r => r.unregister());
+                    window.location.href = window.location.pathname;
+                  }).catch(() => {
+                    window.location.href = window.location.pathname;
+                  });
+                } else {
+                  window.location.href = window.location.pathname;
+                }
+              }} 
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 border border-slate-700 active:scale-95 text-slate-200 font-medium rounded-xl transition-all cursor-pointer"
+            >
+              🧹 Limpar Dados & Resetar
+            </button>
+          </div>
         </div>
       );
     }

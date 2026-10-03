@@ -8,6 +8,7 @@ import { Note, UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { db, auth } from '../lib/firebase';
 import { collection, doc, setDoc, deleteDoc, serverTimestamp } from '../lib/firebase';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface NotebookProps {
   profile: UserProfile | null;
@@ -26,6 +27,7 @@ const CATEGORIES = [
 ];
 
 export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookProps) {
+  const { t } = useTranslation();
   const notes = useMemo(() => profile?.notes || [], [profile?.notes]);
   
   const [search, setSearch] = useState('');
@@ -221,7 +223,7 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Pesquisar notas pelo título ou conteúdo..."
+            placeholder={t('search_notes_placeholder', 'Pesquisar notas pelo título ou conteúdo...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl border border-slate-200/60 bg-white/70 dark:border-slate-800/85 dark:bg-slate-900/50 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all shadow-sm"
@@ -245,7 +247,7 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
               }`}
             >
               {cat.icon}
-              <span>{cat.label}</span>
+              <span>{t(cat.label)}</span>
             </motion.button>
           ))}
         </div>
@@ -385,14 +387,14 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                 {/* Title */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Título da Anotação
+                    {t('note_title_label', 'Título da Anotação')}
                   </label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Minhas Metas Fitness de Julho"
+                    placeholder={t('placeholder_note_title', 'Ex: Minhas Metas Fitness de Julho')}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                   />
                 </div>
@@ -402,32 +404,31 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                   {/* Category */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Categoria / Tema
+                      {t('category_theme_label', 'Categoria / Tema')}
                     </label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                     >
-                      <option value="diet" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🍎 Dieta & Receitas</option>
-                      <option value="workout" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🏋️ Treino & Cardio</option>
-                      <option value="health" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">❤️ Saúde & Pressão</option>
-                      <option value="mind" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">🧠 Mental & Sono</option>
-                      <option value="supps" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">💊 Suplementos</option>
-                      <option value="others" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">📝 Outros</option>
+                      {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                        <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                          {t(c.label)}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   {/* Tags */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Etiquetas / Tags <span className="text-[10px] text-slate-450 uppercase">(Opcional)</span>
+                      {t('tags_label', 'Etiquetas / Tags')} <span className="text-[10px] text-slate-450 uppercase">({t('optional', 'Opcional')})</span>
                     </label>
                     <input
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="Ex: foco, hipertrofia, jejum"
+                      placeholder={t('placeholder_tags', 'Ex: foco, hipertrofia, jejum')}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm font-medium"
                     />
                   </div>
@@ -436,14 +437,14 @@ export function Notebook({ profile, onUpdateProfile, onAwardPoints }: NotebookPr
                 {/* Content */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    O que deseja registrar hoje?
+                    {t('register_content_question', 'O que deseja registrar hoje?')}
                   </label>
                   <textarea
                     required
                     rows={8}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Escreva aqui suas ideias, treinos concluídos, objetivos de macros, lista de mercado livre, lista de treinos, diário alimentar..."
+                    placeholder={t('placeholder_note_content', 'Escreva aqui suas ideias, treinos concluídos, objetivos de macros, lista de mercado livre, lista de treinos, diário alimentar...')}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-950 transition-all text-sm resize-none"
                   />
                 </div>

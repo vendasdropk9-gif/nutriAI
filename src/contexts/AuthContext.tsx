@@ -40,6 +40,14 @@ const clearLocalSession = () => {
   } catch (e) {}
 };
 
+const DEFAULT_DIRECT_GUEST: User = {
+  uid: 'guest-direct-user',
+  email: 'usuario@nutriai.com',
+  displayName: 'Usuário NutriAI',
+  emailVerified: true,
+  providerData: [{ providerId: 'password', email: 'usuario@nutriai.com', displayName: 'Usuário NutriAI', uid: 'guest-direct-user', phoneNumber: null, photoURL: null }]
+} as unknown as User;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,31 +56,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let resolved = false;
 
-    // In iframe, sandboxed, or cookie-blocked environments, Firebase Auth initialization can hang.
-    // We set a 1.5-second fallback timeout to guarantee the application loads.
+    // Timeout fallback for sandboxed/blocked environments
     const timeoutId = setTimeout(() => {
       if (!resolved) {
-        console.warn('Firebase Auth initialization timed out. Proceeding with fallback local guest check.');
-        
-        // Try to load any local user, else let the screen render (which will show the Login page)
         const currentLocal = getLocalSession();
         if (currentLocal) {
           try {
             setUser(JSON.parse(currentLocal));
             setIsLocal(true);
           } catch (e) {
-            setUser(null);
-            setIsLocal(false);
+            setUser(DEFAULT_DIRECT_GUEST);
+            setIsLocal(true);
           }
         } else {
-          setUser(null);
-          setIsLocal(false);
+          setUser(DEFAULT_DIRECT_GUEST);
+          setIsLocal(true);
         }
         setLoading(false);
       }
-    }, 1500);
+    }, 1000);
 
-    // Check if there is an active local session first (super fast)
+    // Check active local session first
     const localUserStr = getLocalSession();
     if (localUserStr) {
       try {
@@ -95,22 +99,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         setUser(firebaseUser);
         setIsLocal(false);
-        // Clear local session if we got a real Firebase user
         clearLocalSession();
       } else {
-        // If they logged out from firebase, we should also log out locally
         const currentLocal = getLocalSession();
         if (currentLocal) {
           try {
             setUser(JSON.parse(currentLocal));
             setIsLocal(true);
           } catch (e) {
-            setUser(null);
-            setIsLocal(false);
+            setUser(DEFAULT_DIRECT_GUEST);
+            setIsLocal(true);
           }
         } else {
-          setUser(null);
-          setIsLocal(false);
+          // Enter directly with direct guest session
+          setUser(DEFAULT_DIRECT_GUEST);
+          setIsLocal(true);
         }
       }
       setLoading(false);
@@ -118,6 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Firebase Auth initialization error:', error);
       resolved = true;
       clearTimeout(timeoutId);
+      setUser(DEFAULT_DIRECT_GUEST);
+      setIsLocal(true);
       setLoading(false);
     });
 

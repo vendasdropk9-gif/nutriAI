@@ -5,6 +5,7 @@ import { speak } from '../lib/speech';
 import { CheckoutModal } from './CheckoutModal';
 import { PWAInstallButton } from './PWAInstallButton';
 import { UserProfile } from '../types';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface PricingProps {
   profile?: UserProfile | null;
@@ -58,6 +59,7 @@ const PLANS = [
 ];
 
 export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
+  const { t } = useTranslation();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<typeof PLANS[0] | null>(null);
@@ -223,14 +225,14 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
                     ? 'bg-[#D8B14A]/20 text-[#D8B14A] border border-[#D8B14A]/40' 
                     : 'bg-[#16C784]/20 text-[#16C784] border border-[#16C784]/40'
                 }`}>
-                  {plan.badge}
+                  {t(plan.badge)}
                 </span>
 
                 <button 
                   onClick={() => handleSpeak(plan.tip)}
                   disabled={isPlaying}
                   className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#B5BDC9] hover:text-white hover:bg-white/10 transition-colors"
-                  title="Ouvir detalhes"
+                  title={t('listen_details', 'Ouvir detalhes')}
                 >
                   <Volume2 className="w-4 h-4" />
                 </button>
@@ -244,7 +246,7 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
                   </div>
                   <div>
                     <h3 className="text-2xl font-display font-bold text-white">{plan.name}</h3>
-                    <p className="text-xs text-[#B5BDC9]">{plan.description}</p>
+                    <p className="text-xs text-[#B5BDC9]">{t(plan.description)}</p>
                   </div>
                 </div>
               </div>
@@ -254,19 +256,19 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
                 {getPriceDisplay(plan)}
                 <div className="mt-3 text-[11px] text-[#16C784] font-semibold flex items-center justify-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>{plan.trial}</span>
+                  <span>{t(plan.trial)}</span>
                 </div>
               </div>
 
               {/* Features List */}
               <div className="space-y-3.5 mb-8 flex-1">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Incluso nesta assinatura:</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('included_in_subscription', 'Incluso nesta assinatura:')}</div>
                 {plan.features.map((feat, j) => (
                   <div key={j} className="flex items-start gap-3 text-sm text-slate-200">
                     <div className={`mt-0.5 p-1 rounded-full ${isGold ? 'bg-[#D8B14A]/20 text-[#D8B14A]' : 'bg-[#16C784]/20 text-[#16C784]'}`}>
                       <Check className="w-3.5 h-3.5" />
                     </div>
-                    <span className="leading-snug">{feat}</span>
+                    <span className="leading-snug">{t(feat)}</span>
                   </div>
                 ))}
               </div>
@@ -282,7 +284,7 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
                     : 'bg-gradient-to-r from-[#16C784] to-[#10B981] text-white shadow-[0_8px_30px_rgba(22,199,132,0.35)] hover:opacity-95'
                 }`}
               >
-                <span>{isUserPremium ? 'Alterar Assinatura' : plan.cta}</span>
+                <span>{isUserPremium ? t('change_subscription', 'Alterar Assinatura') : t(plan.cta)}</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </motion.div>

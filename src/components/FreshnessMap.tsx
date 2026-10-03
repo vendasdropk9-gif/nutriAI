@@ -24,6 +24,7 @@ import L from 'leaflet';
 import { FreshnessStore } from '../types';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Fix Leaflet marker icons
 import 'leaflet/dist/leaflet.css';
@@ -150,6 +151,7 @@ function ChangeView({ center }: { center: [number, number] }) {
 }
 
 export function FreshnessMap({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
   const [selectedStore, setSelectedStore] = useState<FreshnessStore | null>(null);
   const [filter, setFilter] = useState<'all' | 'frescor' | 'preco'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -277,12 +279,12 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 <motion.h2 
                   className="text-xl sm:text-2xl md:text-4xl font-serif font-bold text-white leading-tight drop-shadow-md pointer-events-auto"
                 >
-                  {BANNER_SLIDES[currentSlide].title}
+                  {t(BANNER_SLIDES[currentSlide].title)}
                 </motion.h2>
                 <motion.p 
                   className="text-white/90 text-xs sm:text-sm md:text-lg font-medium drop-shadow pointer-events-auto"
                 >
-                  {BANNER_SLIDES[currentSlide].subtitle}
+                  {t(BANNER_SLIDES[currentSlide].subtitle)}
                 </motion.p>
                 
                 <div className="pointer-events-auto pt-2 flex justify-center md:justify-start">
@@ -361,7 +363,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
             <Search className="w-4 h-4 md:w-5 md:h-5 text-slate-400 shrink-0" />
             <input 
               type="text" 
-              placeholder="Qual legume ou fruta procura?" 
+              placeholder={t('search_produce_placeholder', 'Qual legume ou fruta procura?')} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {

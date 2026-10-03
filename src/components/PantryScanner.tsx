@@ -12,6 +12,7 @@ import { PantryItem, PantryRecipeSuggestion, UserProfile, Recipe } from '../type
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
 import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '../lib/firebase';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface PantryScannerProps {
   profile?: UserProfile | null;
@@ -54,6 +55,7 @@ const SUGGESTED_ITEMS = [
 ];
 
 export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRecipe }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'inventory' | 'scan' | 'manual' | 'recipes' | 'waste' | 'advisor'>('inventory');
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -855,7 +857,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                     className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-zinc-800 text-xs text-zinc-800 dark:text-zinc-200"
                   >
                     {CATEGORIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>{t(c)}</option>
                     ))}
                   </select>
                 </div>
@@ -898,7 +900,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                   key={idx}
                   type="button"
                   onClick={() => {
-                    setManualName(item.name);
+                    setManualName(t(item.name));
                     setManualQty(item.defaultQty);
                     setManualCategory(item.category);
                     setManualLocation(item.loc);
@@ -907,7 +909,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                   }}
                   className="px-2.5 py-1 rounded-lg text-xs bg-zinc-100 hover:bg-emerald-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-emerald-700 border border-zinc-200 dark:border-zinc-700 transition"
                 >
-                  + {item.name}
+                  + {t(item.name)}
                 </button>
               ))}
             </div>
@@ -966,7 +968,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                   className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
                   {CATEGORIES.map(c => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>{t(c)}</option>
                   ))}
                 </select>
               </div>

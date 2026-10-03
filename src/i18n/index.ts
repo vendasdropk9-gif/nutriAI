@@ -1,11 +1,12 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import { localesMap } from './locales';
+import { localesMap, SupportedLocale, SUPPORTED_LOCALES } from './locales';
 import { RUNTIME_DICTIONARY } from './runtimeDictionary';
+import { STATIC_APP_PHRASES } from './staticPhrases';
 import { auth, db, doc, setDoc, serverTimestamp } from '../lib/firebase';
 
-// Construct resources for all locales
+// Construct resources exclusively for supported locales (US, UK, AU, BR)
 const resources: Record<string, { common: any; translation: any }> = {};
 for (const [key, bundle] of Object.entries(localesMap)) {
   resources[key] = {
@@ -17,28 +18,14 @@ for (const [key, bundle] of Object.entries(localesMap)) {
 // Populate runtime dictionary translations into resource bundles for instant lookup
 for (const [phraseKey, translations] of Object.entries(RUNTIME_DICTIONARY)) {
   for (const [langCode, translatedText] of Object.entries(translations)) {
-    const targets = [langCode];
-    if (langCode === 'pt') targets.push('pt-BR', 'pt-PT');
-    else if (langCode === 'en') targets.push('en-US', 'en-GB', 'en-CA', 'en-AU');
-    else if (langCode === 'es') targets.push('es-ES', 'es-MX', 'es-AR', 'es-CL', 'es-CO', 'es-PE', 'es-UY', 'es-VE');
-    else if (langCode === 'nl') targets.push('nl-NL');
-    else if (langCode === 'pl') targets.push('pl-PL');
-    else if (langCode === 'sv') targets.push('sv-SE');
-    else if (langCode === 'no') targets.push('no-NO');
-    else if (langCode === 'da') targets.push('da-DK');
-    else if (langCode === 'fi') targets.push('fi-FI');
-    else if (langCode === 'el') targets.push('el-GR');
-    else if (langCode === 'cs') targets.push('cs-CZ');
-    else if (langCode === 'ro') targets.push('ro-RO');
-    else if (langCode === 'hu') targets.push('hu-HU');
-    else if (langCode === 'th') targets.push('th-TH');
-    else if (langCode === 'vi') targets.push('vi-VN');
-    else if (langCode === 'id') targets.push('id-ID');
-    else if (langCode === 'ms') targets.push('ms-MY');
-    else if (langCode === 'ar') targets.push('ar-SA', 'ar-AE');
-    else if (langCode === 'he') targets.push('he-IL');
-    else if (langCode === 'uk') targets.push('uk-UA');
-    else targets.push(`${langCode}-${langCode.toUpperCase()}`);
+    const targets: string[] = [];
+    if (langCode === 'pt') {
+      targets.push('pt', 'pt-BR');
+    } else if (langCode === 'en') {
+      targets.push('en', 'en-US', 'en-GB', 'en-AU');
+    } else if (SUPPORTED_LOCALES.includes(langCode as SupportedLocale)) {
+      targets.push(langCode);
+    }
 
     for (const target of targets) {
       if (!resources[target]) {
@@ -54,36 +41,81 @@ for (const [phraseKey, translations] of Object.entries(RUNTIME_DICTIONARY)) {
   }
 }
 
+// Populate curated static UI phrases into resource bundles for instant lookup
+for (const [phraseKey, translations] of Object.entries(STATIC_APP_PHRASES)) {
+  for (const [langCode, translatedText] of Object.entries(translations)) {
+    const targets: string[] = [];
+    if (langCode === 'pt') {
+      targets.push('pt', 'pt-BR');
+    } else if (langCode === 'en') {
+      targets.push('en', 'en-US', 'en-GB', 'en-AU');
+    } else if (SUPPORTED_LOCALES.includes(langCode as SupportedLocale)) {
+      targets.push(langCode);
+    }
+
+    for (const target of targets) {
+      if (!resources[target]) {
+        resources[target] = { common: {}, translation: {} };
+      }
+      if (!resources[target].common[phraseKey]) {
+        resources[target].common[phraseKey] = translatedText;
+      }
+      if (!resources[target].translation[phraseKey]) {
+        resources[target].translation[phraseKey] = translatedText;
+      }
+    }
+  }
+}
+
+// Helper to normalize any incoming locale code strictly to one of the 4 supported options
+export const normalizeToSupportedLocale = (input?: string | null): SupportedLocale => {
+  if (!input) return 'pt-BR';
+  const clean = input.trim();
+  
+  if (clean === 'pt-BR' || clean === 'pt' || clean.toLowerCase().startsWith('pt')) {
+    return 'pt-BR';
+  }
+  if (clean === 'en-GB' || clean.toLowerCase() === 'en-gb' || clean.toLowerCase().includes('uk')) {
+    return 'en-GB';
+  }
+  if (clean === 'en-AU' || clean.toLowerCase() === 'en-au' || clean.toLowerCase().includes('australia')) {
+    return 'en-AU';
+  }
+  if (clean === 'en-US' || clean === 'en' || clean.toLowerCase().startsWith('en')) {
+    return 'en-US';
+  }
+
+  return 'pt-BR';
+};
+
 // Safe helper to determine initial language based on strict priority:
-// 1. Saved localStorage 'nutriai_language' (or legacy keys)
-// 2. Browser navigator.language
-// 3. Fallback to pt-BR
-export const getInitialLanguage = (): string => {
+// 1. Next.js style route query (?lang=... or ?locale=...)
+// 2. Saved localStorage 'nutriai_language' (or legacy keys)
+// 3. Browser navigator.language
+// 4. Fallback to pt-BR
+export const getInitialLanguage = (): SupportedLocale => {
   try {
+    // 0. Route parameter check
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get('lang') || urlParams.get('locale');
+      if (urlLang) {
+        return normalizeToSupportedLocale(urlLang);
+      }
+    }
+
+    // 1. LocalStorage check
     const saved = localStorage.getItem('nutriai_language') || 
                   localStorage.getItem('language') || 
                   localStorage.getItem('i18nextLng');
-    if (saved && resources[saved]) return saved;
     if (saved) {
-      const base = saved.split('-')[0];
-      if (resources[base]) {
-        if (base === 'pt') return 'pt-BR';
-        if (base === 'es') return 'es-ES';
-        if (base === 'en') return 'en-US';
-        return base;
-      }
+      return normalizeToSupportedLocale(saved);
     }
     
+    // 2. Browser navigator check
     const navLng = typeof navigator !== 'undefined' ? navigator.language : null;
     if (navLng) {
-      if (resources[navLng]) return navLng;
-      const base = navLng.split('-')[0];
-      if (resources[base]) {
-        if (base === 'pt') return 'pt-BR';
-        if (base === 'es') return 'es-ES';
-        if (base === 'en') return 'en-US';
-        return base;
-      }
+      return normalizeToSupportedLocale(navLng);
     }
   } catch (e) {
     // ignore
@@ -101,46 +133,11 @@ i18n
     resources,
     lng: initialLanguage,
     fallbackLng: {
-      'es-AR': ['es', 'pt-BR'],
-      'es-CL': ['es', 'pt-BR'],
-      'es-CO': ['es', 'pt-BR'],
-      'es-PE': ['es', 'pt-BR'],
-      'es-ES': ['es', 'pt-BR'],
-      'es-MX': ['es', 'pt-BR'],
-      'es-UY': ['es', 'pt-BR'],
-      'es-VE': ['es', 'pt-BR'],
-      'pt-PT': ['pt-BR'],
-      'pt': ['pt-BR'],
       'en-US': ['en', 'pt-BR'],
-      'en-GB': ['en', 'pt-BR'],
-      'en-CA': ['en', 'pt-BR'],
-      'en-AU': ['en', 'pt-BR'],
-      'fr-FR': ['fr', 'pt-BR'],
-      'de-DE': ['de', 'pt-BR'],
-      'it-IT': ['it', 'pt-BR'],
-      'nl-NL': ['nl', 'en-US', 'pt-BR'],
-      'zh-CN': ['zh', 'pt-BR'],
-      'ja-JP': ['ja', 'pt-BR'],
-      'ko-KR': ['ko', 'pt-BR'],
-      'hi-IN': ['hi', 'pt-BR'],
-      'ar-SA': ['ar', 'pt-BR'],
-      'tr-TR': ['tr', 'pt-BR'],
-      'ru-RU': ['ru', 'pt-BR'],
-      'pl-PL': ['pl', 'en-US', 'pt-BR'],
-      'sv-SE': ['sv', 'en-US', 'pt-BR'],
-      'no-NO': ['no', 'en-US', 'pt-BR'],
-      'da-DK': ['da', 'en-US', 'pt-BR'],
-      'fi-FI': ['fi', 'en-US', 'pt-BR'],
-      'el-GR': ['el', 'en-US', 'pt-BR'],
-      'cs-CZ': ['cs', 'en-US', 'pt-BR'],
-      'ro-RO': ['ro', 'en-US', 'pt-BR'],
-      'hu-HU': ['hu', 'en-US', 'pt-BR'],
-      'th-TH': ['th', 'en-US', 'pt-BR'],
-      'vi-VN': ['vi', 'en-US', 'pt-BR'],
-      'id-ID': ['id', 'en-US', 'pt-BR'],
-      'ms-MY': ['ms', 'en-US', 'pt-BR'],
-      'he-IL': ['he', 'en-US', 'pt-BR'],
-      'uk-UA': ['uk', 'en-US', 'pt-BR'],
+      'en-GB': ['en-US', 'en', 'pt-BR'],
+      'en-AU': ['en-US', 'en', 'pt-BR'],
+      'en': ['en-US', 'pt-BR'],
+      'pt': ['pt-BR'],
       'default': ['pt-BR']
     },
     ns: ['common', 'translation'],
@@ -162,44 +159,49 @@ i18n
 
 // Apply document attributes for initial language
 if (typeof document !== 'undefined') {
-  const isRtl = initialLanguage.startsWith('ar') || initialLanguage.startsWith('he');
   document.documentElement.lang = initialLanguage;
-  document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  document.documentElement.dir = 'ltr';
   if (document.body) {
-    if (isRtl) document.body.classList.add('rtl-layout');
-    else document.body.classList.remove('rtl-layout');
+    document.body.classList.remove('rtl-layout');
+    document.body.classList.add('ltr-layout');
   }
 }
 
-// Function to change language globally in real-time with state, Firestore, Supabase, LocalStorage, and RTL sync
+// Function to change language globally in real-time with state, Firestore, Supabase, and LocalStorage
 export async function changeLanguage(lng: string, supabaseClient?: any, userId?: string) {
-  let targetLng = lng;
-  if (targetLng === 'pt') targetLng = 'pt-BR';
-  if (targetLng === 'en') targetLng = 'en-US';
+  const targetLng = normalizeToSupportedLocale(lng);
 
   // 1. Apply language in i18next
   await i18n.changeLanguage(targetLng);
   
-  // 2. Save preference in localStorage with nutriai_language and backward compatibility keys
+  // 2. Save preference in localStorage & cookies with nutriai_language and backward compatibility keys
   try {
     localStorage.setItem('nutriai_language', targetLng);
     localStorage.setItem('language', targetLng);
     localStorage.setItem('i18nextLng', targetLng);
+    if (typeof document !== 'undefined') {
+      document.cookie = `nutriai_language=${targetLng};path=/;max-age=31536000;SameSite=Lax`;
+    }
   } catch (e) {}
-  
-  // 3. Update documentElement lang & dir (RTL support for Arabic & Hebrew)
-  if (typeof document !== 'undefined') {
-    const isRtl = targetLng.startsWith('ar') || targetLng.startsWith('he');
-    document.documentElement.lang = targetLng;
-    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-    if (document.body) {
-      if (isRtl) {
-        document.body.classList.add('rtl-layout');
-        document.body.classList.remove('ltr-layout');
-      } else {
-        document.body.classList.remove('rtl-layout');
-        document.body.classList.add('ltr-layout');
+
+  // 2.1 Sync URL search parameters dynamically (Next.js route pattern without reload)
+  if (typeof window !== 'undefined' && window.history && window.location) {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('lang') !== targetLng) {
+        url.searchParams.set('lang', targetLng);
+        window.history.replaceState(window.history.state, '', url.toString());
       }
+    } catch (e) {}
+  }
+  
+  // 3. Update documentElement lang & dir
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = targetLng;
+    document.documentElement.dir = 'ltr';
+    if (document.body) {
+      document.body.classList.remove('rtl-layout');
+      document.body.classList.add('ltr-layout');
     }
   }
 

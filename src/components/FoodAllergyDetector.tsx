@@ -10,6 +10,7 @@ import {
   UtensilsCrossed, Apple, ChevronRight, Bookmark, Search, BookOpen, X, Sprout
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { useTranslation } from '../contexts/LanguageContext';
 
 // Presets for easy 1-click testing of labels & products
 const PRESET_PRODUCTS = [
@@ -70,6 +71,7 @@ interface FoodAllergyAnalysisResult {
 
 export function FoodAllergyDetector() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Scans history state
   const [scans, setScans] = useState<any[]>([]);
@@ -511,7 +513,7 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
               >
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Selecione suas alergias de interesse:
+                    {t('select_allergies_interest', 'Selecione suas alergias de interesse:')}
                   </p>
                   
                   <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1">
@@ -535,14 +537,14 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
                                 className="rounded text-rose-600 focus:ring-rose-500 w-4 h-4"
                               />
                               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                {item.icon} {item.name}
+                                {item.icon} {t(item.name)}
                               </span>
                             </label>
 
                             {/* Severity Level slider */}
                             {isSelected && (
                               <div className="flex items-center gap-1">
-                                <span className="text-[9px] text-gray-400 font-bold mr-1">Severidade:</span>
+                                <span className="text-[9px] text-gray-400 font-bold mr-1">{t('severity_label', 'Severidade:')}</span>
                                 {(['Baixa', 'Média', 'Alta'] as const).map(lvl => (
                                   <button
                                     key={lvl}
@@ -554,13 +556,13 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
                                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
                                     }`}
                                   >
-                                    {lvl[0]}
+                                    {t(lvl)[0]}
                                   </button>
                                 ))}
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] text-gray-400 pl-6">{item.description}</span>
+                          <span className="text-[10px] text-gray-400 pl-6">{t(item.description)}</span>
                         </div>
                       );
                     })}
@@ -739,9 +741,9 @@ O nível de segurança geral é de **${data.score}/100**. Você deseja tirar alg
                   />
                   <div className="min-w-0">
                     <h4 className="text-[10px] font-bold text-gray-800 dark:text-white truncate group-hover:text-emerald-600">
-                      {prod.name}
+                      {t(prod.name)}
                     </h4>
-                    <p className="text-[8px] text-gray-400 truncate">Ver alérgenos</p>
+                    <p className="text-[8px] text-gray-400 truncate">{t('see_allergens', 'Ver alérgenos')}</p>
                   </div>
                 </div>
               ))}

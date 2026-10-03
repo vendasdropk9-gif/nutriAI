@@ -1,6 +1,6 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
@@ -531,7 +531,7 @@ export function SmartFridge() {
               : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
           }`}
         >
-          Minha Geladeira
+          {t('minha_geladeira', 'Minha Geladeira')}
         </button>
         <button
           onClick={() => { setActiveSubTab('scan'); playSfx('tap'); }}
@@ -542,7 +542,7 @@ export function SmartFridge() {
           }`}
         >
           <Camera className="w-4 h-4 text-emerald-500" />
-          Escanear Alimentos
+          {t('escanear_alimentos', 'Escanear Alimentos')}
         </button>
         <button
           onClick={() => { setActiveSubTab('recipes'); playSfx('tap'); }}
@@ -553,7 +553,7 @@ export function SmartFridge() {
           }`}
         >
           <Utensils className="w-4 h-4 text-emerald-500" />
-          Receitas Sugeridas
+          {t('suggested_recipes', 'Receitas Sugeridas')}
         </button>
         <button
           onClick={() => { setActiveSubTab('shopping'); playSfx('tap'); }}
@@ -564,7 +564,7 @@ export function SmartFridge() {
           }`}
         >
           <ShoppingBag className="w-4 h-4 text-emerald-500" />
-          Lista de Compras
+          {t('shopping_list', 'Lista de Compras')}
         </button>
         <button
           id="subtab-pantry-scanner-btn"
@@ -576,7 +576,7 @@ export function SmartFridge() {
           }`}
         >
           <Package className="w-4 h-4 text-emerald-500" />
-          Scanner de Despensa
+          {t('pantry_scanner', 'Scanner de Despensa')}
         </button>
         <button
           id="subtab-food-waste-btn"
@@ -588,7 +588,7 @@ export function SmartFridge() {
           }`}
         >
           <Scale className="w-4 h-4 text-emerald-500" />
-          Índice de Desperdício
+          {t('food_waste_index', 'Índice de Desperdício')}
         </button>
         <button
           id="subtab-cooking-advisor-btn"
@@ -600,7 +600,7 @@ export function SmartFridge() {
           }`}
         >
           <ChefHat className="w-4 h-4 text-emerald-500" />
-          Dúvidas do Chef IA
+          {t('chef_ai_questions', 'Dúvidas do Chef IA')}
         </button>
       </div>
 
@@ -622,7 +622,7 @@ export function SmartFridge() {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-sans text-emerald-600 dark:text-emerald-400 font-medium">Alimentos Frescos</p>
+                  <p className="text-sm font-sans text-emerald-600 dark:text-emerald-400 font-medium">{t('fresh_foods', 'Alimentos Frescos')}</p>
                   <p className="text-3xl font-serif font-bold text-emerald-700 dark:text-emerald-300">{freshCount}</p>
                 </div>
               </div>
@@ -631,7 +631,7 @@ export function SmartFridge() {
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-sans text-amber-600 dark:text-amber-400 font-medium">Perto de Vencer (1 a 3 dias)</p>
+                  <p className="text-sm font-sans text-amber-600 dark:text-amber-400 font-medium">{t('expiring_soon_label', 'Perto de Vencer (1 a 3 dias)')}</p>
                   <p className="text-3xl font-serif font-bold text-amber-700 dark:text-amber-300">{expiringCount}</p>
                 </div>
               </div>
@@ -640,7 +640,7 @@ export function SmartFridge() {
                   <AlertOctagon className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-sans text-rose-600 dark:text-rose-400 font-medium">Vencidos/Murchos</p>
+                  <p className="text-sm font-sans text-rose-600 dark:text-rose-400 font-medium">{t('expired_foods', 'Vencidos/Murchos')}</p>
                   <p className="text-3xl font-serif font-bold text-rose-700 dark:text-rose-300">{expiredCount}</p>
                 </div>
               </div>
@@ -652,7 +652,7 @@ export function SmartFridge() {
                 <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar alimento..."
+                  placeholder={t('search_food', 'Buscar alimento...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
@@ -666,8 +666,8 @@ export function SmartFridge() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-slate-700 border border-slate-200/80 dark:border-slate-600 font-sans text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
                 >
-                  <option value="Todas">Todas Categorias</option>
-                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  <option value="Todas">{t('all_categories', 'Todas Categorias')}</option>
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{t(cat)}</option>)}
                 </select>
 
                 <div className="flex rounded-2xl border border-slate-200/80 dark:border-slate-600 bg-white dark:bg-slate-700 overflow-hidden">

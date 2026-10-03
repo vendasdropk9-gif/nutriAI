@@ -1,17 +1,17 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer } from 'lucide-react';
+import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { speak, stopSpeech } from '../lib/speech';
+import { speak, stopSpeech, speakWithWebSpeech } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from '../lib/firebase';
 import { db, auth } from '../lib/firebase';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Variants } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
@@ -56,11 +56,51 @@ function calculateStartTime(targetTimeStr: string, prepMinutes: number): string 
   return `${paddedHour}:${paddedMin}`;
 }
 
+const stepsContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const stepItemVariants: Variants = {
+  hidden: { 
+    opacity: 0, 
+    y: 20, 
+    scale: 0.96,
+    filter: 'blur(3px)',
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: {
+      type: 'spring',
+      damping: 22,
+      stiffness: 280,
+      mass: 0.7,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -12,
+    scale: 0.96,
+    filter: 'blur(2px)',
+    transition: { duration: 0.2 },
+  },
+};
+
 interface RecipeCardProps {
   recipe: Recipe;
 }
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
+  const { language } = useLanguage();
   const { t } = useTranslation();
   const [isNutritionExpanded, setIsNutritionExpanded] = useState(false);
   const [prepTips, setPrepTips] = useState<RecipePreparationTips | null>(null);
@@ -68,6 +108,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [prepTipsError, setPrepTipsError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoReadEnabled, setIsAutoReadEnabled] = useState<boolean>(true);
   const [showAiAdvisor, setShowAiAdvisor] = useState(false);
   
   const isPlayingRef = useRef(false);
@@ -110,6 +151,59 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [isNarratingIngredients, setIsNarratingIngredients] = useState(false);
   const [isNarratingFull, setIsNarratingFull] = useState(false);
+
+  // Progressive Step-by-Step Staggered Reveal State
+  const [isGuidedStepMode, setIsGuidedStepMode] = useState<boolean>(true);
+  const [visibleStepsCount, setVisibleStepsCount] = useState<number>(1);
+  const totalSteps = recipe.instructions?.length || 0;
+
+  const handleNextStep = () => {
+    if (visibleStepsCount < totalSteps) {
+      const nextCount = visibleStepsCount + 1;
+      setVisibleStepsCount(nextCount);
+      const nextIndex = nextCount - 1;
+      setActiveStep(nextIndex);
+      playSfx('tap');
+      vibrate(15);
+
+      // Read newly revealed step aloud in the user's selected language
+      if (isAutoReadEnabled) {
+        isPlayingRef.current = true;
+        isContinuousRef.current = false;
+        playStep(nextIndex);
+      }
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (visibleStepsCount > 1) {
+      const prevCount = visibleStepsCount - 1;
+      setVisibleStepsCount(prevCount);
+      const prevIndex = prevCount - 1;
+      setActiveStep(prevIndex);
+      playSfx('tap');
+      vibrate(12);
+
+      if (isAutoReadEnabled) {
+        isPlayingRef.current = true;
+        isContinuousRef.current = false;
+        playStep(prevIndex);
+      }
+    }
+  };
+
+  const handleResetSteps = () => {
+    setVisibleStepsCount(1);
+    setActiveStep(0);
+    playSfx('pop');
+    vibrate(15);
+
+    if (isAutoReadEnabled) {
+      isPlayingRef.current = true;
+      isContinuousRef.current = false;
+      playStep(0);
+    }
+  };
 
   // Sync Reading Mode globally with app event
   useEffect(() => {
@@ -658,10 +752,8 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
     };
   }, []);
 
-  const playStep = async (index: number) => {
-    if (!isPlayingRef.current) return;
-    
-    if (index >= recipe.instructions.length) {
+  const playStep = (index: number) => {
+    if (index < 0 || index >= recipe.instructions.length) {
       setIsPlaying(false);
       isPlayingRef.current = false;
       setActiveStep(null);
@@ -670,9 +762,16 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
     
     setActiveStep(index);
     currentStepIndexRef.current = index;
+    setIsPlaying(true);
+    isPlayingRef.current = true;
     
-    const stepText = `Passo ${index + 1}: ${recipe.instructions[index]}`;
-    await speak(stepText, {
+    const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+    const stepLabel = isPt ? `Passo ${index + 1}` : `Step ${index + 1}`;
+    const stepContent = recipe.instructions[index];
+    const stepText = `${stepLabel}: ${stepContent}`;
+
+    speakWithWebSpeech(stepText, {
+      lang: language || 'pt-BR',
       onEnded: () => {
         if (isPlayingRef.current && currentStepIndexRef.current === index && isContinuousRef.current) {
           setTimeout(() => {
@@ -686,7 +785,6 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
       onError: () => {
         setIsPlaying(false);
         isPlayingRef.current = false;
-        setActiveStep(null);
       }
     });
   };
@@ -1277,12 +1375,92 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               <h3 className={`${activeFont.sectionTitle} flex items-center gap-3`}>
                 <span>2. Modo de Preparo Passo a Passo</span>
                 <span className={`text-xs px-2.5 py-1 rounded-full ${activeContrast.badge}`}>
-                  {completedStepCount} de {recipe.instructions.length} concluídos ({progressPercent}%)
+                  {isGuidedStepMode ? `${visibleStepsCount} de ${totalSteps} revelados` : `${completedStepCount} de ${totalSteps} concluídos (${progressPercent}%)`}
                 </span>
               </h3>
               <p className="text-xs sm:text-sm opacity-75 mt-1">
-                Siga as instruções com calma. Toque em "Ouvir este passo" para narração isolada.
+                {isGuidedStepMode 
+                  ? 'Modo Guiado ativo: revele cada etapa uma a uma tocando em "Próximo Passo".'
+                  : 'Siga as instruções com calma. Toque em "Ouvir este passo" para narração isolada.'}
               </p>
+            </div>
+
+            {/* Mode Switcher and Voice Reading Trigger */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isAutoReadEnabled;
+                  setIsAutoReadEnabled(next);
+                  playSfx('tap');
+                  vibrate(12);
+                  if (next) {
+                    isPlayingRef.current = true;
+                    isContinuousRef.current = false;
+                    playStep(activeStep !== null ? activeStep : (visibleStepsCount - 1));
+                  } else {
+                    stopSpeech();
+                    setIsPlaying(false);
+                    isPlayingRef.current = false;
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  isAutoReadEnabled
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm'
+                    : 'opacity-70 hover:opacity-100 border-white/20'
+                }`}
+                title={
+                  (language || 'pt-BR').toLowerCase().startsWith('pt')
+                    ? "Ouvir cada passo lido em voz alta (Web Speech API) ao avançar"
+                    : "Listen to each step read aloud (Web Speech API) when advancing"
+                }
+              >
+                {isAutoReadEnabled && isPlaying ? (
+                  <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+                ) : isAutoReadEnabled ? (
+                  <Volume2 className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <VolumeX className="w-4 h-4 opacity-60" />
+                )}
+                <span>
+                  {(language || 'pt-BR').toLowerCase().startsWith('pt')
+                    ? (isAutoReadEnabled ? 'Voz Ativa' : 'Ouvir Instruções')
+                    : (isAutoReadEnabled ? 'Voice Active' : 'Listen')}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-1.5 p-1 rounded-xl border border-emerald-500/20 bg-emerald-950/20 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGuidedStepMode(true);
+                    if (visibleStepsCount === totalSteps) setVisibleStepsCount(1);
+                    playSfx('tap');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    isGuidedStepMode
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  Passo a Passo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGuidedStepMode(false);
+                    setVisibleStepsCount(totalSteps);
+                    playSfx('tap');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    !isGuidedStepMode
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  Ver Todos ({totalSteps})
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1290,29 +1468,40 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           <div className={`w-full h-3 rounded-full border overflow-hidden ${activeContrast.divider} ${activeContrast.card}`}>
             <div 
               className={`h-full transition-all duration-500 ${activeContrast.badge}`}
-              style={{ width: `${progressPercent}%` }}
+              style={{ width: `${isGuidedStepMode ? Math.round((visibleStepsCount / (totalSteps || 1)) * 100) : progressPercent}%` }}
             />
           </div>
 
-          {/* Steps List */}
-          <div className="space-y-4">
-            {recipe.instructions.map((step, idx) => {
+          {/* Staggered Animated Steps List */}
+          <motion.div 
+            key={`modal_steps_${isGuidedStepMode ? 'guided_' + visibleStepsCount : 'all'}`}
+            variants={stepsContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-4"
+          >
+            {(isGuidedStepMode ? recipe.instructions.slice(0, visibleStepsCount) : recipe.instructions).map((step, idx) => {
               const isCompleted = !!completedSteps[idx];
               const isSpeakingThis = isPlaying && activeStep === idx;
+              const isNewlyRevealed = isGuidedStepMode && idx === visibleStepsCount - 1;
               return (
-                <div
+                <motion.div
                   key={idx}
+                  variants={stepItemVariants}
+                  layout
                   className={`p-5 sm:p-6 rounded-2xl border transition-all space-y-4 ${
                     isCompleted
                       ? 'opacity-70 bg-emerald-950/15 border-emerald-500/40'
                       : isSpeakingThis
                       ? 'ring-4 ring-emerald-500/50 shadow-xl ' + activeContrast.card
+                      : isNewlyRevealed
+                      ? 'border-emerald-500/50 shadow-lg ' + activeContrast.card
                       : activeContrast.card
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-lg ${
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-lg font-bold ${
                         isCompleted ? activeContrast.stepNumberCompleted : activeContrast.stepNumber
                       }`}>
                         {idx + 1}
@@ -1358,10 +1547,56 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       <span>{isCompleted ? 'Passo Concluído!' : 'Marcar como Concluído'}</span>
                     </button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
+
+          {/* Interactive Step-by-Step 'Next Step' Control Bar */}
+          {isGuidedStepMode && (
+            <div className={`flex flex-wrap items-center justify-between gap-3 pt-4 border-t ${activeContrast.divider}`}>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePreviousStep}
+                  disabled={visibleStepsCount <= 1}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${activeContrast.buttonSecondary}`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Passo Anterior</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetSteps}
+                  title="Recomeçar do primeiro passo"
+                  className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {visibleStepsCount < totalSteps ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Próximo Passo ({visibleStepsCount + 1} de {totalSteps})</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl text-xs sm:text-sm font-bold"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Todas as etapas reveladas! Bom preparo! 🎉</span>
+                </motion.div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Bottom Exit & Return Actions */}
@@ -1868,41 +2103,186 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             )}
           </AnimatePresence>
           
-          <div className="space-y-4">
-            {recipe.instructions.map((step, idx) => {
+          {/* Header for Step-by-Step Instructions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 mb-2">
+            <div className="flex items-center gap-2">
+              <ChefHat className="w-5 h-5 text-emerald-500" />
+              <h4 className="font-serif text-base font-bold text-slate-800 dark:text-slate-100">
+                Modo de Preparo
+              </h4>
+            </div>
+
+            {/* Mode Switcher and Voice Reading Trigger */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Listen to Instructions Voice Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isAutoReadEnabled;
+                  setIsAutoReadEnabled(next);
+                  playSfx('tap');
+                  vibrate(12);
+                  if (next) {
+                    isPlayingRef.current = true;
+                    isContinuousRef.current = false;
+                    playStep(activeStep !== null ? activeStep : (visibleStepsCount - 1));
+                  } else {
+                    stopSpeech();
+                    setIsPlaying(false);
+                    isPlayingRef.current = false;
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  isAutoReadEnabled
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-slate-200/60 dark:border-slate-700/60'
+                }`}
+                title={
+                  (language || 'pt-BR').toLowerCase().startsWith('pt')
+                    ? "Ouvir cada passo lido em voz alta (Web Speech API) conforme você avança"
+                    : "Listen to each step read aloud (Web Speech API) as you advance"
+                }
+              >
+                {isAutoReadEnabled && isPlaying ? (
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                ) : isAutoReadEnabled ? (
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <VolumeX className="w-3.5 h-3.5 opacity-60" />
+                )}
+                <span>
+                  {(language || 'pt-BR').toLowerCase().startsWith('pt')
+                    ? (isAutoReadEnabled ? 'Leitura em Voz Ativa' : 'Ouvir Instruções')
+                    : (isAutoReadEnabled ? 'Voice Active' : 'Listen to Instructions')}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGuidedStepMode(true);
+                    if (visibleStepsCount === totalSteps) setVisibleStepsCount(1);
+                    playSfx('tap');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    isGuidedStepMode
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  Passo a Passo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsGuidedStepMode(false);
+                    setVisibleStepsCount(totalSteps);
+                    playSfx('tap');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    !isGuidedStepMode
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  Ver Todos ({totalSteps})
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Staggered Animated Steps List */}
+          <motion.div 
+            key={`card_steps_${isGuidedStepMode ? 'guided_' + visibleStepsCount : 'all'}`}
+            variants={stepsContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-4"
+          >
+            {(isGuidedStepMode ? recipe.instructions.slice(0, visibleStepsCount) : recipe.instructions).map((step, idx) => {
               const isActive = activeStep === idx;
+              const isNewlyRevealed = isGuidedStepMode && idx === visibleStepsCount - 1;
               return (
-                <div 
+                <motion.div 
                   key={idx} 
-                  className={`flex gap-4 group p-3 rounded-2xl transition-all duration-300 border border-transparent ${
-                    isActive 
-                      ? 'bg-emerald-500/10 dark:bg-emerald-500/20 shadow-md border-emerald-500/20 scale-[1.01]' 
-                      : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20'
+                  variants={stepItemVariants}
+                  layout
+                  className={`flex gap-4 group p-3.5 rounded-2xl transition-all duration-300 border ${
+                    isActive || isNewlyRevealed
+                      ? 'bg-emerald-500/10 dark:bg-emerald-500/20 shadow-md border-emerald-500/30 scale-[1.01]' 
+                      : 'border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/20'
                   }`}
                 >
                   <button
                     onClick={() => handlePlaySingleStep(idx)}
                     title="Ouvir este passo"
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm flex-shrink-0 transition-all ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center font-serif text-sm flex-shrink-0 transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20'
-                        : 'bg-white/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-white/60 dark:border-slate-600/50 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500'
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20 scale-105'
+                        : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500'
                     }`}
                   >
                     {isActive ? <Volume2 className="w-4 h-4 text-white animate-pulse" /> : idx + 1}
                   </button>
-                  <div className="flex-1">
-                    <p className={`text-slate-600 dark:text-slate-300 leading-relaxed pt-1 transition-all ${
-                      isActive ? 'text-slate-800 dark:text-slate-100 font-medium' : ''
+                  <div className="flex-1 space-y-2">
+                    <p className={`text-slate-700 dark:text-slate-200 text-sm leading-relaxed transition-all ${
+                      isActive ? 'text-slate-900 dark:text-white font-medium' : ''
                     }`}>
                       {step}
                     </p>
                     <RecipeStepTimer stepText={step} stepIndex={idx} recipeName={recipe.name} />
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
+
+          {/* Interactive Step-by-Step 'Next Step' Control Bar */}
+          {isGuidedStepMode && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 mt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePreviousStep}
+                  disabled={visibleStepsCount <= 1}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer active:scale-95"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Passo Anterior</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetSteps}
+                  title="Recomeçar do primeiro passo"
+                  className="p-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800/90 text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {visibleStepsCount < totalSteps ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Próximo Passo ({visibleStepsCount + 1} de {totalSteps})</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl text-xs font-bold"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Todas as etapas reveladas! Bom apetite! 🎉</span>
+                </motion.div>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 border-t border-white/40 dark:border-slate-700/50 pt-6">
             <button

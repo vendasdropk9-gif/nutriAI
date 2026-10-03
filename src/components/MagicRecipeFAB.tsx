@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChefHat, X, Send, Mic, Sparkles, Loader2 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { useTranslation } from '../contexts/LanguageContext';
 import { playSfx, vibrate } from '../lib/sensory';
 import { generateMagicRecipe } from '../lib/gemini';
 import { VoicePlayButton } from './VoicePlayButton';
@@ -11,6 +12,7 @@ interface MagicRecipeFABProps {
 }
 
 export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +123,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                      placeholder="Ex: Doce de leite fit com whey..."
+                      placeholder={t('magic_recipe_placeholder', 'Ex: Doce de leite fit com whey...')}
                       className="w-full bg-slate-50 dark:bg-slate-800 rounded-2xl py-4 pl-5 pr-14 outline-none text-sm border-2 border-slate-100 dark:border-slate-700 focus:border-amber-500 transition-colors shadow-inner"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

@@ -2357,6 +2357,8 @@ export const RUNTIME_DICTIONARY: Record<string, Record<string, string>> = {
   }
 };
 
+import { STATIC_APP_PHRASES } from './staticPhrases';
+
 // Helper to look up translation in runtime dictionary with full normalization and emoji/punctuation handling
 export function lookupRuntimeTranslation(str: string, targetLanguage: string): string | null {
   if (!str || typeof str !== 'string') return null;
@@ -2376,12 +2378,16 @@ export function lookupRuntimeTranslation(str: string, targetLanguage: string): s
 
   const getTarget = (translations?: Record<string, string>): string | null => {
     if (!translations) return null;
-    return translations[cleanLang] || translations[currentLang] || translations['en'] || null;
+    return translations[cleanLang] || translations[currentLang] || translations['en'] || Object.values(translations)[0] || null;
+  };
+
+  const findEntry = (key: string): Record<string, string> | undefined => {
+    return RUNTIME_DICTIONARY[key] || STATIC_APP_PHRASES[key];
   };
 
   // 1. Direct match (lowercased)
   const lower = trimmed.toLowerCase();
-  const directMatch = RUNTIME_DICTIONARY[lower];
+  const directMatch = findEntry(lower);
   if (directMatch) {
     const target = getTarget(directMatch);
     if (target) return prefix + target + suffix;
@@ -2393,7 +2399,7 @@ export function lookupRuntimeTranslation(str: string, targetLanguage: string): s
   if (matchEmoji && matchEmoji[2] && matchEmoji[2].trim().length > 0) {
     const coreText = matchEmoji[2].trim();
     const coreLower = coreText.toLowerCase();
-    const match = RUNTIME_DICTIONARY[coreLower];
+    const match = findEntry(coreLower);
     if (match) {
       const translatedCore = getTarget(match);
       if (translatedCore) {
@@ -2410,7 +2416,7 @@ export function lookupRuntimeTranslation(str: string, targetLanguage: string): s
   if (matchPunct && matchPunct[1]) {
     const coreText = matchPunct[1].trim();
     const coreLower = coreText.toLowerCase();
-    const match = RUNTIME_DICTIONARY[coreLower];
+    const match = findEntry(coreLower);
     if (match) {
       const translatedCore = getTarget(match);
       if (translatedCore) {
@@ -2423,7 +2429,7 @@ export function lookupRuntimeTranslation(str: string, targetLanguage: string): s
   if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
     const inner = trimmed.slice(1, -1).trim();
     const innerLower = inner.toLowerCase();
-    const match = RUNTIME_DICTIONARY[innerLower];
+    const match = findEntry(innerLower);
     if (match) {
       const translatedInner = getTarget(match);
       if (translatedInner) {
