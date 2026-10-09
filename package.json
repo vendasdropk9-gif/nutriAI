@@ -42,6 +42,7 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss": "^4.0.0",
     "three": "^0.173.0",
+    "three-stdlib": "^2.36.1",
     "tsx": "^4.19.2",
     "uuid": "^11.0.5",
     "vite-plugin-pwa": "^0.21.1",

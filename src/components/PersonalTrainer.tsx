@@ -9,6 +9,7 @@ import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib
 import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
 import { WorkoutSummaryReportModal } from './WorkoutSummaryReportModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useHeartRateSync } from '../hooks/useHeartRateSync';
 import avatarMaleSquat from '../assets/images/avatar_male_squat_1790881954417.jpg';
 import avatarFemaleSquat from '../assets/images/avatar_female_squat_1790881967238.jpg';
 import avatarMaleCurl from '../assets/images/avatar_male_curl_1790881979757.jpg';
@@ -16,6 +17,7 @@ import avatarFemaleCurl from '../assets/images/avatar_female_curl_1790881993449.
 import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jpg';
 import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
 import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
+import avatarGlobalStore from '../lib/avatarGlobalState';
 
 // Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
 const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
@@ -229,6 +231,11 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyWorkoutPlan | null>(null);
   const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
   const [selectedWeeklyDay, setSelectedWeeklyDay] = useState<WeeklyWorkoutDay | null>(null);
+
+  const hrSync = useHeartRateSync();
+  useEffect(() => {
+    avatarGlobalStore.setHeartRate(hrSync.heartRate);
+  }, [hrSync.heartRate]);
 
   const [workout, setWorkout] = useState<WorkoutSession | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -977,6 +984,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                    cameraView={cameraView}
                    isPlaying={isTimerActive}
                    playbackSpeed={playbackSpeed}
+                   realtimeHeartRate={hrSync.heartRate}
+                   heartRateSource={hrSync.source}
                    showReferenceControls={true}
                    showOverlayBadges={false}
                    onTogglePlay={(p) => setIsTimerActive(p)}

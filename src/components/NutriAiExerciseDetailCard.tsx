@@ -538,6 +538,8 @@ export function NutriAiExerciseDetailCard({
         <MuscleHighlightsLegend
           primaryMuscles={currentExercise.primaryMuscles}
           secondaryMuscles={currentExercise.secondaryMuscles}
+          primaryColor={currentExercise.highlightColorPrimary || '#ff0033'}
+          secondaryColor={currentExercise.highlightColorSecondary || '#ff6a00'}
           className="mt-3"
         />
       </div>

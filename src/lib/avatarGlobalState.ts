@@ -15,6 +15,7 @@ export interface AvatarGlobalState {
   highlightMode: MuscleHighlightMode;
   hoveredMuscle: string | null;
   pulsingMuscle: string | null;
+  heartRate: number;
   cycle: number;
   phase: 'concentric' | 'eccentric';
   breath: 'inhale' | 'exhale';
@@ -54,6 +55,7 @@ class AvatarGlobalStateStore {
     highlightMode: 'all',
     hoveredMuscle: null,
     pulsingMuscle: null,
+    heartRate: 72,
     cycle: 0,
     phase: 'concentric',
     breath: 'exhale'
@@ -75,6 +77,13 @@ class AvatarGlobalStateStore {
   private emitChange() {
     this.state = { ...this.state };
     this.listeners.forEach((listener) => listener());
+  }
+
+  public setHeartRate(bpm: number) {
+    if (this.state.heartRate !== bpm) {
+      this.state.heartRate = bpm;
+      this.emitChange();
+    }
   }
 
   public setGender(gender: AvatarGenderType | string) {

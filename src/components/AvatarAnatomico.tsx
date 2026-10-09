@@ -3,6 +3,9 @@ import { useSpring } from 'react-spring';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { ContactShadows, PerspectiveCamera, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Preload models for faster exercise switching
+useGLTF.preload('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb');
 import {
   Play,
   Pause,
@@ -28,6 +31,21 @@ import {
   MuscleHighlightMode,
 } from '../lib/avatarGlobalState';
 import { playSfx, vibrate } from '../lib/sensory';
+
+// Helper function to validate muscle raycast intersections
+function validateMuscleRaycast(raycaster: THREE.Raycaster, objects: THREE.Object3D[], muscleList: string[]): THREE.Intersection[] {
+  const intersects = raycaster.intersectObjects(objects, true);
+  return intersects.filter((hit) => {
+    // Assuming muscleTag is attached to userData of the object
+    const muscleTag = (hit.object as any).userData?.muscleTag;
+    return muscleTag && muscleList.includes(muscleTag);
+  });
+}
+
+// Validate if a hit belongs to primary muscles
+function validatePrimaryMuscleIntersection(raycaster: THREE.Raycaster, objects: THREE.Object3D[], primaryMuscles: string[]): boolean {
+  return validateMuscleRaycast(raycaster, objects, primaryMuscles).length > 0;
+}
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -1159,10 +1177,52 @@ export function checkVisualizerContrast(
 }
 
 // Muscle Tag to Exercise Database String Matching
+// Strict mapping for muscle tags to known catalog identifiers
+const STRICT_MUSCLE_MAP: Record<string, string[]> = {
+  'deltoid_lateral': ['deltoide', 'deltoides', 'ombro', 'ombros', 'deltoide lateral'],
+  'deltoid_anterior': ['deltoide anterior', 'ombro anterior'],
+  'deltoid_posterior': ['deltoide posterior', 'ombro posterior'],
+  'bicep': ['biceps', 'bíceps'],
+  'tricep': ['triceps', 'tríceps'],
+  'chest': ['peito', 'peitoral'],
+  'abs': ['abs', 'abdômen', 'abdominal'],
+  'lat': ['costas', 'latíssimo', 'dorsal'],
+  'glute': ['glúteo', 'glúteos'],
+  'forearm': ['antebraço'],
+};
+
+// Verify consistency between active muscles and model structure
+export function verifyAnatomicalConsistency(activeMuscles: string[], validMuscleTags: string[]): { valid: string[], invalid: string[] } {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+
+  activeMuscles.forEach(muscle => {
+    // Check if the muscle name maps to any of the valid model tags
+    const isMapped = validMuscleTags.some(tag => {
+      const mapping = STRICT_MUSCLE_MAP[tag];
+      return mapping && mapping.includes(muscle.toLowerCase().trim());
+    });
+    
+    if (isMapped) {
+      valid.push(muscle);
+    } else {
+      invalid.push(muscle);
+    }
+  });
+
+  return { valid, invalid };
+}
+
 export function isMuscleMatching(tag: string, muscleList?: string[]): boolean {
   if (!muscleList || muscleList.length === 0) return false;
   const t = tag.toLowerCase().trim();
 
+  // Strict lookup based on internal map
+  if (STRICT_MUSCLE_MAP[t]) {
+    return muscleList.some(m => STRICT_MUSCLE_MAP[t].includes(m.toLowerCase().trim()));
+  }
+
+  // Fallback for custom or unmapped nodes
   return muscleList.some((m) => {
     const raw = (m || '').toLowerCase();
     const clean = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1582,6 +1642,12 @@ function AnatomicalMuscleNode({
     }
   });
 
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.userData.muscleTag = muscleTag;
+    }
+  }, [muscleTag]);
+
   return (
     <mesh
       ref={meshRef}
@@ -1592,6 +1658,7 @@ function AnatomicalMuscleNode({
       scale={scale}
       castShadow
       receiveShadow
+      userData={{ muscleTag }}
     />
   );
 }
@@ -3338,10 +3405,20 @@ export class AvatarAnatomico
     const { exercise } = this.state;
     const expectedPrimary = exercise.primaryMuscles || [];
     const expectedSecondary = exercise.secondaryMuscles || [];
-    const actualPrimary = exercise.primaryMuscles || [];
-    const actualSecondary = exercise.secondaryMuscles || [];
+    
+    // Retrieve current biomechanical overlay status (activeShaderMuscles)
+    const { activeShaderMuscles } = this.getBiomechanicalOverlayStatus();
+    const actualPrimary = activeShaderMuscles.primary;
+    const actualSecondary = activeShaderMuscles.secondary;
 
     const discrepancies: string[] = [];
+
+    // Check primary muscles mismatch between exercise definition and active shader nodes
+    const primaryMismatch = expectedPrimary.some(m => !actualPrimary.includes(m)) || 
+                           actualPrimary.some(m => !expectedPrimary.includes(m));
+    if (primaryMismatch) {
+      discrepancies.push(`Mismatch between exercise primary muscles and active biomechanical shader nodes.`);
+    }
 
     const dbExercise = getExerciseById(exercise.id);
     if (dbExercise) {

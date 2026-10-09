@@ -69,28 +69,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Only handle same-origin requests
-  if (!url.startsWith(self.location.origin)) {
+  // Only handle same-origin requests, OR external GLB/GLTF models
+  const isModel = url.endsWith('.glb') || url.endsWith('.gltf');
+  if (!url.startsWith(self.location.origin) && !isModel) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // If found in cache, return it immediately (CacheFirst strategy)
       if (cachedResponse) {
-        // Fetch in background to update cache (Stale-While-Revalidate)
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone()).catch(() => {});
-            });
-          }
-        }).catch(() => {});
-
+        // If it's not a model, we can still do background revalidation for SWR
+        if (!isModel) {
+          fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, networkResponse.clone()).catch(() => {});
+              });
+            }
+          }).catch(() => {});
+        }
         return cachedResponse;
       }
 
+      // If not in cache, fetch from network
       return fetch(event.request).then((response) => {
-        if (response && response.status === 200 && response.type === 'basic') {
+        if (response && response.status === 200) {
+          // Cache only if it's a valid response (models are usually 'cors')
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache).catch(() => {});
