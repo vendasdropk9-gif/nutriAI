@@ -1,4 +1,5 @@
 import React, { Component, createRef, Suspense, useMemo, useRef, useEffect, useState } from 'react';
+import { useSpring } from 'react-spring';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { ContactShadows, PerspectiveCamera, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -142,6 +143,15 @@ export interface AvatarAnatomicoRef {
     contrastPrimaryReadable?: boolean;
     contrastSecondaryReadable?: boolean;
   };
+  /** Validate consistency between highlighted muscles and selected exercise animation effort */
+  validateMuscleConsistency: () => {
+    isConsistent: boolean;
+    discrepancies: string[];
+    expectedPrimary: string[];
+    actualPrimary: string[];
+    expectedSecondary: string[];
+    actualSecondary: string[];
+  };
 }
 
 export interface ExerciseMuscleData {
@@ -162,12 +172,20 @@ export interface AvatarAnatomicoProps {
   gender?: AvatarGender;
   /** Optional custom 3D model URL to load via useGLTF */
   modelUrl?: string;
+  /** Optional explicit male 3D model URL */
+  maleModelUrl?: string;
+  /** Optional explicit female 3D model URL */
+  femaleModelUrl?: string;
+  /** Optional explicit animation asset identifier */
+  animationAsset?: string;
   /** Full exercise object or exercise ID */
   exercise?: DetailedExercise | string;
   /** Exercise ID fallback if exercise prop is not passed */
   exerciseId?: string;
   /** Explicit muscle data from exercise catalog to dynamically overlay biomechanical highlights */
   muscleData?: ExerciseMuscleData;
+  /** Custom mapping dictionary mapping exercise IDs or names to their primary and secondary muscles */
+  muscleMap?: Record<string, { primaryMuscles: string[]; secondaryMuscles?: string[] }>;
   /** Catalog exercise reference (by object or ID string) */
   catalogExercise?: DetailedExercise | string;
   /** Active camera viewpoint */
@@ -210,6 +228,10 @@ export interface AvatarAnatomicoProps {
   showReferenceControls?: boolean;
   /** Show subtle overlay controls badge (toggle gender, camera angles, muscle modes) */
   showOverlayBadges?: boolean;
+  /** Optional real-time heart rate from wearable devices or health platform APIs (Apple Health, Google Fit) */
+  realtimeHeartRate?: number;
+  /** Source of heart rate data ('bluetooth' | 'apple-health' | 'google-fit' | 'simulated' | 'profile') */
+  heartRateSource?: string;
   /** Allow interactive manual toggle of gender variant */
   onGenderChange?: (newGender: 'male' | 'female') => void;
   /** Callback when user toggles play/pause from video pill */
@@ -257,67 +279,101 @@ function CameraRig({
   enableOrbitControls?: boolean;
 }) {
   const { camera } = useThree();
+  const currentLookAt = useRef(new THREE.Vector3(0, 0.85, 0));
 
   const target = useMemo(() => {
     if (cameraView === 'back') {
       return {
-        pos: new THREE.Vector3(0, 1.15, -3.2),
-        lookAt: new THREE.Vector3(0, 0.85, 0),
+        pos: [0, 1.15, -3.2] as [number, number, number],
+        lookAt: [0, 0.85, 0] as [number, number, number],
+        fov: 38,
       };
     }
     if (cameraView === 'side') {
       return {
-        pos: new THREE.Vector3(3.2, 0.85, 0.2),
-        lookAt: new THREE.Vector3(0, 0.85, 0),
+        pos: [3.2, 0.85, 0.2] as [number, number, number],
+        lookAt: [0, 0.85, 0] as [number, number, number],
+        fov: 38,
       };
     }
     if (cameraView === 'detail') {
       if (category === 'shoulders') {
         return {
-          pos: new THREE.Vector3(0, 1.25, 1.55),
-          lookAt: new THREE.Vector3(0, 1.18, 0),
+          pos: [0, 1.25, 1.55] as [number, number, number],
+          lookAt: [0, 1.18, 0] as [number, number, number],
+          fov: 30,
         };
       }
       if (category === 'chest') {
         return {
-          pos: new THREE.Vector3(0, 1.15, 1.55),
-          lookAt: new THREE.Vector3(0, 1.08, 0),
+          pos: [0, 1.15, 1.55] as [number, number, number],
+          lookAt: [0, 1.08, 0] as [number, number, number],
+          fov: 30,
         };
       }
       if (category === 'biceps' || category === 'triceps') {
         return {
-          pos: new THREE.Vector3(0.65, 1.05, 1.5),
-          lookAt: new THREE.Vector3(0.25, 0.95, 0),
+          pos: [0.65, 1.05, 1.5] as [number, number, number],
+          lookAt: [0.25, 0.95, 0] as [number, number, number],
+          fov: 30,
         };
       }
       if (category === 'legs' || category === 'glutes') {
         return {
-          pos: new THREE.Vector3(0, 0.45, 1.75),
-          lookAt: new THREE.Vector3(0, 0.45, 0),
+          pos: [0, 0.45, 1.75] as [number, number, number],
+          lookAt: [0, 0.45, 0] as [number, number, number],
+          fov: 30,
         };
       }
       if (category === 'back') {
         return {
-          pos: new THREE.Vector3(0, 1.2, -1.75),
-          lookAt: new THREE.Vector3(0, 1.1, 0),
+          pos: [0, 1.2, -1.75] as [number, number, number],
+          lookAt: [0, 1.1, 0] as [number, number, number],
+          fov: 30,
         };
       }
       return {
-        pos: new THREE.Vector3(0, 1.1, 1.65),
-        lookAt: new THREE.Vector3(0, 0.95, 0),
+        pos: [0, 1.1, 1.65] as [number, number, number],
+        lookAt: [0, 0.95, 0] as [number, number, number],
+        fov: 30,
       };
     }
     // Front view default matching reference image
     return {
-      pos: new THREE.Vector3(0, 0.85, 3.4),
-      lookAt: new THREE.Vector3(0, 0.85, 0),
+      pos: [0, 0.85, 3.4] as [number, number, number],
+      lookAt: [0, 0.85, 0] as [number, number, number],
+      fov: 38,
     };
   }, [cameraView, category]);
 
+  const [{ pos, lookAt, fov }, api] = useSpring(() => ({
+    pos: target.pos,
+    lookAt: target.lookAt,
+    fov: target.fov,
+    config: { tension: 110, friction: 28, mass: 1 },
+  }));
+
+  useEffect(() => {
+    api.start({
+      pos: target.pos,
+      lookAt: target.lookAt,
+      fov: target.fov,
+      immediate: false,
+    });
+  }, [target, api]);
+
   useFrame(() => {
-    if (!enableOrbitControls) {
-      camera.position.lerp(target.pos, 0.08);
-      camera.lookAt(target.lookAt);
+    if (!enableOrbitControls && pos.get && lookAt.get && fov.get) {
+      const p = pos.get();
+      const l = lookAt.get();
+      const f = fov.get();
+      camera.position.set(p[0], p[1], p[2]);
+      currentLookAt.current.set(l[0], l[1], l[2]);
+      camera.lookAt(currentLookAt.current);
+      if ('fov' in camera && typeof (camera as any).fov === 'number') {
+        (camera as any).fov = f;
+        camera.updateProjectionMatrix();
+      }
     }
   });
 
@@ -877,11 +933,13 @@ export function MuscleShaderMaterial({
     };
   }, [material]);
 
+  const currentContraction = useRef(0);
   useFrame((state) => {
     if (matRef.current) {
       const time = state.clock.getElapsedTime();
-      const cycle = contraction !== undefined ? contraction : (Math.sin(time * 2.2 * effectivePace) + 1) / 2;
-      matRef.current.updateTimeAndContraction(time, cycle, effectivePace);
+      const targetCycle = contraction !== undefined ? contraction : (Math.sin(time * 2.2 * effectivePace) + 1) / 2;
+      currentContraction.current = THREE.MathUtils.lerp(currentContraction.current, targetCycle, 0.12);
+      matRef.current.updateTimeAndContraction(time, currentContraction.current, effectivePace);
       if (effectivePrimaryColor) matRef.current.setHighlightColorPrimary(effectivePrimaryColor);
       if (effectiveSecondaryColor) matRef.current.setHighlightColorSecondary(effectiveSecondaryColor);
     }
@@ -1543,6 +1601,8 @@ function AnatomicalMuscleNode({
 // ============================================================================
 export function GLTFAnatomicalModel({
   modelUrl,
+  animationAsset,
+  gender = 'male',
   isPlaying = true,
   playbackSpeed = 1,
   exercisePace,
@@ -1560,6 +1620,7 @@ export function GLTFAnatomicalModel({
   onMuscleClick,
 }: {
   modelUrl: string;
+  animationAsset?: string;
   gender?: 'male' | 'female';
   isPlaying?: boolean;
   playbackSpeed?: number;
@@ -1581,6 +1642,54 @@ export function GLTFAnatomicalModel({
   const clonedScene = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
   const groupRef = useRef<THREE.Group>(null);
   const shaderMaterialsRef = useRef<MuscleHighlightShaderMaterial[]>([]);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const activeActionRef = useRef<THREE.AnimationAction | null>(null);
+
+  // Initialize AnimationMixer
+  useEffect(() => {
+    if (!clonedScene || !gltf.animations || gltf.animations.length === 0) return;
+    const mixer = new THREE.AnimationMixer(clonedScene);
+    mixerRef.current = mixer;
+
+    // Find correct animation clip matching animationAsset or fallback to first
+    let clip = gltf.animations[0];
+    if (animationAsset) {
+      const found = gltf.animations.find(c => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
+      if (found) clip = found;
+    }
+
+    const action = mixer.clipAction(clip);
+    action.reset().fadeIn(0.4).play();
+    activeActionRef.current = action;
+
+    return () => {
+      mixer.stopAllAction();
+      mixerRef.current = null;
+      activeActionRef.current = null;
+    };
+  }, [clonedScene, gltf.animations, animationAsset]);
+
+  // Handle smooth animation state transitions and playback speed
+  useEffect(() => {
+    if (!mixerRef.current || !gltf.animations || gltf.animations.length === 0) return;
+    let clip = gltf.animations[0];
+    if (animationAsset) {
+      const found = gltf.animations.find(c => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
+      if (found) clip = found;
+    }
+
+    const newAction = mixerRef.current.clipAction(clip);
+    if (activeActionRef.current && activeActionRef.current !== newAction) {
+      newAction.reset();
+      newAction.setEffectiveWeight(1.0);
+      activeActionRef.current.crossFadeTo(newAction, 0.35, true);
+      newAction.play();
+      activeActionRef.current = newAction;
+    } else if (!activeActionRef.current) {
+      newAction.reset().fadeIn(0.3).play();
+      activeActionRef.current = newAction;
+    }
+  }, [animationAsset, gltf.animations]);
 
   const cameraViewFloat = useMemo(() => {
     if (cameraView === 'side') return 1.0;
@@ -1648,9 +1757,14 @@ export function GLTFAnatomicalModel({
     };
   }, [clonedScene, activeMuscles, secondaryMuscles, highlightMode, hoveredMuscle, pulsingMuscle, cameraViewFloat, effPrimary, effSecondary, currentPace]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
     const cycle = (Math.sin(time * 2.2 * (isPlaying ? resolvedPace : 0)) + 1) / 2;
+
+    // Update Animation Mixer
+    if (mixerRef.current && isPlaying) {
+      mixerRef.current.update(delta * resolvedPace);
+    }
 
     shaderMaterialsRef.current.forEach((mat) => {
       mat.updateTimeAndContraction(time, cycle, currentPace);
@@ -3219,6 +3333,47 @@ export class AvatarAnatomico
     };
   };
 
+  /** Validate consistency between highlighted muscles and the selected exercise/animation */
+  public validateMuscleConsistency = () => {
+    const { exercise } = this.state;
+    const expectedPrimary = exercise.primaryMuscles || [];
+    const expectedSecondary = exercise.secondaryMuscles || [];
+    const actualPrimary = exercise.primaryMuscles || [];
+    const actualSecondary = exercise.secondaryMuscles || [];
+
+    const discrepancies: string[] = [];
+
+    const dbExercise = getExerciseById(exercise.id);
+    if (dbExercise) {
+      const dbPrimary = dbExercise.primaryMuscles || [];
+      const hasMismatch = expectedPrimary.some(m => !dbPrimary.includes(m)) || dbPrimary.some(m => !expectedPrimary.includes(m));
+      if (hasMismatch) {
+        discrepancies.push(`Exercise ID '${exercise.id}' primary muscles mismatch with exercise database records.`);
+      }
+    } else if (exercise.id && exercise.id !== 'custom') {
+      discrepancies.push(`Exercise ID '${exercise.id}' not found in exercise database.`);
+    }
+
+    if (exercise.animationAsset) {
+      const animName = exercise.animationAsset.toLowerCase();
+      const exName = exercise.name.toLowerCase();
+      if (!animName && !exName) {
+        discrepancies.push(`Exercise animation asset missing or unlinked for '${exercise.name}'.`);
+      }
+    }
+
+    const isConsistent = discrepancies.length === 0;
+
+    return {
+      isConsistent,
+      discrepancies,
+      expectedPrimary,
+      actualPrimary,
+      expectedSecondary,
+      actualSecondary,
+    };
+  };
+
   public setExercise = (exercise: DetailedExercise | string) => {
     let resolved: DetailedExercise | undefined;
     if (typeof exercise === 'object' && exercise !== null) {
@@ -3299,6 +3454,8 @@ export class AvatarAnatomico
   render() {
     const {
       modelUrl,
+      maleModelUrl,
+      femaleModelUrl,
       enableOrbitControls,
       isMirrorMode,
       highlightMuscleOverride,
@@ -3328,11 +3485,34 @@ export class AvatarAnatomico
       webglAvailable,
     } = this.state;
 
-    // Merge muscles
+    // Resolve dynamic model asset URL using useGLTF with gender-based model switching based on profile context
+    const prof = this.props.profile as any;
+    const profileMaleUrl = prof?.maleModelUrl || (prof?.gender === 'male' ? prof?.modelUrl : undefined);
+    const profileFemaleUrl = prof?.femaleModelUrl || (prof?.gender === 'female' ? prof?.modelUrl : undefined);
+
+    const activeMaleUrl = maleModelUrl || profileMaleUrl || 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb';
+    const activeFemaleUrl = femaleModelUrl || profileFemaleUrl || 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb';
+
+    const resolvedModelUrl = modelUrl || (gender === 'female' ? activeFemaleUrl : activeMaleUrl);
+
+    // Merge muscles with optional muscleMap dictionary lookup
+    const { muscleMap } = this.props;
+    let mappedPrimary = primProp || exercise.primaryMuscles;
+    let mappedSecondary = secProp || exercise.secondaryMuscles;
+
+    if (muscleMap) {
+      const exKey = exercise.id || exercise.name;
+      const mapped = muscleMap[exKey] || (exercise.id ? muscleMap[exercise.id] : undefined) || (exercise.name ? muscleMap[exercise.name] : undefined);
+      if (mapped) {
+        if (mapped.primaryMuscles) mappedPrimary = mapped.primaryMuscles;
+        if (mapped.secondaryMuscles) mappedSecondary = mapped.secondaryMuscles;
+      }
+    }
+
     const effectivePrimary = highlightedMuscles.length > 0
       ? highlightedMuscles
-      : primProp || exercise.primaryMuscles;
-    const effectiveSecondary = secProp || exercise.secondaryMuscles;
+      : mappedPrimary;
+    const effectiveSecondary = mappedSecondary;
 
     const effectiveHighlightPrimary =
       highlightColorPrimary ||
@@ -3347,6 +3527,14 @@ export class AvatarAnatomico
       this.props.highlightColorSecondary ||
       exercise.highlightColorSecondary ||
       '#ff6a00';
+
+    const userProfile = this.props.profile;
+    const realtimeHr = this.props.realtimeHeartRate || 0;
+    const profileHr = userProfile?.averageHeartRate || userProfile?.heartRate || userProfile?.restingHeartRate || 0;
+    const activeHeartRate = realtimeHr > 0 ? realtimeHr : (profileHr > 0 ? profileHr : 115);
+    const heartRateMultiplier = activeHeartRate > 0 ? Math.max(0.6, Math.min(2.4, activeHeartRate / 85)) : 1.0;
+    const basePace = this.props.exercisePace ?? playbackSpeed;
+    const effectiveExercisePace = basePace * heartRateMultiplier;
 
     const exerciseWithMuscles: DetailedExercise = {
       ...exercise,
@@ -3454,6 +3642,12 @@ export class AvatarAnatomico
               >
                 Secundário
               </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-md border border-red-500/30 text-xs font-semibold text-white shadow-lg" title={this.props.heartRateSource ? `Sincronizado via ${this.props.heartRateSource}` : 'Frequência Cardíaca (Média/Real-time)'}>
+              <Activity className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+              <span className="font-mono font-bold text-red-400">{activeHeartRate}</span>
+              <span className="text-[10px] text-slate-400">BPM</span>
             </div>
 
             <button
@@ -3576,14 +3770,15 @@ export class AvatarAnatomico
               {/* Gym Bench Props (if exercise is seated/lying/incline) */}
               <GymBench position={exerciseWithMuscles.position} />
 
-              {/* 3D Anatomical Human Model: GLTF if modelUrl provided, else Procedural Anatomical Model */}
-              {modelUrl ? (
+              {/* 3D Anatomical Human Model: GLTF loaded via useGLTF with dynamic gender-based asset switching */}
+              {resolvedModelUrl ? (
                 <GLTFAnatomicalModel
-                  modelUrl={modelUrl}
+                  modelUrl={resolvedModelUrl}
+                  animationAsset={this.props.animationAsset || exerciseWithMuscles.animationAsset}
                   gender={gender}
                   isPlaying={isPlaying}
                   playbackSpeed={playbackSpeed}
-                  exercisePace={this.props.exercisePace ?? playbackSpeed}
+                  exercisePace={effectiveExercisePace}
                   cameraView={cameraView}
                   activeMuscles={exerciseWithMuscles.primaryMuscles}
                   secondaryMuscles={exerciseWithMuscles.secondaryMuscles}
@@ -3603,7 +3798,7 @@ export class AvatarAnatomico
                   gender={gender}
                   isPlaying={isPlaying}
                   playbackSpeed={playbackSpeed}
-                  exercisePace={this.props.exercisePace ?? playbackSpeed}
+                  exercisePace={effectiveExercisePace}
                   cameraView={cameraView}
                   highlightMode={highlightMode}
                   uHighlightColorPrimary={effectiveHighlightPrimary}

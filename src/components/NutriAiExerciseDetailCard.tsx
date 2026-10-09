@@ -25,6 +25,7 @@ import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
 import type { MuscleHighlightMode } from './AvatarAnatomico';
+import { MuscleHighlightsLegend } from './MuscleHighlightsLegend';
 
 // Lazy load the 3D Anatomical Avatar
 const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
@@ -534,6 +535,11 @@ export function NutriAiExerciseDetailCard({
             </span>
           </p>
         </div>
+        <MuscleHighlightsLegend
+          primaryMuscles={currentExercise.primaryMuscles}
+          secondaryMuscles={currentExercise.secondaryMuscles}
+          className="mt-3"
+        />
       </div>
 
       {/* ==================================================================== */}

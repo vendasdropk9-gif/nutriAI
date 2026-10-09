@@ -114,6 +114,9 @@ export interface UserProfile {
   visualizerPreferences?: VisualizerPreferences;
   bodyType?: BodyType;
   metabolism?: MetabolismSpeed;
+  averageHeartRate?: number;
+  heartRate?: number;
+  restingHeartRate?: number;
   routine?: string;
   highContrast?: boolean;
   biometricsEnabled?: boolean;
