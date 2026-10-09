@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
 import { chatWithAssistant } from '../lib/gemini';
 import { speak, stopSpeech, unlockAudio } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -161,8 +162,8 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
 // Local fast-intent classifier for zero-latency instant navigation & actions
 function classifyLocalIntent(query: string, profile?: UserProfile | null): {
   text: string;
-  action: 'NAVIGATE' | 'OPEN_MODAL' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE' | 'NONE';
-  actionData?: { tab?: string; modal?: string; filter?: string; language?: string; targetLanguage?: string };
+  action: 'NAVIGATE' | 'DEMO_EXERCISE' | 'OPEN_MODAL' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE' | 'NONE';
+  actionData?: { tab?: string; exerciseId?: string; exerciseName?: string; primaryMuscles?: string[]; modal?: string; filter?: string; language?: string; targetLanguage?: string };
 } | null {
   const q = query.toLowerCase().trim();
 
@@ -266,7 +267,74 @@ function classifyLocalIntent(query: string, profile?: UserProfile | null): {
     };
   }
 
-  // 10. Treino / Exercícios / Personal
+  // 10. Demonstração Inteligente de Exercícios & Personal Trainer
+  const isExerciseQuery = 
+    q.includes('como fazer') || 
+    q.includes('me mostra') || 
+    q.includes('mostra como') || 
+    q.includes('demonstrar') || 
+    q.includes('demonstra') || 
+    q.includes('demonstração') || 
+    q.includes('demonstracao') || 
+    q.includes('executar') || 
+    q.includes('execução') || 
+    q.includes('execucao') ||
+    q.includes('elevação') ||
+    q.includes('elevacao') ||
+    q.includes('supino') ||
+    q.includes('agachamento') ||
+    q.includes('puxada') ||
+    q.includes('remada') ||
+    q.includes('rosca') ||
+    q.includes('tríceps') ||
+    q.includes('triceps') ||
+    q.includes('leg press') ||
+    q.includes('prancha') ||
+    q.includes('abdominal');
+
+  if (isExerciseQuery) {
+    // Find matching exercise in the catalog
+    let matchedEx = EXERCISE_DATABASE.find(ex => {
+      const nameL = ex.name.toLowerCase();
+      const engL = ex.englishName.toLowerCase();
+      return q.includes(nameL) || q.includes(engL);
+    });
+
+    // Substring partial matching if exact full title not typed
+    if (!matchedEx) {
+      if (q.includes('elevação lateral') || q.includes('elevacao lateral')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'seated-lateral-raises');
+      } else if (q.includes('supino')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'supino-reto' || e.id === 'bench-press');
+      } else if (q.includes('agachamento')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'agachamento-livre' || e.id === 'barbell-squat');
+      } else if (q.includes('puxada')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'puxada-frontal' || e.id === 'lat-pulldown');
+      } else if (q.includes('rosca direta')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'rosca-direta' || e.id === 'barbell-bicep-curl');
+      } else if (q.includes('desenvolvimento') || q.includes('ombro')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'dumbbell-shoulder-press');
+      } else if (q.includes('prancha')) {
+        matchedEx = EXERCISE_DATABASE.find(e => e.id === 'prancha-isometrica' || e.id === 'plank');
+      }
+    }
+
+    if (matchedEx) {
+      const primaryMusclesStr = matchedEx.primaryMuscles.join(', ');
+      return {
+        text: `Com certeza! Posicionei o avatar anatômico em ${matchedEx.name}. O principal músculo trabalhado é ${primaryMusclesStr}. Acompanhe o movimento com atenção à postura e respiração!`,
+        action: "DEMO_EXERCISE",
+        actionData: { 
+          tab: "trainer", 
+          exerciseId: matchedEx.id, 
+          exerciseName: matchedEx.name,
+          primaryMuscles: matchedEx.primaryMuscles
+        }
+      };
+    }
+  }
+
+  // 10b. Treino Geral / Exercícios / Personal
   if (
     q.includes('treino') || q.includes('treinar') || q.includes('exercício') || q.includes('exercicio') || q.includes('personal') || q.includes('academia')
   ) {
@@ -754,6 +822,22 @@ export function LiveAssistant({
       } else {
         window.dispatchEvent(new CustomEvent('app:navigate', { detail: { tab: actionData.tab, ...actionData } }));
       }
+      playSfx('success');
+      vibrate(20);
+    } else if (action === 'DEMO_EXERCISE') {
+      if (onNavigate) {
+        onNavigate('trainer', actionData);
+      } else {
+        window.dispatchEvent(new CustomEvent('app:navigate', { detail: { tab: 'trainer', ...actionData } }));
+      }
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('app:openExerciseDemo', { 
+          detail: { 
+            exerciseId: actionData?.exerciseId,
+            startVoice: false // Malu is already speaking the intro
+          } 
+        }));
+      }, 150);
       playSfx('success');
       vibrate(20);
     } else if (action === 'OPEN_MODAL') {

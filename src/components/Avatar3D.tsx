@@ -4,6 +4,7 @@ import { OrbitControls, PerspectiveCamera, ContactShadows, Float } from '@react-
 import * as THREE from 'three';
 import { ShieldAlert, Zap, Cpu } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { AvatarAnatomico } from './AvatarAnatomico';
 import { getAvatarById, AvatarCatalogItem } from '../data/avatarCatalog';
 import { getDracoCompressionStats, isLowEndDevice, dispose3DObject } from '../lib/dracoLoader';
 
@@ -1012,107 +1013,22 @@ export function Avatar3D({
     </div>
   );
 
+  const isFemale = useMemo(() => {
+    const id = (effectiveAvatarId || '').toLowerCase();
+    return id.includes('athena') || id.includes('valkyrie') || id.includes('fem');
+  }, [effectiveAvatarId]);
+
   return (
-    <div className="w-full h-[460px] sm:h-[520px] md:h-[620px] relative rounded-[32px] sm:rounded-[40px] overflow-hidden bg-gradient-to-b from-[#0b1322] via-[#09111c] to-[#040810] shadow-2xl border border-emerald-500/20 flex items-center justify-center">
-      <ErrorBoundary fallback={Fallback2D}>
-        {webglAvailable ? (
-          <Canvas
-            shadows
-            dpr={[1, 2]}
-            gl={{ antialias: true, alpha: true, failIfMajorPerformanceCaveat: false }}
-            className="w-full h-full"
-            onCreated={({ gl }) => {
-              gl.domElement.addEventListener('webglcontextlost', (e) => {
-                e.preventDefault();
-                setWebglAvailable(false);
-              });
-            }}
-          >
-            <PerspectiveCamera makeDefault position={[0, 0.85, 3.6]} fov={38} />
-            <CameraController view={view} />
-
-            <OrbitControls
-              enablePan={false}
-              target={[0, 0.85, 0]}
-              minDistance={2.0}
-              maxDistance={5.5}
-              minPolarAngle={Math.PI / 5}
-              maxPolarAngle={Math.PI / 1.8}
-              dampingFactor={0.08}
-              enableDamping
-            />
-
-            {/* Studio 3-Point Lighting */}
-            <ambientLight intensity={0.8} />
-            {/* Key Light */}
-            <directionalLight position={[4, 5, 4]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
-            {/* Rim / Silhouette Light */}
-            <directionalLight position={[-4, 4, -3]} intensity={3.0} color="#34d399" />
-            {/* Fill Light */}
-            <pointLight position={[0, 1, 3]} intensity={0.9} color="#e0f2fe" />
-
-            <Float speed={animation === 'idle' ? 1.5 : 0} rotationIntensity={0.2} floatIntensity={0.25}>
-              {gltfUrl ? (
-                <GltfModel
-                  url={gltfUrl}
-                  activeMuscles={activeMuscles}
-                  animation={animation}
-                  playbackSpeed={playbackSpeed}
-                  avatarId={effectiveAvatarId}
-                  avatarConfig={avatarConfig}
-                  qualityLevel={effectiveQualityLevel}
-                />
-              ) : (
-                <RealisticHumanoidModel
-                  activeMuscles={activeMuscles}
-                  animation={animation}
-                  playbackSpeed={playbackSpeed}
-                  avatarId={effectiveAvatarId}
-                  avatarConfig={avatarConfig}
-                  qualityLevel={effectiveQualityLevel}
-                />
-              )}
-            </Float>
-
-            <StudioStage />
-
-            <ContactShadows
-              position={[0, -0.31, 0]}
-              opacity={0.65}
-              scale={3.8}
-              blur={2.0}
-              far={3.0}
-            />
-          </Canvas>
-        ) : (
-          Fallback2D
-        )}
-      </ErrorBoundary>
-
-      {/* Floating Status Pill with Avatar & DRACO compression badges */}
-      <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between pointer-events-none z-10 gap-2">
-        <div className="px-3.5 py-1.5 bg-slate-950/85 backdrop-blur-md rounded-full border border-emerald-500/30 text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2 shadow-xl">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span>{activeAvatar.name}</span>
-          <span className="text-slate-500 font-normal">|</span>
-          <span className="text-slate-300 font-mono text-[9px] sm:text-[10px]">{activeAvatar.category}</span>
-        </div>
-
-        {showDracoBadge && (
-          <div className="flex items-center gap-1.5">
-            {effectiveQualityLevel === 'low' && (
-              <div className="px-2.5 py-1 bg-amber-950/80 backdrop-blur-md rounded-full border border-amber-500/40 text-[9px] sm:text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow-lg">
-                <Cpu className="w-3 h-3 text-amber-400" />
-                <span>Low-RAM Mode</span>
-              </div>
-            )}
-            <div className="px-2.5 py-1 bg-slate-950/80 backdrop-blur-md rounded-full border border-cyan-500/40 text-[9px] sm:text-[10px] font-mono text-cyan-300 flex items-center gap-1 shadow-lg">
-              <Zap className="w-3 h-3 text-cyan-400" />
-              <span>DRACO -{dracoStats.compressionRatio}</span>
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="w-full h-[460px] sm:h-[520px] md:h-[620px] relative rounded-[32px] sm:rounded-[40px] overflow-hidden bg-gradient-to-b from-[#0a0e17] via-[#09111c] to-[#040810] shadow-2xl border border-cyan-500/20 flex items-center justify-center">
+      <AvatarAnatomico
+        gender={isFemale ? 'female' : 'male'}
+        primaryMuscles={activeMuscles}
+        cameraView={view}
+        isPlaying={animation !== 'idle'}
+        playbackSpeed={playbackSpeed}
+        showReferenceControls={true}
+        showOverlayBadges={false}
+      />
     </div>
   );
 }

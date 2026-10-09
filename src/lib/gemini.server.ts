@@ -210,20 +210,22 @@ USER CONTEXT:
 
 JSON RESPONSE SCHEMA:
 - text: Spoken sentence in the appropriate language (if switching language, respond in the new language).
-- action: 'NONE' | 'NAVIGATE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
-- actionData: { tab?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
-- CRITICAL: NutriAI exclusively supports 4 locations/languages: United States ('en-US'), United Kingdom ('en-GB'), Australia ('en-AU'), and Brazil ('pt-BR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em inglês britânico", "muda para Austrália", "speak english", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'en-US', 'en-GB', 'en-AU', 'pt-BR'), and speak the confirmation in that target language!`;
+- action: 'NONE' | 'NAVIGATE' | 'DEMO_EXERCISE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
+- actionData: { tab?: string, exerciseId?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
+- DEMONSTRAÇÃO INTELIGENTE DE EXERCÍCIOS: Se o usuário pedir para ver, ensinar ou demonstrar um exercício (ex.: "como fazer elevação lateral", "mostra como fazer supino", "demonstra agachamento", etc.), use action: 'DEMO_EXERCISE' com actionData: { tab: 'trainer', exerciseId: '<id do exercício>' } (ex: 'seated-lateral-raises', 'dumbbell-shoulder-press', 'supino-reto', 'puxada-frontal', 'agachamento-livre', 'rosca-direta', etc.) e fale explicando o movimento de forma concisa.
+- CRITICAL: NutriAI exclusivamente supports 4 locations/languages: United States ('en-US'), United Kingdom ('en-GB'), Australia ('en-AU'), and Brazil ('pt-BR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em inglês britânico", "muda para Austrália", "speak english", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'en-US', 'en-GB', 'en-AU', 'pt-BR'), and speak the confirmation in that target language!`;
 
   const schema: Schema = {
     type: Type.OBJECT,
     properties: {
       text: { type: Type.STRING },
-      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION', 'CHANGE_LANGUAGE'] },
+      action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'DEMO_EXERCISE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION', 'CHANGE_LANGUAGE'] },
       actionData: {
         type: Type.OBJECT,
         nullable: true,
         properties: {
           tab: { type: Type.STRING },
+          exerciseId: { type: Type.STRING },
           modal: { type: Type.STRING },
           filter: { type: Type.STRING },
           actionType: { type: Type.STRING },

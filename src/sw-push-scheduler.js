@@ -1,6 +1,6 @@
 /**
  * NutriAI - Service Worker Push & Smart Demonstration Offline Scheduler
- * public/sw-push-scheduler.js
+ * src/sw-push-scheduler.js
  * 
  * Gerencia em segundo plano:
  * 1. Lembretes nativos de treinos, exercícios biomecânicos e preparo de refeições

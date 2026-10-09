@@ -46,10 +46,23 @@ export interface ScheduledChallengePayload {
   body: string;
 }
 
+export interface ScheduledExercisePayload {
+  id: string;
+  title: string;
+  time: string;
+  category?: string;
+  exerciseId?: string;
+  body: string;
+}
+
 export interface NotificationSchedulePayload {
   mealAlertsEnabled: boolean;
+  mealPrepAlertsEnabled?: boolean;
+  exerciseAlertsEnabled?: boolean;
   challengeAlertsEnabled: boolean;
+  prepLeadTimeMinutes?: number;
   meals: ScheduledMealPayload[];
+  exercises?: ScheduledExercisePayload[];
   challenges: ScheduledChallengePayload[];
 }
 
@@ -295,3 +308,76 @@ export async function triggerNativeTestNotification(
 
   return false;
 }
+
+/**
+ * Persiste o estado atual da Demonstração Inteligente no Service Worker / IndexedDB offline
+ */
+export async function persistDemonstracaoStateOffline(demoState: any): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (registration && registration.active) {
+      registration.active.postMessage({
+        type: 'PERSIST_DEMO_STATE',
+        payload: demoState
+      });
+      return true;
+    } else if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'PERSIST_DEMO_STATE',
+        payload: demoState
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('[PushScheduler] Falha ao persistir estado da Demonstração Inteligente no SW:', err);
+  }
+  return false;
+}
+
+/**
+ * Cacheia metadados de exercícios biomecânicos para demonstração offline
+ */
+export async function cacheExercisesOffline(exercises: any[]): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (registration && registration.active) {
+      registration.active.postMessage({
+        type: 'CACHE_EXERCISES_OFFLINE',
+        payload: { exercises }
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('[PushScheduler] Falha ao enviar exercícios para cache offline:', err);
+  }
+  return false;
+}
+
+/**
+ * Registra a conclusão de uma série ou treino offline para sync posterior
+ */
+export async function logOfflineWorkoutToSW(workoutData: any): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (registration && registration.active) {
+      registration.active.postMessage({
+        type: 'LOG_OFFLINE_WORKOUT',
+        payload: workoutData
+      });
+      return true;
+    }
+  } catch (err) {
+    console.warn('[PushScheduler] Falha ao registrar treino offline no SW:', err);
+  }
+  return false;
+}
+

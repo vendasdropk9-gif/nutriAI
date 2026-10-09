@@ -1,8 +1,8 @@
 import { playSfx, vibrate } from '../lib/sensory';
 import { playAudioUrl, stopSpeech, speak } from '../lib/speech';
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Cpu, Eye, Compass, ZoomIn, Camera } from 'lucide-react';
+import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Eye, Compass, ZoomIn, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
 import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
@@ -15,9 +15,12 @@ import avatarMaleCurl from '../assets/images/avatar_male_curl_1790881979757.jpg'
 import avatarFemaleCurl from '../assets/images/avatar_female_curl_1790881993449.jpg';
 import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jpg';
 import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
+import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
 
-// Lazy load Avatar3D to eliminate main-thread blocking on tab switch
-const Avatar3D = lazy(() => import('./Avatar3D'));
+// Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
+const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
+const SmartExerciseDemonstration = lazy(() => import('./SmartExerciseDemonstration'));
+const ExerciseDetailsModal = lazy(() => import('./ExerciseDetailsModal'));
 
 interface PersonalTrainerProps {
   profile: UserProfile | null;
@@ -201,76 +204,12 @@ function createFullExercise3D(name: string, quantity: { reps?: number; duration?
 }
 
 export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: PersonalTrainerProps) {
-  const getRealisticAvatarImage = () => {
-    const avatarId = profile?.avatarId?.toLowerCase() || '';
-    const gender = profile?.gender?.toLowerCase() || 'female';
-    const name = currentExercise?.name?.toLowerCase() || '';
-
-    const isMaleAvatar = avatarId.includes('male') || avatarId.includes('titan') || avatarId.includes('marcus') || avatarId.includes('leo') || avatarId === 'fitness-02';
-    const isFemaleAvatar = avatarId.includes('female') || avatarId.includes('athena') || avatarId.includes('valkyrie') || avatarId.includes('maya') || avatarId.includes('elena') || avatarId === 'athletic-01';
-
-    const effectiveGender = isMaleAvatar ? 'male' : isFemaleAvatar ? 'female' : (gender === 'male' ? 'male' : 'female');
-
-    if (effectiveGender === 'male') {
-      if (cameraView === 'side') {
-        if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) return avatarMalePlank;
-        if (name.includes('agach') || name.includes('perna') || name.includes('afundo')) return avatarMaleSquat;
-        return avatarMaleCurl;
-      }
-      if (cameraView === 'detail') {
-        if (name.includes('agach') || name.includes('perna')) return avatarMaleSquat;
-        return avatarMaleCurl;
-      }
-      // front view
-      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
-        return avatarMaleSquat;
-      }
-      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
-        return avatarMalePlank;
-      }
-      return avatarMaleCurl;
-    } else {
-      if (cameraView === 'side') {
-        if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) return avatarFemalePlank;
-        if (name.includes('agach') || name.includes('perna') || name.includes('afundo')) return avatarFemaleSquat;
-        return avatarFemaleCurl;
-      }
-      if (cameraView === 'detail') {
-        if (name.includes('agach') || name.includes('perna')) return avatarFemaleSquat;
-        return avatarFemaleCurl;
-      }
-      // front view
-      if (name.includes('agach') || name.includes('perna') || name.includes('afundo') || name.includes('gêmeos')) {
-        return avatarFemaleSquat;
-      }
-      if (name.includes('prancha') || name.includes('abdom') || name.includes('core')) {
-        return avatarFemalePlank;
-      }
-      return avatarFemaleCurl;
-    }
-  };
-
-  const getCameraViewStyle = () => {
-    if (cameraView === 'side') {
-      return {
-        transform: 'perspective(1000px) rotateY(-32deg) rotateX(3deg) scale(0.98) translateX(18px)',
-        transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
-        filter: 'drop-shadow(-15px 20px 28px rgba(0,0,0,0.6)) contrast(1.08)'
-      };
-    }
-    if (cameraView === 'detail') {
-      return {
-        transform: 'scale(1.52) translateY(-10%)',
-        transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
-        filter: 'contrast(1.18) saturate(1.2) drop-shadow(0 0 45px rgba(16,185,129,0.55))'
-      };
-    }
-    return {
-      transform: 'scale(1) rotateY(0deg) translate(0)',
-      transition: 'all 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
-      filter: 'drop-shadow(0 0 35px rgba(59,130,246,0.35))'
-    };
-  };
+  const effectiveGender: 'male' | 'female' = useMemo(() => {
+    const g = profile?.gender?.toLowerCase() || '';
+    if (g.includes('fem') || g.includes('mulher') || g === 'female' || g === 'f') return 'female';
+    if (g.includes('masc') || g.includes('homem') || g === 'male' || g === 'm') return 'male';
+    return 'male';
+  }, [profile?.gender]);
 
   const handleSaveGender = (g: 'male' | 'female') => {
     playSfx('success');
@@ -285,7 +224,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   const { t } = useTranslation();
-  const [activeSubTab, setActiveSubTab] = useState<'plan' | 'training'>('plan');
+  const [activeSubTab, setActiveSubTab] = useState<'demo' | 'training' | 'plan'>('demo');
+  const [selectedDemoExerciseId, setSelectedDemoExerciseId] = useState<string>('seated-lateral-raises');
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyWorkoutPlan | null>(null);
   const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
   const [selectedWeeklyDay, setSelectedWeeklyDay] = useState<WeeklyWorkoutDay | null>(null);
@@ -299,7 +239,6 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [activeMode, setActiveMode] = useState<'training' | 'tutorial'>('training');
   const [tutorialStep, setTutorialStep] = useState(0);
   const [cameraView, setCameraView] = useState<'front' | 'side' | 'detail'>('front');
-  const [avatarDisplayMode, setAvatarDisplayMode] = useState<'realistic' | '3d'>('realistic');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showWrongMode, setShowWrongMode] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
@@ -307,11 +246,29 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [isSpeakingTips, setIsSpeakingTips] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+
+  // Global listener for opening Smart Exercise Demonstration
+  useEffect(() => {
+    const handleOpenDemo = (e: any) => {
+      const exId = e.detail?.exerciseId;
+      if (exId) {
+        setSelectedDemoExerciseId(exId);
+        setActiveSubTab('demo');
+      }
+    };
+    window.addEventListener('app:openExerciseDemo', handleOpenDemo);
+    return () => {
+      window.removeEventListener('app:openExerciseDemo', handleOpenDemo);
+    };
+  }, []);
   
   // Background Music State
   const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
   const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Exercise Reference Card Modal State
+  const [isExerciseCardModalOpen, setIsExerciseCardModalOpen] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -408,6 +365,23 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   const currentExercise = currentExerciseIndex >= 0 ? workout?.exercises[currentExerciseIndex] : null;
+
+  const activeDetailedExercise = useMemo<DetailedExercise>(() => {
+    if (!currentExercise) return EXERCISE_DATABASE[0];
+    const found = EXERCISE_DATABASE.find(e => 
+      e.name.toLowerCase().includes(currentExercise.name.toLowerCase()) ||
+      currentExercise.name.toLowerCase().includes(e.name.toLowerCase()) ||
+      e.id === currentExercise.id
+    );
+    if (found) return found;
+    return {
+      ...EXERCISE_DATABASE[0],
+      id: `custom-${currentExercise.id || 'ex'}`,
+      name: currentExercise.name,
+      primaryMuscles: currentExercise.primaryMuscles?.length ? currentExercise.primaryMuscles : ['Músculo Alvo'],
+      secondaryMuscles: (currentExercise as any).secondaryMuscles || []
+    };
+  }, [currentExercise]);
 
   const handleExerciseSuccess = () => {
     setIsTimerActive(false);
@@ -690,33 +664,75 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
       {/* Sub-tabs Navigation */}
       <div className="flex justify-center w-full">
-        <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-full flex flex-wrap justify-center gap-1 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
+        <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full flex flex-wrap justify-center gap-1.5 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
           <button
-            onClick={() => setActiveSubTab('plan')}
-            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSubTab === 'plan'
+            onClick={() => {
+              playSfx('tap');
+              vibrate(10);
+              setActiveSubTab('demo');
+            }}
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'demo'
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <Calendar className="w-4 h-4" />
-            Plano Semanal
+            <Video className="w-4 h-4 text-emerald-400" />
+            <span>{t('nav_smart_demo', 'Demonstração Inteligente')}</span>
           </button>
           <button
-            onClick={() => setActiveSubTab('training')}
-            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            onClick={() => {
+              playSfx('tap');
+              vibrate(10);
+              setActiveSubTab('training');
+            }}
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'training'
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Dumbbell className="w-4 h-4" />
-            Treino Ativo
+            <span>{t('nav_active_workout', 'Treino Ativo')}</span>
+          </button>
+          <button
+            onClick={() => {
+              playSfx('tap');
+              vibrate(10);
+              setActiveSubTab('plan');
+            }}
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'plan'
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>{t('nav_weekly_plan', 'Plano Semanal')}</span>
           </button>
         </div>
       </div>
 
-      {activeSubTab === 'plan' ? (
+      {activeSubTab === 'demo' ? (
+        <SmartExerciseDemonstration
+          profile={profile}
+          initialExerciseId={selectedDemoExerciseId}
+          onStartActiveTraining={(exercise) => {
+            const exQuantity = exercise.suggestedReps ? { reps: parseInt(exercise.suggestedReps) || 12 } : { duration: 45 };
+            const sessionExercise = createFullExercise3D(exercise.name, exQuantity, exercise.primaryMuscles);
+            setWorkout({
+              id: `workout-${exercise.id}-${crypto.randomUUID()}`,
+              title: exercise.name,
+              exercises: [sessionExercise],
+              totalCalories: 60,
+              estimatedDuration: 5
+            });
+            setCurrentExerciseIndex(0);
+            setActiveSubTab('training');
+          }}
+          onUpdateProfile={onUpdateProfile}
+        />
+      ) : activeSubTab === 'plan' ? (
         <div className="space-y-8 w-full">
           {/* Sync status alert banner */}
           <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-900/5 dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-slate-900/80 border border-emerald-500/20 dark:border-emerald-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
@@ -947,69 +963,27 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
            {/* Left Column: Avatar and Visuals */}
            <div className="lg:col-span-7 space-y-6 relative w-full">
              <div className="relative w-full min-h-[420px] rounded-[32px] md:rounded-[40px] overflow-hidden bg-slate-950/80 dark:bg-slate-900/90 shadow-2xl border border-emerald-500/20 flex items-center justify-center">
-               {avatarDisplayMode === 'realistic' ? (
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={`exercise_${currentExercise?.id || currentExerciseIndex}_${cameraView}_${profile?.gender || 'default'}`}
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                      className="w-full h-full min-h-[420px] relative flex items-center justify-center p-4"
-                    >
-                      {/* Background ambient lighting */}
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-950/30 via-transparent to-transparent pointer-events-none" />
-                      
-                      <motion.div
-                        className="relative max-h-full max-w-full flex items-center justify-center"
-                        animate={isTimerActive ? {
-                          scale: [1, 1.02, 1],
-                          y: [0, -3, 0],
-                        } : { scale: 1, y: 0 }}
-                        transition={{
-                          duration: (2.5 / playbackSpeed),
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      >
-                        <motion.img
-                          key={getRealisticAvatarImage() + cameraView}
-                          initial={{ opacity: 0, scale: 0.97 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.4, ease: "easeOut" }}
-                          src={getRealisticAvatarImage()}
-                          alt={currentExercise?.name || "Exercício"} style={getCameraViewStyle()}
-                          className="max-h-[360px] md:max-h-[400px] w-auto object-contain drop-shadow-[0_0_35px_rgba(59,130,246,0.35)] rounded-2xl transition-all duration-300"
-                          referrerPolicy="no-referrer"
-                        />
+               <Suspense
+                 fallback={
+                   <div className="w-full h-full min-h-[420px] flex items-center justify-center">
+                     <div className="w-10 h-10 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin" />
+                   </div>
+                 }
+               >
+                 <AvatarAnatomico
+                   profile={profile}
+                   exercise={activeDetailedExercise}
+                   gender={effectiveGender}
+                   cameraView={cameraView}
+                   isPlaying={isTimerActive}
+                   playbackSpeed={playbackSpeed}
+                   showReferenceControls={true}
+                   showOverlayBadges={false}
+                   onTogglePlay={(p) => setIsTimerActive(p)}
+                 />
+               </Suspense>
 
-                      </motion.div>
-                    </motion.div>
-                  </AnimatePresence>
-                ) : (
-                 <Suspense
-                   fallback={
-                     <Static3DAvatarPlaceholder
-                       title={currentExercise?.name || "Exercício 3D"}
-                       subtitle="Carregando modelo anatômico do instrutor..."
-                       heightClass="min-h-[420px]"
-                     />
-                   }
-                 >
-                   <Avatar3D 
-                     activeMuscles={currentExercise?.primaryMuscles || []} 
-                     animation={
-                       showWrongMode ? 'wrong' : 
-                       (activeMode === 'tutorial' ? currentExercise?.tutorialSteps?.[tutorialStep]?.animationState || 'tutorial' : 
-                       (isTimerActive ? 'executing' : 'idle'))
-                     }
-                     view={cameraView}
-                     playbackSpeed={playbackSpeed}
-                   />
-                 </Suspense>
-               )}
-
-              {/* Top Left: Active Target Muscle Badge & Avatar Mode Toggle */}
+              {/* Top Left: Active Target Muscle Badge & Demonstração Inteligente Button */}
               <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20 flex flex-wrap items-center gap-2 pointer-events-auto">
                 {currentExercise?.primaryMuscles?.[0] && (
                   <div className="bg-slate-950/85 backdrop-blur-md border border-emerald-400/40 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
@@ -1020,28 +994,19 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   </div>
                 )}
 
-                {/* Display Mode Switcher (Realista / 3D) */}
+                {/* Detalhes do Exercício NutriAi (Card de Referência) */}
                 <button
                   type="button"
                   onClick={() => {
                     playSfx('tap');
                     vibrate(12);
-                    setAvatarDisplayMode(m => m === 'realistic' ? '3d' : 'realistic');
+                    setIsExerciseCardModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-slate-950/85 hover:bg-slate-900 text-emerald-400 border border-emerald-500/30 backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
-                  title={avatarDisplayMode === 'realistic' ? "Alternar para Modelo 3D Interativo" : "Alternar para Foto Realista"}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-[#09152e]/90 hover:bg-[#0c1e42] text-sky-300 border border-sky-500/40 backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                  title="Abrir Card de Detalhes do Exercício NutriAi"
                 >
-                  {avatarDisplayMode === 'realistic' ? (
-                    <>
-                      <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Ver em 3D</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Ver Realista</span>
-                    </>
-                  )}
+                  <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Detalhes do Exercício</span>
                 </button>
               </div>
 
@@ -1436,11 +1401,15 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 
                 <div className="relative w-full aspect-square rounded-[24px] overflow-hidden border border-emerald-100 dark:border-emerald-800/50 shadow-inner bg-slate-50 dark:bg-slate-800">
                    <div className="absolute inset-x-0 bottom-0 top-auto z-10 pointers-events-none" style={{height: '40%', background: 'linear-gradient(to top, rgba(16,185,129,0.15), transparent)'}}></div>
-                   <Avatar3D 
-                     activeMuscles={currentExercise?.primaryMuscles || []} 
-                     animation="perfect"
-                     view="front"
+                   <AvatarAnatomico 
+                     profile={profile}
+                     exercise={activeDetailedExercise} 
+                     gender={effectiveGender}
+                     cameraView="front"
+                     isPlaying={true}
                      playbackSpeed={1.5}
+                     showReferenceControls={true}
+                     showOverlayBadges={false}
                    />
                 </div>
              </motion.div>
@@ -1454,6 +1423,16 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         isOpen={isSummaryModalOpen}
         onClose={() => setIsSummaryModalOpen(false)}
       />
+
+      {/* NutriAi Exercise Details Modal (Matching Reference Image) */}
+      <Suspense fallback={null}>
+        <ExerciseDetailsModal
+          isOpen={isExerciseCardModalOpen}
+          onClose={() => setIsExerciseCardModalOpen(false)}
+          exercise={activeDetailedExercise}
+          profile={profile}
+        />
+      </Suspense>
     </div>
   );
 }
