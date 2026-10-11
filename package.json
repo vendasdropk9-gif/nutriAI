@@ -7,9 +7,11 @@
     "dev": "tsx server.ts",
     "build": "npm run test:i18n && node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && eslint --config eslint.rules.config.js 'src/**/*.{ts,tsx}'",
+    "lint:i18n": "eslint --config eslint.rules.config.js 'src/**/*.{ts,tsx}'",
     "test:locales": "tsx scripts/validateLocales.ts",
-    "test:i18n": "tsx scripts/validateLocales.ts"
+    "test:i18n": "tsx src/scripts/validate-i18n.ts",
+    "audit:i18n": "tsx src/scripts/audit-i18n.ts"
   },
   "dependencies": {
     "@google/genai": "latest",
@@ -61,7 +63,11 @@
     "@types/three": "^0.173.0",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.14",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^10.12.0",
+    "eslint-plugin-i18next": "^6.1.5",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   },

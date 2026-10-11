@@ -1,0 +1,1057 @@
+============================================
+NutriAI i18n Audit Report
+Generated: 2026-10-11T16:03:59.282Z
+Total Files Scanned: 221
+Total Hardcoded Strings Detected: 819
+Coverage Percentage: 0%
+============================================
+
+File: src/components/AcademyPortal.tsx
+  Line 729: placeholder="Buscar por nome, bairro..."
+  Line 764: 📍 Todos os Bairros
+  Line 1001: placeholder="Ex: Studio Fitness Integrativo"
+  Line 1029: placeholder="Ex: (11) 99999-9999"
+  Line 1043: placeholder="gerencia@academia.com.br"
+  Line 1059: placeholder="Ex: https://instagram.com/suaacademia"
+  Line 1070: placeholder="Ex: Seg a Sex: 06h às 22h • Sábado: 08h às 14h"
+  Line 1124: placeholder="Rua, Avenida, número..."
+  Line 1138: placeholder="Ex: Pinheiros, Moema"
+  Line 1152: placeholder="Ex: São Paulo - SP"
+  Line 1198: placeholder="https://exemplo.com/foto-do-meu-espaco.jpg"
+  Line 1213: placeholder="Fale um pouco sobre o ambiente, professores credenciados, estacionamento e os diferenciais que atraem pessoas para treinar com vocês..."
+  Line 1264: Confirmação enviada:
+  Line 1272: De:
+  Line 1273: Para:
+  Line 1274: Assunto:
+  Line 1337: ● Em Análise Documental
+  Line 1340: ○ Ativação Pública Mapas
+  Line 1672: title="Fechar"
+  Line 1780: placeholder="Seu Nome"
+  Line 1808: placeholder="Fale um pouco sobre o espaço, equipe e instalações..."
+
+File: src/components/AdaptiveCoach.tsx
+  Line 402: title="Ouvir análise"
+  Line 674: Adaptar IA
+  Line 714: aria-label="Fechar"
+  Line 822: Outra Sugestão
+  Line 830: Trocar no plano (+50 XP)
+  Line 903: Mantenha seus logs de alimentação sempre atualizados.
+  Line 907: Ao comer algo fora do plano, use a função "Comi Fora" para que a IA possa analisar e compensar.
+  Line 911: Siga as trocas inteligentes sugeridas quando estiver com pressa ou falta de tempo.
+
+File: src/components/AdaptiveMealAdjustmentCard.tsx
+  Line 296: Adicionado ao Jantar
+  Line 301: Aplicar ao Jantar
+  Line 370: Ver Cardápio Completo
+
+File: src/components/AdminDashboard.tsx
+  Line 397: Painel de Administração do Sistema
+  Line 438: title="Baixar Relatório JSON de Integridade"
+  Line 442: Exportar JSON
+  Line 536: Visão Geral & Métricas
+  Line 548: Backups & Storage Dedicado
+  Line 580: Integridade do Esquema & Migrações
+  Line 597: Desempenho da IA
+  Line 610: Nutrientes & Intake
+  Line 623: Logs de Sistema
+  Line 636: Voz Malu & AI Studio
+  Line 649: Console & Diagnósticos
+  Line 713: ID do Banco:
+  Line 717: Coleções Auditadas:
+  Line 721: Modo de Operação:
+  Line 725: Índices Compostos:
+  Line 773: Gerenciar Backups & Snapshots
+  Line 852: Bucket de Storage Crítico & Snapshots
+  Line 880: title="Baixar Snapshot do Último Backup em JSON"
+  Line 883: Baixar Snapshot
+  Line 1032: Recarregar Histórico
+  Line 1101: title="Baixar JSON"
+  Line 1108: title="Inspecionar Detalhes"
+  Line 1115: title="Restaurar Snapshot"
+  Line 1141: placeholder="Buscar coleção ou tabela..."
+  Line 1181: Todos os Status
+  Line 1182: ✅ Saudável (OK)
+  Line 1183: ⚠️ Aviso / Cache
+  Line 1184: ❌ Ausente
+  Line 1185: ⛔ Erro
+  Line 1429: title="Limpar Histórico de Logs"
+  Line 1504: 'Corrigir'
+  Line 1786: Comandos do Console DevTools:
+  Line 1904: Baixar JSON
+  Line 1936: gerado em
+  Line 1941: Planos alimentares, inventário da geladeira e logs de saúde locais serão atualizados com os dados deste snapshot.
+
+File: src/components/AiCookingAdvisor.tsx
+  Line 372: title="Configurações de Voz e Verbosidade"
+  Line 397: Painel de Controle • Velocidade da Voz & Verbosidade da IA
+  Line 411: Velocidade da Voz (Aoede)
+  Line 482: Modo Cozinha com Mãos Sujas 🤲🎙️
+  Line 539: Voltar
+  Line 548: Ouvir
+  Line 557: Próximo
+  Line 581: placeholder="Ex: Quanto tempo devo assar este frango? ou Posso trocar creme de leite por iogurte grego?"
+  Line 591: title="Falar com a Chef Malu"
+  Line 670: title="Ouvir a voz da Chef Malu (Aoede)"
+  Line 693: Controle de Tempo e Temperatura
+  Line 718: Ponto seguro interno:
+  Line 735: Substituição Funcional de Ingredientes
+  Line 756: Proporção recomendada:
+  Line 762: Textura & Sabor:
+  Line 782: Conselho e Impacto Nutricional
+  Line 836: Dicas Culinárias do Chef
+
+File: src/components/AiPerformanceView.tsx
+  Line 304: title="Exportar dados resumidos em formato CSV"
+  Line 307: Exportar Resumo CSV
+  Line 335: title="Atualizar Métricas"
+  Line 665: Painel de Custos & Latência por Categoria de Requisição
+  Line 677: Baixar Relatório CSV
+  Line 757: Distribuição de Custos por Categoria (R$)
+  Line 783: Histórico de Latência Recente (ms)
+  Line 821: Detalhamento por Função
+  Line 858: Logs de Execução em Tempo Real
+  Line 870: Todas as Chamadas
+  Line 871: Apenas Erros & Falhas
+  Line 872: Apenas Chamadas Lentas (&gt;1.5s)
+
+File: src/components/AnatomicalSculptor.ts
+  Line 88: 0 && yNorm
+  Line 403: = 0.12 && v
+
+File: src/components/AnatomyWorkoutGuide.tsx
+  Line 897: Instrutor Biomecânico 3D
+  Line 938: title="Alternar rotação automática da barra de músculos"
+  Line 978: title="Músculo Anterior"
+  Line 979: aria-label="Músculo Anterior"
+  Line 1033: title="Próximo Músculo"
+  Line 1034: aria-label="Próximo Músculo"
+  Line 1076: Avatar Realista
+  Line 1090: Manequim 3D
+  Line 1182: title="Inicializando malha biomecânica e acelerador WebGL..."
+  Line 1261: Voz Malu
+
+File: src/components/Assistant360.tsx
+  Line 88: = 25 && bmiNum
+  Line 150: alt="NutriAI Assistant"
+  Line 162: NutriAI Coach 360°
+
+File: src/components/AutoTranslator.tsx
+  Line 18: , prefix = ''): Record
+
+File: src/components/AvatarAnatomico.tsx
+  Line 797: 1.5 && uCameraView
+  Line 4642: title="Destacar todos os músculos ativos (primários e secundários)"
+  Line 4657: title="Destacar apenas músculo primário (vermelho/laranja neon)"
+  Line 4672: title="Destacar apenas músculos secundários (âmbar/laranja)"
+  Line 4692: title="Alternar variante anatômica Masculina / Feminina"
+
+File: src/components/AvatarGallery.tsx
+  Line 28: void | Promise
+  Line 128: Modelos 3D Realistas & DRACO Loader
+  Line 153: Salvando no Perfil...
+  Line 158: Avatar Ativado!
+  Line 163: Definir como Avatar Ativo
+  Line 309: Otimização de Hardware & Memória GPU
+  Line 494: Atualizando Perfil...
+  Line 499: Avatar Ativado com Sucesso!
+  Line 504: Aplicar Este Avatar ao Meu Perfil
+
+File: src/components/BarcodeScanner.tsx
+  Line 346: Tirar Foto (Lata/Pote)
+  Line 354: Obter Foto da Galeria
+  Line 369: Escanear Código de Barras
+  Line 496: title="Capturar Foto"
+
+File: src/components/BloodPressureTracker.tsx
+  Line 530: placeholder="Ex: Em repouso, após treinar, dor de cabeça leve..."
+  Line 693: title="Remover Log"
+
+File: src/components/BodyAnalyzer.tsx
+  Line 192: title="Biometria e Sensores"
+  Line 203: title="Evolução do Shape (Fotos)"
+  Line 356: title="Capturar Foto"
+  Line 403: title="Ouvir análise com a voz da Malu"
+
+File: src/components/BodySensorsMonitor.tsx
+  Line 805: 95 ? 'acelerado devido à calibração estimulada' : latestSavedLog.heartRate
+  Line 1037: title="Remover registro"
+
+File: src/components/BudgetPriceMonitor.tsx
+  Line 246: title="Ouvir análise por voz com a Chef Malu"
+  Line 330: Ajustar Teto de Gastos
+  Line 370: R$ 50
+  Line 371: R$ 200
+  Line 372: R$ 400
+  Line 495: Aplicar Todas as Trocas
+  Line 506: Trocas Inteligentes Recomendadas pela IA
+  Line 662: title="Desfazer e voltar ao ingrediente original"
+
+File: src/components/CameraAlertModal.tsx
+  Line 109: aria-label="Fechar modal"
+
+File: src/components/CameraAlertRulesModal.tsx
+  Line 69: aria-label="Fechar"
+
+File: src/components/CameraAlertToast.tsx
+  Line 122: aria-label="Fechar notificação"
+
+File: src/components/CameraDashboard.tsx
+  Line 259: title="Permitir notificações push nativas no celular ou navegador"
+  Line 262: Ativar Push
+  Line 275: aria-label="Alternar som"
+  Line 290: Alertas IA
+  Line 302: title="Dispara uma simulação de evento em tempo real"
+  Line 322: title="Configurações de Monitoramento"
+  Line 323: aria-label="Configurações"
+  Line 362: Você atingiu o limite de
+  Line 425: title="Expandir visualização"
+  Line 509: aria-label="Fechar visualização expandida"
+  Line 529: Sem sinal da câmera.
+
+File: src/components/CameraSetupModal.tsx
+  Line 71: aria-label="Fechar"
+  Line 151: Conectando ao servidor de mídia e verificando credenciais stream...
+
+File: src/components/ChallengeView.tsx
+  Line 349: Inteligência Culinária & Gamificação Funcional
+  Line 363: 100% Calibrado para você:
+  Line 384: Desafios Culinários com IA
+  Line 399: Desafio Rápido de Foco
+  Line 444: title="Ouvir apresentação da Chef Malu"
+  Line 463: Progresso das Missões Culinárias
+  Line 616: Ver Preparo
+  Line 633: title="Adicionar à Lista de Compras"
+  Line 691: Semana Sem Carne Processada
+  Line 704: ✨ Gerar Desafio Sob Medida com IA
+  Line 718: Catálogo de Desafios Culinários
+  Line 769: Criar Novo c/ IA
+  Line 859: Desafio Culinário Ativo
+  Line 866: Iniciar Este Desafio
+  Line 939: Começar Desafio de Foco
+  Line 1020: Registrar Meta do Dia Concluída (+100 pts)
+  Line 1061: Chef Malu AI Studio
+  Line 1158: Chef Malu criando receitas e missões sob medida...
+  Line 1163: Gerar Desafio com IA Agora
+  Line 1236: title="Ouvir receita com a voz da Malu"
+  Line 1280: Modo de Preparo Passo a Passo
+  Line 1332: Iniciar Timer
+  Line 1356: Salvar nos Meus Favoritos
+
+File: src/components/CheckoutModal.tsx
+  Line 235: Redirecionando para seu painel VIP...
+  Line 254: SSL Seguro
+  Line 270: PIX Instantâneo
+  Line 285: Cartão de Crédito
+  Line 305: alt="QR Code PIX NutriAI"
+  Line 335: Copiado!
+  Line 340: Copiar
+  Line 357: Conferindo pagamento no Banco Central...
+  Line 362: Já fiz o PIX • Ativar Minha Assinatura
+  Line 463: Processando autorização segura...
+  Line 481: Garantia de 7 dias
+
+File: src/components/CommunityChallenges.tsx
+  Line 190: Desafios da Semana em Destaque
+  Line 237: Marcar Dias Concluídos:
+  Line 268: Ranking de Membros da Comunidade
+
+File: src/components/ConfettiCelebration.tsx
+  Line 167: 0 && p.y
+
+File: src/components/ConnectedHealthWidget.tsx
+  Line 193: title="Atualizar dados agora"
+  Line 227: Dados sincronizados com sucesso com seu dispositivo!
+  Line 388: Ajustar Fator
+
+File: src/components/DailyTips.tsx
+  Line 151: title="Regerar dicas nutricionais"
+  Line 213: title="Ouvir dica com a voz da Malu"
+
+File: src/components/DeliveryTracking.tsx
+  Line 324: alt="Entregador"
+  Line 388: placeholder="Escreva um comentário opcional (ajuda no bem-estar)..."
+
+File: src/components/DiningOut.tsx
+  Line 189: title="Toque para falar"
+  Line 211: Reconhecimento de voz não suportado pelo navegador. Digite abaixo.
+  Line 224: placeholder="Sua fala transcrita aparecerá aqui..."
+  Line 233: title="Limpar transcrição"
+  Line 284: title="Ouvir dica com a voz da Malu"
+
+File: src/components/DraggableNav.tsx
+  Line 89: = 5 && hour
+  Line 101: = 11 && hour
+  Line 113: 21 || hour
+  Line 234: aria-label="Barra de Navegação dos Módulos"
+  Line 260: aria-label="Rolar para a esquerda"
+  Line 330: aria-label="Rolar para a direita"
+
+File: src/components/EmotionalTracker.tsx
+  Line 312: placeholder="Ex: Reunião difícil, trânsito, TPM..."
+  Line 356: Privacidade em Primeiro Lugar:
+  Line 495: alt="Expressão Analisada"
+  Line 512: title="Ouvir análise com a voz da Malu"
+  Line 698: title="Ouvir análise com a voz da Malu"
+
+File: src/components/ExpertTips.tsx
+  Line 473: title="Dica anterior"
+  Line 486: title="Próxima dica"
+  Line 534: title="Ouvir dica com a voz da Malu"
+  Line 570: Aplicado na Receita!
+  Line 635: Aplicado!
+
+File: src/components/FamilyProfilesManager.tsx
+  Line 169: Gestão de Perfil Familiar & Pets
+  Line 194: Adicionar Familiar
+  Line 241: title="Remover perfil"
+  Line 319: placeholder="Ex: Maria (Cônjuge) ou Rex (Dog)"
+  Line 336: Cônjuge
+  Line 337: Filho(a) / Criança
+  Line 338: Idoso(a)
+  Line 339: Pet (Cão/Gato)
+  Line 386: placeholder="Ex: Amendoim, Lactose, Corante"
+
+File: src/components/FeedbackSystem.tsx
+  Line 370: title="Configurar Volume da Voz da IA"
+  Line 589: Feito com
+  Line 591: para você
+
+File: src/components/FitnessRoulette.tsx
+  Line 398: 0 && p.x
+  Line 515: title="Redefinir visualização"
+
+File: src/components/FoodAllergyDetector.tsx
+  Line 580: placeholder="Ex: Corante tartrazina, Morango..."
+  Line 662: alt="Food preview"
+  Line 1027: Carregando histórico de alergias...
+
+File: src/components/FoodPhotoSalesFeedback.tsx
+  Line 172: title="Ver Avaliação & Feedback Imediato da Imagem para Vendas"
+  Line 231: Ajustes Imediatos para Acertar a Foto e Vender Mais:
+  Line 257: Erro Identificado:
+  Line 262: Correção Imediata:
+  Line 343: Diagnóstico Imediato para Correção da Imagem e Aumento de Vendas:
+  Line 371: Erro na foto:
+  Line 375: Acerto imediato:
+
+File: src/components/FoodWasteCalculator.tsx
+  Line 103: i.daysRemaining
+  Line 104: 0 && i.daysRemaining
+  Line 105: 3 && i.daysRemaining
+  Line 223: Algoritmo de Desperdício Alimentar Zero
+  Line 341: Itens com Prioridade Máxima de Consumo
+  Line 424: Receitas Resgate Zero Desperdício Recomendadas
+  Line 494: Ingredientes Consumidos & Removidos com Sucesso!
+  Line 502: Marcar Ingredientes como Consumidos / Salvos
+  Line 516: Dicas de Conservação Prolongada do Chef IA
+  Line 519: Vegetais folhosos:
+  Line 520: Tomates maduros:
+  Line 521: Carnes resfriadas:
+
+File: src/components/FreshnessMap.tsx
+  Line 225: title="Voltar para o Hortifruti"
+  Line 265: alt="Fresh produce"
+
+File: src/components/GamificationCenter.tsx
+  Line 206: Progresso
+
+File: src/components/GeminiBurnRateCard.tsx
+  Line 113: Gemini API Burn Rate & Projeção Mensal
+  Line 125: dias
+  Line 137: Projeção Estimada de Gasto até o Fim do Mês:
+  Line 168: Gasto Acumulado MTD:
+  Line 254: Simulador Interativo de Teto Orçamentário (Ajustar Limite Mensal):
+  Line 275: R$ 500
+  Line 276: R$ 1.500 (Padrão)
+  Line 277: R$ 3.000
+  Line 278: R$ 5.000
+
+File: src/components/GeminiSpendForecastChart.tsx
+  Line 72: Linha de Tendência Preditiva
+  Line 79: Previsão de Gastos Futuros com a API Gemini
+  Line 272: Linha contínua: Consumo real e média móvel acumulada
+  Line 276: Linha pontilhada (*): Previsão para os próximos 30 dias
+
+File: src/components/Generator.tsx
+  Line 298: 🍽️ GERAR PRATOS RÁPIDOS (1 TOQUE)
+  Line 339: Ouvindo... (Clique p/ Concluir)
+  Line 344: Falar Ingredientes
+  Line 399: title="Ver dica de restrições alimentares"
+  Line 456: placeholder="Ex: sem amendoim, refeição rápida..."
+  Line 515: Gerar Receita Mágica
+  Line 609: Dica Inteligente do Chef IA
+  Line 616: title="Fechar Dica"
+  Line 683: "sem cebola"
+  Line 705: Entendi, Começar!
+
+File: src/components/GlucoseTracker.tsx
+  Line 102: = 70 && l.value
+  Line 221: title="IA de Saúde Ativa"
+  Line 258: IA PREMIUM
+  Line 388: 99 && d.value
+  Line 389: 125 || d.value
+
+File: src/components/GoldenWaterTip.tsx
+  Line 101: = 5 && hour
+  Line 102: = 12 && hour
+  Line 108: = afternoonCount && afternoonCount
+  Line 257: title="Clima Ameno / Moderado (24°C - 26°C)"
+  Line 260: Ameno
+  Line 269: title="Clima Quente / Seco (>30°C)"
+  Line 272: Quente (+450ml)
+  Line 281: title="Clima Fresco / Inverno (<20°C)"
+  Line 284: Fresco
+  Line 397: Regra de Ouro:
+
+File: src/components/HabitTracker.tsx
+  Line 482: placeholder="Quantidade personalizada"
+  Line 547: Frequência
+  Line 685: placeholder="Ex: O filtro de barro tradicional de cerâmica realmente limpa bem a água? Como aumentar o pH da água mineral em casa?"
+  Line 758: title="Remover registro"
+
+File: src/components/HeaderAvatar.tsx
+  Line 196: title="Fechar"
+  Line 260: Acessar Perfil Completo
+
+File: src/components/HealthIntegrationSettings.tsx
+  Line 715: Ouvir Chef Malu
+  Line 761: Leitura de passos diários (fitness.activity.read)
+  Line 765: Leitura de calorias ativas queimadas
+  Line 769: Frequência cardíaca média de repouso
+  Line 804: Autorizando...
+  Line 807: Autorizar & Sincronizar
+  Line 848: Contagem de Passos (HKQuantityTypeIdentifierStepCount)
+  Line 852: Energia Ativa Queimada (HKQuantityTypeIdentifierActiveEnergyBurned)
+  Line 856: Distância Percorrida a Pé
+  Line 882: Conectando...
+  Line 885: Permitir Acesso HealthKit
+
+File: src/components/JourneyAnalyticsDashboard.tsx
+  Line 835: Registros de Pesagem Recentes
+  Line 841: Nenhuma pesagem manual adicionada ainda. Clique em "Nova Pesagem" para registrar seu peso oficial.
+  Line 980: Registros Recentes de Hidratação
+  Line 986: Nenhum copo de água registrado hoje ainda. Clique em "+ Água" ou nos botões rápidos para registrar.
+  Line 1152: placeholder="Ex: 72.5"
+  Line 1167: placeholder="Ex: 18.5"
+  Line 1192: placeholder="Ex: Pesagem matinal em jejum"
+  Line 1261: placeholder="Ou digite o valor exato em ml"
+  Line 1275: Filtrada
+  Line 1276: Mineral
+  Line 1277: Alcalina
+  Line 1278: Água de Coco
+  Line 1279: Torneira
+  Line 1280: Outra
+
+File: src/components/JuiceGenerator.tsx
+  Line 76: placeholder="Ex: abacaxi com manga, couve, hortelã..."
+  Line 146: title="Ouvir assistente com a voz da Malu"
+  Line 179: title="Ampliar foto em tela cheia"
+  Line 212: title="Ouvir receita completa com a voz da Malu"
+  Line 298: title="Fechar"
+
+File: src/components/LiveAssistant.tsx
+  Line 52: = 5 && currentHour
+  Line 55: = 12 && currentHour
+  Line 64: = 5 && currentHour
+  Line 74: = 5 && currentHour
+  Line 77: = 12 && currentHour
+  Line 85: = 5 && currentHour
+  Line 88: = 12 && currentHour
+  Line 97: = 5 && currentHour
+  Line 100: = 12 && currentHour
+  Line 109: = 5 && currentHour
+  Line 112: = 12 && currentHour
+
+File: src/components/LockScreen.tsx
+  Line 85: title="Sair da Conta / Voltar para Login"
+  Line 88: Sair da Conta
+
+File: src/components/Login.tsx
+  Line 733: Continuar com o Google
+  Line 746: Continuar com o Facebook
+
+File: src/components/MacronutrientAnalyticsView.tsx
+  Line 390: title="Exportar dados de macronutrientes em CSV"
+  Line 393: Exportar CSV
+  Line 400: title="Atualizar Logs do Firestore"
+  Line 758: Proteínas
+  Line 762: Carboidratos
+  Line 766: Gorduras
+
+File: src/components/MagicRecipeFAB.tsx
+  Line 68: aria-label="Assistente Culinário e Receitas Mágicas"
+  Line 69: title="Assistente Culinário (Receitas Rápidas & Fit)"
+  Line 155: Ou toque aqui para Gerar 3 Pratos Rápidos
+  Line 172: title="Ouvir receita com a voz da Malu"
+
+File: src/components/MaluVoiceTestView.tsx
+  Line 33: Ouvir
+
+File: src/components/Marketplace.tsx
+  Line 286: Catálogo de Produtos
+  Line 298: Organizador Inteligente de Listas
+  Line 369: Abrir Organizador
+  Line 609: placeholder="Buscar fruta, legume, produtor..."
+  Line 924: Subtotal
+  Line 928: Taxa de Entrega
+  Line 934: Total a Pagar
+  Line 1092: placeholder="Escreva sua opinião..."
+
+File: src/components/MealPlanCalendar.tsx
+  Line 442: title="Consumo Real (Hoje)"
+  Line 752: title="Fechar"
+  Line 1046: aria-label="Fechar"
+  Line 1062: alt="Card Exportado"
+  Line 1066: Dica:
+  Line 1116: Total Estimado
+  Line 1142: Baixar Arquivo
+  Line 1151: Abrir Imagem
+
+File: src/components/MedicinalHerbs.tsx
+  Line 382: exclusivamente educativo e informativo
+  Line 405: placeholder="Pesquise por nome, sintoma, propriedades, família botânica..."
+  Line 421: 📍 Todos os Biomas
+  Line 436: 🌿 Todos os Alvos Terapêuticos
+  Line 604: Sugestões Rápidas
+  Line 703: placeholder="Pergunte sobre chás, dosagens, contraindicações ou plantio..."
+  Line 1117: alt="Zoomed plant view"
+
+File: src/components/MuscleHighlightsLegend.tsx
+  Line 42: aria-label="Legenda de Músculos Ativados"
+
+File: src/components/Notebook.tsx
+  Line 209: Total:
+  Line 214: Suas notas sincronizam instantaneamente na nuvem com segurança.
+  Line 318: title="Editar nota"
+  Line 325: title="Excluir nota"
+
+File: src/components/NutriAiExerciseDetailCard.tsx
+  Line 167: title="Fechar"
+  Line 351: SYS.ANATOMY//01
+  Line 377: title="Destacar todos os músculos ativos no atlas 3D"
+  Line 393: title="Destacar apenas músculo primário em vermelho neon"
+  Line 409: title="Destacar apenas músculos secundários (sinergistas) em âmbar"
+  Line 510: DADOS DO TREINO:
+  Line 565: title="Diminuir série"
+  Line 576: title="Aumentar série"
+  Line 597: title="Diminuir repetições"
+  Line 608: title="Aumentar repetições"
+  Line 629: title="Diminuir peso"
+  Line 640: title="Aumentar peso"
+  Line 696: title="Ver demonstração e ouvir explicação com a voz Aoede da Malu"
+  Line 726: Powered by
+
+File: src/components/NutritionalComparisonChart.tsx
+  Line 293: Diferença:
+  Line 465: title="Ouvir análise da nutricionista Malu"
+
+File: src/components/NutritionalReportPDF.tsx
+  Line 225: Dados de Resumo do Paciente:
+
+File: src/components/OfflineIndicator.tsx
+  Line 39: Modo Offline ativo
+  Line 46: title="Abrir receitas salvas para preparo offline"
+
+File: src/components/OfflineRecipesModal.tsx
+  Line 136: title="Fechar janela"
+  Line 174: placeholder="Buscar entre receitas salvas offline por nome ou ingrediente..."
+  Line 238: title="Copiar texto da receita"
+  Line 249: title="Remover do armazenamento offline"
+  Line 256: Ver Passo a Passo
+  Line 283: Como salvar:
+
+File: src/components/OfflineSyncBanner.tsx
+  Line 110: Todas as alterações salvas offline foram sincronizadas com sucesso!
+
+File: src/components/PWAInstallButton.tsx
+  Line 40: Instalado com sucesso!
+  Line 56: title="Instalar NutriAI no seu dispositivo"
+  Line 75: Instalar no Celular
+  Line 96: Instalar Agora
+
+File: src/components/PantryDepletionPredictor.tsx
+  Line 133: title="Ouvir diagnóstico da despensa com a Chef Malu"
+  Line 344: Já está na Lista
+
+File: src/components/PantryScanner.tsx
+  Line 428: i.daysRemaining
+  Line 460: Sugerir Receitas Anti-Desperdício
+  Line 521: Escanear Código
+  Line 534: Entrada Manual
+  Line 547: Receitas Anti-Desperdício
+  Line 565: Índice de Desperdício
+  Line 578: Chef Malu (Dúvidas de Cozinha)
+  Line 602: Todos os locais
+  Line 603: Geladeira
+  Line 604: Despensa Seca
+  Line 605: Freezer
+  Line 631: Escanear Código de Barras
+  Line 645: 3 && item.daysRemaining
+  Line 719: title="Remover item da despensa"
+  Line 759: Reiniciar Câmera
+  Line 785: placeholder="Ex: 7891000100103"
+  Line 847: Despensa Seca
+  Line 848: Geladeira
+  Line 849: Freezer
+  Line 873: Salvar na Minha Despensa
+  Line 941: placeholder="Ex: Peito de Frango, Iogurte Grego, Tomates, Macarrão"
+  Line 956: placeholder="Ex: 500g, 2 potes, 1 maço"
+  Line 987: Despensa Seca / Armário
+  Line 988: Geladeira
+  Line 989: Freezer / Congelador
+  Line 1036: Adicionar à Despensa
+  Line 1062: Gerar Novas Receitas
+  Line 1199: Dica do Chef:
+  Line 1239: Cozinhar com Modo Cozinha
+  Line 1246: title="Dar baixa nos ingredientes utilizados da despensa"
+
+File: src/components/PartnerBanner.tsx
+  Line 434: title="Música saudável & alegre de culinária e preparo (Acústico NutriAI)"
+  Line 446: title="Frequências de relaxamento, digestão consciente e foco"
+  Line 463: title="Ajustar Volume"
+
+File: src/components/PartnerPortal.tsx
+  Line 601: title="Alternar indicador de presença para teste em tempo real"
+  Line 895: placeholder="Pesquisar frutas, legumes, combos..."
+  Line 905: Todas Categorias
+  Line 906: Frutas
+  Line 907: Verduras
+  Line 908: Legumes
+  Line 909: Kits Saudáveis
+  Line 910: Cestas
+  Line 970: title="Editar Produto"
+  Line 981: title="Excluir Produto"
+  Line 1179: Faturamento 100% livre de comissões
+  Line 1183: Catálogo ilimitado de hortifruti
+  Line 1187: Selo de Loja Parceira Verificada
+  Line 1191: Sem fidelidade — Cancele quando quiser
+  Line 1257: Prioridade no raio de busca por proximidade
+  Line 1261: Faturamento 100% livre de comissão
+  Line 1265: Economia de R$ 299,80 ao ano
+  Line 1323: Sem custo se não houver vendas
+  Line 1327: Ideal para testar a plataforma
+  Line 1331: Repasse com desconto automático
+  Line 1335: Migre para plano fixo a qualquer momento
+  Line 1388: R$ 1.000
+  Line 1389: R$ 15.000
+  Line 1390: R$ 30.000
+  Line 1452: placeholder="Sacolão do Bairro..."
+  Line 1462: placeholder="Pedro Souza..."
+  Line 1484: placeholder="sacolao@email.com"
+  Line 1505: placeholder="30-45 min"
+  Line 1516: placeholder="Av. Paulista, 1000 - Bela Vista"
+  Line 1609: title="Ouvir instrução por voz"
+  Line 1625: placeholder="Ex: Hortifruti do Vale"
+  Line 1635: placeholder="Nome completo"
+  Line 1697: placeholder="Rua, número, bairro"
+  Line 1796: 1. Fotos Reais e Nítidas
+  Line 1806: 2. Categorização Precisa
+  Line 1809: Frutas
+  Line 1816: 3. Modalidade (kg vs un)
+  Line 1819: Quilo (kg)
+  Line 2289: placeholder="Ex: Alface Americana"
+  Line 2311: Quilo (kg)
+  Line 2312: Unidade
+  Line 2313: Bandeja
+  Line 2314: Cesta
+  Line 2315: Kit / Combo
+  Line 2326: Frutas
+  Line 2327: Verduras
+  Line 2328: Legumes
+  Line 2329: Kits Saudáveis
+  Line 2330: Cestas
+  Line 2362: placeholder="Fale mais sobre a origem e benefícios..."
+
+File: src/components/PersonalTrainer.tsx
+  Line 1015: title="Abrir Card de Detalhes do Exercício NutriAi"
+  Line 1018: Detalhes do Exercício
+  Line 1034: Zoom Biomecânico Ativo
+  Line 1052: Visão Lateral Sagital
+  Line 1319: title="Ver Tutorial"
+  Line 1328: title="Concluir O Movimento"
+  Line 1336: title="Pular"
+
+File: src/components/PersonalizationWizard.tsx
+  Line 147: placeholder="Ex: Trabalho das 8h às 18h, treino musculação às 6h, almoço em 30 min."
+  Line 184: placeholder="Ex: Intolerante a lactose, não gosto de peixe, prefiro frango."
+
+File: src/components/PhotoEvolution.tsx
+  Line 353: alt="Evolução"
+
+File: src/components/PlateAnalyzer.tsx
+  Line 513: Scanner IA
+  Line 525: Compartilhar Prato
+  Line 567: Câmera ao Vivo
+  Line 575: Carregar da Galeria
+  Line 643: title="Capturar Foto"
+  Line 660: alt="Prato em análise"
+  Line 679: NutriVision IA • Em Tempo Real
+  Line 802: title="Ouvir parecer com a voz da Malu"
+  Line 817: Compartilhar Prato
+  Line 825: Nova Foto
+  Line 1094: 100% Personalizado
+  Line 1106: Estilo & Formato do Card
+  Line 1176: Card (4:5)
+  Line 1188: Story (9:16)
+  Line 1200: Feed (1:1)
+  Line 1220: NutriScore
+  Line 1232: Macronutrientes
+  Line 1244: Alimentos
+  Line 1256: Parecer IA
+  Line 1300: Baixar PNG
+  Line 1309: Voltar ao Scanner de Prato
+
+File: src/components/Pricing.tsx
+  Line 144: Membro Ativo
+  Line 161: Assinatura de Alta Performance
+
+File: src/components/ProductComparer.tsx
+  Line 604: placeholder="Ou digite o nome..."
+  Line 665: placeholder="Ou digite o nome..."
+  Line 795: Resumo do Veredito:
+  Line 1220: Carregando histórico de comparações...
+
+File: src/components/Profile.tsx
+  Line 714: Área Admin: Biblioteca Científica
+  Line 752: title="Carregar nova foto da câmera ou galeria"
+  Line 786: Trocar Foto
+  Line 796: Avatar 3D (DRACO)
+  Line 805: Fotos 2D
+  Line 812: title="Inserir link da foto"
+  Line 815: URL
+  Line 823: title="Remover foto atual"
+  Line 826: Remover
+  Line 929: Selecione...
+  Line 930: Feminino
+  Line 931: Masculino
+  Line 932: Outro / Prefiro não informar
+  Line 1029: Selecione...
+  Line 1030: Sedentário (pouco ou nenhum exercício)
+  Line 1031: Leve (exercício leve 1-3 dias/semana)
+  Line 1032: Moderado (exercício moderado 3-5 dias/semana)
+  Line 1033: Intenso (exercício forte 6-7 dias/semana)
+  Line 1046: Selecione...
+  Line 1047: Pele Clara
+  Line 1048: Pele Média / Morena Clara
+  Line 1049: Pele Parda / Morena Escura
+  Line 1050: Pele Negra
+  Line 1063: Selecione...
+  Line 1064: Preto
+  Line 1065: Castanho Escuro
+  Line 1066: Castanho Claro
+  Line 1067: Loiro
+  Line 1068: Ruivo
+  Line 1069: Grisalho / Branco
+  Line 1070: Careca / Sem cabelo
+  Line 1085: Selecione...
+  Line 1086: Ectomorfo (Magro, dificuldade em ganhar peso)
+  Line 1087: Mesomorfo (Atlético, facilidade em ganhar/perder)
+  Line 1088: Endomorfo (Largo, facilidade em ganhar peso)
+  Line 1101: Selecione...
+  Line 1102: Lento
+  Line 1103: Moderado
+  Line 1104: Acelerado
+  Line 1118: placeholder="Ex: 2500"
+  Line 1131: placeholder="Ex: Trabalho das 08h às 18h, treino musculação às 06h, durmo às 22h. Tenho pouco tempo para o almoço."
+  Line 1145: placeholder="Ex: Vegano, Sem glúten, Sem lactose"
+  Line 1158: placeholder="Ex: Amendoim, Frutos do mar, Leite de vaca"
+  Line 1171: placeholder="Ex: Emagrecimento saudável, Ganho de massa magra, Longevidade"
+  Line 1184: placeholder="Ex: Forno, Micro-ondas, Air Fryer, Liquidificador"
+  Line 1268: title="Disparar notificação nativa de teste pelo Service Worker"
+  Line 1424: Lembrete Matinal de Metas
+  Line 1443: Revisão Noturna de Hábitos
+  Line 1465: Agendamento PWA Nativo:
+  Line 1565: Testar Validação de Biometria no Aparelho
+  Line 1685: title="Iniciar tour passo a passo com Intro.js"
+  Line 1688: Tour Intro.js
+  Line 1700: title="Iniciar tour com setas visuais"
+  Line 1703: Tour com Setas
+  Line 1738: title="Abrir Painel Administrativo do Banco de Dados"
+  Line 1741: Abrir Admin Dashboard
+  Line 1908: placeholder="https://..."
+  Line 1948: Personalização de Avatar Biomecânico 3D
+
+File: src/components/QuickDishes.tsx
+  Line 235: = 5 && hour
+  Line 236: = 11 && hour
+  Line 237: = 15 && hour
+  Line 405: title="Fechar painel"
+  Line 673: Almoço Registrado no Banco!
+  Line 678: Registrar Almoço no Banco (+30 XP)
+  Line 745: title="Imprimir Receita Limpa"
+  Line 755: title="Fechar Receita do Prato"
+  Line 871: Comprar
+  Line 882: Expandir
+  Line 908: GERAR OUTRAS 3 OPÇÕES
+  Line 918: Segurança & Precisão NutriAI:
+  Line 996: Tempo de Preparo:
+  Line 1000: Porção recomendada:
+  Line 1008: Ingredientes (com quantidades)
+  Line 1050: Modo de Preparo Passo a Passo
+  Line 1099: Anterior
+  Line 1118: Todas as etapas prontas!
+  Line 1129: Substituições Possíveis & Dicas do Chef
+  Line 1175: Salvar Lista
+  Line 1201: Compartilhar
+  Line 1214: title="Imprimir receita do prato para cozinhar"
+  Line 1218: Imprimir
+
+File: src/components/RecipeCard.tsx
+  Line 1099: title="Fonte Normal (18px)"
+  Line 1109: title="Fonte Grande (20px)"
+  Line 1119: title="Fonte Extra Grande (24px)"
+  Line 1129: title="Fonte Gigante (30px)"
+  Line 1143: title="Preto e Branco / Alto Contraste"
+  Line 1153: title="Amarelo sobre Preto (Baixa Visão)"
+  Line 1163: title="Suave Esmeralda"
+  Line 1184: Salvo Offline
+  Line 1189: Salvar para Offline
+  Line 1199: title="Imprimir receita para cozinha (formato limpo de folha)"
+  Line 1203: Imprimir
+  Line 1211: title="Voltar ao layout normal"
+  Line 1214: Sair da Leitura
+  Line 1291: Ouvir Receita Inteira
+  Line 1304: 1. Lista de Ingredientes
+  Line 1321: title="Ouvir apenas os ingredientes"
+  Line 1376: 2. Modo de Preparo Passo a Passo
+  Line 1566: Passo Anterior
+  Line 1572: title="Recomeçar do primeiro passo"
+  Line 1595: Todas as etapas reveladas! Bom preparo! 🎉
+  Line 1610: Voltar ao Modo Normal
+  Line 1623: Subir ao Topo
+  Line 1752: title="Cancelar lembrete agendado"
+  Line 1825: title="Ativar Modo de Leitura acessível (alto contraste e fontes ampliadas)"
+  Line 1829: Modo de Leitura
+  Line 1847: Salvo para Offline
+  Line 1852: Salvar para Offline
+  Line 1862: title="Imprimir receita formatada especificamente para papel ou salvar como PDF"
+  Line 1866: Imprimir Receita
+  Line 1993: title="Ajuda de comandos"
+  Line 2003: title="Sair do modo cozinha"
+  Line 2066: Próximo Passo
+  Line 2077: Passo Anterior
+  Line 2086: Repetir Passo
+  Line 2096: Silenciar
+  Line 2219: title="Ouvir este passo"
+  Line 2252: Passo Anterior
+  Line 2258: title="Recomeçar do primeiro passo"
+  Line 2281: Todas as etapas reveladas! Bom apetite! 🎉
+  Line 2796: Seu Comentário
+  Line 2806: placeholder="Excelente prato! Recomendo fazer..."
+  Line 2923: aria-label="Fechar"
+  Line 2939: alt="Card Exportado"
+  Line 2943: Dica:
+  Line 3025: Alimentação Saudável
+  Line 3047: Baixar Arquivo
+  Line 3056: Abrir
+  Line 3076: Copiado!
+  Line 3081: Copiar Texto
+  Line 3089: title="Imprimir receita em folha limpa para cozinhar"
+  Line 3092: Imprimir
+
+File: src/components/RecipeStepTimer.tsx
+  Line 270: title="Subtrair 1 minuto"
+  Line 279: title="Adicionar 1 minuto"
+  Line 311: title="Reiniciar timer"
+
+File: src/components/ResultPrediction.tsx
+  Line 115: title="Ouvir mensagem com a voz da Malu"
+  Line 207: Importante:
+
+File: src/components/Scanner.tsx
+  Line 163: title="Fechar"
+  Line 231: title="Tirar Foto"
+
+File: src/components/ScientificLibraryAdmin.tsx
+  Line 188: placeholder="Buscar fontes..."
+  Line 228: Nenhum documento encontrado na base.
+
+File: src/components/SecuritySuite.tsx
+  Line 591: O aplicativo está rodando em modo offline com banco local. Ative as chaves no painel do AI Studio para que as auditorias ocorram contra a instância real do Supabase.
+  Line 686: title="Recarregar logs"
+  Line 695: title="Limpar tabela"
+
+File: src/components/ShoppingListView.tsx
+  Line 397: Custo Total Estimado:
+  Line 403: Participação na Lista:
+  Line 410: No Carrinho:
+  Line 416: Restante a Comprar:
+  Line 1100: placeholder="Pesquisar ingredientes..."
+  Line 1163: placeholder="Ex: Peito de Frango, Banana, Aveia..."
+  Line 1174: title="Ditar itens para a lista"
+  Line 1492: placeholder="Ex: Ovos, Abacate, Whey Protein..."
+  Line 1503: title="Ditar itens para a lista"
+  Line 1617: title="Excluir item"
+  Line 1740: Análise do Histórico
+  Line 1750: Checagem Orçamentária
+  Line 1760: Reposição em 1 Toque
+  Line 1811: Alterar Região...
+  Line 1993: Parceiro Verificado
+  Line 2145: title="Ouvir descrição por voz"
+
+File: src/components/SmartExerciseDemonstration.tsx
+  Line 239: 3. Respiração
+  Line 253: 4. Músculos Trabalhados
+  Line 267: 5. Erros Comuns
+  Line 288: 6. Dica de Execução Pro
+
+File: src/components/SmartFridge.tsx
+  Line 792: title="Editar"
+  Line 799: title="Remover"
+  Line 1190: placeholder="Ex: 1L Leite de Coco, 500g Tapioca..."
+  Line 1349: placeholder="Ex: Brócolis Orgânico, Peito de Frango"
+  Line 1362: placeholder="Ex: 500g, 4 unid."
+
+File: src/components/SmartGarden.tsx
+  Line 782: title="Remover planta"
+  Line 818: placeholder="Exemplo: As folhas de baixo do meu manjericão estão com manchas amarelas e murchas, e há pequenos teias de aranha finas no caule."
+  Line 1055: placeholder="Ex: Meu Alecrim na sacada"
+  Line 1073: Intervalo de Rega
+  Line 1091: Intervalo de Adubação
+
+File: src/components/SmartHydrationBanner.tsx
+  Line 146: title="Dispensar"
+
+File: src/components/SmartMarketListOrganizer.tsx
+  Line 459: Gerar Cesta em 1-Clique
+  Line 470: Cesta inteligente gerada com sucesso! Os produtos com oferta local foram adicionados ao seu carrinho do Mercado.
+  Line 484: placeholder="Adicionar novo item à lista de compras (ex: Abacate, Peito de Peru, Cenoura)..."
+  Line 493: Adicionar
+  Line 649: Procurando melhor preço nos parceiros locais...
+  Line 687: title="Adicionar oferta deste mercado direto ao carrinho"
+  Line 709: title="Comparar preços em outros mercados"
+  Line 724: Aviso de Estoque:
+
+File: src/components/SmartMushroomIdentifier.tsx
+  Line 371: alt="Mushroom upload preview"
+  Line 765: Conectando ao histórico micológico...
+
+File: src/components/SmartPlantIdentifier.tsx
+  Line 398: alt="Uploaded preview"
+  Line 693: Parte utilizada:
+  Line 694: Preparo:
+  Line 918: Carregando histórico do servidor...
+  Line 977: title="Favoritar identificação"
+  Line 984: title="Excluir do histórico"
+
+File: src/components/SmartPlateCombiner.tsx
+  Line 187: title="Histórico"
+  Line 459: title="Ampliar foto em alta resolução"
+  Line 477: Porção recomendada:
+  Line 628: title="Fechar"
+  Line 647: Porção sugerida no prato:
+
+File: src/components/SmartSwaps.tsx
+  Line 190: placeholder="Ex: Chocolate, Refrigerante, Pão Branco, Batata Frita..."
+  Line 238: title="Ouvir sugestão com a voz da Malu"
+  Line 379: placeholder="Ex: Arroz Branco, Batata Frita, Coca-cola..."
+  Line 398: placeholder="Ex: Quinoa Cozida, Batata Doce Assada..."
+  Line 413: Calculando Comparação Nutricional...
+  Line 418: Comparar Nutrientes & Gerar Gráfico de Barras
+
+File: src/components/SplashScreen.tsx
+  Line 133: title="Clique para pular"
+
+File: src/components/Static3DAvatarPlaceholder.tsx
+  Line 46: Renderização Otimizada
+  Line 56: alt="3D Avatar Placeholder"
+
+File: src/components/SystemLogsView.tsx
+  Line 266: 2s (Ultra Rápido)
+  Line 267: 3s (Tempo Real)
+  Line 268: 5s (Padrão)
+  Line 269: 10s (Econômico)
+  Line 318: placeholder="Buscar nos logs por ID, coleção ou detalhe..."
+  Line 330: Gatilho: Todos
+  Line 331: Gatilho: Admin Manual
+  Line 332: Gatilho: Startup Auto
+  Line 333: Gatilho: Periódico Auto
+  Line 334: Gatilho: Verificação Fix
+  Line 343: Status: Todos
+  Line 344: Status: Com Inconsistências
+  Line 345: Status: 100% Hígidos
+  Line 354: title="Exportar logs para JSON"
+  Line 366: title="Limpar histórico de logs"
+
+File: src/components/UserPresenceAvatar.tsx
+  Line 96: aria-label="Usuário ativo e navegando"
+  Line 103: aria-label="Usuário inativo"
+
+File: src/components/VerifyEmailScreen.tsx
+  Line 214: title="Ignora a confirmação para fins de teste no AI Studio Preview"
+
+File: src/components/WeeklySummary.tsx
+  Line 302: Distribuição dos 7 Dias da Semana
+
+File: src/components/WelcomeTour.tsx
+  Line 881: title="Fechar Guia"
+  Line 925: title="Destacar e focar no botão agora"
+  Line 928: Focar no Botão
+  Line 1007: title="Alternar para o modo Intro.js"
+  Line 1011: Modo Intro.js
+  Line 1024: Voltar
+
+File: src/contexts/LanguageContext.tsx
+  Line 12: , prefix = ''): Record
+  Line 74: Promise
+  Line 75: Promise
+  Line 78: , params?: Record
+
+File: src/hooks/useHeartRateSync.ts
+  Line 11: Promise
+  Line 12: Promise
+  Line 86: 30 && hr
+
+File: src/hooks/usePWAInstall.ts
+  Line 4: Promise
+
+File: src/lib/gemini.server.ts
+  Line 3572: 100 ou
+  Line 6263: (i.daysRemaining !== undefined && i.daysRemaining
+
+File: src/lib/gemini.ts
+  Line 1206: i.daysRemaining
+
+File: src/lib/introTour.ts
+  Line 96: nutrição inteligente, culinária prática, economia e saúde
+  Line 99: Tour Rápido de 1 Minuto:
+  Line 111: zero esquecimento
+  Line 130: Economizômetro & Comparador
+  Line 167: desperdício zero
+  Line 185: prato pronto
+  Line 255: reabrir este tour a qualquer momento
+  Line 309: = 0 && stepIndex
+
+File: src/lib/priceMonitor.ts
+  Line 227: = 75 && budgetUsedPercentage
+
+File: src/lib/quickTipsEngine.ts
+  Line 47: = 5 && hours
+  Line 48: = 11 && hours
+  Line 49: = 16 && hours
+  Line 50: = 18 && hours
+
+File: src/lib/recipePrinter.ts
+  Line 363: Nutri
+  Line 364: Nutrição, Saúde & Receitas Inteligentes
+  Line 391: Calorias
+  Line 392: kcal
+  Line 395: Proteínas
+  Line 399: Carboidratos
+  Line 403: Gorduras
+  Line 407: Fibras
+  Line 417: Ingredientes
+  Line 433: Modo de Preparo
+  Line 447: 👨‍🍳 Dica do Chef Malu
+  Line 456: Receita gerada pelo NutriAI • Sua assistente inteligente de nutrição
+  Line 457: www.nutriai.app • Bom apetite!
+
+File: src/lib/speech.ts
+  Line 25: = 0 && parsed
+
+File: src/main.tsx
+  Line 37: Falha ao Inicializar o NutriAI
+  Line 38: Ocorreu um erro ao carregar as configurações do aplicativo.
+  Line 40: Tentar Novamente
+  Line 41: Reset Completo
+

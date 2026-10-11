@@ -1,0 +1,3975 @@
+{
+  "timestamp": "2026-10-11T16:03:59.282Z",
+  "totalFilesScanned": 221,
+  "totalStringsEvaluated": 819,
+  "totalHardcodedFound": 819,
+  "coveragePercentage": 0,
+  "results": [
+    {
+      "filePath": "src/components/AcademyPortal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 729,
+          "text": "placeholder=\"Buscar por nome, bairro...\""
+        },
+        {
+          "line": 764,
+          "text": "📍 Todos os Bairros"
+        },
+        {
+          "line": 1001,
+          "text": "placeholder=\"Ex: Studio Fitness Integrativo\""
+        },
+        {
+          "line": 1029,
+          "text": "placeholder=\"Ex: (11) 99999-9999\""
+        },
+        {
+          "line": 1043,
+          "text": "placeholder=\"gerencia@academia.com.br\""
+        },
+        {
+          "line": 1059,
+          "text": "placeholder=\"Ex: https://instagram.com/suaacademia\""
+        },
+        {
+          "line": 1070,
+          "text": "placeholder=\"Ex: Seg a Sex: 06h às 22h • Sábado: 08h às 14h\""
+        },
+        {
+          "line": 1124,
+          "text": "placeholder=\"Rua, Avenida, número...\""
+        },
+        {
+          "line": 1138,
+          "text": "placeholder=\"Ex: Pinheiros, Moema\""
+        },
+        {
+          "line": 1152,
+          "text": "placeholder=\"Ex: São Paulo - SP\""
+        },
+        {
+          "line": 1198,
+          "text": "placeholder=\"https://exemplo.com/foto-do-meu-espaco.jpg\""
+        },
+        {
+          "line": 1213,
+          "text": "placeholder=\"Fale um pouco sobre o ambiente, professores credenciados, estacionamento e os diferenciais que atraem pessoas para treinar com vocês...\""
+        },
+        {
+          "line": 1264,
+          "text": "Confirmação enviada:"
+        },
+        {
+          "line": 1272,
+          "text": "De:"
+        },
+        {
+          "line": 1273,
+          "text": "Para:"
+        },
+        {
+          "line": 1274,
+          "text": "Assunto:"
+        },
+        {
+          "line": 1337,
+          "text": "● Em Análise Documental"
+        },
+        {
+          "line": 1340,
+          "text": "○ Ativação Pública Mapas"
+        },
+        {
+          "line": 1672,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 1780,
+          "text": "placeholder=\"Seu Nome\""
+        },
+        {
+          "line": 1808,
+          "text": "placeholder=\"Fale um pouco sobre o espaço, equipe e instalações...\""
+        }
+      ],
+      "totalStringsFound": 21
+    },
+    {
+      "filePath": "src/components/AdaptiveCoach.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 402,
+          "text": "title=\"Ouvir análise\""
+        },
+        {
+          "line": 674,
+          "text": "Adaptar IA"
+        },
+        {
+          "line": 714,
+          "text": "aria-label=\"Fechar\""
+        },
+        {
+          "line": 822,
+          "text": "Outra Sugestão"
+        },
+        {
+          "line": 830,
+          "text": "Trocar no plano (+50 XP)"
+        },
+        {
+          "line": 903,
+          "text": "Mantenha seus logs de alimentação sempre atualizados."
+        },
+        {
+          "line": 907,
+          "text": "Ao comer algo fora do plano, use a função \"Comi Fora\" para que a IA possa analisar e compensar."
+        },
+        {
+          "line": 911,
+          "text": "Siga as trocas inteligentes sugeridas quando estiver com pressa ou falta de tempo."
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/components/AdaptiveMealAdjustmentCard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 296,
+          "text": "Adicionado ao Jantar"
+        },
+        {
+          "line": 301,
+          "text": "Aplicar ao Jantar"
+        },
+        {
+          "line": 370,
+          "text": "Ver Cardápio Completo"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/AdminDashboard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 397,
+          "text": "Painel de Administração do Sistema"
+        },
+        {
+          "line": 438,
+          "text": "title=\"Baixar Relatório JSON de Integridade\""
+        },
+        {
+          "line": 442,
+          "text": "Exportar JSON"
+        },
+        {
+          "line": 536,
+          "text": "Visão Geral & Métricas"
+        },
+        {
+          "line": 548,
+          "text": "Backups & Storage Dedicado"
+        },
+        {
+          "line": 580,
+          "text": "Integridade do Esquema & Migrações"
+        },
+        {
+          "line": 597,
+          "text": "Desempenho da IA"
+        },
+        {
+          "line": 610,
+          "text": "Nutrientes & Intake"
+        },
+        {
+          "line": 623,
+          "text": "Logs de Sistema"
+        },
+        {
+          "line": 636,
+          "text": "Voz Malu & AI Studio"
+        },
+        {
+          "line": 649,
+          "text": "Console & Diagnósticos"
+        },
+        {
+          "line": 713,
+          "text": "ID do Banco:"
+        },
+        {
+          "line": 717,
+          "text": "Coleções Auditadas:"
+        },
+        {
+          "line": 721,
+          "text": "Modo de Operação:"
+        },
+        {
+          "line": 725,
+          "text": "Índices Compostos:"
+        },
+        {
+          "line": 773,
+          "text": "Gerenciar Backups & Snapshots"
+        },
+        {
+          "line": 852,
+          "text": "Bucket de Storage Crítico & Snapshots"
+        },
+        {
+          "line": 880,
+          "text": "title=\"Baixar Snapshot do Último Backup em JSON\""
+        },
+        {
+          "line": 883,
+          "text": "Baixar Snapshot"
+        },
+        {
+          "line": 1032,
+          "text": "Recarregar Histórico"
+        },
+        {
+          "line": 1101,
+          "text": "title=\"Baixar JSON\""
+        },
+        {
+          "line": 1108,
+          "text": "title=\"Inspecionar Detalhes\""
+        },
+        {
+          "line": 1115,
+          "text": "title=\"Restaurar Snapshot\""
+        },
+        {
+          "line": 1141,
+          "text": "placeholder=\"Buscar coleção ou tabela...\""
+        },
+        {
+          "line": 1181,
+          "text": "Todos os Status"
+        },
+        {
+          "line": 1182,
+          "text": "✅ Saudável (OK)"
+        },
+        {
+          "line": 1183,
+          "text": "⚠️ Aviso / Cache"
+        },
+        {
+          "line": 1184,
+          "text": "❌ Ausente"
+        },
+        {
+          "line": 1185,
+          "text": "⛔ Erro"
+        },
+        {
+          "line": 1429,
+          "text": "title=\"Limpar Histórico de Logs\""
+        },
+        {
+          "line": 1504,
+          "text": "'Corrigir'"
+        },
+        {
+          "line": 1786,
+          "text": "Comandos do Console DevTools:"
+        },
+        {
+          "line": 1904,
+          "text": "Baixar JSON"
+        },
+        {
+          "line": 1936,
+          "text": "gerado em"
+        },
+        {
+          "line": 1941,
+          "text": "Planos alimentares, inventário da geladeira e logs de saúde locais serão atualizados com os dados deste snapshot."
+        }
+      ],
+      "totalStringsFound": 35
+    },
+    {
+      "filePath": "src/components/AiCookingAdvisor.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 372,
+          "text": "title=\"Configurações de Voz e Verbosidade\""
+        },
+        {
+          "line": 397,
+          "text": "Painel de Controle • Velocidade da Voz & Verbosidade da IA"
+        },
+        {
+          "line": 411,
+          "text": "Velocidade da Voz (Aoede)"
+        },
+        {
+          "line": 482,
+          "text": "Modo Cozinha com Mãos Sujas 🤲🎙️"
+        },
+        {
+          "line": 539,
+          "text": "Voltar"
+        },
+        {
+          "line": 548,
+          "text": "Ouvir"
+        },
+        {
+          "line": 557,
+          "text": "Próximo"
+        },
+        {
+          "line": 581,
+          "text": "placeholder=\"Ex: Quanto tempo devo assar este frango? ou Posso trocar creme de leite por iogurte grego?\""
+        },
+        {
+          "line": 591,
+          "text": "title=\"Falar com a Chef Malu\""
+        },
+        {
+          "line": 670,
+          "text": "title=\"Ouvir a voz da Chef Malu (Aoede)\""
+        },
+        {
+          "line": 693,
+          "text": "Controle de Tempo e Temperatura"
+        },
+        {
+          "line": 718,
+          "text": "Ponto seguro interno:"
+        },
+        {
+          "line": 735,
+          "text": "Substituição Funcional de Ingredientes"
+        },
+        {
+          "line": 756,
+          "text": "Proporção recomendada:"
+        },
+        {
+          "line": 762,
+          "text": "Textura & Sabor:"
+        },
+        {
+          "line": 782,
+          "text": "Conselho e Impacto Nutricional"
+        },
+        {
+          "line": 836,
+          "text": "Dicas Culinárias do Chef"
+        }
+      ],
+      "totalStringsFound": 17
+    },
+    {
+      "filePath": "src/components/AiPerformanceView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 304,
+          "text": "title=\"Exportar dados resumidos em formato CSV\""
+        },
+        {
+          "line": 307,
+          "text": "Exportar Resumo CSV"
+        },
+        {
+          "line": 335,
+          "text": "title=\"Atualizar Métricas\""
+        },
+        {
+          "line": 665,
+          "text": "Painel de Custos & Latência por Categoria de Requisição"
+        },
+        {
+          "line": 677,
+          "text": "Baixar Relatório CSV"
+        },
+        {
+          "line": 757,
+          "text": "Distribuição de Custos por Categoria (R$)"
+        },
+        {
+          "line": 783,
+          "text": "Histórico de Latência Recente (ms)"
+        },
+        {
+          "line": 821,
+          "text": "Detalhamento por Função"
+        },
+        {
+          "line": 858,
+          "text": "Logs de Execução em Tempo Real"
+        },
+        {
+          "line": 870,
+          "text": "Todas as Chamadas"
+        },
+        {
+          "line": 871,
+          "text": "Apenas Erros & Falhas"
+        },
+        {
+          "line": 872,
+          "text": "Apenas Chamadas Lentas (&gt;1.5s)"
+        }
+      ],
+      "totalStringsFound": 12
+    },
+    {
+      "filePath": "src/components/AnatomicalSculptor.ts",
+      "hardcodedStrings": [
+        {
+          "line": 88,
+          "text": "0 && yNorm"
+        },
+        {
+          "line": 403,
+          "text": "= 0.12 && v"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/AnatomyWorkoutGuide.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 897,
+          "text": "Instrutor Biomecânico 3D"
+        },
+        {
+          "line": 938,
+          "text": "title=\"Alternar rotação automática da barra de músculos\""
+        },
+        {
+          "line": 978,
+          "text": "title=\"Músculo Anterior\""
+        },
+        {
+          "line": 979,
+          "text": "aria-label=\"Músculo Anterior\""
+        },
+        {
+          "line": 1033,
+          "text": "title=\"Próximo Músculo\""
+        },
+        {
+          "line": 1034,
+          "text": "aria-label=\"Próximo Músculo\""
+        },
+        {
+          "line": 1076,
+          "text": "Avatar Realista"
+        },
+        {
+          "line": 1090,
+          "text": "Manequim 3D"
+        },
+        {
+          "line": 1182,
+          "text": "title=\"Inicializando malha biomecânica e acelerador WebGL...\""
+        },
+        {
+          "line": 1261,
+          "text": "Voz Malu"
+        }
+      ],
+      "totalStringsFound": 10
+    },
+    {
+      "filePath": "src/components/Assistant360.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 88,
+          "text": "= 25 && bmiNum"
+        },
+        {
+          "line": 150,
+          "text": "alt=\"NutriAI Assistant\""
+        },
+        {
+          "line": 162,
+          "text": "NutriAI Coach 360°"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/AutoTranslator.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 18,
+          "text": ", prefix = ''): Record"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/AvatarAnatomico.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 797,
+          "text": "1.5 && uCameraView"
+        },
+        {
+          "line": 4642,
+          "text": "title=\"Destacar todos os músculos ativos (primários e secundários)\""
+        },
+        {
+          "line": 4657,
+          "text": "title=\"Destacar apenas músculo primário (vermelho/laranja neon)\""
+        },
+        {
+          "line": 4672,
+          "text": "title=\"Destacar apenas músculos secundários (âmbar/laranja)\""
+        },
+        {
+          "line": 4692,
+          "text": "title=\"Alternar variante anatômica Masculina / Feminina\""
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/AvatarGallery.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 28,
+          "text": "void | Promise"
+        },
+        {
+          "line": 128,
+          "text": "Modelos 3D Realistas & DRACO Loader"
+        },
+        {
+          "line": 153,
+          "text": "Salvando no Perfil..."
+        },
+        {
+          "line": 158,
+          "text": "Avatar Ativado!"
+        },
+        {
+          "line": 163,
+          "text": "Definir como Avatar Ativo"
+        },
+        {
+          "line": 309,
+          "text": "Otimização de Hardware & Memória GPU"
+        },
+        {
+          "line": 494,
+          "text": "Atualizando Perfil..."
+        },
+        {
+          "line": 499,
+          "text": "Avatar Ativado com Sucesso!"
+        },
+        {
+          "line": 504,
+          "text": "Aplicar Este Avatar ao Meu Perfil"
+        }
+      ],
+      "totalStringsFound": 9
+    },
+    {
+      "filePath": "src/components/BarcodeScanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 346,
+          "text": "Tirar Foto (Lata/Pote)"
+        },
+        {
+          "line": 354,
+          "text": "Obter Foto da Galeria"
+        },
+        {
+          "line": 369,
+          "text": "Escanear Código de Barras"
+        },
+        {
+          "line": 496,
+          "text": "title=\"Capturar Foto\""
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/BloodPressureTracker.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 530,
+          "text": "placeholder=\"Ex: Em repouso, após treinar, dor de cabeça leve...\""
+        },
+        {
+          "line": 693,
+          "text": "title=\"Remover Log\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/BodyAnalyzer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 192,
+          "text": "title=\"Biometria e Sensores\""
+        },
+        {
+          "line": 203,
+          "text": "title=\"Evolução do Shape (Fotos)\""
+        },
+        {
+          "line": 356,
+          "text": "title=\"Capturar Foto\""
+        },
+        {
+          "line": 403,
+          "text": "title=\"Ouvir análise com a voz da Malu\""
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/BodySensorsMonitor.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 805,
+          "text": "95 ? 'acelerado devido à calibração estimulada' : latestSavedLog.heartRate"
+        },
+        {
+          "line": 1037,
+          "text": "title=\"Remover registro\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/BudgetPriceMonitor.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 246,
+          "text": "title=\"Ouvir análise por voz com a Chef Malu\""
+        },
+        {
+          "line": 330,
+          "text": "Ajustar Teto de Gastos"
+        },
+        {
+          "line": 370,
+          "text": "R$ 50"
+        },
+        {
+          "line": 371,
+          "text": "R$ 200"
+        },
+        {
+          "line": 372,
+          "text": "R$ 400"
+        },
+        {
+          "line": 495,
+          "text": "Aplicar Todas as Trocas"
+        },
+        {
+          "line": 506,
+          "text": "Trocas Inteligentes Recomendadas pela IA"
+        },
+        {
+          "line": 662,
+          "text": "title=\"Desfazer e voltar ao ingrediente original\""
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/components/CameraAlertModal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 109,
+          "text": "aria-label=\"Fechar modal\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/CameraAlertRulesModal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 69,
+          "text": "aria-label=\"Fechar\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/CameraAlertToast.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 122,
+          "text": "aria-label=\"Fechar notificação\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/CameraDashboard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 259,
+          "text": "title=\"Permitir notificações push nativas no celular ou navegador\""
+        },
+        {
+          "line": 262,
+          "text": "Ativar Push"
+        },
+        {
+          "line": 275,
+          "text": "aria-label=\"Alternar som\""
+        },
+        {
+          "line": 290,
+          "text": "Alertas IA"
+        },
+        {
+          "line": 302,
+          "text": "title=\"Dispara uma simulação de evento em tempo real\""
+        },
+        {
+          "line": 322,
+          "text": "title=\"Configurações de Monitoramento\""
+        },
+        {
+          "line": 323,
+          "text": "aria-label=\"Configurações\""
+        },
+        {
+          "line": 362,
+          "text": "Você atingiu o limite de"
+        },
+        {
+          "line": 425,
+          "text": "title=\"Expandir visualização\""
+        },
+        {
+          "line": 509,
+          "text": "aria-label=\"Fechar visualização expandida\""
+        },
+        {
+          "line": 529,
+          "text": "Sem sinal da câmera."
+        }
+      ],
+      "totalStringsFound": 11
+    },
+    {
+      "filePath": "src/components/CameraSetupModal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 71,
+          "text": "aria-label=\"Fechar\""
+        },
+        {
+          "line": 151,
+          "text": "Conectando ao servidor de mídia e verificando credenciais stream..."
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/ChallengeView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 349,
+          "text": "Inteligência Culinária & Gamificação Funcional"
+        },
+        {
+          "line": 363,
+          "text": "100% Calibrado para você:"
+        },
+        {
+          "line": 384,
+          "text": "Desafios Culinários com IA"
+        },
+        {
+          "line": 399,
+          "text": "Desafio Rápido de Foco"
+        },
+        {
+          "line": 444,
+          "text": "title=\"Ouvir apresentação da Chef Malu\""
+        },
+        {
+          "line": 463,
+          "text": "Progresso das Missões Culinárias"
+        },
+        {
+          "line": 616,
+          "text": "Ver Preparo"
+        },
+        {
+          "line": 633,
+          "text": "title=\"Adicionar à Lista de Compras\""
+        },
+        {
+          "line": 691,
+          "text": "Semana Sem Carne Processada"
+        },
+        {
+          "line": 704,
+          "text": "✨ Gerar Desafio Sob Medida com IA"
+        },
+        {
+          "line": 718,
+          "text": "Catálogo de Desafios Culinários"
+        },
+        {
+          "line": 769,
+          "text": "Criar Novo c/ IA"
+        },
+        {
+          "line": 859,
+          "text": "Desafio Culinário Ativo"
+        },
+        {
+          "line": 866,
+          "text": "Iniciar Este Desafio"
+        },
+        {
+          "line": 939,
+          "text": "Começar Desafio de Foco"
+        },
+        {
+          "line": 1020,
+          "text": "Registrar Meta do Dia Concluída (+100 pts)"
+        },
+        {
+          "line": 1061,
+          "text": "Chef Malu AI Studio"
+        },
+        {
+          "line": 1158,
+          "text": "Chef Malu criando receitas e missões sob medida..."
+        },
+        {
+          "line": 1163,
+          "text": "Gerar Desafio com IA Agora"
+        },
+        {
+          "line": 1236,
+          "text": "title=\"Ouvir receita com a voz da Malu\""
+        },
+        {
+          "line": 1280,
+          "text": "Modo de Preparo Passo a Passo"
+        },
+        {
+          "line": 1332,
+          "text": "Iniciar Timer"
+        },
+        {
+          "line": 1356,
+          "text": "Salvar nos Meus Favoritos"
+        }
+      ],
+      "totalStringsFound": 23
+    },
+    {
+      "filePath": "src/components/CheckoutModal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 235,
+          "text": "Redirecionando para seu painel VIP..."
+        },
+        {
+          "line": 254,
+          "text": "SSL Seguro"
+        },
+        {
+          "line": 270,
+          "text": "PIX Instantâneo"
+        },
+        {
+          "line": 285,
+          "text": "Cartão de Crédito"
+        },
+        {
+          "line": 305,
+          "text": "alt=\"QR Code PIX NutriAI\""
+        },
+        {
+          "line": 335,
+          "text": "Copiado!"
+        },
+        {
+          "line": 340,
+          "text": "Copiar"
+        },
+        {
+          "line": 357,
+          "text": "Conferindo pagamento no Banco Central..."
+        },
+        {
+          "line": 362,
+          "text": "Já fiz o PIX • Ativar Minha Assinatura"
+        },
+        {
+          "line": 463,
+          "text": "Processando autorização segura..."
+        },
+        {
+          "line": 481,
+          "text": "Garantia de 7 dias"
+        }
+      ],
+      "totalStringsFound": 11
+    },
+    {
+      "filePath": "src/components/CommunityChallenges.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 190,
+          "text": "Desafios da Semana em Destaque"
+        },
+        {
+          "line": 237,
+          "text": "Marcar Dias Concluídos:"
+        },
+        {
+          "line": 268,
+          "text": "Ranking de Membros da Comunidade"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/ConfettiCelebration.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 167,
+          "text": "0 && p.y"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/ConnectedHealthWidget.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 193,
+          "text": "title=\"Atualizar dados agora\""
+        },
+        {
+          "line": 227,
+          "text": "Dados sincronizados com sucesso com seu dispositivo!"
+        },
+        {
+          "line": 388,
+          "text": "Ajustar Fator"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/DailyTips.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 151,
+          "text": "title=\"Regerar dicas nutricionais\""
+        },
+        {
+          "line": 213,
+          "text": "title=\"Ouvir dica com a voz da Malu\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/DeliveryTracking.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 324,
+          "text": "alt=\"Entregador\""
+        },
+        {
+          "line": 388,
+          "text": "placeholder=\"Escreva um comentário opcional (ajuda no bem-estar)...\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/DiningOut.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 189,
+          "text": "title=\"Toque para falar\""
+        },
+        {
+          "line": 211,
+          "text": "Reconhecimento de voz não suportado pelo navegador. Digite abaixo."
+        },
+        {
+          "line": 224,
+          "text": "placeholder=\"Sua fala transcrita aparecerá aqui...\""
+        },
+        {
+          "line": 233,
+          "text": "title=\"Limpar transcrição\""
+        },
+        {
+          "line": 284,
+          "text": "title=\"Ouvir dica com a voz da Malu\""
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/DraggableNav.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 89,
+          "text": "= 5 && hour"
+        },
+        {
+          "line": 101,
+          "text": "= 11 && hour"
+        },
+        {
+          "line": 113,
+          "text": "21 || hour"
+        },
+        {
+          "line": 234,
+          "text": "aria-label=\"Barra de Navegação dos Módulos\""
+        },
+        {
+          "line": 260,
+          "text": "aria-label=\"Rolar para a esquerda\""
+        },
+        {
+          "line": 330,
+          "text": "aria-label=\"Rolar para a direita\""
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/components/EmotionalTracker.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 312,
+          "text": "placeholder=\"Ex: Reunião difícil, trânsito, TPM...\""
+        },
+        {
+          "line": 356,
+          "text": "Privacidade em Primeiro Lugar:"
+        },
+        {
+          "line": 495,
+          "text": "alt=\"Expressão Analisada\""
+        },
+        {
+          "line": 512,
+          "text": "title=\"Ouvir análise com a voz da Malu\""
+        },
+        {
+          "line": 698,
+          "text": "title=\"Ouvir análise com a voz da Malu\""
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/ExpertTips.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 473,
+          "text": "title=\"Dica anterior\""
+        },
+        {
+          "line": 486,
+          "text": "title=\"Próxima dica\""
+        },
+        {
+          "line": 534,
+          "text": "title=\"Ouvir dica com a voz da Malu\""
+        },
+        {
+          "line": 570,
+          "text": "Aplicado na Receita!"
+        },
+        {
+          "line": 635,
+          "text": "Aplicado!"
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/FamilyProfilesManager.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 169,
+          "text": "Gestão de Perfil Familiar & Pets"
+        },
+        {
+          "line": 194,
+          "text": "Adicionar Familiar"
+        },
+        {
+          "line": 241,
+          "text": "title=\"Remover perfil\""
+        },
+        {
+          "line": 319,
+          "text": "placeholder=\"Ex: Maria (Cônjuge) ou Rex (Dog)\""
+        },
+        {
+          "line": 336,
+          "text": "Cônjuge"
+        },
+        {
+          "line": 337,
+          "text": "Filho(a) / Criança"
+        },
+        {
+          "line": 338,
+          "text": "Idoso(a)"
+        },
+        {
+          "line": 339,
+          "text": "Pet (Cão/Gato)"
+        },
+        {
+          "line": 386,
+          "text": "placeholder=\"Ex: Amendoim, Lactose, Corante\""
+        }
+      ],
+      "totalStringsFound": 9
+    },
+    {
+      "filePath": "src/components/FeedbackSystem.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 370,
+          "text": "title=\"Configurar Volume da Voz da IA\""
+        },
+        {
+          "line": 589,
+          "text": "Feito com"
+        },
+        {
+          "line": 591,
+          "text": "para você"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/FitnessRoulette.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 398,
+          "text": "0 && p.x"
+        },
+        {
+          "line": 515,
+          "text": "title=\"Redefinir visualização\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/FoodAllergyDetector.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 580,
+          "text": "placeholder=\"Ex: Corante tartrazina, Morango...\""
+        },
+        {
+          "line": 662,
+          "text": "alt=\"Food preview\""
+        },
+        {
+          "line": 1027,
+          "text": "Carregando histórico de alergias..."
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/FoodPhotoSalesFeedback.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 172,
+          "text": "title=\"Ver Avaliação & Feedback Imediato da Imagem para Vendas\""
+        },
+        {
+          "line": 231,
+          "text": "Ajustes Imediatos para Acertar a Foto e Vender Mais:"
+        },
+        {
+          "line": 257,
+          "text": "Erro Identificado:"
+        },
+        {
+          "line": 262,
+          "text": "Correção Imediata:"
+        },
+        {
+          "line": 343,
+          "text": "Diagnóstico Imediato para Correção da Imagem e Aumento de Vendas:"
+        },
+        {
+          "line": 371,
+          "text": "Erro na foto:"
+        },
+        {
+          "line": 375,
+          "text": "Acerto imediato:"
+        }
+      ],
+      "totalStringsFound": 7
+    },
+    {
+      "filePath": "src/components/FoodWasteCalculator.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 103,
+          "text": "i.daysRemaining"
+        },
+        {
+          "line": 104,
+          "text": "0 && i.daysRemaining"
+        },
+        {
+          "line": 105,
+          "text": "3 && i.daysRemaining"
+        },
+        {
+          "line": 223,
+          "text": "Algoritmo de Desperdício Alimentar Zero"
+        },
+        {
+          "line": 341,
+          "text": "Itens com Prioridade Máxima de Consumo"
+        },
+        {
+          "line": 424,
+          "text": "Receitas Resgate Zero Desperdício Recomendadas"
+        },
+        {
+          "line": 494,
+          "text": "Ingredientes Consumidos & Removidos com Sucesso!"
+        },
+        {
+          "line": 502,
+          "text": "Marcar Ingredientes como Consumidos / Salvos"
+        },
+        {
+          "line": 516,
+          "text": "Dicas de Conservação Prolongada do Chef IA"
+        },
+        {
+          "line": 519,
+          "text": "Vegetais folhosos:"
+        },
+        {
+          "line": 520,
+          "text": "Tomates maduros:"
+        },
+        {
+          "line": 521,
+          "text": "Carnes resfriadas:"
+        }
+      ],
+      "totalStringsFound": 12
+    },
+    {
+      "filePath": "src/components/FreshnessMap.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 225,
+          "text": "title=\"Voltar para o Hortifruti\""
+        },
+        {
+          "line": 265,
+          "text": "alt=\"Fresh produce\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/GamificationCenter.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 206,
+          "text": "Progresso"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/GeminiBurnRateCard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 113,
+          "text": "Gemini API Burn Rate & Projeção Mensal"
+        },
+        {
+          "line": 125,
+          "text": "dias"
+        },
+        {
+          "line": 137,
+          "text": "Projeção Estimada de Gasto até o Fim do Mês:"
+        },
+        {
+          "line": 168,
+          "text": "Gasto Acumulado MTD:"
+        },
+        {
+          "line": 254,
+          "text": "Simulador Interativo de Teto Orçamentário (Ajustar Limite Mensal):"
+        },
+        {
+          "line": 275,
+          "text": "R$ 500"
+        },
+        {
+          "line": 276,
+          "text": "R$ 1.500 (Padrão)"
+        },
+        {
+          "line": 277,
+          "text": "R$ 3.000"
+        },
+        {
+          "line": 278,
+          "text": "R$ 5.000"
+        }
+      ],
+      "totalStringsFound": 9
+    },
+    {
+      "filePath": "src/components/GeminiSpendForecastChart.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 72,
+          "text": "Linha de Tendência Preditiva"
+        },
+        {
+          "line": 79,
+          "text": "Previsão de Gastos Futuros com a API Gemini"
+        },
+        {
+          "line": 272,
+          "text": "Linha contínua: Consumo real e média móvel acumulada"
+        },
+        {
+          "line": 276,
+          "text": "Linha pontilhada (*): Previsão para os próximos 30 dias"
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/Generator.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 298,
+          "text": "🍽️ GERAR PRATOS RÁPIDOS (1 TOQUE)"
+        },
+        {
+          "line": 339,
+          "text": "Ouvindo... (Clique p/ Concluir)"
+        },
+        {
+          "line": 344,
+          "text": "Falar Ingredientes"
+        },
+        {
+          "line": 399,
+          "text": "title=\"Ver dica de restrições alimentares\""
+        },
+        {
+          "line": 456,
+          "text": "placeholder=\"Ex: sem amendoim, refeição rápida...\""
+        },
+        {
+          "line": 515,
+          "text": "Gerar Receita Mágica"
+        },
+        {
+          "line": 609,
+          "text": "Dica Inteligente do Chef IA"
+        },
+        {
+          "line": 616,
+          "text": "title=\"Fechar Dica\""
+        },
+        {
+          "line": 683,
+          "text": "\"sem cebola\""
+        },
+        {
+          "line": 705,
+          "text": "Entendi, Começar!"
+        }
+      ],
+      "totalStringsFound": 10
+    },
+    {
+      "filePath": "src/components/GlucoseTracker.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 102,
+          "text": "= 70 && l.value"
+        },
+        {
+          "line": 221,
+          "text": "title=\"IA de Saúde Ativa\""
+        },
+        {
+          "line": 258,
+          "text": "IA PREMIUM"
+        },
+        {
+          "line": 388,
+          "text": "99 && d.value"
+        },
+        {
+          "line": 389,
+          "text": "125 || d.value"
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/GoldenWaterTip.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 101,
+          "text": "= 5 && hour"
+        },
+        {
+          "line": 102,
+          "text": "= 12 && hour"
+        },
+        {
+          "line": 108,
+          "text": "= afternoonCount && afternoonCount"
+        },
+        {
+          "line": 257,
+          "text": "title=\"Clima Ameno / Moderado (24°C - 26°C)\""
+        },
+        {
+          "line": 260,
+          "text": "Ameno"
+        },
+        {
+          "line": 269,
+          "text": "title=\"Clima Quente / Seco (>30°C)\""
+        },
+        {
+          "line": 272,
+          "text": "Quente (+450ml)"
+        },
+        {
+          "line": 281,
+          "text": "title=\"Clima Fresco / Inverno (<20°C)\""
+        },
+        {
+          "line": 284,
+          "text": "Fresco"
+        },
+        {
+          "line": 397,
+          "text": "Regra de Ouro:"
+        }
+      ],
+      "totalStringsFound": 10
+    },
+    {
+      "filePath": "src/components/HabitTracker.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 482,
+          "text": "placeholder=\"Quantidade personalizada\""
+        },
+        {
+          "line": 547,
+          "text": "Frequência"
+        },
+        {
+          "line": 685,
+          "text": "placeholder=\"Ex: O filtro de barro tradicional de cerâmica realmente limpa bem a água? Como aumentar o pH da água mineral em casa?\""
+        },
+        {
+          "line": 758,
+          "text": "title=\"Remover registro\""
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/HeaderAvatar.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 196,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 260,
+          "text": "Acessar Perfil Completo"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/HealthIntegrationSettings.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 715,
+          "text": "Ouvir Chef Malu"
+        },
+        {
+          "line": 761,
+          "text": "Leitura de passos diários (fitness.activity.read)"
+        },
+        {
+          "line": 765,
+          "text": "Leitura de calorias ativas queimadas"
+        },
+        {
+          "line": 769,
+          "text": "Frequência cardíaca média de repouso"
+        },
+        {
+          "line": 804,
+          "text": "Autorizando..."
+        },
+        {
+          "line": 807,
+          "text": "Autorizar & Sincronizar"
+        },
+        {
+          "line": 848,
+          "text": "Contagem de Passos (HKQuantityTypeIdentifierStepCount)"
+        },
+        {
+          "line": 852,
+          "text": "Energia Ativa Queimada (HKQuantityTypeIdentifierActiveEnergyBurned)"
+        },
+        {
+          "line": 856,
+          "text": "Distância Percorrida a Pé"
+        },
+        {
+          "line": 882,
+          "text": "Conectando..."
+        },
+        {
+          "line": 885,
+          "text": "Permitir Acesso HealthKit"
+        }
+      ],
+      "totalStringsFound": 11
+    },
+    {
+      "filePath": "src/components/JourneyAnalyticsDashboard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 835,
+          "text": "Registros de Pesagem Recentes"
+        },
+        {
+          "line": 841,
+          "text": "Nenhuma pesagem manual adicionada ainda. Clique em \"Nova Pesagem\" para registrar seu peso oficial."
+        },
+        {
+          "line": 980,
+          "text": "Registros Recentes de Hidratação"
+        },
+        {
+          "line": 986,
+          "text": "Nenhum copo de água registrado hoje ainda. Clique em \"+ Água\" ou nos botões rápidos para registrar."
+        },
+        {
+          "line": 1152,
+          "text": "placeholder=\"Ex: 72.5\""
+        },
+        {
+          "line": 1167,
+          "text": "placeholder=\"Ex: 18.5\""
+        },
+        {
+          "line": 1192,
+          "text": "placeholder=\"Ex: Pesagem matinal em jejum\""
+        },
+        {
+          "line": 1261,
+          "text": "placeholder=\"Ou digite o valor exato em ml\""
+        },
+        {
+          "line": 1275,
+          "text": "Filtrada"
+        },
+        {
+          "line": 1276,
+          "text": "Mineral"
+        },
+        {
+          "line": 1277,
+          "text": "Alcalina"
+        },
+        {
+          "line": 1278,
+          "text": "Água de Coco"
+        },
+        {
+          "line": 1279,
+          "text": "Torneira"
+        },
+        {
+          "line": 1280,
+          "text": "Outra"
+        }
+      ],
+      "totalStringsFound": 14
+    },
+    {
+      "filePath": "src/components/JuiceGenerator.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 76,
+          "text": "placeholder=\"Ex: abacaxi com manga, couve, hortelã...\""
+        },
+        {
+          "line": 146,
+          "text": "title=\"Ouvir assistente com a voz da Malu\""
+        },
+        {
+          "line": 179,
+          "text": "title=\"Ampliar foto em tela cheia\""
+        },
+        {
+          "line": 212,
+          "text": "title=\"Ouvir receita completa com a voz da Malu\""
+        },
+        {
+          "line": 298,
+          "text": "title=\"Fechar\""
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/LiveAssistant.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 52,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 55,
+          "text": "= 12 && currentHour"
+        },
+        {
+          "line": 64,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 74,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 77,
+          "text": "= 12 && currentHour"
+        },
+        {
+          "line": 85,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 88,
+          "text": "= 12 && currentHour"
+        },
+        {
+          "line": 97,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 100,
+          "text": "= 12 && currentHour"
+        },
+        {
+          "line": 109,
+          "text": "= 5 && currentHour"
+        },
+        {
+          "line": 112,
+          "text": "= 12 && currentHour"
+        }
+      ],
+      "totalStringsFound": 11
+    },
+    {
+      "filePath": "src/components/LockScreen.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 85,
+          "text": "title=\"Sair da Conta / Voltar para Login\""
+        },
+        {
+          "line": 88,
+          "text": "Sair da Conta"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/Login.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 733,
+          "text": "Continuar com o Google"
+        },
+        {
+          "line": 746,
+          "text": "Continuar com o Facebook"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/MacronutrientAnalyticsView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 390,
+          "text": "title=\"Exportar dados de macronutrientes em CSV\""
+        },
+        {
+          "line": 393,
+          "text": "Exportar CSV"
+        },
+        {
+          "line": 400,
+          "text": "title=\"Atualizar Logs do Firestore\""
+        },
+        {
+          "line": 758,
+          "text": "Proteínas"
+        },
+        {
+          "line": 762,
+          "text": "Carboidratos"
+        },
+        {
+          "line": 766,
+          "text": "Gorduras"
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/components/MagicRecipeFAB.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 68,
+          "text": "aria-label=\"Assistente Culinário e Receitas Mágicas\""
+        },
+        {
+          "line": 69,
+          "text": "title=\"Assistente Culinário (Receitas Rápidas & Fit)\""
+        },
+        {
+          "line": 155,
+          "text": "Ou toque aqui para Gerar 3 Pratos Rápidos"
+        },
+        {
+          "line": 172,
+          "text": "title=\"Ouvir receita com a voz da Malu\""
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/MaluVoiceTestView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 33,
+          "text": "Ouvir"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/Marketplace.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 286,
+          "text": "Catálogo de Produtos"
+        },
+        {
+          "line": 298,
+          "text": "Organizador Inteligente de Listas"
+        },
+        {
+          "line": 369,
+          "text": "Abrir Organizador"
+        },
+        {
+          "line": 609,
+          "text": "placeholder=\"Buscar fruta, legume, produtor...\""
+        },
+        {
+          "line": 924,
+          "text": "Subtotal"
+        },
+        {
+          "line": 928,
+          "text": "Taxa de Entrega"
+        },
+        {
+          "line": 934,
+          "text": "Total a Pagar"
+        },
+        {
+          "line": 1092,
+          "text": "placeholder=\"Escreva sua opinião...\""
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/components/MealPlanCalendar.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 442,
+          "text": "title=\"Consumo Real (Hoje)\""
+        },
+        {
+          "line": 752,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 1046,
+          "text": "aria-label=\"Fechar\""
+        },
+        {
+          "line": 1062,
+          "text": "alt=\"Card Exportado\""
+        },
+        {
+          "line": 1066,
+          "text": "Dica:"
+        },
+        {
+          "line": 1116,
+          "text": "Total Estimado"
+        },
+        {
+          "line": 1142,
+          "text": "Baixar Arquivo"
+        },
+        {
+          "line": 1151,
+          "text": "Abrir Imagem"
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/components/MedicinalHerbs.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 382,
+          "text": "exclusivamente educativo e informativo"
+        },
+        {
+          "line": 405,
+          "text": "placeholder=\"Pesquise por nome, sintoma, propriedades, família botânica...\""
+        },
+        {
+          "line": 421,
+          "text": "📍 Todos os Biomas"
+        },
+        {
+          "line": 436,
+          "text": "🌿 Todos os Alvos Terapêuticos"
+        },
+        {
+          "line": 604,
+          "text": "Sugestões Rápidas"
+        },
+        {
+          "line": 703,
+          "text": "placeholder=\"Pergunte sobre chás, dosagens, contraindicações ou plantio...\""
+        },
+        {
+          "line": 1117,
+          "text": "alt=\"Zoomed plant view\""
+        }
+      ],
+      "totalStringsFound": 7
+    },
+    {
+      "filePath": "src/components/MuscleHighlightsLegend.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 42,
+          "text": "aria-label=\"Legenda de Músculos Ativados\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/Notebook.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 209,
+          "text": "Total:"
+        },
+        {
+          "line": 214,
+          "text": "Suas notas sincronizam instantaneamente na nuvem com segurança."
+        },
+        {
+          "line": 318,
+          "text": "title=\"Editar nota\""
+        },
+        {
+          "line": 325,
+          "text": "title=\"Excluir nota\""
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/NutriAiExerciseDetailCard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 167,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 351,
+          "text": "SYS.ANATOMY//01"
+        },
+        {
+          "line": 377,
+          "text": "title=\"Destacar todos os músculos ativos no atlas 3D\""
+        },
+        {
+          "line": 393,
+          "text": "title=\"Destacar apenas músculo primário em vermelho neon\""
+        },
+        {
+          "line": 409,
+          "text": "title=\"Destacar apenas músculos secundários (sinergistas) em âmbar\""
+        },
+        {
+          "line": 510,
+          "text": "DADOS DO TREINO:"
+        },
+        {
+          "line": 565,
+          "text": "title=\"Diminuir série\""
+        },
+        {
+          "line": 576,
+          "text": "title=\"Aumentar série\""
+        },
+        {
+          "line": 597,
+          "text": "title=\"Diminuir repetições\""
+        },
+        {
+          "line": 608,
+          "text": "title=\"Aumentar repetições\""
+        },
+        {
+          "line": 629,
+          "text": "title=\"Diminuir peso\""
+        },
+        {
+          "line": 640,
+          "text": "title=\"Aumentar peso\""
+        },
+        {
+          "line": 696,
+          "text": "title=\"Ver demonstração e ouvir explicação com a voz Aoede da Malu\""
+        },
+        {
+          "line": 726,
+          "text": "Powered by"
+        }
+      ],
+      "totalStringsFound": 14
+    },
+    {
+      "filePath": "src/components/NutritionalComparisonChart.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 293,
+          "text": "Diferença:"
+        },
+        {
+          "line": 465,
+          "text": "title=\"Ouvir análise da nutricionista Malu\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/NutritionalReportPDF.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 225,
+          "text": "Dados de Resumo do Paciente:"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/OfflineIndicator.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 39,
+          "text": "Modo Offline ativo"
+        },
+        {
+          "line": 46,
+          "text": "title=\"Abrir receitas salvas para preparo offline\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/OfflineRecipesModal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 136,
+          "text": "title=\"Fechar janela\""
+        },
+        {
+          "line": 174,
+          "text": "placeholder=\"Buscar entre receitas salvas offline por nome ou ingrediente...\""
+        },
+        {
+          "line": 238,
+          "text": "title=\"Copiar texto da receita\""
+        },
+        {
+          "line": 249,
+          "text": "title=\"Remover do armazenamento offline\""
+        },
+        {
+          "line": 256,
+          "text": "Ver Passo a Passo"
+        },
+        {
+          "line": 283,
+          "text": "Como salvar:"
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/components/OfflineSyncBanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 110,
+          "text": "Todas as alterações salvas offline foram sincronizadas com sucesso!"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/PWAInstallButton.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 40,
+          "text": "Instalado com sucesso!"
+        },
+        {
+          "line": 56,
+          "text": "title=\"Instalar NutriAI no seu dispositivo\""
+        },
+        {
+          "line": 75,
+          "text": "Instalar no Celular"
+        },
+        {
+          "line": 96,
+          "text": "Instalar Agora"
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/PantryDepletionPredictor.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 133,
+          "text": "title=\"Ouvir diagnóstico da despensa com a Chef Malu\""
+        },
+        {
+          "line": 344,
+          "text": "Já está na Lista"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/PantryScanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 428,
+          "text": "i.daysRemaining"
+        },
+        {
+          "line": 460,
+          "text": "Sugerir Receitas Anti-Desperdício"
+        },
+        {
+          "line": 521,
+          "text": "Escanear Código"
+        },
+        {
+          "line": 534,
+          "text": "Entrada Manual"
+        },
+        {
+          "line": 547,
+          "text": "Receitas Anti-Desperdício"
+        },
+        {
+          "line": 565,
+          "text": "Índice de Desperdício"
+        },
+        {
+          "line": 578,
+          "text": "Chef Malu (Dúvidas de Cozinha)"
+        },
+        {
+          "line": 602,
+          "text": "Todos os locais"
+        },
+        {
+          "line": 603,
+          "text": "Geladeira"
+        },
+        {
+          "line": 604,
+          "text": "Despensa Seca"
+        },
+        {
+          "line": 605,
+          "text": "Freezer"
+        },
+        {
+          "line": 631,
+          "text": "Escanear Código de Barras"
+        },
+        {
+          "line": 645,
+          "text": "3 && item.daysRemaining"
+        },
+        {
+          "line": 719,
+          "text": "title=\"Remover item da despensa\""
+        },
+        {
+          "line": 759,
+          "text": "Reiniciar Câmera"
+        },
+        {
+          "line": 785,
+          "text": "placeholder=\"Ex: 7891000100103\""
+        },
+        {
+          "line": 847,
+          "text": "Despensa Seca"
+        },
+        {
+          "line": 848,
+          "text": "Geladeira"
+        },
+        {
+          "line": 849,
+          "text": "Freezer"
+        },
+        {
+          "line": 873,
+          "text": "Salvar na Minha Despensa"
+        },
+        {
+          "line": 941,
+          "text": "placeholder=\"Ex: Peito de Frango, Iogurte Grego, Tomates, Macarrão\""
+        },
+        {
+          "line": 956,
+          "text": "placeholder=\"Ex: 500g, 2 potes, 1 maço\""
+        },
+        {
+          "line": 987,
+          "text": "Despensa Seca / Armário"
+        },
+        {
+          "line": 988,
+          "text": "Geladeira"
+        },
+        {
+          "line": 989,
+          "text": "Freezer / Congelador"
+        },
+        {
+          "line": 1036,
+          "text": "Adicionar à Despensa"
+        },
+        {
+          "line": 1062,
+          "text": "Gerar Novas Receitas"
+        },
+        {
+          "line": 1199,
+          "text": "Dica do Chef:"
+        },
+        {
+          "line": 1239,
+          "text": "Cozinhar com Modo Cozinha"
+        },
+        {
+          "line": 1246,
+          "text": "title=\"Dar baixa nos ingredientes utilizados da despensa\""
+        }
+      ],
+      "totalStringsFound": 30
+    },
+    {
+      "filePath": "src/components/PartnerBanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 434,
+          "text": "title=\"Música saudável & alegre de culinária e preparo (Acústico NutriAI)\""
+        },
+        {
+          "line": 446,
+          "text": "title=\"Frequências de relaxamento, digestão consciente e foco\""
+        },
+        {
+          "line": 463,
+          "text": "title=\"Ajustar Volume\""
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/PartnerPortal.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 601,
+          "text": "title=\"Alternar indicador de presença para teste em tempo real\""
+        },
+        {
+          "line": 895,
+          "text": "placeholder=\"Pesquisar frutas, legumes, combos...\""
+        },
+        {
+          "line": 905,
+          "text": "Todas Categorias"
+        },
+        {
+          "line": 906,
+          "text": "Frutas"
+        },
+        {
+          "line": 907,
+          "text": "Verduras"
+        },
+        {
+          "line": 908,
+          "text": "Legumes"
+        },
+        {
+          "line": 909,
+          "text": "Kits Saudáveis"
+        },
+        {
+          "line": 910,
+          "text": "Cestas"
+        },
+        {
+          "line": 970,
+          "text": "title=\"Editar Produto\""
+        },
+        {
+          "line": 981,
+          "text": "title=\"Excluir Produto\""
+        },
+        {
+          "line": 1179,
+          "text": "Faturamento 100% livre de comissões"
+        },
+        {
+          "line": 1183,
+          "text": "Catálogo ilimitado de hortifruti"
+        },
+        {
+          "line": 1187,
+          "text": "Selo de Loja Parceira Verificada"
+        },
+        {
+          "line": 1191,
+          "text": "Sem fidelidade — Cancele quando quiser"
+        },
+        {
+          "line": 1257,
+          "text": "Prioridade no raio de busca por proximidade"
+        },
+        {
+          "line": 1261,
+          "text": "Faturamento 100% livre de comissão"
+        },
+        {
+          "line": 1265,
+          "text": "Economia de R$ 299,80 ao ano"
+        },
+        {
+          "line": 1323,
+          "text": "Sem custo se não houver vendas"
+        },
+        {
+          "line": 1327,
+          "text": "Ideal para testar a plataforma"
+        },
+        {
+          "line": 1331,
+          "text": "Repasse com desconto automático"
+        },
+        {
+          "line": 1335,
+          "text": "Migre para plano fixo a qualquer momento"
+        },
+        {
+          "line": 1388,
+          "text": "R$ 1.000"
+        },
+        {
+          "line": 1389,
+          "text": "R$ 15.000"
+        },
+        {
+          "line": 1390,
+          "text": "R$ 30.000"
+        },
+        {
+          "line": 1452,
+          "text": "placeholder=\"Sacolão do Bairro...\""
+        },
+        {
+          "line": 1462,
+          "text": "placeholder=\"Pedro Souza...\""
+        },
+        {
+          "line": 1484,
+          "text": "placeholder=\"sacolao@email.com\""
+        },
+        {
+          "line": 1505,
+          "text": "placeholder=\"30-45 min\""
+        },
+        {
+          "line": 1516,
+          "text": "placeholder=\"Av. Paulista, 1000 - Bela Vista\""
+        },
+        {
+          "line": 1609,
+          "text": "title=\"Ouvir instrução por voz\""
+        },
+        {
+          "line": 1625,
+          "text": "placeholder=\"Ex: Hortifruti do Vale\""
+        },
+        {
+          "line": 1635,
+          "text": "placeholder=\"Nome completo\""
+        },
+        {
+          "line": 1697,
+          "text": "placeholder=\"Rua, número, bairro\""
+        },
+        {
+          "line": 1796,
+          "text": "1. Fotos Reais e Nítidas"
+        },
+        {
+          "line": 1806,
+          "text": "2. Categorização Precisa"
+        },
+        {
+          "line": 1809,
+          "text": "Frutas"
+        },
+        {
+          "line": 1816,
+          "text": "3. Modalidade (kg vs un)"
+        },
+        {
+          "line": 1819,
+          "text": "Quilo (kg)"
+        },
+        {
+          "line": 2289,
+          "text": "placeholder=\"Ex: Alface Americana\""
+        },
+        {
+          "line": 2311,
+          "text": "Quilo (kg)"
+        },
+        {
+          "line": 2312,
+          "text": "Unidade"
+        },
+        {
+          "line": 2313,
+          "text": "Bandeja"
+        },
+        {
+          "line": 2314,
+          "text": "Cesta"
+        },
+        {
+          "line": 2315,
+          "text": "Kit / Combo"
+        },
+        {
+          "line": 2326,
+          "text": "Frutas"
+        },
+        {
+          "line": 2327,
+          "text": "Verduras"
+        },
+        {
+          "line": 2328,
+          "text": "Legumes"
+        },
+        {
+          "line": 2329,
+          "text": "Kits Saudáveis"
+        },
+        {
+          "line": 2330,
+          "text": "Cestas"
+        },
+        {
+          "line": 2362,
+          "text": "placeholder=\"Fale mais sobre a origem e benefícios...\""
+        }
+      ],
+      "totalStringsFound": 50
+    },
+    {
+      "filePath": "src/components/PersonalTrainer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 1015,
+          "text": "title=\"Abrir Card de Detalhes do Exercício NutriAi\""
+        },
+        {
+          "line": 1018,
+          "text": "Detalhes do Exercício"
+        },
+        {
+          "line": 1034,
+          "text": "Zoom Biomecânico Ativo"
+        },
+        {
+          "line": 1052,
+          "text": "Visão Lateral Sagital"
+        },
+        {
+          "line": 1319,
+          "text": "title=\"Ver Tutorial\""
+        },
+        {
+          "line": 1328,
+          "text": "title=\"Concluir O Movimento\""
+        },
+        {
+          "line": 1336,
+          "text": "title=\"Pular\""
+        }
+      ],
+      "totalStringsFound": 7
+    },
+    {
+      "filePath": "src/components/PersonalizationWizard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 147,
+          "text": "placeholder=\"Ex: Trabalho das 8h às 18h, treino musculação às 6h, almoço em 30 min.\""
+        },
+        {
+          "line": 184,
+          "text": "placeholder=\"Ex: Intolerante a lactose, não gosto de peixe, prefiro frango.\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/PhotoEvolution.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 353,
+          "text": "alt=\"Evolução\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/PlateAnalyzer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 513,
+          "text": "Scanner IA"
+        },
+        {
+          "line": 525,
+          "text": "Compartilhar Prato"
+        },
+        {
+          "line": 567,
+          "text": "Câmera ao Vivo"
+        },
+        {
+          "line": 575,
+          "text": "Carregar da Galeria"
+        },
+        {
+          "line": 643,
+          "text": "title=\"Capturar Foto\""
+        },
+        {
+          "line": 660,
+          "text": "alt=\"Prato em análise\""
+        },
+        {
+          "line": 679,
+          "text": "NutriVision IA • Em Tempo Real"
+        },
+        {
+          "line": 802,
+          "text": "title=\"Ouvir parecer com a voz da Malu\""
+        },
+        {
+          "line": 817,
+          "text": "Compartilhar Prato"
+        },
+        {
+          "line": 825,
+          "text": "Nova Foto"
+        },
+        {
+          "line": 1094,
+          "text": "100% Personalizado"
+        },
+        {
+          "line": 1106,
+          "text": "Estilo & Formato do Card"
+        },
+        {
+          "line": 1176,
+          "text": "Card (4:5)"
+        },
+        {
+          "line": 1188,
+          "text": "Story (9:16)"
+        },
+        {
+          "line": 1200,
+          "text": "Feed (1:1)"
+        },
+        {
+          "line": 1220,
+          "text": "NutriScore"
+        },
+        {
+          "line": 1232,
+          "text": "Macronutrientes"
+        },
+        {
+          "line": 1244,
+          "text": "Alimentos"
+        },
+        {
+          "line": 1256,
+          "text": "Parecer IA"
+        },
+        {
+          "line": 1300,
+          "text": "Baixar PNG"
+        },
+        {
+          "line": 1309,
+          "text": "Voltar ao Scanner de Prato"
+        }
+      ],
+      "totalStringsFound": 21
+    },
+    {
+      "filePath": "src/components/Pricing.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 144,
+          "text": "Membro Ativo"
+        },
+        {
+          "line": 161,
+          "text": "Assinatura de Alta Performance"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/ProductComparer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 604,
+          "text": "placeholder=\"Ou digite o nome...\""
+        },
+        {
+          "line": 665,
+          "text": "placeholder=\"Ou digite o nome...\""
+        },
+        {
+          "line": 795,
+          "text": "Resumo do Veredito:"
+        },
+        {
+          "line": 1220,
+          "text": "Carregando histórico de comparações..."
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/Profile.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 714,
+          "text": "Área Admin: Biblioteca Científica"
+        },
+        {
+          "line": 752,
+          "text": "title=\"Carregar nova foto da câmera ou galeria\""
+        },
+        {
+          "line": 786,
+          "text": "Trocar Foto"
+        },
+        {
+          "line": 796,
+          "text": "Avatar 3D (DRACO)"
+        },
+        {
+          "line": 805,
+          "text": "Fotos 2D"
+        },
+        {
+          "line": 812,
+          "text": "title=\"Inserir link da foto\""
+        },
+        {
+          "line": 815,
+          "text": "URL"
+        },
+        {
+          "line": 823,
+          "text": "title=\"Remover foto atual\""
+        },
+        {
+          "line": 826,
+          "text": "Remover"
+        },
+        {
+          "line": 929,
+          "text": "Selecione..."
+        },
+        {
+          "line": 930,
+          "text": "Feminino"
+        },
+        {
+          "line": 931,
+          "text": "Masculino"
+        },
+        {
+          "line": 932,
+          "text": "Outro / Prefiro não informar"
+        },
+        {
+          "line": 1029,
+          "text": "Selecione..."
+        },
+        {
+          "line": 1030,
+          "text": "Sedentário (pouco ou nenhum exercício)"
+        },
+        {
+          "line": 1031,
+          "text": "Leve (exercício leve 1-3 dias/semana)"
+        },
+        {
+          "line": 1032,
+          "text": "Moderado (exercício moderado 3-5 dias/semana)"
+        },
+        {
+          "line": 1033,
+          "text": "Intenso (exercício forte 6-7 dias/semana)"
+        },
+        {
+          "line": 1046,
+          "text": "Selecione..."
+        },
+        {
+          "line": 1047,
+          "text": "Pele Clara"
+        },
+        {
+          "line": 1048,
+          "text": "Pele Média / Morena Clara"
+        },
+        {
+          "line": 1049,
+          "text": "Pele Parda / Morena Escura"
+        },
+        {
+          "line": 1050,
+          "text": "Pele Negra"
+        },
+        {
+          "line": 1063,
+          "text": "Selecione..."
+        },
+        {
+          "line": 1064,
+          "text": "Preto"
+        },
+        {
+          "line": 1065,
+          "text": "Castanho Escuro"
+        },
+        {
+          "line": 1066,
+          "text": "Castanho Claro"
+        },
+        {
+          "line": 1067,
+          "text": "Loiro"
+        },
+        {
+          "line": 1068,
+          "text": "Ruivo"
+        },
+        {
+          "line": 1069,
+          "text": "Grisalho / Branco"
+        },
+        {
+          "line": 1070,
+          "text": "Careca / Sem cabelo"
+        },
+        {
+          "line": 1085,
+          "text": "Selecione..."
+        },
+        {
+          "line": 1086,
+          "text": "Ectomorfo (Magro, dificuldade em ganhar peso)"
+        },
+        {
+          "line": 1087,
+          "text": "Mesomorfo (Atlético, facilidade em ganhar/perder)"
+        },
+        {
+          "line": 1088,
+          "text": "Endomorfo (Largo, facilidade em ganhar peso)"
+        },
+        {
+          "line": 1101,
+          "text": "Selecione..."
+        },
+        {
+          "line": 1102,
+          "text": "Lento"
+        },
+        {
+          "line": 1103,
+          "text": "Moderado"
+        },
+        {
+          "line": 1104,
+          "text": "Acelerado"
+        },
+        {
+          "line": 1118,
+          "text": "placeholder=\"Ex: 2500\""
+        },
+        {
+          "line": 1131,
+          "text": "placeholder=\"Ex: Trabalho das 08h às 18h, treino musculação às 06h, durmo às 22h. Tenho pouco tempo para o almoço.\""
+        },
+        {
+          "line": 1145,
+          "text": "placeholder=\"Ex: Vegano, Sem glúten, Sem lactose\""
+        },
+        {
+          "line": 1158,
+          "text": "placeholder=\"Ex: Amendoim, Frutos do mar, Leite de vaca\""
+        },
+        {
+          "line": 1171,
+          "text": "placeholder=\"Ex: Emagrecimento saudável, Ganho de massa magra, Longevidade\""
+        },
+        {
+          "line": 1184,
+          "text": "placeholder=\"Ex: Forno, Micro-ondas, Air Fryer, Liquidificador\""
+        },
+        {
+          "line": 1268,
+          "text": "title=\"Disparar notificação nativa de teste pelo Service Worker\""
+        },
+        {
+          "line": 1424,
+          "text": "Lembrete Matinal de Metas"
+        },
+        {
+          "line": 1443,
+          "text": "Revisão Noturna de Hábitos"
+        },
+        {
+          "line": 1465,
+          "text": "Agendamento PWA Nativo:"
+        },
+        {
+          "line": 1565,
+          "text": "Testar Validação de Biometria no Aparelho"
+        },
+        {
+          "line": 1685,
+          "text": "title=\"Iniciar tour passo a passo com Intro.js\""
+        },
+        {
+          "line": 1688,
+          "text": "Tour Intro.js"
+        },
+        {
+          "line": 1700,
+          "text": "title=\"Iniciar tour com setas visuais\""
+        },
+        {
+          "line": 1703,
+          "text": "Tour com Setas"
+        },
+        {
+          "line": 1738,
+          "text": "title=\"Abrir Painel Administrativo do Banco de Dados\""
+        },
+        {
+          "line": 1741,
+          "text": "Abrir Admin Dashboard"
+        },
+        {
+          "line": 1908,
+          "text": "placeholder=\"https://...\""
+        },
+        {
+          "line": 1948,
+          "text": "Personalização de Avatar Biomecânico 3D"
+        }
+      ],
+      "totalStringsFound": 58
+    },
+    {
+      "filePath": "src/components/QuickDishes.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 235,
+          "text": "= 5 && hour"
+        },
+        {
+          "line": 236,
+          "text": "= 11 && hour"
+        },
+        {
+          "line": 237,
+          "text": "= 15 && hour"
+        },
+        {
+          "line": 405,
+          "text": "title=\"Fechar painel\""
+        },
+        {
+          "line": 673,
+          "text": "Almoço Registrado no Banco!"
+        },
+        {
+          "line": 678,
+          "text": "Registrar Almoço no Banco (+30 XP)"
+        },
+        {
+          "line": 745,
+          "text": "title=\"Imprimir Receita Limpa\""
+        },
+        {
+          "line": 755,
+          "text": "title=\"Fechar Receita do Prato\""
+        },
+        {
+          "line": 871,
+          "text": "Comprar"
+        },
+        {
+          "line": 882,
+          "text": "Expandir"
+        },
+        {
+          "line": 908,
+          "text": "GERAR OUTRAS 3 OPÇÕES"
+        },
+        {
+          "line": 918,
+          "text": "Segurança & Precisão NutriAI:"
+        },
+        {
+          "line": 996,
+          "text": "Tempo de Preparo:"
+        },
+        {
+          "line": 1000,
+          "text": "Porção recomendada:"
+        },
+        {
+          "line": 1008,
+          "text": "Ingredientes (com quantidades)"
+        },
+        {
+          "line": 1050,
+          "text": "Modo de Preparo Passo a Passo"
+        },
+        {
+          "line": 1099,
+          "text": "Anterior"
+        },
+        {
+          "line": 1118,
+          "text": "Todas as etapas prontas!"
+        },
+        {
+          "line": 1129,
+          "text": "Substituições Possíveis & Dicas do Chef"
+        },
+        {
+          "line": 1175,
+          "text": "Salvar Lista"
+        },
+        {
+          "line": 1201,
+          "text": "Compartilhar"
+        },
+        {
+          "line": 1214,
+          "text": "title=\"Imprimir receita do prato para cozinhar\""
+        },
+        {
+          "line": 1218,
+          "text": "Imprimir"
+        }
+      ],
+      "totalStringsFound": 23
+    },
+    {
+      "filePath": "src/components/RecipeCard.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 1099,
+          "text": "title=\"Fonte Normal (18px)\""
+        },
+        {
+          "line": 1109,
+          "text": "title=\"Fonte Grande (20px)\""
+        },
+        {
+          "line": 1119,
+          "text": "title=\"Fonte Extra Grande (24px)\""
+        },
+        {
+          "line": 1129,
+          "text": "title=\"Fonte Gigante (30px)\""
+        },
+        {
+          "line": 1143,
+          "text": "title=\"Preto e Branco / Alto Contraste\""
+        },
+        {
+          "line": 1153,
+          "text": "title=\"Amarelo sobre Preto (Baixa Visão)\""
+        },
+        {
+          "line": 1163,
+          "text": "title=\"Suave Esmeralda\""
+        },
+        {
+          "line": 1184,
+          "text": "Salvo Offline"
+        },
+        {
+          "line": 1189,
+          "text": "Salvar para Offline"
+        },
+        {
+          "line": 1199,
+          "text": "title=\"Imprimir receita para cozinha (formato limpo de folha)\""
+        },
+        {
+          "line": 1203,
+          "text": "Imprimir"
+        },
+        {
+          "line": 1211,
+          "text": "title=\"Voltar ao layout normal\""
+        },
+        {
+          "line": 1214,
+          "text": "Sair da Leitura"
+        },
+        {
+          "line": 1291,
+          "text": "Ouvir Receita Inteira"
+        },
+        {
+          "line": 1304,
+          "text": "1. Lista de Ingredientes"
+        },
+        {
+          "line": 1321,
+          "text": "title=\"Ouvir apenas os ingredientes\""
+        },
+        {
+          "line": 1376,
+          "text": "2. Modo de Preparo Passo a Passo"
+        },
+        {
+          "line": 1566,
+          "text": "Passo Anterior"
+        },
+        {
+          "line": 1572,
+          "text": "title=\"Recomeçar do primeiro passo\""
+        },
+        {
+          "line": 1595,
+          "text": "Todas as etapas reveladas! Bom preparo! 🎉"
+        },
+        {
+          "line": 1610,
+          "text": "Voltar ao Modo Normal"
+        },
+        {
+          "line": 1623,
+          "text": "Subir ao Topo"
+        },
+        {
+          "line": 1752,
+          "text": "title=\"Cancelar lembrete agendado\""
+        },
+        {
+          "line": 1825,
+          "text": "title=\"Ativar Modo de Leitura acessível (alto contraste e fontes ampliadas)\""
+        },
+        {
+          "line": 1829,
+          "text": "Modo de Leitura"
+        },
+        {
+          "line": 1847,
+          "text": "Salvo para Offline"
+        },
+        {
+          "line": 1852,
+          "text": "Salvar para Offline"
+        },
+        {
+          "line": 1862,
+          "text": "title=\"Imprimir receita formatada especificamente para papel ou salvar como PDF\""
+        },
+        {
+          "line": 1866,
+          "text": "Imprimir Receita"
+        },
+        {
+          "line": 1993,
+          "text": "title=\"Ajuda de comandos\""
+        },
+        {
+          "line": 2003,
+          "text": "title=\"Sair do modo cozinha\""
+        },
+        {
+          "line": 2066,
+          "text": "Próximo Passo"
+        },
+        {
+          "line": 2077,
+          "text": "Passo Anterior"
+        },
+        {
+          "line": 2086,
+          "text": "Repetir Passo"
+        },
+        {
+          "line": 2096,
+          "text": "Silenciar"
+        },
+        {
+          "line": 2219,
+          "text": "title=\"Ouvir este passo\""
+        },
+        {
+          "line": 2252,
+          "text": "Passo Anterior"
+        },
+        {
+          "line": 2258,
+          "text": "title=\"Recomeçar do primeiro passo\""
+        },
+        {
+          "line": 2281,
+          "text": "Todas as etapas reveladas! Bom apetite! 🎉"
+        },
+        {
+          "line": 2796,
+          "text": "Seu Comentário"
+        },
+        {
+          "line": 2806,
+          "text": "placeholder=\"Excelente prato! Recomendo fazer...\""
+        },
+        {
+          "line": 2923,
+          "text": "aria-label=\"Fechar\""
+        },
+        {
+          "line": 2939,
+          "text": "alt=\"Card Exportado\""
+        },
+        {
+          "line": 2943,
+          "text": "Dica:"
+        },
+        {
+          "line": 3025,
+          "text": "Alimentação Saudável"
+        },
+        {
+          "line": 3047,
+          "text": "Baixar Arquivo"
+        },
+        {
+          "line": 3056,
+          "text": "Abrir"
+        },
+        {
+          "line": 3076,
+          "text": "Copiado!"
+        },
+        {
+          "line": 3081,
+          "text": "Copiar Texto"
+        },
+        {
+          "line": 3089,
+          "text": "title=\"Imprimir receita em folha limpa para cozinhar\""
+        },
+        {
+          "line": 3092,
+          "text": "Imprimir"
+        }
+      ],
+      "totalStringsFound": 51
+    },
+    {
+      "filePath": "src/components/RecipeStepTimer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 270,
+          "text": "title=\"Subtrair 1 minuto\""
+        },
+        {
+          "line": 279,
+          "text": "title=\"Adicionar 1 minuto\""
+        },
+        {
+          "line": 311,
+          "text": "title=\"Reiniciar timer\""
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/ResultPrediction.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 115,
+          "text": "title=\"Ouvir mensagem com a voz da Malu\""
+        },
+        {
+          "line": 207,
+          "text": "Importante:"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/Scanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 163,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 231,
+          "text": "title=\"Tirar Foto\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/ScientificLibraryAdmin.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 188,
+          "text": "placeholder=\"Buscar fontes...\""
+        },
+        {
+          "line": 228,
+          "text": "Nenhum documento encontrado na base."
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/SecuritySuite.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 591,
+          "text": "O aplicativo está rodando em modo offline com banco local. Ative as chaves no painel do AI Studio para que as auditorias ocorram contra a instância real do Supabase."
+        },
+        {
+          "line": 686,
+          "text": "title=\"Recarregar logs\""
+        },
+        {
+          "line": 695,
+          "text": "title=\"Limpar tabela\""
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/components/ShoppingListView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 397,
+          "text": "Custo Total Estimado:"
+        },
+        {
+          "line": 403,
+          "text": "Participação na Lista:"
+        },
+        {
+          "line": 410,
+          "text": "No Carrinho:"
+        },
+        {
+          "line": 416,
+          "text": "Restante a Comprar:"
+        },
+        {
+          "line": 1100,
+          "text": "placeholder=\"Pesquisar ingredientes...\""
+        },
+        {
+          "line": 1163,
+          "text": "placeholder=\"Ex: Peito de Frango, Banana, Aveia...\""
+        },
+        {
+          "line": 1174,
+          "text": "title=\"Ditar itens para a lista\""
+        },
+        {
+          "line": 1492,
+          "text": "placeholder=\"Ex: Ovos, Abacate, Whey Protein...\""
+        },
+        {
+          "line": 1503,
+          "text": "title=\"Ditar itens para a lista\""
+        },
+        {
+          "line": 1617,
+          "text": "title=\"Excluir item\""
+        },
+        {
+          "line": 1740,
+          "text": "Análise do Histórico"
+        },
+        {
+          "line": 1750,
+          "text": "Checagem Orçamentária"
+        },
+        {
+          "line": 1760,
+          "text": "Reposição em 1 Toque"
+        },
+        {
+          "line": 1811,
+          "text": "Alterar Região..."
+        },
+        {
+          "line": 1993,
+          "text": "Parceiro Verificado"
+        },
+        {
+          "line": 2145,
+          "text": "title=\"Ouvir descrição por voz\""
+        }
+      ],
+      "totalStringsFound": 16
+    },
+    {
+      "filePath": "src/components/SmartExerciseDemonstration.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 239,
+          "text": "3. Respiração"
+        },
+        {
+          "line": 253,
+          "text": "4. Músculos Trabalhados"
+        },
+        {
+          "line": 267,
+          "text": "5. Erros Comuns"
+        },
+        {
+          "line": 288,
+          "text": "6. Dica de Execução Pro"
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/components/SmartFridge.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 792,
+          "text": "title=\"Editar\""
+        },
+        {
+          "line": 799,
+          "text": "title=\"Remover\""
+        },
+        {
+          "line": 1190,
+          "text": "placeholder=\"Ex: 1L Leite de Coco, 500g Tapioca...\""
+        },
+        {
+          "line": 1349,
+          "text": "placeholder=\"Ex: Brócolis Orgânico, Peito de Frango\""
+        },
+        {
+          "line": 1362,
+          "text": "placeholder=\"Ex: 500g, 4 unid.\""
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/SmartGarden.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 782,
+          "text": "title=\"Remover planta\""
+        },
+        {
+          "line": 818,
+          "text": "placeholder=\"Exemplo: As folhas de baixo do meu manjericão estão com manchas amarelas e murchas, e há pequenos teias de aranha finas no caule.\""
+        },
+        {
+          "line": 1055,
+          "text": "placeholder=\"Ex: Meu Alecrim na sacada\""
+        },
+        {
+          "line": 1073,
+          "text": "Intervalo de Rega"
+        },
+        {
+          "line": 1091,
+          "text": "Intervalo de Adubação"
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/SmartHydrationBanner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 146,
+          "text": "title=\"Dispensar\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/SmartMarketListOrganizer.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 459,
+          "text": "Gerar Cesta em 1-Clique"
+        },
+        {
+          "line": 470,
+          "text": "Cesta inteligente gerada com sucesso! Os produtos com oferta local foram adicionados ao seu carrinho do Mercado."
+        },
+        {
+          "line": 484,
+          "text": "placeholder=\"Adicionar novo item à lista de compras (ex: Abacate, Peito de Peru, Cenoura)...\""
+        },
+        {
+          "line": 493,
+          "text": "Adicionar"
+        },
+        {
+          "line": 649,
+          "text": "Procurando melhor preço nos parceiros locais..."
+        },
+        {
+          "line": 687,
+          "text": "title=\"Adicionar oferta deste mercado direto ao carrinho\""
+        },
+        {
+          "line": 709,
+          "text": "title=\"Comparar preços em outros mercados\""
+        },
+        {
+          "line": 724,
+          "text": "Aviso de Estoque:"
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/components/SmartMushroomIdentifier.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 371,
+          "text": "alt=\"Mushroom upload preview\""
+        },
+        {
+          "line": 765,
+          "text": "Conectando ao histórico micológico..."
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/SmartPlantIdentifier.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 398,
+          "text": "alt=\"Uploaded preview\""
+        },
+        {
+          "line": 693,
+          "text": "Parte utilizada:"
+        },
+        {
+          "line": 694,
+          "text": "Preparo:"
+        },
+        {
+          "line": 918,
+          "text": "Carregando histórico do servidor..."
+        },
+        {
+          "line": 977,
+          "text": "title=\"Favoritar identificação\""
+        },
+        {
+          "line": 984,
+          "text": "title=\"Excluir do histórico\""
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/components/SmartPlateCombiner.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 187,
+          "text": "title=\"Histórico\""
+        },
+        {
+          "line": 459,
+          "text": "title=\"Ampliar foto em alta resolução\""
+        },
+        {
+          "line": 477,
+          "text": "Porção recomendada:"
+        },
+        {
+          "line": 628,
+          "text": "title=\"Fechar\""
+        },
+        {
+          "line": 647,
+          "text": "Porção sugerida no prato:"
+        }
+      ],
+      "totalStringsFound": 5
+    },
+    {
+      "filePath": "src/components/SmartSwaps.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 190,
+          "text": "placeholder=\"Ex: Chocolate, Refrigerante, Pão Branco, Batata Frita...\""
+        },
+        {
+          "line": 238,
+          "text": "title=\"Ouvir sugestão com a voz da Malu\""
+        },
+        {
+          "line": 379,
+          "text": "placeholder=\"Ex: Arroz Branco, Batata Frita, Coca-cola...\""
+        },
+        {
+          "line": 398,
+          "text": "placeholder=\"Ex: Quinoa Cozida, Batata Doce Assada...\""
+        },
+        {
+          "line": 413,
+          "text": "Calculando Comparação Nutricional..."
+        },
+        {
+          "line": 418,
+          "text": "Comparar Nutrientes & Gerar Gráfico de Barras"
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/components/SplashScreen.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 133,
+          "text": "title=\"Clique para pular\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/Static3DAvatarPlaceholder.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 46,
+          "text": "Renderização Otimizada"
+        },
+        {
+          "line": 56,
+          "text": "alt=\"3D Avatar Placeholder\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/SystemLogsView.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 266,
+          "text": "2s (Ultra Rápido)"
+        },
+        {
+          "line": 267,
+          "text": "3s (Tempo Real)"
+        },
+        {
+          "line": 268,
+          "text": "5s (Padrão)"
+        },
+        {
+          "line": 269,
+          "text": "10s (Econômico)"
+        },
+        {
+          "line": 318,
+          "text": "placeholder=\"Buscar nos logs por ID, coleção ou detalhe...\""
+        },
+        {
+          "line": 330,
+          "text": "Gatilho: Todos"
+        },
+        {
+          "line": 331,
+          "text": "Gatilho: Admin Manual"
+        },
+        {
+          "line": 332,
+          "text": "Gatilho: Startup Auto"
+        },
+        {
+          "line": 333,
+          "text": "Gatilho: Periódico Auto"
+        },
+        {
+          "line": 334,
+          "text": "Gatilho: Verificação Fix"
+        },
+        {
+          "line": 343,
+          "text": "Status: Todos"
+        },
+        {
+          "line": 344,
+          "text": "Status: Com Inconsistências"
+        },
+        {
+          "line": 345,
+          "text": "Status: 100% Hígidos"
+        },
+        {
+          "line": 354,
+          "text": "title=\"Exportar logs para JSON\""
+        },
+        {
+          "line": 366,
+          "text": "title=\"Limpar histórico de logs\""
+        }
+      ],
+      "totalStringsFound": 15
+    },
+    {
+      "filePath": "src/components/UserPresenceAvatar.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 96,
+          "text": "aria-label=\"Usuário ativo e navegando\""
+        },
+        {
+          "line": 103,
+          "text": "aria-label=\"Usuário inativo\""
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/components/VerifyEmailScreen.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 214,
+          "text": "title=\"Ignora a confirmação para fins de teste no AI Studio Preview\""
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/WeeklySummary.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 302,
+          "text": "Distribuição dos 7 Dias da Semana"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/components/WelcomeTour.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 881,
+          "text": "title=\"Fechar Guia\""
+        },
+        {
+          "line": 925,
+          "text": "title=\"Destacar e focar no botão agora\""
+        },
+        {
+          "line": 928,
+          "text": "Focar no Botão"
+        },
+        {
+          "line": 1007,
+          "text": "title=\"Alternar para o modo Intro.js\""
+        },
+        {
+          "line": 1011,
+          "text": "Modo Intro.js"
+        },
+        {
+          "line": 1024,
+          "text": "Voltar"
+        }
+      ],
+      "totalStringsFound": 6
+    },
+    {
+      "filePath": "src/contexts/LanguageContext.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 12,
+          "text": ", prefix = ''): Record"
+        },
+        {
+          "line": 74,
+          "text": "Promise"
+        },
+        {
+          "line": 75,
+          "text": "Promise"
+        },
+        {
+          "line": 78,
+          "text": ", params?: Record"
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/hooks/useHeartRateSync.ts",
+      "hardcodedStrings": [
+        {
+          "line": 11,
+          "text": "Promise"
+        },
+        {
+          "line": 12,
+          "text": "Promise"
+        },
+        {
+          "line": 86,
+          "text": "30 && hr"
+        }
+      ],
+      "totalStringsFound": 3
+    },
+    {
+      "filePath": "src/hooks/usePWAInstall.ts",
+      "hardcodedStrings": [
+        {
+          "line": 4,
+          "text": "Promise"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/lib/gemini.server.ts",
+      "hardcodedStrings": [
+        {
+          "line": 3572,
+          "text": "100 ou"
+        },
+        {
+          "line": 6263,
+          "text": "(i.daysRemaining !== undefined && i.daysRemaining"
+        }
+      ],
+      "totalStringsFound": 2
+    },
+    {
+      "filePath": "src/lib/gemini.ts",
+      "hardcodedStrings": [
+        {
+          "line": 1206,
+          "text": "i.daysRemaining"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/lib/introTour.ts",
+      "hardcodedStrings": [
+        {
+          "line": 96,
+          "text": "nutrição inteligente, culinária prática, economia e saúde"
+        },
+        {
+          "line": 99,
+          "text": "Tour Rápido de 1 Minuto:"
+        },
+        {
+          "line": 111,
+          "text": "zero esquecimento"
+        },
+        {
+          "line": 130,
+          "text": "Economizômetro & Comparador"
+        },
+        {
+          "line": 167,
+          "text": "desperdício zero"
+        },
+        {
+          "line": 185,
+          "text": "prato pronto"
+        },
+        {
+          "line": 255,
+          "text": "reabrir este tour a qualquer momento"
+        },
+        {
+          "line": 309,
+          "text": "= 0 && stepIndex"
+        }
+      ],
+      "totalStringsFound": 8
+    },
+    {
+      "filePath": "src/lib/priceMonitor.ts",
+      "hardcodedStrings": [
+        {
+          "line": 227,
+          "text": "= 75 && budgetUsedPercentage"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/lib/quickTipsEngine.ts",
+      "hardcodedStrings": [
+        {
+          "line": 47,
+          "text": "= 5 && hours"
+        },
+        {
+          "line": 48,
+          "text": "= 11 && hours"
+        },
+        {
+          "line": 49,
+          "text": "= 16 && hours"
+        },
+        {
+          "line": 50,
+          "text": "= 18 && hours"
+        }
+      ],
+      "totalStringsFound": 4
+    },
+    {
+      "filePath": "src/lib/recipePrinter.ts",
+      "hardcodedStrings": [
+        {
+          "line": 363,
+          "text": "Nutri"
+        },
+        {
+          "line": 364,
+          "text": "Nutrição, Saúde & Receitas Inteligentes"
+        },
+        {
+          "line": 391,
+          "text": "Calorias"
+        },
+        {
+          "line": 392,
+          "text": "kcal"
+        },
+        {
+          "line": 395,
+          "text": "Proteínas"
+        },
+        {
+          "line": 399,
+          "text": "Carboidratos"
+        },
+        {
+          "line": 403,
+          "text": "Gorduras"
+        },
+        {
+          "line": 407,
+          "text": "Fibras"
+        },
+        {
+          "line": 417,
+          "text": "Ingredientes"
+        },
+        {
+          "line": 433,
+          "text": "Modo de Preparo"
+        },
+        {
+          "line": 447,
+          "text": "👨‍🍳 Dica do Chef Malu"
+        },
+        {
+          "line": 456,
+          "text": "Receita gerada pelo NutriAI • Sua assistente inteligente de nutrição"
+        },
+        {
+          "line": 457,
+          "text": "www.nutriai.app • Bom apetite!"
+        }
+      ],
+      "totalStringsFound": 13
+    },
+    {
+      "filePath": "src/lib/speech.ts",
+      "hardcodedStrings": [
+        {
+          "line": 25,
+          "text": "= 0 && parsed"
+        }
+      ],
+      "totalStringsFound": 1
+    },
+    {
+      "filePath": "src/main.tsx",
+      "hardcodedStrings": [
+        {
+          "line": 37,
+          "text": "Falha ao Inicializar o NutriAI"
+        },
+        {
+          "line": 38,
+          "text": "Ocorreu um erro ao carregar as configurações do aplicativo."
+        },
+        {
+          "line": 40,
+          "text": "Tentar Novamente"
+        },
+        {
+          "line": 41,
+          "text": "Reset Completo"
+        }
+      ],
+      "totalStringsFound": 4
+    }
+  ]
+}

@@ -1,8 +1,11 @@
+import ptBRJson from '../../locales/pt-BR/common.json';
+
 /**
  * French / Français (France - fr-FR) Localization Bundle
  * Couvre l'intégralité des onglets, nutrition, entraînement et devise € EUR.
  */
 export const frFR = {
+  ...ptBRJson,
   locale: 'fr-FR',
   country: 'France',
   currency: 'EUR',
@@ -98,7 +101,7 @@ export const frFR = {
   back_to_login: 'Retour à la connexion',
   sign_in_with_google: 'Se connecter avec Google',
   settings_language_title: 'Langue / Language',
-  settings_language_description: 'Choisissez votre langue pour toute l’application.',
+  settings_language_description: 'Sélectionnez votre langue préférée pour toute l’application.',
   settings_search_placeholder: 'Rechercher par langue, pays ou code...',
   settings_no_results: 'Aucune langue trouvée.',
   settings_premium_markets: 'Marchés Premium',
@@ -106,7 +109,7 @@ export const frFR = {
   settings_global_expansion: 'Expansion Mondiale',
   ok: 'OK',
   next: 'Suivant',
-  start: 'Démarrer',
+  start: 'Commencer',
   finish: 'Terminer',
   delete: 'Supprimer',
 
@@ -118,22 +121,30 @@ export const frFR = {
     recipes: 'Recettes',
     my_progress: 'Mon progrès',
     lose_weight: 'Je veux perdre du poids',
-    gain_mass: 'Je veux prendre du muscle',
+    gain_mass: 'Je veux gagner de la masse',
     loading: 'Chargement...',
     close: 'Fermer',
     confirm: 'Confirmer',
     customize: 'Personnaliser',
+    customise: 'Personnaliser',
     favorites: 'Favoris',
+    favourites: 'Favoris',
     color: 'Couleur',
+    colour: 'Couleur',
     flavor: 'Saveur',
-    fiber: 'Fibres',
+    flavour: 'Saveur',
+    fiber: 'Fibre',
+    fibre: 'Fibre',
     program: 'Programme',
+    programme: 'Programme',
     optimized: 'Optimisé',
-    personalized: 'Personnalisé'
+    optimised: 'Optimisé',
+    personalized: 'Personnalisé',
+    personalised: 'Personnalisé'
   },
   my_progress: 'Mon progrès',
   lose_weight: 'Je veux perdre du poids',
-  gain_mass: 'Je veux prendre du muscle'
+  gain_mass: 'Je veux gagner de la masse'
 };
 
 export default frFR;

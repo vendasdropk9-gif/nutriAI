@@ -1,8 +1,11 @@
+import ptBRJson from '../../locales/pt-BR/common.json';
+
 /**
  * Spanish / Español (España - es-ES) Localization Bundle
  * Incluye terminología completa para todas las pestañas, nutrición, fitness y € EUR.
  */
 export const esES = {
+  ...ptBRJson,
   locale: 'es-ES',
   country: 'España',
   currency: 'EUR',
@@ -123,13 +126,21 @@ export const esES = {
     close: 'Cerrar',
     confirm: 'Confirmar',
     customize: 'Personalizar',
+    customise: 'Personalizar',
     favorites: 'Favoritos',
+    favourites: 'Favoritos',
     color: 'Color',
+    colour: 'Color',
     flavor: 'Sabor',
+    flavour: 'Sabor',
     fiber: 'Fibra',
+    fibre: 'Fibra',
     program: 'Programa',
+    programme: 'Programa',
     optimized: 'Optimizado',
-    personalized: 'Personalizado'
+    optimised: 'Optimizado',
+    personalized: 'Personalizado',
+    personalised: 'Personalizado'
   },
   my_progress: 'Mi progreso',
   lose_weight: 'Quiero perder peso',

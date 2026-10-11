@@ -174,7 +174,23 @@ export default defineConfig(({mode}) => {
           skipWaiting: true,
           importScripts: ['/sw-push-scheduler.js'],
           runtimeCaching: [
-            // 1. Receitas & Imagens de Culinária (Unsplash CDN e outros bancos de imagens de pratos) - CacheFirst para carregamento offline instantâneo
+            // 1. Planos Alimentares, Cardápios e Dietas (Prioritário para conexão lenta/intermitente) - StaleWhileRevalidate para acesso instantâneo com atualização em background
+            {
+              urlPattern: /(\/api\/(?:diet|meal|plan|nutrition|food)|.*(?:diet|meal|plan|refeicao|cardapio).*)|\b(diet|meal_plan|food_plan)\b/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'food-plans-priority-cache',
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias de persistência para planos alimentares
+                  purgeOnQuotaError: true,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200, 201],
+                },
+              },
+            },
+            // 2. Receitas & Imagens de Culinária (Unsplash CDN e outros bancos de imagens de pratos) - CacheFirst para carregamento offline instantâneo
             {
               urlPattern: /^https:\/\/(?:images\.unsplash\.com|images\.pexels\.com|cdn\.pixabay\.com|firebasestorage\.googleapis\.com|lh3\.googleusercontent\.com|res\.cloudinary\.com)\/.*/i,
               handler: 'CacheFirst',
@@ -190,7 +206,7 @@ export default defineConfig(({mode}) => {
                 },
               },
             },
-            // 2. Imagens Locais e Assets de Mídia (Avatares, Pratos, Ícones de Categoria)
+            // 3. Imagens Locais e Assets de Mídia (Avatares, Pratos, Ícones de Categoria)
             {
               urlPattern: /\.(?:png|jpg|jpeg|svg|webp|gif|avif|ico)$/i,
               handler: 'StaleWhileRevalidate',
@@ -206,58 +222,58 @@ export default defineConfig(({mode}) => {
                 },
               },
             },
-            // 3. Dados do Perfil e Endpoints da API NutriAI (/api/...) - NetworkFirst com fallback rápido para o cache
+            // 4. Dados do Perfil e Endpoints da API NutriAI (/api/...) - NetworkFirst otimizado (2s timeout) para conexões lentas
             {
               urlPattern: /\/api\/(?!health).*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'nutriai-profile-api-cache',
-                networkTimeoutSeconds: 3, // Se demorar mais de 3s ou estiver offline, serve dados do perfil em cache
+                networkTimeoutSeconds: 2, // Timeout agressivo de 2s para servir do cache instantaneamente em conexões lentas/intermitentes
                 expiration: {
                   maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
                   purgeOnQuotaError: true,
                 },
                 cacheableResponse: {
-                  statuses: [0, 200],
+                  statuses: [0, 200, 201],
                 },
               },
             },
-            // 4. Dados do Perfil e Registros no Supabase (REST API - profiles, intake_logs, habits)
+            // 5. Dados do Perfil e Registros no Supabase (REST API - profiles, intake_logs, habits, dietas)
             {
               urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'supabase-profile-data-cache',
-                networkTimeoutSeconds: 3,
+                networkTimeoutSeconds: 2,
                 expiration: {
-                  maxEntries: 100,
+                  maxEntries: 150,
                   maxAgeSeconds: 60 * 60 * 24 * 14, // 14 dias
                   purgeOnQuotaError: true,
                 },
                 cacheableResponse: {
-                  statuses: [0, 200],
+                  statuses: [0, 200, 201],
                 },
               },
             },
-            // 5. Dados do Perfil e Firestore/Google APIs (Fallback para Firestore REST)
+            // 6. Dados do Perfil e Firestore/Google APIs (Fallback para Firestore REST)
             {
               urlPattern: /^https:\/\/(?:firestore|identitytoolkit)\.googleapis\.com\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'firestore-profile-data-cache',
-                networkTimeoutSeconds: 3,
+                networkTimeoutSeconds: 2,
                 expiration: {
-                  maxEntries: 80,
+                  maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24 * 7,
                   purgeOnQuotaError: true,
                 },
                 cacheableResponse: {
-                  statuses: [0, 200],
+                  statuses: [0, 200, 201],
                 },
               },
             },
-            // 6. Fontes do Google (CSS das fontes)
+            // 7. Fontes do Google (CSS das fontes)
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
@@ -272,7 +288,7 @@ export default defineConfig(({mode}) => {
                 },
               },
             },
-            // 7. Arquivos de Fontes Web (Woff2 gstatic)
+            // 8. Arquivos de Fontes Web (Woff2 gstatic)
             {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
