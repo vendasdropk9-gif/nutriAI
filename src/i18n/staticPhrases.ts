@@ -4,203 +4,323 @@
  */
 export const STATIC_APP_PHRASES: Record<string, Record<string, string>> = {
   // Navigation & Core Tabs
-  "assistente 360°": { en: "360° Assistant", "en-GB": "360° Assistant", "en-AU": "360° Assistant" },
-  "assistente 360": { en: "360° Assistant" },
-  "360°": { en: "360°" },
-  "pratos rápidos": { en: "Quick Dishes", "en-GB": "Quick Dishes", "en-AU": "Quick Dishes" },
-  "pratos rapidos": { en: "Quick Dishes" },
-  "receitas rápidas": { en: "Quick Dishes" },
-  "receitas rapidas": { en: "Quick Dishes" },
-  "coach ia": { en: "AI Coach", "en-GB": "AI Coach", "en-AU": "AI Coach" },
-  "malu ai coach": { en: "Malu AI Coach" },
-  "receitas": { en: "Recipes" },
-  "receitas inteligentes": { en: "Smart Recipes" },
-  "geladeira": { en: "Fridge" },
-  "geladeira inteligente": { en: "Smart Fridge" },
-  "minha geladeira": { en: "My Fridge" },
-  "despensa": { en: "Pantry", "en-GB": "Larder & Pantry", "en-AU": "Pantry" },
-  "despensa inteligente": { en: "Smart Pantry", "en-GB": "Smart Larder", "en-AU": "Smart Pantry" },
-  "minha despensa": { en: "My Pantry", "en-GB": "My Larder" },
-  "horta": { en: "Garden" },
-  "horta & jardim": { en: "Garden & Herbs", "en-GB": "Garden & Herbs", "en-AU": "Garden & Herbs" },
-  "horta inteligente": { en: "Smart Garden" },
-  "ervas": { en: "Herbs" },
-  "ervas medicinais": { en: "Medicinal Herbs" },
-  "ervas medicinais & chás": { en: "Medicinal Herbs & Teas" },
-  "sucos": { en: "Juices" },
-  "sucos detox": { en: "Detox Juices" },
-  "chás": { en: "Teas" },
-  "chas": { en: "Teas" },
-  "hábitos": { en: "Habits" },
-  "habitos": { en: "Habits" },
-  "anotações": { en: "Notes" },
-  "anotacoes": { en: "Notes" },
-  "notas": { en: "Notes" },
-  "minhas notas": { en: "My Notes" },
-  "pressão": { en: "Blood Pressure" },
-  "pressao": { en: "Blood Pressure" },
-  "pressão arterial": { en: "Blood Pressure" },
-  "glicemia": { en: "Glucose" },
-  "glicose": { en: "Glucose" },
-  "scanner": { en: "Scanner" },
-  "scanner ia": { en: "AI Scanner" },
-  "alergias": { en: "Allergies" },
-  "detector de alergias": { en: "Allergy Detector" },
-  "comparar": { en: "Compare" },
-  "comparador": { en: "Product Comparer" },
-  "comparador de produtos": { en: "Product Comparer" },
-  "comparador de preços": { en: "Price Comparer", "en-GB": "Price Comparison", "en-AU": "Price Comparison" },
-  "mente": { en: "Mind & Emotions" },
-  "mente & humor": { en: "Mind & Mood" },
-  "humor": { en: "Mood" },
-  "equilíbrio emocional": { en: "Emotional Balance" },
-  "prato": { en: "Plate" },
-  "análise de prato": { en: "Plate Analyzer", "en-GB": "Plate Analyser", "en-AU": "Plate Analyser" },
-  "analise de prato": { en: "Plate Analyzer", "en-GB": "Plate Analyser", "en-AU": "Plate Analyser" },
-  "corpo": { en: "Body" },
-  "corporal": { en: "Body & Metrics", "en-GB": "Body & Metrics" },
-  "avatar": { en: "Avatar" },
-  "avatar 3d": { en: "3D Body Avatar" },
-  "plano": { en: "Meal Plan" },
-  "plano alimentar": { en: "Meal Plan" },
-  "planejamento alimentar": { en: "Meal Planning" },
-  "compras": { en: "Shopping" },
-  "lista de compras": { en: "Shopping List" },
-  "lista de compras inteligente": { en: "Smart Shopping List" },
-  "evolução": { en: "Evolution" },
-  "evolucao": { en: "Evolution" },
-  "evolução corporal": { en: "Body Evolution" },
-  "desafio": { en: "Challenge" },
-  "desafios": { en: "Challenges" },
-  "trocas": { en: "Swaps" },
-  "substituições": { en: "Swaps" },
-  "substituicoes": { en: "Swaps" },
-  "trocas inteligentes": { en: "Smart Swaps" },
-  "comi fora": { en: "Ate Out" },
-  "comer fora": { en: "Dining Out" },
-  "comer fora & ia": { en: "Dining Out & AI", "en-GB": "Dining Out & AI", "en-AU": "Dining Out & AI" },
-  "restaurante": { en: "Restaurant" },
-  "prato inteligente": { en: "Smart Plate Combiner" },
-  "combine seu prato": { en: "Combine Your Plate" },
-  "mercado": { en: "Market" },
-  "mercados": { en: "Markets" },
-  "mercados, sacolões e hortifruti": { en: "Markets & Fresh Produce" },
-  "mapa": { en: "Map" },
-  "mapa frescor": { en: "Freshness Map" },
-  "mapa de frescor": { en: "Freshness Map" },
-  "treinar": { en: "Train" },
-  "treinos": { en: "Workouts" },
-  "meus treinos": { en: "My Workouts" },
-  "personal trainer": { en: "Personal Trainer" },
-  "guia de exercícios": { en: "Workout Guide", "en-GB": "Exercise Guide" },
-  "exercícios": { en: "Exercises" },
-  "exercicios": { en: "Exercises" },
-  "saúde & sono": { en: "Health & Sleep" },
-  "saude & sono": { en: "Health & Sleep" },
-  "bem-estar": { en: "Wellness" },
-  "bem estar": { en: "Wellness" },
-  "sono": { en: "Sleep" },
-  "academias": { en: "Gyms" },
-  "conquistas": { en: "Achievements" },
-  "previsão": { en: "Prediction" },
-  "previsao": { en: "Prediction" },
-  "previsão de resultados": { en: "Result Prediction" },
-  "perfil": { en: "Profile" },
-  "meu perfil": { en: "My Profile" },
-  "perfil e configurações": { en: "Profile & Settings" },
-  "admin db": { en: "Admin DB" },
-  "admin": { en: "Admin" },
-  "premium": { en: "Premium" },
-  "planos premium": { en: "Premium Plans" },
-  "parceiro": { en: "Partner Portal" },
-  "entregas": { en: "Deliveries" },
-  "delivery": { en: "Delivery" },
-  "biblioteca científica": { en: "Scientific Library" },
+  "assistente 360°": {
+    en: "360° Assistant", "en-GB": "360° Assistant", "en-AU": "360° Assistant",
+    es: "Asistente 360°", fr: "Assistant 360°", de: "360° Assistent", it: "Assistente 360°",
+    ja: "360° アシスタント", ko: "360° 어시스턴트", zh: "360° 智能助手", ru: "360° Ассистент", ar: "مساعد 360°"
+  },
+  "assistente 360": {
+    en: "360° Assistant", es: "Asistente 360°", fr: "Assistant 360°", de: "360° Assistent", it: "Assistente 360°",
+    ja: "360° アシスタント", ko: "360° 어시스턴트", zh: "360° 智能助手", ru: "360° Ассистент", ar: "مساعد 360°"
+  },
+  "360°": { en: "360°", es: "360°", fr: "360°", de: "360°", it: "360°", ja: "360°", ko: "360°", zh: "360°", ru: "360°", ar: "360°" },
+  "pratos rápidos": {
+    en: "Quick Dishes", "en-GB": "Quick Dishes", "en-AU": "Quick Dishes",
+    es: "Platos Rápidos", fr: "Plats Rapides", de: "Schnelle Gerichte", it: "Piatti Veloci",
+    ja: "時短料理", ko: "빠른 간편 요리", zh: "快捷快手菜", ru: "Быстрые блюда", ar: "أطباق سريعة"
+  },
+  "pratos rapidos": {
+    en: "Quick Dishes", es: "Platos Rápidos", fr: "Plats Rapides", de: "Schnelle Gerichte", it: "Piatti Veloci",
+    ja: "時短料理", ko: "빠른 간편 요리", zh: "快捷快手菜", ru: "Быстрые блюда", ar: "أطباق سريعة"
+  },
+  "receitas rápidas": {
+    en: "Quick Dishes", es: "Platos Rápidos", fr: "Plats Rapides", de: "Schnelle Gerichte", it: "Piatti Veloci",
+    ja: "時短料理", ko: "빠른 간편 요리", zh: "快捷快手菜", ru: "Быстрые блюда", ar: "أطباق سريعة"
+  },
+  "coach ia": {
+    en: "AI Coach", "en-GB": "AI Coach", "en-AU": "AI Coach",
+    es: "Coach IA", fr: "Coach IA", de: "KI-Coach", it: "Coach IA",
+    ja: "AIコーチ", ko: "AI 코치", zh: "AI教练", ru: "ИИ-Тренер", ar: "مدرب الذكاء الاصطناعي"
+  },
+  "malu ai coach": {
+    en: "Malu AI Coach", es: "Malu Coach IA", fr: "Malu Coach IA", de: "Malu KI-Coach", it: "Malu Coach IA",
+    ja: "Malu AIコーチ", ko: "Malu AI 코치", zh: "Malu AI教练", ru: "Malu ИИ-Тренер", ar: "Malu مدرب الذكاء الاصطناعي"
+  },
+  "receitas": {
+    en: "Recipes", es: "Recetas", fr: "Recettes", de: "Rezepte", it: "Ricette",
+    ja: "レシピ", ko: "레시피", zh: "食谱", ru: "Рецепты", ar: "وصفات"
+  },
+  "receitas inteligentes": {
+    en: "Smart Recipes", es: "Recetas Inteligentes", fr: "Recettes Intelligentes", de: "Smarte Rezepte", it: "Ricette Intelligenti",
+    ja: "スマートレシピ", ko: "스마트 레시피", zh: "智能食谱", ru: "Умные рецепты", ar: "وصفات ذكية"
+  },
+  "geladeira": {
+    en: "Fridge", es: "Nevera", fr: "Frigo", de: "Kühlschrank", it: "Frigo",
+    ja: "冷蔵庫", ko: "냉장고", zh: "冰箱", ru: "Холодильник", ar: "ثلاجة"
+  },
+  "geladeira inteligente": {
+    en: "Smart Fridge", es: "Nevera Inteligente", fr: "Frigo Intelligent", de: "Smarter Kühlschrank", it: "Frigo Intelligente",
+    ja: "スマート冷蔵庫", ko: "스마트 냉장고", zh: "智能冰箱", ru: "Умный холодильник", ar: "ثلاجة ذكية"
+  },
+  "despensa": {
+    en: "Pantry", "en-GB": "Larder & Pantry", "en-AU": "Pantry",
+    es: "Despensa", fr: "Garde-manger", de: "Vorratskammer", it: "Dispensa",
+    ja: "パントリー", ko: "팬트리", zh: "储藏室", ru: "Кладовая", ar: "خزانة المؤن"
+  },
+  "despensa inteligente": {
+    en: "Smart Pantry", es: "Despensa Inteligente", fr: "Garde-manger Intelligent", de: "Smarte Vorratskammer", it: "Dispensa Intelligente",
+    ja: "スマートパントリー", ko: "스마트 팬트리", zh: "智能储藏室", ru: "Умная кладовая", ar: "خزانة مؤن ذكية"
+  },
+  "horta": {
+    en: "Garden", es: "Huerto", fr: "Jardin", de: "Garten", it: "Orto",
+    ja: "家庭菜園", ko: "텃밭", zh: "菜园", ru: "Огород", ar: "حديقة منزلية"
+  },
+  "horta & jardim": {
+    en: "Garden & Herbs", es: "Huerto y Jardín", fr: "Jardin & Potager", de: "Garten & Kräuter", it: "Orto & Giardino",
+    ja: "家庭菜園・ハーブ", ko: "홈 가든 & 텃밭", zh: "自种菜园与草本", ru: "Огород и сад", ar: "حديقة وأعشاب"
+  },
+  "ervas": {
+    en: "Herbs", es: "Hierbas", fr: "Plantes", de: "Kräuter", it: "Erbe",
+    ja: "薬草・ハーブ", ko: "약초", zh: "药草", ru: "Травы", ar: "أعشاب"
+  },
+  "ervas medicinais": {
+    en: "Medicinal Herbs", es: "Hierbas Medicinales", fr: "Plantes Médicinales", de: "Heilkräuter", it: "Erbe Medicinali",
+    ja: "薬草・メディカルハーブ", ko: "약초 및 허브", zh: "药草与本草", ru: "Лекарственные травы", ar: "أعشاب طبية"
+  },
+  "sucos": {
+    en: "Juices", es: "Zumos", fr: "Jus", de: "Säfte", it: "Succhi",
+    ja: "ジュース", ko: "주스", zh: "果汁", ru: "Соки", ar: "عصائر"
+  },
+  "sucos detox": {
+    en: "Detox Juices", es: "Zumos Detox", fr: "Jus Détox", de: "Detox-Säfte", it: "Succhi Detox",
+    ja: "デトックスジュース", ko: "디톡스 주스", zh: "排毒果蔬汁", ru: "Детокс-соки", ar: "عصائر ديتوكس"
+  },
+  "hábitos": {
+    en: "Habits", es: "Hábitos", fr: "Habitudes", de: "Gewohnheiten", it: "Abitudini",
+    ja: "生活習慣", ko: "건강 습관", zh: "健康习惯", ru: "Привычки", ar: "العادات"
+  },
+  "habitos": {
+    en: "Habits", es: "Hábitos", fr: "Habitudes", de: "Gewohnheiten", it: "Abitudini",
+    ja: "生活習慣", ko: "건강 습관", zh: "健康习惯", ru: "Привычки", ar: "العادات"
+  },
+  "anotações": {
+    en: "Notes", es: "Notas", fr: "Notes", de: "Notizen", it: "Appunti",
+    ja: "メモ", ko: "메모", zh: "随手记笔记", ru: "Заметки", ar: "ملاحظات"
+  },
+  "notas": {
+    en: "Notes", es: "Notas", fr: "Notes", de: "Notizen", it: "Appunti",
+    ja: "メモ", ko: "메모", zh: "笔记", ru: "Заметки", ar: "ملاحظات"
+  },
+  "pressão": {
+    en: "Blood Pressure", es: "Presión Arterial", fr: "Tension Artérielle", de: "Blutdruck", it: "Pressione Sanguigna",
+    ja: "血圧", ko: "혈압", zh: "血压", ru: "Давление", ar: "ضغط الدم"
+  },
+  "pressao": {
+    en: "Blood Pressure", es: "Presión Arterial", fr: "Tension Artérielle", de: "Blutdruck", it: "Pressione Sanguigna",
+    ja: "血圧", ko: "혈압", zh: "血压", ru: "Давление", ar: "ضغط الدم"
+  },
+  "glicemia": {
+    en: "Glucose", es: "Glucemia", fr: "Glycémie", de: "Blutzucker", it: "Glicemia",
+    ja: "血糖値", ko: "혈당", zh: "血糖", ru: "Глюкоза", ar: "نسبة السكر"
+  },
+  "scanner": {
+    en: "Scanner", es: "Escáner", fr: "Scanner", de: "Scanner", it: "Scanner",
+    ja: "スキャナー", ko: "스캐너", zh: "扫描器", ru: "Сканер", ar: "الماسح"
+  },
+  "alergias": {
+    en: "Allergies", es: "Alergias", fr: "Allergies", de: "Allergien", it: "Allergie",
+    ja: "アレルギー", ko: "알레르기", zh: "过敏原", ru: "Аллергии", ar: "الحساسية"
+  },
+  "comparar": {
+    en: "Compare", es: "Comparar", fr: "Comparer", de: "Vergleichen", it: "Confronta",
+    ja: "製品比較", ko: "비교하기", zh: "商品对比", ru: "Сравнить", ar: "مقارنة"
+  },
+  "mente": {
+    en: "Mind & Emotions", es: "Mente y Humor", fr: "Humeur & Esprit", de: "Geist & Stimmung", it: "Mente & Umore",
+    ja: "メンタル・感情", ko: "마음 & 감정 케어", zh: "心理与情绪", ru: "Разум и настроение", ar: "العقل والمزاج"
+  },
+  "prato": {
+    en: "Plate", es: "Plato", fr: "Plat", de: "Teller", it: "Piatto",
+    ja: "食事プレート", ko: "식단 접시", zh: "餐盘", ru: "Тарелка", ar: "الطبق"
+  },
+  "análise de prato": {
+    en: "Plate Analyzer", es: "Análisis de Plato", fr: "Analyse de Plat", de: "Teller-Analyse", it: "Analisi Piatto",
+    ja: "食事・プレート分析", ko: "식단 사진 분석", zh: "餐盘智能分析", ru: "Анализ тарелки", ar: "تحليل الطبق"
+  },
+  "corpo": {
+    en: "Body", es: "Cuerpo", fr: "Corps", de: "Körper", it: "Corpo",
+    ja: "体型・アバター", ko: "신체 분석 & 아바타", zh: "体型与3D人像", ru: "Тело и аватар", ar: "الجسم والمجسم"
+  },
+  "plano": {
+    en: "Meal Plan", es: "Plan Nutricional", fr: "Plan Alimentaire", de: "Ernährungsplan", it: "Piano Alimentare",
+    ja: "食事プラン", ko: "식단 플래너", zh: "膳食计划", ru: "План питания", ar: "خطة الوجبات"
+  },
+  "compras": {
+    en: "Shopping", es: "Compras", fr: "Courses", de: "Einkauf", it: "Spesa",
+    ja: "買い物リスト", ko: "장보기 목록", zh: "购物清单", ru: "Список покупок", ar: "قائمة التسوق"
+  },
+  "evolução": {
+    en: "Evolution", es: "Evolución", fr: "Évolution", de: "Entwicklung", it: "Evoluzione",
+    ja: "体型変化の記録", ko: "바디 변화 기록", zh: "身材蜕变记录", ru: "Эволюция тела", ar: "تطور الجسم"
+  },
+  "desafio": {
+    en: "Challenge", es: "Desafío", fr: "Défi", de: "Herausforderung", it: "Sfida",
+    ja: "チャレンジ", ko: "챌린지", zh: "健康挑战", ru: "Челлендж", ar: "التحدي"
+  },
+  "desafios": {
+    en: "Challenges", es: "Desafíos", fr: "Défis", de: "Herausforderungen", it: "Sfide",
+    ja: "チャレンジ一覧", ko: "챌린지 목록", zh: "挑战项目", ru: "Челленджи", ar: "التحديات"
+  },
+  "trocas": {
+    en: "Swaps", es: "Sustituciones", fr: "Remplacements", de: "Smarte Alternativen", it: "Sostituzioni",
+    ja: "スマート代替食品", ko: "스마트 대체 식품", zh: "智能健康替换", ru: "Умные замены", ar: "بدائل ذكية"
+  },
+  "comi fora": {
+    en: "Dining Out", es: "Comer Fuera", fr: "Manger Dehors", de: "Auswärts Essen", it: "Mangiare Fuori",
+    ja: "外食の記録", ko: "외식 기록", zh: "外食记录", ru: "Еда вне дома", ar: "تناول الطعام بالخارج"
+  },
+  "restaurante": {
+    en: "Restaurant", es: "Restaurante", fr: "Restaurant", de: "Restaurant", it: "Ristorante",
+    ja: "スマートレストラン", ko: "스마트 레스토랑", zh: "智能餐厅", ru: "Умный ресторан", ar: "مطعم ذكي"
+  },
+  "mercado": {
+    en: "Market", es: "Mercado", fr: "Marché", de: "Markt", it: "Mercato",
+    ja: "市場・青果店", ko: "신선 마켓", zh: "生鲜集市", ru: "Рынок", ar: "السوق"
+  },
+  "mercados, sacolões e hortifruti": {
+    en: "Markets & Fresh Produce", es: "Mercados y Fruterías", fr: "Marchés & Primeurs", de: "Märkte & Frische", it: "Mercati e Frutta",
+    ja: "市場・青果店", ko: "신선 마켓 & 장보기", zh: "菜场与生鲜", ru: "Рынки и продукты", ar: "الأسواق والمنتجات الطازجة"
+  },
+  "mapa": {
+    en: "Map", es: "Mapa", fr: "Carte", de: "Karte", it: "Mappa",
+    ja: "地図", ko: "지도", zh: "地图", ru: "Карта", ar: "خريطة"
+  },
+  "mapa frescor": {
+    en: "Freshness Map", es: "Mapa de Frescura", fr: "Carte Fraîcheur", de: "Frische-Karte", it: "Mappa Freschezza",
+    ja: "鮮度マップ", ko: "신선도 지도", zh: "新鲜度地图", ru: "Карта свежести", ar: "خريطة النضارة"
+  },
+  "treinar": {
+    en: "Train", es: "Entrenar", fr: "Entraînement", de: "Fitnesstraining", it: "Allenamento",
+    ja: "トレーニング", ko: "운동 트레이너", zh: "健身训练", ru: "Тренировки", ar: "تمارين رياضية"
+  },
+  "treinos": {
+    en: "Workouts", es: "Entrenamientos", fr: "Entraînements", de: "Workouts", it: "Allenamenti",
+    ja: "ワークアウト", ko: "운동 목록", zh: "运动锻炼", ru: "Тренировки", ar: "التمارين"
+  },
+  "bem-estar": {
+    en: "Wellness", es: "Bienestar", fr: "Bien-être", de: "Wohlbefinden", it: "Benessere",
+    ja: "ウェルネス", ko: "웰빙 & 건강", zh: "身心健康", ru: "Здоровье и отдых", ar: "العافية والصحة"
+  },
+  "academias": {
+    en: "Gyms", es: "Gimnasios", fr: "Salles de Sport", de: "Fitnessstudios", it: "Palestre",
+    ja: "ジム提携", ko: "제휴 헬스장", zh: "合作健身房", ru: "Фитнес-клубы", ar: "الصالات الرياضية"
+  },
+  "conquistas": {
+    en: "Achievements", es: "Logros", fr: "Succès", de: "Erfolge", it: "Traguardi",
+    ja: "実績・トロフィー", ko: "업적 & 트로피", zh: "成就与奖章", ru: "Достижения", ar: "الإنجازات والجوائز"
+  },
+  "previsão": {
+    en: "Prediction", es: "Predicción", fr: "Prédiction", de: "Vorhersage", it: "Previsioni",
+    ja: "成果予測", ko: "결과 예측", zh: "成效预测", ru: "Прогноз результатов", ar: "توقع النتائج"
+  },
+  "perfil": {
+    en: "Profile", es: "Perfil", fr: "Profil", de: "Profil", it: "Profilo",
+    ja: "プロフィール", ko: "프로필", zh: "个人资料", ru: "Профиль", ar: "الملف الشخصي"
+  },
+  "premium": {
+    en: "Premium", es: "Premium", fr: "Premium", de: "Premium", it: "Premium",
+    ja: "プレミアム", ko: "프리미엄", zh: "高级会员", ru: "Премиум", ar: "الخطة المميزة"
+  },
+  "parceiro": {
+    en: "Partner Portal", es: "Socios", fr: "Partenaires", de: "Partner", it: "Partner",
+    ja: "提携パートナー", ko: "파트너", zh: "合作伙伴", ru: "Партнерам", ar: "بوابة الشركاء"
+  },
+  "entregas": {
+    en: "Deliveries", es: "Entregas", fr: "Livraisons", de: "Lieferungen", it: "Consegne",
+    ja: "配達・配送", ko: "배송 추적", zh: "配送进度", ru: "Доставка", ar: "تتبع التوصيل"
+  },
+  "biblioteca científica": {
+    en: "Scientific Library", es: "Biblioteca Científica", fr: "Bibliothèque Scientifique", de: "Wissenschaftliche Bibliothek", it: "Biblioteca Scientifica",
+    ja: "科学文献ライブラリ", ko: "과학 도서관", zh: "科学文献库", ru: "Научная библиотека", ar: "المكتبة العلمية"
+  },
 
   // Buttons & Common Actions
-  "salvar": { en: "Save" },
-  "salvar alterações": { en: "Save Changes" },
-  "salvar dados": { en: "Save Data" },
-  "cancelar": { en: "Cancel" },
-  "voltar": { en: "Back" },
-  "voltar ao início": { en: "Back to Home" },
-  "próximo": { en: "Next" },
-  "proximo": { en: "Next" },
-  "anterior": { en: "Previous" },
-  "continuar": { en: "Continue" },
-  "começar": { en: "Start" },
-  "comecar": { en: "Start" },
-  "iniciar": { en: "Start" },
-  "iniciar tour interativo": { en: "Start Interactive Tour" },
-  "finalizar": { en: "Finish" },
-  "concluir": { en: "Complete" },
-  "fechar": { en: "Close" },
-  "confirmar": { en: "Confirm" },
-  "editar": { en: "Edit" },
-  "editar perfil": { en: "Edit Profile" },
-  "excluir": { en: "Delete" },
-  "deletar": { en: "Delete" },
-  "remover": { en: "Remove" },
-  "adicionar": { en: "Add" },
-  "adicionar item": { en: "Add Item" },
-  "adicionar refeição": { en: "Add Meal" },
-  "adicionar receita": { en: "Add Recipe" },
-  "adicionar alimento": { en: "Add Food" },
-  "adicionar água": { en: "Add Water" },
-  "criar": { en: "Create" },
-  "criar receita": { en: "Create Recipe" },
-  "gerar": { en: "Generate" },
-  "gerar receita": { en: "Generate Recipe" },
-  "gerar plano": { en: "Generate Plan" },
-  "atualizar": { en: "Update" },
-  "recarregar": { en: "Reload" },
-  "limpar": { en: "Clear" },
-  "limpar filtros": { en: "Clear Filters" },
-  "limpar lista": { en: "Clear List" },
-  "filtrar": { en: "Filter" },
-  "buscar": { en: "Search" },
-  "pesquisar": { en: "Search" },
-  "compartilhar": { en: "Share" },
-  "copiar": { en: "Copy" },
-  "baixar": { en: "Download" },
-  "exportar": { en: "Export" },
-  "exportar pdf": { en: "Export PDF" },
-  "ver mais": { en: "See More" },
-  "ver detalhes": { en: "View Details" },
-  "ver receita": { en: "View Recipe" },
-  "abrir": { en: "Open" },
-  "enviar": { en: "Send" },
-  "enviar feedback": { en: "Send Feedback" },
-  "entrar": { en: "Sign In" },
-  "cadastrar": { en: "Sign Up" },
-  "sair da conta": { en: "Sign Out" },
-  "sair": { en: "Exit" },
-  "desconectar": { en: "Disconnect" },
-  "personalizar": { en: "Customize", "en-GB": "Customise", "en-AU": "Customise" },
-  "favoritos": { en: "Favorites", "en-GB": "Favourites", "en-AU": "Favourites" },
-  "tirar foto": { en: "Take Photo" },
-  "escolher da galeria": { en: "Choose from Gallery" },
-  "ouvir resposta": { en: "Listen" },
-  "falar com a malu": { en: "Talk to Malu" },
+  "salvar": { en: "Save", es: "Guardar", fr: "Enregistrer" },
+  "salvar alterações": { en: "Save Changes", es: "Guardar Cambios", fr: "Enregistrer les modifications" },
+  "salvar dados": { en: "Save Data", es: "Guardar Datos", fr: "Enregistrer les données" },
+  "cancelar": { en: "Cancel", es: "Cancelar", fr: "Annuler" },
+  "voltar": { en: "Back", es: "Volver", fr: "Retour" },
+  "voltar ao início": { en: "Back to Home", es: "Volver al Inicio", fr: "Retour à l'accueil" },
+  "próximo": { en: "Next", es: "Siguiente", fr: "Suivant" },
+  "proximo": { en: "Next", es: "Siguiente", fr: "Suivant" },
+  "anterior": { en: "Previous", es: "Anterior", fr: "Précédent" },
+  "continuar": { en: "Continue", es: "Continuar", fr: "Continuer" },
+  "começar": { en: "Start", es: "Empezar", fr: "Démarrer" },
+  "comecar": { en: "Start", es: "Empezar", fr: "Démarrer" },
+  "iniciar": { en: "Start", es: "Iniciar", fr: "Démarrer" },
+  "iniciar tour interativo": { en: "Start Interactive Tour", es: "Iniciar Tour Interactivo", fr: "Démarrer la visite interactive" },
+  "finalizar": { en: "Finish", es: "Finalizar", fr: "Terminer" },
+  "concluir": { en: "Complete", es: "Completar", fr: "Terminer" },
+  "fechar": { en: "Close", es: "Cerrar", fr: "Fermer" },
+  "confirmar": { en: "Confirm", es: "Confirmar", fr: "Confirmer" },
+  "editar": { en: "Edit", es: "Editar", fr: "Modifier" },
+  "editar perfil": { en: "Edit Profile", es: "Editar Perfil", fr: "Modifier le profil" },
+  "excluir": { en: "Delete", es: "Eliminar", fr: "Supprimer" },
+  "deletar": { en: "Delete", es: "Eliminar", fr: "Supprimer" },
+  "remover": { en: "Remove", es: "Quitar", fr: "Supprimer" },
+  "adicionar": { en: "Add", es: "Añadir", fr: "Ajouter" },
+  "adicionar item": { en: "Add Item", es: "Añadir Elemento", fr: "Ajouter un élément" },
+  "adicionar refeição": { en: "Add Meal", es: "Añadir Comida", fr: "Ajouter un repas" },
+  "adicionar receita": { en: "Add Recipe", es: "Añadir Receta", fr: "Ajouter une recette" },
+  "adicionar alimento": { en: "Add Food", es: "Añadir Alimento", fr: "Ajouter un aliment" },
+  "adicionar água": { en: "Add Water", es: "Añadir Agua", fr: "Ajouter de l'eau" },
+  "criar": { en: "Create", es: "Crear", fr: "Créer" },
+  "criar receita": { en: "Create Recipe", es: "Crear Receta", fr: "Créer une recette" },
+  "gerar": { en: "Generate", es: "Generar", fr: "Générer" },
+  "gerar receita": { en: "Generate Recipe", es: "Generar Receta", fr: "Générer une recette" },
+  "gerar plano": { en: "Generate Plan", es: "Generar Plan", fr: "Générer un plan" },
+  "atualizar": { en: "Update", es: "Actualizar", fr: "Mettre à jour" },
+  "recarregar": { en: "Reload", es: "Recargar", fr: "Recharger" },
+  "limpar": { en: "Clear", es: "Limpiar", fr: "Effacer" },
+  "limpar filtros": { en: "Clear Filters", es: "Limpiar Filtros", fr: "Effacer les filtres" },
+  "limpar lista": { en: "Clear List", es: "Limpiar Lista", fr: "Vider la liste" },
+  "filtrar": { en: "Filter", es: "Filtrar", fr: "Filtrer" },
+  "buscar": { en: "Search", es: "Buscar", fr: "Rechercher" },
+  "pesquisar": { en: "Search", es: "Buscar", fr: "Rechercher" },
+  "compartilhar": { en: "Share", es: "Compartir", fr: "Partager" },
+  "copiar": { en: "Copy", es: "Copiar", fr: "Copier" },
+  "baixar": { en: "Download", es: "Descargar", fr: "Télécharger" },
+  "exportar": { en: "Export", es: "Exportar", fr: "Exporter" },
+  "exportar pdf": { en: "Export PDF", es: "Exportar PDF", fr: "Exporter en PDF" },
+  "ver mais": { en: "See More", es: "Ver Más", fr: "Voir plus" },
+  "ver detalhes": { en: "View Details", es: "Ver Detalles", fr: "Voir les détails" },
+  "ver receita": { en: "View Recipe", es: "Ver Receta", fr: "Voir la recette" },
+  "abrir": { en: "Open", es: "Abrir", fr: "Ouvrir" },
+  "enviar": { en: "Send", es: "Enviar", fr: "Envoyer" },
+  "enviar feedback": { en: "Send Feedback", es: "Enviar Comentarios", fr: "Envoyer des commentaires" },
+  "entrar": { en: "Sign In", es: "Iniciar Sesión", fr: "Se connecter" },
+  "cadastrar": { en: "Sign Up", es: "Registrarse", fr: "S'inscrire" },
+  "sair da conta": { en: "Sign Out", es: "Cerrar Sesión", fr: "Se déconnecter" },
+  "sair": { en: "Exit", es: "Salir", fr: "Quitter" },
+  "desconectar": { en: "Disconnect", es: "Desconectar", fr: "Déconnecter" },
+  "personalizar": { en: "Customize", es: "Personalizar", fr: "Personnaliser" },
+  "favoritos": { en: "Favorites", es: "Favoritos", fr: "Favoris" },
+  "tirar foto": { en: "Take Photo", es: "Tomar Foto", fr: "Prendre une photo" },
+  "escolher da galeria": { en: "Choose from Gallery", es: "Elegir de la Galería", fr: "Choisir dans la galerie" },
+  "ouvir resposta": { en: "Listen", es: "Escuchar", fr: "Écouter" },
+  "falar com a malu": { en: "Talk to Malu", es: "Hablar con Malu", fr: "Parler à Malu" },
 
   // Goals & Objectives
-  "quero emagrecer": { en: "I want to lose weight" },
-  "perder peso": { en: "Lose weight" },
-  "emagrecimento": { en: "Weight loss" },
-  "emagrecimento saudável": { en: "Healthy weight loss" },
-  "déficit calórico": { en: "Caloric deficit" },
-  "queima de gordura": { en: "Fat burning" },
-  "meta de perda de peso": { en: "Weight loss goal" },
-  "quero ganhar massa": { en: "I want to build muscle" },
-  "ganho de massa": { en: "Muscle gain" },
-  "ganho de massa muscular": { en: "Muscle gain" },
-  "hipertrofia": { en: "Hypertrophy" },
-  "superávit calórico": { en: "Caloric surplus" },
-  "manutenção": { en: "Maintenance" },
-  "manutenção da alimentação": { en: "Dietary maintenance" },
-  "mais energia": { en: "More energy" },
-  "performance": { en: "Performance" },
-  "alimentação saudável": { en: "Healthy eating" },
+  "quero emagrecer": { en: "I want to lose weight", es: "Quiero perder peso", fr: "Je veux perdre du poids" },
+  "perder peso": { en: "Lose weight", es: "Perder peso", fr: "Perdre du poids" },
+  "emagrecimento": { en: "Weight loss", es: "Pérdida de peso", fr: "Perte de poids" },
+  "emagrecimento saudável": { en: "Healthy weight loss", es: "Pérdida de peso saludable", fr: "Perte de poids saine" },
+  "déficit calórico": { en: "Caloric deficit", es: "Déficit calórico", fr: "Déficit calorique" },
+  "queima de gordura": { en: "Fat burning", es: "Quema de grasa", fr: "Brûlage des graisses" },
+  "meta de perda de peso": { en: "Weight loss goal", es: "Meta de pérdida de peso", fr: "Objectif de perte de poids" },
+  "quero ganhar massa": { en: "I want to build muscle", es: "Quiero ganar masa muscular", fr: "Je veux prendre du muscle" },
+  "ganho de massa": { en: "Muscle gain", es: "Ganancia muscular", fr: "Gain de masse" },
+  "ganho de massa muscular": { en: "Muscle gain", es: "Ganancia de masa muscular", fr: "Prise de masse musculaire" },
+  "hipertrofia": { en: "Hypertrophy", es: "Hipertrofia", fr: "Hypertrophie" },
+  "superávit calórico": { en: "Caloric surplus", es: "Superávit calórico", fr: "Surplus calorique" },
+  "manutenção": { en: "Maintenance", es: "Mantenimiento", fr: "Maintien" },
+  "manutenção da alimentação": { en: "Dietary maintenance", es: "Mantenimiento dietético", fr: "Maintien de l'alimentation" },
+  "mais energia": { en: "More energy", es: "Más energía", fr: "Plus d'énergie" },
+  "performance": { en: "Performance", es: "Rendimiento", fr: "Performance" },
+  "alimentação saudável": { en: "Healthy eating", es: "Alimentación saludable", fr: "Alimentation saine" },
+  "pontos adquiridos!": { en: "Points Acquired!", es: "¡Puntos Ganados!", fr: "Points Gagnés !" },
+  "nova receita gerada": { en: "New recipe generated", es: "Nueva receta generada", fr: "Nouvelle recette générée" },
+  "refeição registrada no plano": { en: "Meal logged to plan", es: "Comida registrada en el plan", fr: "Repas enregistré au plan" },
   "definição corporal": { en: "Body definition" },
   "longevidade": { en: "Longevity" },
 

@@ -906,7 +906,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = false;
-        recognition.lang = 'pt-BR';
+        recognition.lang = language || 'pt-BR';
 
         recognition.onstart = () => {
           setIsListening(true);

@@ -9,6 +9,7 @@ import { ExpertTips } from './ExpertTips';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -18,6 +19,7 @@ interface GeneratorProps {
 }
 
 export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingChange }: GeneratorProps) {
+  const { language } = useLanguage();
   const [ingredients, setIngredients] = useState('');
   const [preferences, setPreferences] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -138,7 +140,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
       const rec = new SpeechRecognitionAPI();
       rec.continuous = false;
       rec.interimResults = true;
-      rec.lang = 'pt-BR';
+      rec.lang = language || 'pt-BR';
       rec.maxAlternatives = 1;
 
       rec.onstart = () => {

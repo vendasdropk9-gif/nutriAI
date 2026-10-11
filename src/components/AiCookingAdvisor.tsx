@@ -68,7 +68,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
   onRepeatStep,
   onSelectStep
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CookingAdviceResult | null>(null);
@@ -171,16 +171,16 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
   };
 
   const processStepVoiceCommand = (transcript: string) => {
-    const t = transcript.toLowerCase().trim();
-    if (t.includes('próximo') || t.includes('proximo') || t.includes('avançar') || t.includes('avancar') || t.includes('seguinte')) {
+    const tCmd = transcript.toLowerCase().trim();
+    if (tCmd.includes('próximo') || tCmd.includes('proximo') || tCmd.includes('avançar') || tCmd.includes('avancar') || tCmd.includes('seguinte') || tCmd.includes('next') || tCmd.includes('siguiente') || tCmd.includes('suivant')) {
       handleNextStepVoice();
-    } else if (t.includes('voltar') || t.includes('anterior') || t.includes('atrás') || t.includes('atras')) {
+    } else if (tCmd.includes('voltar') || tCmd.includes('anterior') || tCmd.includes('atrás') || tCmd.includes('atras') || tCmd.includes('back') || tCmd.includes('previous') || tCmd.includes('précédent') || tCmd.includes('precedent')) {
       handlePrevStepVoice();
-    } else if (t.includes('repetir') || t.includes('ouvir') || t.includes('falar')) {
+    } else if (tCmd.includes('repetir') || tCmd.includes('ouvir') || tCmd.includes('falar') || tCmd.includes('repeat') || tCmd.includes('répéter') || tCmd.includes('repeter')) {
       handleRepeatStepVoice();
-    } else if (t.includes('parar') || t.includes('silenciar') || t.includes('pausar') || t.includes('mudo')) {
+    } else if (tCmd.includes('parar') || tCmd.includes('silenciar') || tCmd.includes('pausar') || tCmd.includes('mudo') || tCmd.includes('stop') || tCmd.includes('pause') || tCmd.includes('arrêter') || tCmd.includes('arreter')) {
       stopSpeech();
-      setVoiceCommandStatus('Áudio pausado.');
+      setVoiceCommandStatus(t('audio_paused', 'Áudio pausado.'));
       setTimeout(() => setVoiceCommandStatus(''), 2000);
     } else {
       setQuery(transcript);
@@ -193,7 +193,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       if (isHandsFreeActive) {
-        alert("Reconhecimento de voz não suportado pelo navegador.");
+        alert(t('speech_unsupported', "Reconhecimento de voz não suportado pelo navegador."));
         setIsHandsFreeActive(false);
       }
       return;
@@ -206,7 +206,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = false;
-        recognition.lang = 'pt-BR';
+        recognition.lang = language || 'pt-BR';
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -313,7 +313,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
+    recognition.lang = language || 'pt-BR';
     recognition.interimResults = false;
 
     recognition.onstart = () => setIsListening(true);

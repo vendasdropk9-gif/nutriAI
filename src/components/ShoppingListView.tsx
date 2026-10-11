@@ -425,7 +425,7 @@ function CustomCategoryCostTooltip({ active, payload }: CustomCategoryTooltipPro
 }
 
 export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState<'list' | 'monitor' | 'pantry_forecast' | 'compare' | 'promos'>('list');
   const [chartViewMode, setChartViewMode] = useState<'total' | 'status'>('total');
   const [checkedItems, setCheckedItems] = useLocalStorage<Record<string, boolean>>('nutri-shopping-checked', {});
@@ -740,7 +740,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
 
     try {
       const rec = new SpeechRecognitionAPI();
-      rec.lang = 'pt-BR';
+      rec.lang = language || 'pt-BR';
       rec.continuous = false;
       rec.interimResults = false;
 

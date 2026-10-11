@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
+    "build": "npm run test:i18n && node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:locales": "tsx scripts/validateLocales.ts",
+    "test:i18n": "tsx scripts/validateLocales.ts"
   },
   "dependencies": {
     "@google/genai": "latest",

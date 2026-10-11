@@ -33,11 +33,13 @@ export interface LiveAssistantProps {
 // Inactivity timeout in milliseconds (8 seconds of silence closes the session)
 const INACTIVITY_TIMEOUT_MS = 8000;
 
-// Compute time-appropriate greeting in active language (US, UK, AU, BR)
+// Compute time-appropriate greeting in active language (pt-BR, en-US, es-ES, fr-FR)
 function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): { spoken: string; display: string } {
   const currentHour = new Date().getHours();
   const normalizedLang = (lang || 'pt-BR').toLowerCase();
   const isEn = normalizedLang.startsWith('en');
+  const isEs = normalizedLang.startsWith('es');
+  const isFr = normalizedLang.startsWith('fr');
   const isAu = normalizedLang.includes('au');
   const isGb = normalizedLang.includes('gb') || normalizedLang.includes('uk');
   
@@ -45,7 +47,28 @@ function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): 
   let icon = "🌙";
   let question = "Como posso ajudar você hoje?";
 
-  if (isEn) {
+  if (isEs) {
+    question = "¿Cómo puedo ayudarte hoy?";
+    if (currentHour >= 5 && currentHour < 12) {
+      timeGreeting = "Buenos días";
+      icon = "☀️";
+    } else if (currentHour >= 12 && currentHour < 19) {
+      timeGreeting = "Buenas tardes";
+      icon = "🌤️";
+    } else {
+      timeGreeting = "Buenas noches";
+      icon = "🌙";
+    }
+  } else if (isFr) {
+    question = "Comment puis-je vous aider aujourd'hui ?";
+    if (currentHour >= 5 && currentHour < 18) {
+      timeGreeting = "Bonjour";
+      icon = "☀️";
+    } else {
+      timeGreeting = "Bonsoir";
+      icon = "🌙";
+    }
+  } else if (isEn) {
     if (isAu) {
       question = "How can I help you today?";
       if (currentHour >= 5 && currentHour < 12) {
@@ -108,6 +131,32 @@ function getLocalizedAssistantStrings(lang: string = 'pt-BR') {
   const norm = (lang || 'pt-BR').toLowerCase();
   const isGb = norm.includes('gb') || norm.includes('uk');
   const isAu = norm.includes('au');
+
+  if (norm.startsWith('es')) {
+    return {
+      listening: "Escuchando...",
+      thinking: "Pensando...",
+      speaking: "Hablando...",
+      goodbye: "Estaré aquí cuando me necesites. ¡Hasta pronto!",
+      tryAgain: "Por favor, inténtalo de nuevo.",
+      micError: "No se pudo acceder al micrófono. Verifica los permisos del navegador.",
+      noMic: "No se encontró ningún micrófono conectado en este dispositivo.",
+      unsupported: "El reconocimiento de voz no está disponible en este navegador."
+    };
+  }
+
+  if (norm.startsWith('fr')) {
+    return {
+      listening: "À l'écoute...",
+      thinking: "Réflexion en cours...",
+      speaking: "En train de parler...",
+      goodbye: "Je reste à votre entière disposition. À très bientôt !",
+      tryAgain: "Veuillez réessayer.",
+      micError: "Impossible d'accéder au microphone. Veuillez vérifier les autorisations.",
+      noMic: "Aucun microphone détecté sur cet appareil.",
+      unsupported: "La reconnaissance vocale n'est pas disponible sur ce navigateur."
+    };
+  }
 
   if (norm.startsWith('en')) {
     if (isGb) {

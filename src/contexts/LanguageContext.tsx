@@ -33,24 +33,40 @@ for (const [locKey, bundle] of Object.entries(localesMap)) {
   flattenedLocales[locKey] = flattenObject(bundle);
 }
 
-// Build reverse Portuguese text to key map for instant bidirectional translation
-const ptToKeyMap = new Map<string, string>();
-const flatPt = flattenedLocales['pt-BR'] || {};
-for (const [k, v] of Object.entries(flatPt)) {
-  if (typeof v === 'string') {
-    ptToKeyMap.set(v.toLowerCase().trim(), k);
-    ptToKeyMap.set(k.toLowerCase().trim(), k);
+// Build universal reverse text-to-key map for instant bidirectional translation across all languages
+const textToKeyMap = new Map<string, string>();
+
+for (const [, bundle] of Object.entries(flattenedLocales)) {
+  for (const [k, v] of Object.entries(bundle)) {
+    if (typeof v === 'string') {
+      textToKeyMap.set(v.toLowerCase().trim(), k);
+    }
+    textToKeyMap.set(k.toLowerCase().trim(), k);
   }
 }
 
-// Also index STATIC_APP_PHRASES keys into ptToKeyMap
-for (const phrase of Object.keys(STATIC_APP_PHRASES)) {
-  ptToKeyMap.set(phrase.toLowerCase().trim(), phrase);
+// Index STATIC_APP_PHRASES keys and translated values into textToKeyMap
+for (const [phrase, translations] of Object.entries(STATIC_APP_PHRASES)) {
+  textToKeyMap.set(phrase.toLowerCase().trim(), phrase);
+  if (translations && typeof translations === 'object') {
+    for (const val of Object.values(translations)) {
+      if (typeof val === 'string') {
+        textToKeyMap.set(val.toLowerCase().trim(), phrase);
+      }
+    }
+  }
 }
 
-// Also index RUNTIME_DICTIONARY keys into ptToKeyMap
-for (const phrase of Object.keys(RUNTIME_DICTIONARY)) {
-  ptToKeyMap.set(phrase.toLowerCase().trim(), phrase);
+// Index RUNTIME_DICTIONARY keys and translated values into textToKeyMap
+for (const [phrase, translations] of Object.entries(RUNTIME_DICTIONARY)) {
+  textToKeyMap.set(phrase.toLowerCase().trim(), phrase);
+  if (translations && typeof translations === 'object') {
+    for (const val of Object.values(translations)) {
+      if (typeof val === 'string') {
+        textToKeyMap.set(val.toLowerCase().trim(), phrase);
+      }
+    }
+  }
 }
 
 export interface LanguageContextType {
@@ -122,8 +138,8 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
 
   const [renderCount, setRenderCount] = useState(0);
 
-  const isRtl = false;
-  const direction: 'ltr' | 'rtl' = 'ltr';
+  const isRtl = language.startsWith('ar');
+  const direction: 'ltr' | 'rtl' = isRtl ? 'rtl' : 'ltr';
 
   // Synchronize with i18next language changes
   useEffect(() => {
@@ -149,12 +165,22 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     if (typeof document !== 'undefined') {
       document.documentElement.lang = language;
       document.documentElement.dir = direction;
+      if (document.body) {
+        if (isRtl) {
+          document.body.classList.add('rtl-layout');
+          document.body.classList.remove('ltr-layout');
+        } else {
+          document.body.classList.remove('rtl-layout');
+          document.body.classList.add('ltr-layout');
+        }
+      }
     }
-  }, [language, direction]);
+  }, [language, direction, isRtl]);
 
   // Centralized language change dispatcher
   const changeLanguage = useCallback(async (targetLng: string, supabaseClient?: any, userId?: string) => {
     const normalized = normalizeToSupportedLocale(targetLng);
+    const targetIsRtl = normalized.startsWith('ar');
 
     // 1. Synchronously update state and render key so all components re-render immediately
     setLanguageState(normalized);
@@ -163,7 +189,16 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     // 2. Synchronously update document attributes
     if (typeof document !== 'undefined') {
       document.documentElement.lang = normalized;
-      document.documentElement.dir = 'ltr';
+      document.documentElement.dir = targetIsRtl ? 'rtl' : 'ltr';
+      if (document.body) {
+        if (targetIsRtl) {
+          document.body.classList.add('rtl-layout');
+          document.body.classList.remove('ltr-layout');
+        } else {
+          document.body.classList.remove('rtl-layout');
+          document.body.classList.add('ltr-layout');
+        }
+      }
     }
 
     // 3. Dispatch global events for instant notification
@@ -192,9 +227,9 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     const cleanLang = currentLang.split('-')[0];
     const isPortuguese = currentLang.startsWith('pt');
 
-    // If target is Portuguese, resolve key from pt-BR dictionary or return defaultValue
+    // If target is Portuguese, resolve key from specific bundle or return defaultValue
     if (isPortuguese) {
-      let ptStr = flattenedLocales['pt-BR']?.[keyOrPhrase] || defaultValue || keyOrPhrase;
+      let ptStr = flattenedLocales[currentLang]?.[keyOrPhrase] || flattenedLocales['pt-BR']?.[keyOrPhrase] || defaultValue || keyOrPhrase;
       if (interpolationParams && typeof interpolationParams === 'object') {
         for (const [pKey, pVal] of Object.entries(interpolationParams)) {
           ptStr = ptStr.replace(new RegExp(`{{\\s*${pKey}\\s*}}`, 'g'), String(pVal))
@@ -215,9 +250,9 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
       translated = flatBundle[cleanLower];
     }
 
-    // 2. Reverse lookup: if keyOrPhrase is a known Portuguese text/key, find its translated value
+    // 2. Reverse lookup: if keyOrPhrase is a known phrase/key across any language, find its translated value
     if (!translated) {
-      const mappedKey = ptToKeyMap.get(cleanLower);
+      const mappedKey = textToKeyMap.get(cleanLower);
       if (mappedKey) {
         if (flatBundle[mappedKey]) {
           translated = flatBundle[mappedKey];

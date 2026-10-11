@@ -518,6 +518,10 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
         recognition.lang = activeLangCode;
       } else if (activeLangCode.startsWith('en')) {
         recognition.lang = 'en-US';
+      } else if (activeLangCode.startsWith('es')) {
+        recognition.lang = 'es-ES';
+      } else if (activeLangCode.startsWith('fr')) {
+        recognition.lang = 'fr-FR';
       } else {
         recognition.lang = 'pt-BR';
       }

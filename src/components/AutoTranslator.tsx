@@ -78,24 +78,24 @@ export function AutoTranslator() {
       }
     }
 
-    // 3. Flattened Locale bundles (keys AND Portuguese text values)
+    // 3. Flattened Locale bundles across all supported languages
     const ptFlat = flattenBundle(localesMap['pt-BR'] || {});
     const targetFlat = flattenBundle(localesMap[currentLang] || localesMap[cleanLang] || localesMap['en-US'] || {});
     const usFlat = flattenBundle(localesMap['en-US'] || {});
 
-    for (const [key, ptVal] of Object.entries(ptFlat)) {
-      const targetVal = isPortuguese ? ptVal : (targetFlat[key] || usFlat[key] || ptVal);
-      if (targetVal && typeof targetVal === 'string') {
-        map.set(key.toLowerCase().trim(), targetVal);
-        if (typeof ptVal === 'string') {
-          map.set(ptVal.toLowerCase().trim(), targetVal);
-        }
-      }
-    }
+    for (const [, bundle] of Object.entries(localesMap)) {
+      const bFlat = flattenBundle(bundle || {});
+      for (const [key, val] of Object.entries(bFlat)) {
+        const targetVal = isPortuguese
+          ? (currentLang === 'pt-PT' ? (flattenBundle(localesMap['pt-PT'] || {})[key] || ptFlat[key] || val) : (ptFlat[key] || val))
+          : (targetFlat[key] || usFlat[key] || val);
 
-    for (const [key, targetVal] of Object.entries(targetFlat)) {
-      if (targetVal && typeof targetVal === 'string') {
-        map.set(key.toLowerCase().trim(), targetVal);
+        if (targetVal && typeof targetVal === 'string') {
+          map.set(key.toLowerCase().trim(), targetVal);
+          if (typeof val === 'string') {
+            map.set(val.toLowerCase().trim(), targetVal);
+          }
+        }
       }
     }
 
@@ -104,7 +104,7 @@ export function AutoTranslator() {
 
   useEffect(() => {
     const currentLang = activeLang;
-    const isPortuguese = currentLang.startsWith('pt');
+    const isExactPtBr = currentLang === 'pt-BR' || currentLang === 'pt';
     const isRtl = currentLang.startsWith('ar') || currentLang.startsWith('he');
 
     // Synchronize HTML element attributes and layout class
@@ -128,7 +128,7 @@ export function AutoTranslator() {
       const trimmed = str.trim();
       if (!trimmed) return str;
 
-      if (isPortuguese) {
+      if (isExactPtBr) {
         return str;
       }
 
@@ -273,7 +273,7 @@ export function AutoTranslator() {
 
     // Dispatch background batch translation for complex untranslated sentences/paragraphs
     const flushPendingTranslations = async () => {
-      if (isPortuguese || pendingNodesRef.current.size === 0) return;
+      if (isExactPtBr || pendingNodesRef.current.size === 0) return;
 
       const nodes = Array.from(pendingNodesRef.current);
       pendingNodesRef.current.clear();
@@ -403,7 +403,7 @@ export function AutoTranslator() {
             if (!attrStore[attr]) {
               attrStore[attr] = currentVal;
             }
-            if (isPortuguese) {
+            if (isExactPtBr) {
               const orig = attrStore[attr];
               if (orig && currentVal !== orig) {
                 el.setAttribute(attr, orig);
@@ -429,7 +429,7 @@ export function AutoTranslator() {
         }
 
         if (original && original.trim().length > 0) {
-          if (isPortuguese) {
+          if (isExactPtBr) {
             if (node.nodeValue !== original) {
               node.nodeValue = original;
             }
@@ -502,7 +502,7 @@ export function AutoTranslator() {
               }
             }
             if (original && original.trim().length > 0) {
-              if (isPortuguese) {
+              if (isExactPtBr) {
                 if (targetNode.nodeValue !== original) {
                   targetNode.nodeValue = original;
                 }
@@ -530,7 +530,7 @@ export function AutoTranslator() {
                 if (!attrStore[attr]) {
                   attrStore[attr] = currentVal;
                 }
-                if (isPortuguese) {
+                if (isExactPtBr) {
                   const orig = attrStore[attr];
                   if (orig && currentVal !== orig) {
                     el.setAttribute(attr, orig);

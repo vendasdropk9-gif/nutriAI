@@ -197,7 +197,7 @@ export function LanguageModal({ isOpen, onClose, profile, onUpdateProfile }: Lan
 
             {/* Bottom Accent Decoration */}
             <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-slate-400 dark:text-slate-500">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">🇺🇸 US • 🇬🇧 UK • 🇦🇺 AU • 🇧🇷 BR</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">🇧🇷 Português • 🇺🇸 English • 🇪🇸 Español • 🇫🇷 Français</span>
               <div className="flex items-center gap-1.5">
                 <Heart className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                 <span className="text-[10px] uppercase tracking-widest font-mono">NutriAI Global</span>

@@ -75,8 +75,8 @@ export const resolveAutoLocale = (requestedLang?: string): string => {
 
   const clean = raw.toLowerCase();
   if (clean.startsWith('pt')) return 'pt-BR';
-  if (clean.includes('gb') || clean.includes('uk')) return 'en-GB';
-  if (clean.includes('au') || clean.includes('australia')) return 'en-AU';
+  if (clean.startsWith('es')) return 'es-ES';
+  if (clean.startsWith('fr')) return 'fr-FR';
   if (clean.startsWith('en')) return 'en-US';
   return 'pt-BR';
 };

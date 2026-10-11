@@ -67,23 +67,36 @@ for (const [phraseKey, translations] of Object.entries(STATIC_APP_PHRASES)) {
   }
 }
 
-// Helper to normalize any incoming locale code strictly to one of the 4 supported options
+// Helper to normalize any incoming locale code strictly to one of the 4 supported options: pt-BR, en-US, es-ES, fr-FR
 export const normalizeToSupportedLocale = (input?: string | null): SupportedLocale => {
   if (!input) return 'pt-BR';
-  const clean = input.trim();
-  
-  if (clean === 'pt-BR' || clean === 'pt' || clean.toLowerCase().startsWith('pt')) {
+  const clean = input.trim().toLowerCase();
+
+  // 1. Portuguese
+  if (clean.startsWith('pt')) {
     return 'pt-BR';
   }
-  if (clean === 'en-GB' || clean.toLowerCase() === 'en-gb' || clean.toLowerCase().includes('uk')) {
-    return 'en-GB';
-  }
-  if (clean === 'en-AU' || clean.toLowerCase() === 'en-au' || clean.toLowerCase().includes('australia')) {
-    return 'en-AU';
-  }
-  if (clean === 'en-US' || clean === 'en' || clean.toLowerCase().startsWith('en')) {
+
+  // 2. English
+  if (clean.startsWith('en')) {
     return 'en-US';
   }
+
+  // 3. Spanish
+  if (clean.startsWith('es')) {
+    return 'es-ES';
+  }
+
+  // 4. French
+  if (clean.startsWith('fr')) {
+    return 'fr-FR';
+  }
+
+  // Exact match fallback
+  if (clean === 'pt-br') return 'pt-BR';
+  if (clean === 'en-us') return 'en-US';
+  if (clean === 'es-es') return 'es-ES';
+  if (clean === 'fr-fr') return 'fr-FR';
 
   return 'pt-BR';
 };
@@ -133,10 +146,13 @@ i18n
     resources,
     lng: initialLanguage,
     fallbackLng: {
+      'es-ES': ['es', 'pt-BR'],
+      'es': ['es-ES', 'pt-BR'],
+      'fr-FR': ['fr', 'en-US', 'pt-BR'],
+      'fr': ['fr-FR', 'en-US', 'pt-BR'],
       'en-US': ['en', 'pt-BR'],
-      'en-GB': ['en-US', 'en', 'pt-BR'],
-      'en-AU': ['en-US', 'en', 'pt-BR'],
       'en': ['en-US', 'pt-BR'],
+      'pt-BR': ['pt'],
       'pt': ['pt-BR'],
       'default': ['pt-BR']
     },
@@ -159,17 +175,24 @@ i18n
 
 // Apply document attributes for initial language
 if (typeof document !== 'undefined') {
+  const isRtl = initialLanguage.startsWith('ar');
   document.documentElement.lang = initialLanguage;
-  document.documentElement.dir = 'ltr';
+  document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
   if (document.body) {
-    document.body.classList.remove('rtl-layout');
-    document.body.classList.add('ltr-layout');
+    if (isRtl) {
+      document.body.classList.add('rtl-layout');
+      document.body.classList.remove('ltr-layout');
+    } else {
+      document.body.classList.remove('rtl-layout');
+      document.body.classList.add('ltr-layout');
+    }
   }
 }
 
 // Function to change language globally in real-time with state, Firestore, Supabase, and LocalStorage
 export async function changeLanguage(lng: string, supabaseClient?: any, userId?: string) {
   const targetLng = normalizeToSupportedLocale(lng);
+  const isRtl = targetLng.startsWith('ar');
 
   // 1. Apply language in i18next
   await i18n.changeLanguage(targetLng);
@@ -198,10 +221,15 @@ export async function changeLanguage(lng: string, supabaseClient?: any, userId?:
   // 3. Update documentElement lang & dir
   if (typeof document !== 'undefined') {
     document.documentElement.lang = targetLng;
-    document.documentElement.dir = 'ltr';
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
     if (document.body) {
-      document.body.classList.remove('rtl-layout');
-      document.body.classList.add('ltr-layout');
+      if (isRtl) {
+        document.body.classList.add('rtl-layout');
+        document.body.classList.remove('ltr-layout');
+      } else {
+        document.body.classList.remove('rtl-layout');
+        document.body.classList.add('ltr-layout');
+      }
     }
   }
 

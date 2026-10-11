@@ -3,9 +3,27 @@ import { useSpring } from 'react-spring';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { ContactShadows, PerspectiveCamera, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-
-// Preload models for faster exercise switching
-useGLTF.preload('https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb');
+import { GLTFLoader, DRACOLoader } from 'three-stdlib';
+import {
+  createSculptedHeadGeometry,
+  createSculptedNeckGeometry,
+  createSculptedClaviclesGeometry,
+  createSculptedPectoralGeometry,
+  createSculptedAbdominalWallGeometry,
+  createSculptedSerratusObliquesGeometry,
+  createSculptedDeltoidGeometry,
+  createSculptedBicepGeometry,
+  createSculptedTricepGeometry,
+  createSculptedForearmGeometry,
+  createSculptedHandGeometry,
+  createSculptedQuadricepsGeometry,
+  createSculptedHamstringsGeometry,
+  createSculptedPatellaGeometry,
+  createSculptedCalfGeometry,
+  createSculptedFootGeometry,
+  createSculptedShortsGeometry,
+  createSculptedGluteGeometry,
+} from './AnatomicalSculptor';
 import {
   Play,
   Pause,
@@ -430,34 +448,41 @@ function StudioGymPlatform() {
 
 function GymBench({ position = 'seated' }: { position: string }) {
   const metalMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0d131f',
+    color: '#090d16',
     roughness: 0.35,
     metalness: 0.85,
   }), []);
 
-  const leatherMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#151d2a',
-    roughness: 0.75,
-    metalness: 0.15,
+  const leatherMat = useMemo(() => new THREE.MeshPhysicalMaterial({
+    color: '#10141f',
+    roughness: 0.65,
+    metalness: 0.12,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.35,
   }), []);
 
   if (position === 'seated') {
     return (
-      <group position={[0, -0.32, -0.05]}>
-        <mesh material={leatherMat} position={[0, 0.46, 0.08]} castShadow receiveShadow>
-          <boxGeometry args={[0.36, 0.07, 0.36]} />
+      <group position={[0, -0.32, -0.06]}>
+        {/* Contoured Ergonomic Seat Pad */}
+        <mesh material={leatherMat} position={[0, 0.44, 0.08]} castShadow receiveShadow>
+          <boxGeometry args={[0.38, 0.08, 0.42]} />
         </mesh>
-        <mesh material={leatherMat} position={[0, 0.88, -0.12]} rotation={[0.08, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.3, 0.74, 0.06]} />
+        {/* High Anatomical Backrest with beveled profile */}
+        <mesh material={leatherMat} position={[0, 0.90, -0.14]} rotation={[0.06, 0, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.34, 0.82, 0.08]} />
         </mesh>
+        {/* Central Heavy Steel Stanchion */}
         <mesh material={metalMat} position={[0, 0.22, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.04, 0.44, 16]} />
+          <cylinderGeometry args={[0.045, 0.045, 0.44, 20]} />
         </mesh>
-        <mesh material={metalMat} position={[0, 0.02, 0.22]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.035, 0.035, 0.52, 16]} />
+        {/* Front T-Bar Stabilizer Foot & Leg Rest */}
+        <mesh material={metalMat} position={[0, 0.02, 0.26]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.038, 0.038, 0.58, 20]} />
         </mesh>
-        <mesh material={metalMat} position={[0, 0.02, -0.25]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.035, 0.035, 0.52, 16]} />
+        {/* Rear T-Bar Stabilizer Foot */}
+        <mesh material={metalMat} position={[0, 0.02, -0.30]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.038, 0.038, 0.58, 20]} />
         </mesh>
       </group>
     );
@@ -467,13 +492,13 @@ function GymBench({ position = 'seated' }: { position: string }) {
     return (
       <group position={[0, -0.05, -0.3]}>
         <mesh material={leatherMat} position={[0, 0.45, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.34, 0.08, 1.15]} />
+          <boxGeometry args={[0.34, 0.08, 1.25]} />
         </mesh>
-        <mesh material={metalMat} position={[0, 0.22, -0.45]} castShadow>
-          <cylinderGeometry args={[0.035, 0.035, 0.44, 16]} />
+        <mesh material={metalMat} position={[0, 0.22, -0.5]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 0.44, 16]} />
         </mesh>
-        <mesh material={metalMat} position={[0, 0.22, 0.45]} castShadow>
-          <cylinderGeometry args={[0.035, 0.035, 0.44, 16]} />
+        <mesh material={metalMat} position={[0, 0.22, 0.5]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 0.44, 16]} />
         </mesh>
       </group>
     );
@@ -485,32 +510,50 @@ function GymBench({ position = 'seated' }: { position: string }) {
 function DumbbellGrip({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   const chromeMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#e2e8f0',
-    roughness: 0.15,
+    roughness: 0.16,
     metalness: 0.95,
   }), []);
 
   const plateMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0b0f19',
-    roughness: 0.45,
-    metalness: 0.75,
+    color: '#111726',
+    roughness: 0.48,
+    metalness: 0.78,
   }), []);
 
   return (
     <group position={position} rotation={rotation || [0, 0, 0]}>
+      {/* Knurled Chrome Center Handle */}
       <mesh material={chromeMat} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.016, 0.016, 0.22, 16]} />
+        <cylinderGeometry args={[0.016, 0.016, 0.24, 18]} />
       </mesh>
-      <mesh material={plateMat} position={[-0.08, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.088, 0.088, 0.03, 24]} />
+      {/* Locking Chrome Collars */}
+      <mesh material={chromeMat} position={[-0.065, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.026, 0.026, 0.016, 16]} />
       </mesh>
-      <mesh material={plateMat} position={[-0.11, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.075, 0.075, 0.024, 24]} />
+      <mesh material={chromeMat} position={[0.065, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.026, 0.026, 0.016, 16]} />
       </mesh>
-      <mesh material={plateMat} position={[0.08, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.088, 0.088, 0.03, 24]} />
+
+      {/* Left Stacked Tiered Cast Iron Plates (Large, Mid, Small) */}
+      <mesh material={plateMat} position={[-0.088, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.098, 0.098, 0.026, 28]} />
       </mesh>
-      <mesh material={plateMat} position={[0.11, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.075, 0.075, 0.024, 24]} />
+      <mesh material={plateMat} position={[-0.118, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.084, 0.084, 0.024, 28]} />
+      </mesh>
+      <mesh material={plateMat} position={[-0.146, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.070, 0.070, 0.020, 28]} />
+      </mesh>
+
+      {/* Right Stacked Tiered Cast Iron Plates (Large, Mid, Small) */}
+      <mesh material={plateMat} position={[0.088, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.098, 0.098, 0.026, 28]} />
+      </mesh>
+      <mesh material={plateMat} position={[0.118, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.084, 0.084, 0.024, 28]} />
+      </mesh>
+      <mesh material={plateMat} position={[0.146, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.070, 0.070, 0.020, 28]} />
       </mesh>
     </group>
   );
@@ -597,93 +640,174 @@ const muscleHighlightFragmentShader = `
   uniform float uIntensity;              // Base glow multiplier
   uniform float uContraction;            // 0.0 to 1.0 (synchronized with kinematic cycle)
 
+  // =========================================================================
+  // NORMAL MAPPING: Procedural Micro-Anatomical Muscle Fiber Heightfield
+  // Evaluates longitudinal fascicles, transverse sarcomere striations, and dynamic tension
+  // =========================================================================
+  float getMuscleFiberHeight(vec3 worldPos, vec2 uv, float time, float contraction, float isPrimary, float pace) {
+    float freq = isPrimary > 0.5 ? 46.0 : 34.0;
+    
+    // Longitudinal fascicle muscle fiber cords
+    float fiber1 = sin(worldPos.y * freq + worldPos.x * 14.0 + worldPos.z * 10.0);
+    
+    // Secondary harmonic bundle separation
+    float fiber2 = sin(worldPos.y * (freq * 2.15) - worldPos.x * 7.5) * 0.45;
+    
+    // Transverse micro-striations (sarcomere bands) flexing dynamically under tension
+    float striations = sin(worldPos.y * 115.0 + sin(worldPos.x * 28.0) * 1.3) * 0.28;
+    
+    // Dynamic metabolic tension wave traveling along fibers aligned with pace tempo
+    float tension = sin(worldPos.y * 22.0 - time * (4.2 * max(0.2, pace))) * 0.22;
+    
+    // Hypertrophic swelling scales bump relief during peak contraction
+    float contractionRelief = 0.80 + contraction * 0.60;
+    return (fiber1 * 0.52 + fiber2 * 0.34 + striations * 0.24 + tension * 0.18) * contractionRelief;
+  }
+
+  // Mikkelsen / Screen-Space Cotangent Frame Normal Perturbation
+  // Computes precise view-space perturbed surface normal N' from procedural heightfield
+  vec3 getPerturbedNormal(vec3 eyePos, vec3 surfNorm, float height, float bumpStrength) {
+    vec3 dpdx = dFdx(eyePos);
+    vec3 dpdy = dFdy(eyePos);
+    float dhdx = dFdx(height);
+    float dhdy = dFdy(height);
+
+    vec3 r1 = cross(dpdy, surfNorm);
+    vec3 r2 = cross(surfNorm, dpdx);
+
+    float det = dot(dpdx, r1);
+    if (abs(det) < 0.000001) return surfNorm;
+
+    vec3 grad = (r1 * dhdx + r2 * dhdy) / det;
+    return normalize(surfNorm - grad * bumpStrength);
+  }
+
   void main() {
-    vec3 normal = normalize(vNormal);
+    vec3 geomNormal = normalize(vNormal);
     vec3 viewDir = normalize(vViewPosition);
+    vec3 eyePos = -vViewPosition;
 
-    // View angle Fresnel factor
+    // Calculate procedural normal mapping height and perturbed surface normal N'
+    float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace);
+    float bumpScale = (uIsPrimary > 0.5 ? 0.036 : 0.024) * (1.0 + uContraction * 0.45);
+    vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale);
+
+    // =========================================================================
+    // MULTI-SOURCE NORMAL-MAPPED LIGHTING CALCULATIONS
+    // =========================================================================
+    // Studio lighting directions in view space
+    vec3 L_key = normalize(vec3(0.55, 0.90, 0.85));   // Key light (top-front-right)
+    vec3 L_fill = normalize(vec3(-0.65, 0.20, 0.50)); // Fill light (cool lateral left)
+    
+    // Normal-mapped Diffuse with Half-Lambert soft tissue translucency
+    float NdotL_key = dot(normal, L_key);
+    float diffKey = pow(NdotL_key * 0.5 + 0.5, 1.35);
+    float diffFill = max(0.0, dot(normal, L_fill)) * 0.42;
+    
+    // Subsurface organic scattering approximation (light wrapping through muscular volume)
+    float sss = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.40;
+    
+    // High-gloss specular gleam reflecting off individual normal-mapped fiber striations
+    vec3 H_key = normalize(L_key + viewDir);
+    float NdotH = max(0.0, dot(normal, H_key));
+    float specSharp = pow(NdotH, 44.0);        // Glistening wetness on fascicle crests
+    float specBroad = pow(NdotH, 12.0) * 0.35; // Organic fascia sheen
+    float specularGleam = specSharp * 1.15 + specBroad;
+
+    // Normal-mapped View Angle Fresnel
     float NdotV = max(0.0, dot(normal, viewDir));
-    float fresnel = pow(1.0 - NdotV, 2.2);
+    float fresnel = pow(1.0 - NdotV, 2.3);
 
-    // Camera view-specific modulation
-    // 0.0 = Frente (Front View)
-    // 1.0 = Lateral (Side View)
-    // 2.0 = Detalhe (Detail View)
-    // 3.0 = Costas (Back View)
+    // Inter-fascicular Cavity Shadowing / Crevice Ambient Occlusion
+    // Depresses ambient light in the valleys between muscle fibers for rich 3D depth
+    float cavity = smoothstep(-1.1, 0.7, fiberHeight);
+
+    // =========================================================================
+    // CAMERA VIEW-SPECIFIC PROJECTION MODULATION
+    // =========================================================================
     float viewFactor = 1.0;
-    float fiberStriation = 0.0;
-
     if (uCameraView < 0.5) {
-      // Frente: accentuate frontal projection
-      viewFactor = 0.90 + 0.40 * max(0.0, normal.z);
+      // Frente: accentuate frontal planar projection and muscular definition
+      viewFactor = 0.92 + 0.38 * max(0.0, normal.z);
     } else if (uCameraView < 1.5) {
-      // Lateral: accentuate outer silhouette rim and lateral curvature depth
-      viewFactor = 0.90 + 0.55 * abs(normal.x);
+      // Lateral: accentuate lateral profile depth and silhouette curvature
+      viewFactor = 0.92 + 0.52 * abs(normal.x);
     } else if (uCameraView < 2.5) {
-      // Detalhe: biological micro-fiber striation wave and high focal emission
-      fiberStriation = sin(vWorldPosition.y * 65.0 + uTime * (4.0 * max(0.2, uExercisePace))) * 0.16;
-      viewFactor = 1.35 + 0.45 * (1.0 - NdotV) + fiberStriation;
+      // Detalhe: ultra-high focal emission and magnified fiber striations
+      viewFactor = 1.35 + 0.45 * (1.0 - NdotV) + fiberHeight * 0.12;
     } else {
-      // Back: dorsal projection
-      viewFactor = 0.90 + 0.40 * max(0.0, -normal.z);
+      // Back: dorsal muscular projection
+      viewFactor = 0.92 + 0.38 * max(0.0, -normal.z);
     }
 
     // =========================================================================
-    // PERIODIC 'PULSE' ANIMATION (Primary & Secondary segments synchronized with Exercise Pace)
+    // PERIODIC 'PULSE' ANIMATION (Primary & Secondary synchronized with Exercise Pace)
     // =========================================================================
     float effectivePace = max(0.1, uExercisePace);
-
-    // Pulse frequency: Primary pulses with focused rapid heart/metabolic rate;
-    // Secondary synergists follow in smooth harmonic supporting rhythm
     float pulseFrequency = (uIsPrimary > 0.5 ? 4.2 : 2.6) * effectivePace;
 
-    // Time-based periodic harmonic waveform
     float rawWave = sin(uTime * pulseFrequency);
     float periodicWave = rawWave * 0.5 + 0.5; // Normalized 0.0 to 1.0
 
-    // Non-linear power shaping: Primary has energetic sharp crest; Secondary has smooth rounded swells
+    // Non-linear power shaping: Primary has energetic sharp crest; Secondary smooth swells
     float pulseShape = pow(periodicWave, uIsPrimary > 0.5 ? 2.2 : 1.4);
 
-    // Pulse intensity scaling directly proportional to the user's exercise pace:
-    // Faster tempo -> heightened luminous amplitude and metabolic glow intensity
+    // Pace intensity factor: faster tempo heighten luminous amplitude
     float paceIntensityFactor = clamp(0.65 + effectivePace * 0.45, 0.45, 2.25);
     float pulseAmplitude = (uIsPrimary > 0.5 ? 0.42 : 0.24) * paceIntensityFactor;
 
     // Overall pulse factor combining base glow, periodic pace wave, and peak contraction burst
     float pulse = 0.88 + pulseShape * pulseAmplitude + uContraction * (0.38 * paceIntensityFactor);
 
-    // Dynamically select target color from uniform
+    // =========================================================================
+    // COLOR COMPOSITION & DEPTH GRADIENTS
+    // =========================================================================
     vec3 targetHighlight = mix(uHighlightColorSecondary, uHighlightColorPrimary, step(0.5, uIsPrimary));
 
-    // Vibrant Red core to Electric Orange glow gradient incorporating dynamic uniforms
-    vec3 baseCore = mix(uColorCore, targetHighlight, 0.70);
-    vec3 baseGlow = mix(uColorGlow, targetHighlight, 0.45);
-    vec3 baseTone = mix(baseCore, uColorWarm, 0.35);
-    vec3 glowTone = baseGlow;
+    // Deep ruby-crimson in crevices, fiery vermilion-orange on illuminated fiber crests
+    vec3 deepCreviceColor = mix(vec3(0.42, 0.02, 0.07), uColorCore, 0.65);
+    vec3 illuminatedRidgeColor = mix(uColorGlow, uColorWarm, 0.50);
+    illuminatedRidgeColor = mix(illuminatedRidgeColor, targetHighlight, 0.65);
 
-    // Harmonize tones with Fresnel and fiber striation
-    vec3 activeColor = mix(baseTone, glowTone, fresnel * 0.85 + fiberStriation);
+    // Base tissue tone blending crevice depth with surface illumination
+    vec3 baseCore = mix(deepCreviceColor, targetHighlight, cavity * 0.75);
+    vec3 baseTone = mix(baseCore, illuminatedRidgeColor, (diffKey + diffFill + sss * 0.5) * 0.55);
 
-    // Edge and core luminescence heightened during peak pulse beats
-    activeColor += baseGlow * (fresnel * (0.65 + pulseShape * 0.35) * pulse);
-    activeColor += targetHighlight * (NdotV * (0.35 + pulseShape * 0.30) * pulse);
+    // Active color blending normal-mapped diffuse, organic subsurface scattering, and pulse glow
+    vec3 activeColor = baseTone * (0.75 + 0.35 * diffKey);
+    activeColor += illuminatedRidgeColor * (sss * 0.60 * pulse);
+
+    // Heighten edge and fiber crest luminescence during peak pulse beats
+    activeColor += illuminatedRidgeColor * (fresnel * (0.55 + pulseShape * 0.35) * pulse);
+    activeColor += targetHighlight * (NdotV * (0.28 + pulseShape * 0.28) * pulse);
+
+    // Normal-mapped Specular Glistening: fibers glisten with intense athletic sheen at pulse apex
+    float pulseSpecularBoost = 1.0 + pulseShape * 0.85 * paceIntensityFactor + uContraction * 0.50;
+    vec3 specularColor = mix(vec3(1.0, 0.88, 0.75), vec3(1.0, 0.95, 0.90), step(0.5, uIsPrimary));
+    activeColor += specularColor * (specularGleam * 0.55 * pulseSpecularBoost);
 
     // Dynamic crest flash at the apex of the pulse wave
     if (uIsPrimary > 0.5) {
-      activeColor += uHighlightColorPrimary * (pulseShape * 0.25 * paceIntensityFactor);
+      activeColor += uHighlightColorPrimary * (pulseShape * 0.28 * paceIntensityFactor);
     } else {
-      activeColor += uHighlightColorSecondary * (pulseShape * 0.15 * paceIntensityFactor);
+      activeColor += uHighlightColorSecondary * (pulseShape * 0.18 * paceIntensityFactor);
     }
 
     // Detail camera view enhancement
     if (uCameraView > 1.5 && uCameraView < 2.5) {
-      activeColor *= 1.30;
+      activeColor *= 1.25;
     }
 
     // Secondary synergist softens slightly
     if (uIsPrimary < 0.5) {
-      activeColor = mix(activeColor, uHighlightColorSecondary, 0.25);
+      activeColor = mix(activeColor, uHighlightColorSecondary, 0.22);
     }
+
+    // Signature Electric Cyan / Blue backlight halo on the muscle silhouette matching reference image
+    // Catching normal-mapped silhouette edges for anatomical atlas precision
+    vec3 cyanHalo = vec3(0.0, 0.92, 1.0);
+    float rimFactor = pow(1.0 - NdotV, 3.4);
+    activeColor += cyanHalo * (rimFactor * 0.50);
 
     gl_FragColor = vec4(activeColor * uIntensity * viewFactor, 1.0);
   }
@@ -1595,15 +1719,16 @@ function AnatomicalMuscleNode({
     };
   }, [shaderMat]);
 
-  // High-Definition Sculpted Matte Porcelain Atlas Mannequin for inactive body parts
+  // High-Definition Sculpted Matte Porcelain Atlas Mannequin for inactive body parts matching image.png
   const inactiveMat = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        color: '#d4d8e5',
-        roughness: 0.32,
-        metalness: 0.12,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.2,
+        color: '#dce3ef',
+        roughness: 0.28,
+        metalness: 0.04,
+        clearcoat: 0.48,
+        clearcoatRoughness: 0.16,
+        reflectivity: 0.65,
       }),
     []
   );
@@ -1664,64 +1789,771 @@ function AnatomicalMuscleNode({
 }
 
 // ============================================================================
-// GLTF ANATOMICAL 3D MODEL LOADER WITH SHADERMATERIAL HIGHLIGHTING
+// VERTEX WEIGHT RECALIBRATION FOR JOINT VOLUME PRESERVATION (ELBOWS & KNEES)
+// Mitigates linear blend skinning volume loss, candy-wrapper twisting, and pinching
 // ============================================================================
-export function GLTFAnatomicalModel({
+
+export interface JointWeightRecalibrationOptions {
+  preserveElbowVolume?: boolean;
+  preserveKneeVolume?: boolean;
+  smoothingStrength?: number;       // Blending factor (0.0 to 1.0, default 0.65)
+  curvaturePreservation?: number;   // Curvature volume preservation factor (default 0.75)
+  transitionRadiusScale?: number;   // Spatial search multiplier for joint envelope (default 1.0)
+}
+
+/**
+ * Recalibrates skin weights on SkinnedMesh instances within a GLTF scene or object.
+ * Prevents geometric joint collapse ("candy-wrapper" artifact and volume pinching)
+ * at the elbows and knees during high-angle flexion in exercise demonstrations,
+ * preserving anatomical muscle bulk, continuous contours, and natural deformation.
+ */
+export function recalibrateJointSkinWeights(
+  root: THREE.Object3D,
+  options?: JointWeightRecalibrationOptions
+): { calibratedMeshesCount: number; affectedVerticesCount: number } {
+  const {
+    preserveElbowVolume = true,
+    preserveKneeVolume = true,
+    smoothingStrength = 0.65,
+    curvaturePreservation = 0.75,
+    transitionRadiusScale = 1.0,
+  } = options || {};
+
+  let calibratedMeshesCount = 0;
+  let affectedVerticesCount = 0;
+
+  root.traverse((child) => {
+    if (!(child as THREE.SkinnedMesh).isSkinnedMesh) return;
+
+    const skinnedMesh = child as THREE.SkinnedMesh;
+    const geometry = skinnedMesh.geometry;
+    if (!geometry || !geometry.attributes.skinIndex || !geometry.attributes.skinWeight) return;
+
+    const skeleton = skinnedMesh.skeleton;
+    if (!skeleton || !skeleton.bones || skeleton.bones.length === 0) return;
+
+    const bones = skeleton.bones;
+
+    // Helper to find matching bone index by name substrings
+    const findBoneIndices = (patterns: string[]): number[] => {
+      const indices: number[] = [];
+      bones.forEach((bone, idx) => {
+        const name = (bone.name || '').toLowerCase();
+        if (patterns.some((p) => name.includes(p.toLowerCase()))) {
+          indices.push(idx);
+        }
+      });
+      return indices;
+    };
+
+    interface JointPair {
+      name: string;
+      proximal: number[];
+      distal: number[];
+      type: 'elbow' | 'knee';
+    }
+
+    const jointPairs: JointPair[] = [];
+
+    if (preserveElbowVolume) {
+      // Left Elbow: Left Arm / UpperArm <-> Left Forearm / LowerArm
+      const lArm = findBoneIndices(['leftarm', 'arm.l', 'arm_l', 'upperarm.l', 'upperarm_l', 'shoulder.l', 'left_arm', 'leftupperarm']);
+      const lForearm = findBoneIndices(['leftforearm', 'forearm.l', 'forearm_l', 'lowerarm.l', 'lowerarm_l', 'left_forearm', 'leftlowerarm']);
+      if (lArm.length > 0 && lForearm.length > 0) {
+        jointPairs.push({ name: 'Left Elbow', proximal: lArm, distal: lForearm, type: 'elbow' });
+      }
+
+      // Right Elbow: Right Arm / UpperArm <-> Right Forearm / LowerArm
+      const rArm = findBoneIndices(['rightarm', 'arm.r', 'arm_r', 'upperarm.r', 'upperarm_r', 'shoulder.r', 'right_arm', 'rightupperarm']);
+      const rForearm = findBoneIndices(['rightforearm', 'forearm.r', 'forearm_r', 'lowerarm.r', 'lowerarm_r', 'right_forearm', 'rightlowerarm']);
+      if (rArm.length > 0 && rForearm.length > 0) {
+        jointPairs.push({ name: 'Right Elbow', proximal: rArm, distal: rForearm, type: 'elbow' });
+      }
+    }
+
+    if (preserveKneeVolume) {
+      // Left Knee: Left UpLeg / Thigh <-> Left Leg / Shin / Calf
+      const lThigh = findBoneIndices(['leftupleg', 'upleg.l', 'upleg_l', 'thigh.l', 'thigh_l', 'femur.l', 'femur_l', 'left_thigh', 'leftthigh']);
+      const lShin = findBoneIndices(['leftleg', 'leg.l', 'leg_l', 'shin.l', 'shin_l', 'calf.l', 'calf_l', 'tibia.l', 'tibia_l', 'left_leg', 'leftshin']);
+      if (lThigh.length > 0 && lShin.length > 0) {
+        jointPairs.push({ name: 'Left Knee', proximal: lThigh, distal: lShin, type: 'knee' });
+      }
+
+      // Right Knee: Right UpLeg / Thigh <-> Right Leg / Shin / Calf
+      const rThigh = findBoneIndices(['rightupleg', 'upleg.r', 'upleg_r', 'thigh.r', 'thigh_r', 'femur.r', 'femur_r', 'right_thigh', 'rightthigh']);
+      const rShin = findBoneIndices(['rightleg', 'leg.r', 'leg_r', 'shin.r', 'shin_r', 'calf.r', 'calf_r', 'tibia.r', 'tibia_r', 'right_leg', 'rightshin']);
+      if (rThigh.length > 0 && rShin.length > 0) {
+        jointPairs.push({ name: 'Right Knee', proximal: rThigh, distal: rShin, type: 'knee' });
+      }
+    }
+
+    if (jointPairs.length === 0) return;
+
+    const skinIndexAttr = geometry.attributes.skinIndex;
+    const skinWeightAttr = geometry.attributes.skinWeight;
+    const positionAttr = geometry.attributes.position;
+    const vertexCount = positionAttr ? positionAttr.count : skinWeightAttr.count;
+
+    let modified = false;
+
+    // Precalculate bone pivot positions in mesh local coordinates
+    const invMeshWorld = new THREE.Matrix4().copy(skinnedMesh.matrixWorld).invert();
+    const boneLocalPositions = bones.map((b) => {
+      const v = new THREE.Vector3();
+      b.getWorldPosition(v);
+      return v.applyMatrix4(invMeshWorld);
+    });
+
+    for (let i = 0; i < vertexCount; i++) {
+      const idx0 = skinIndexAttr.getX(i);
+      const idx1 = skinIndexAttr.getY(i);
+      const idx2 = skinIndexAttr.getZ(i);
+      const idx3 = skinIndexAttr.getW(i);
+
+      let w0 = skinWeightAttr.getX(i);
+      let w1 = skinWeightAttr.getY(i);
+      let w2 = skinWeightAttr.getZ(i);
+      let w3 = skinWeightAttr.getW(i);
+
+      let vertexAdjusted = false;
+
+      for (const joint of jointPairs) {
+        let proxWeight = 0;
+        let distWeight = 0;
+        let proxSlot = -1;
+        let distSlot = -1;
+
+        const checkSlot = (slot: number, boneIdx: number, weight: number) => {
+          if (joint.proximal.includes(boneIdx)) {
+            proxWeight += weight;
+            if (proxSlot === -1) proxSlot = slot;
+          } else if (joint.distal.includes(boneIdx)) {
+            distWeight += weight;
+            if (distSlot === -1) distSlot = slot;
+          }
+        };
+
+        checkSlot(0, idx0, w0);
+        checkSlot(1, idx1, w1);
+        checkSlot(2, idx2, w2);
+        checkSlot(3, idx3, w3);
+
+        const totalJointWeight = proxWeight + distWeight;
+
+        // Condition 1: Vertex in the joint blend zone (influenced by both proximal and distal bones)
+        if (totalJointWeight > 0.05 && proxWeight > 0.02 && distWeight > 0.02) {
+          const t = distWeight / totalJointWeight;
+
+          // Non-linear Hermite S-curve volume preservation
+          const sCurve = 0.5 - 0.5 * Math.cos(Math.PI * t);
+          const hermite = t * t * (3 - 2 * t);
+          const targetT = sCurve * 0.5 + hermite * 0.5;
+
+          const blendedT = t * (1.0 - smoothingStrength) + targetT * smoothingStrength;
+
+          // Volume expansion factor counteracting the ~30% LBS volume loss at inflection
+          const volumePreservationFactor = 1.0 + Math.sin(Math.PI * blendedT) * (0.18 * curvaturePreservation);
+
+          const newProx = totalJointWeight * (1.0 - blendedT) * volumePreservationFactor;
+          const newDist = totalJointWeight * blendedT * volumePreservationFactor;
+
+          if (proxSlot === 0) w0 = newProx;
+          else if (proxSlot === 1) w1 = newProx;
+          else if (proxSlot === 2) w2 = newProx;
+          else if (proxSlot === 3) w3 = newProx;
+
+          if (distSlot === 0) w0 = newDist;
+          else if (distSlot === 1) w1 = newDist;
+          else if (distSlot === 2) w2 = newDist;
+          else if (distSlot === 3) w3 = newDist;
+
+          vertexAdjusted = true;
+          break;
+        }
+
+        // Condition 2: Spatial proximity to the joint pivot center (remedying rigid unblended creases)
+        if (positionAttr && totalJointWeight > 0.70 && (proxWeight > 0.65 || distWeight > 0.65)) {
+          const distalBoneIdx = joint.distal[0];
+          if (distalBoneIdx !== undefined) {
+            const jointPivot = boneLocalPositions[distalBoneIdx];
+            const vx = positionAttr.getX(i);
+            const vy = positionAttr.getY(i);
+            const vz = positionAttr.getZ(i);
+
+            const dx = vx - jointPivot.x;
+            const dy = vy - jointPivot.y;
+            const dz = vz - jointPivot.z;
+            const distToJoint = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            const jointRadius = (joint.type === 'knee' ? 0.14 : 0.09) * transitionRadiusScale;
+
+            if (distToJoint < jointRadius) {
+              const blendRatio = (1.0 - distToJoint / jointRadius) * 0.35 * smoothingStrength;
+
+              if (proxWeight > distWeight && distSlot !== -1) {
+                const transfer = proxWeight * blendRatio;
+                if (proxSlot === 0) w0 -= transfer;
+                else if (proxSlot === 1) w1 -= transfer;
+                else if (proxSlot === 2) w2 -= transfer;
+                else if (proxSlot === 3) w3 -= transfer;
+
+                if (distSlot === 0) w0 += transfer;
+                else if (distSlot === 1) w1 += transfer;
+                else if (distSlot === 2) w2 += transfer;
+                else if (distSlot === 3) w3 += transfer;
+                vertexAdjusted = true;
+              } else if (distWeight > proxWeight && proxSlot !== -1) {
+                const transfer = distWeight * blendRatio;
+                if (distSlot === 0) w0 -= transfer;
+                else if (distSlot === 1) w1 -= transfer;
+                else if (distSlot === 2) w2 -= transfer;
+                else if (distSlot === 3) w3 -= transfer;
+
+                if (proxSlot === 0) w0 += transfer;
+                else if (proxSlot === 1) w1 += transfer;
+                else if (proxSlot === 2) w2 += transfer;
+                else if (proxSlot === 3) w3 += transfer;
+                vertexAdjusted = true;
+              }
+            }
+          }
+        }
+      }
+
+      if (vertexAdjusted) {
+        // Strict normalization: sum of all 4 weights must equal 1.0
+        const sum = Math.max(0.0001, w0 + w1 + w2 + w3);
+        const norm0 = Math.max(0, w0 / sum);
+        const norm1 = Math.max(0, w1 / sum);
+        const norm2 = Math.max(0, w2 / sum);
+        const norm3 = Math.max(0, w3 / sum);
+
+        skinWeightAttr.setXYZW(i, norm0, norm1, norm2, norm3);
+        affectedVerticesCount++;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      skinWeightAttr.needsUpdate = true;
+      calibratedMeshesCount++;
+    }
+  });
+
+  return { calibratedMeshesCount, affectedVerticesCount };
+}
+
+// ============================================================================
+// DYNAMIC JOINT VERTEX WEIGHT INTERPOLATION & VOLUME PRESERVATION (ELBOWS & KNEES)
+// Continuously recalculates vertex weights and volumetric dilation during runtime
+// animations as the joint angle changes, preventing LBS pinching & cross-section collapse.
+// ============================================================================
+
+export interface DynamicJointInterpolationOptions {
+  preserveElbows?: boolean;
+  preserveKnees?: boolean;
+  volumeCompensationFactor?: number; // 0.0 to 1.0, default 0.85
+  flexionThresholdRad?: number;      // Minimum radians before dynamic interpolation engages (default ~0.08 rad)
+}
+
+interface DynamicJointVertexData {
+  vertexIndex: number;
+  proxSlot: number;
+  distSlot: number;
+  baseProxWeight: number;
+  baseDistWeight: number;
+  totalJointWeight: number;
+  baseRatio: number;
+  otherSlots: { slot: number; weight: number }[];
+}
+
+interface DynamicJointBinding {
+  type: 'elbow' | 'knee';
+  name: string;
+  proximalBone: THREE.Bone;
+  distalBone: THREE.Bone;
+  vertices: DynamicJointVertexData[];
+}
+
+interface SkinnedMeshJointCache {
+  bindings: DynamicJointBinding[];
+  initialized: boolean;
+}
+
+const _vProx = new THREE.Vector3();
+const _vDist = new THREE.Vector3();
+
+function initSkinnedMeshJointCache(
+  skinnedMesh: THREE.SkinnedMesh,
+  options?: DynamicJointInterpolationOptions
+): SkinnedMeshJointCache {
+  const { preserveElbows = true, preserveKnees = true } = options || {};
+
+  const skeleton = skinnedMesh.skeleton;
+  const geometry = skinnedMesh.geometry;
+  if (!skeleton || !skeleton.bones || !geometry || !geometry.attributes.skinIndex || !geometry.attributes.skinWeight) {
+    return { bindings: [], initialized: true };
+  }
+
+  const bones = skeleton.bones;
+  const skinIndexAttr = geometry.attributes.skinIndex;
+  const skinWeightAttr = geometry.attributes.skinWeight;
+  const count = skinWeightAttr.count;
+
+  const findBone = (patterns: string[]): { bone: THREE.Bone; index: number } | null => {
+    for (let idx = 0; idx < bones.length; idx++) {
+      const name = (bones[idx].name || '').toLowerCase();
+      if (patterns.some((p) => name.includes(p.toLowerCase()))) {
+        return { bone: bones[idx], index: idx };
+      }
+    }
+    return null;
+  };
+
+  const rawJoints: { name: string; type: 'elbow' | 'knee'; prox: { bone: THREE.Bone; index: number } | null; dist: { bone: THREE.Bone; index: number } | null }[] = [];
+
+  if (preserveElbows) {
+    rawJoints.push({
+      name: 'Left Elbow',
+      type: 'elbow',
+      prox: findBone(['leftarm', 'arm.l', 'arm_l', 'upperarm.l', 'upperarm_l', 'shoulder.l', 'left_arm', 'leftupperarm']),
+      dist: findBone(['leftforearm', 'forearm.l', 'forearm_l', 'lowerarm.l', 'lowerarm_l', 'left_forearm', 'leftlowerarm']),
+    });
+    rawJoints.push({
+      name: 'Right Elbow',
+      type: 'elbow',
+      prox: findBone(['rightarm', 'arm.r', 'arm_r', 'upperarm.r', 'upperarm_r', 'shoulder.r', 'right_arm', 'rightupperarm']),
+      dist: findBone(['rightforearm', 'forearm.r', 'forearm_r', 'lowerarm.r', 'lowerarm_r', 'right_forearm', 'rightlowerarm']),
+    });
+  }
+
+  if (preserveKnees) {
+    rawJoints.push({
+      name: 'Left Knee',
+      type: 'knee',
+      prox: findBone(['leftupleg', 'upleg.l', 'upleg_l', 'thigh.l', 'thigh_l', 'femur.l', 'femur_l', 'left_thigh', 'leftthigh']),
+      dist: findBone(['leftleg', 'leg.l', 'leg_l', 'shin.l', 'shin_l', 'calf.l', 'calf_l', 'tibia.l', 'tibia_l', 'left_leg', 'leftshin']),
+    });
+    rawJoints.push({
+      name: 'Right Knee',
+      type: 'knee',
+      prox: findBone(['rightupleg', 'upleg.r', 'upleg_r', 'thigh.r', 'thigh_r', 'femur.r', 'femur_r', 'right_thigh', 'rightthigh']),
+      dist: findBone(['rightleg', 'leg.r', 'leg_r', 'shin.r', 'shin_r', 'calf.r', 'calf_r', 'tibia.r', 'tibia_r', 'right_leg', 'rightshin']),
+    });
+  }
+
+  const bindings: DynamicJointBinding[] = [];
+
+  for (const j of rawJoints) {
+    if (!j.prox || !j.dist) continue;
+    const proxIdx = j.prox.index;
+    const distIdx = j.dist.index;
+
+    const vertices: DynamicJointVertexData[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const i0 = (skinIndexAttr as any).getX(i);
+      const i1 = (skinIndexAttr as any).getY(i);
+      const i2 = (skinIndexAttr as any).getZ(i);
+      const i3 = (skinIndexAttr as any).getW(i);
+
+      const w0 = (skinWeightAttr as any).getX(i);
+      const w1 = (skinWeightAttr as any).getY(i);
+      const w2 = (skinWeightAttr as any).getZ(i);
+      const w3 = (skinWeightAttr as any).getW(i);
+
+      let proxSlot = -1;
+      let distSlot = -1;
+      let proxWeight = 0;
+      let distWeight = 0;
+      const otherSlots: { slot: number; weight: number }[] = [];
+
+      const check = (slot: number, bIdx: number, w: number) => {
+        if (bIdx === proxIdx) {
+          proxSlot = slot;
+          proxWeight = w;
+        } else if (bIdx === distIdx) {
+          distSlot = slot;
+          distWeight = w;
+        } else if (w > 0.001) {
+          otherSlots.push({ slot, weight: w });
+        }
+      };
+
+      check(0, i0, w0);
+      check(1, i1, w1);
+      check(2, i2, w2);
+      check(3, i3, w3);
+
+      const totalJoint = proxWeight + distWeight;
+      if (totalJoint > 0.08 && proxSlot !== -1 && distSlot !== -1 && proxWeight > 0.02 && distWeight > 0.02) {
+        vertices.push({
+          vertexIndex: i,
+          proxSlot,
+          distSlot,
+          baseProxWeight: proxWeight,
+          baseDistWeight: distWeight,
+          totalJointWeight: totalJoint,
+          baseRatio: distWeight / totalJoint,
+          otherSlots,
+        });
+      }
+    }
+
+    if (vertices.length > 0) {
+      bindings.push({
+        type: j.type,
+        name: j.name,
+        proximalBone: j.prox.bone,
+        distalBone: j.dist.bone,
+        vertices,
+      });
+    }
+  }
+
+  const cache = { bindings, initialized: true };
+  (skinnedMesh.userData as any).__dynamicJointCache = cache;
+  return cache;
+}
+
+/**
+ * Dynamically interpolates vertex weights on GLTF SkinnedMesh joints in real-time
+ * as bones rotate during animations. Applies Pose-Space non-linear volumetric dilation
+ * at the inflection zones of elbows and knees to prevent LBS cross-section pinching.
+ */
+export function interpolateDynamicJointWeights(
+  root: THREE.Object3D,
+  options?: DynamicJointInterpolationOptions
+): void {
+  const {
+    volumeCompensationFactor = 0.85,
+    flexionThresholdRad = 0.08,
+  } = options || {};
+
+  root.traverse((child) => {
+    if (!(child as THREE.SkinnedMesh).isSkinnedMesh) return;
+    const skinnedMesh = child as THREE.SkinnedMesh;
+
+    let cache: SkinnedMeshJointCache = (skinnedMesh.userData as any).__dynamicJointCache;
+    if (!cache || !cache.initialized) {
+      cache = initSkinnedMeshJointCache(skinnedMesh, options);
+    }
+
+    if (!cache.bindings || cache.bindings.length === 0) return;
+
+    const geometry = skinnedMesh.geometry;
+    if (!geometry || !geometry.attributes.skinWeight) return;
+    const skinWeightAttr = geometry.attributes.skinWeight;
+
+    let meshNeedsUpdate = false;
+
+    for (const binding of cache.bindings) {
+      // Calculate real-time angle between proximal and distal bones in world coordinates
+      binding.proximalBone.getWorldDirection(_vProx);
+      binding.distalBone.getWorldDirection(_vDist);
+
+      const dot = Math.max(-1.0, Math.min(1.0, _vProx.dot(_vDist)));
+      const flexionAngle = Math.acos(dot); // 0.0 (extended) to ~3.14 (fully folded)
+
+      // Only perform dynamic interpolation if the joint is actively flexed past threshold
+      if (flexionAngle < flexionThresholdRad) continue;
+
+      // Normalized flexion progression (0.0 = straight arm/leg, 1.0 = deep ~135°+ acute flexion)
+      const flexion = Math.min(1.0, flexionAngle / 2.35);
+
+      // In Linear Blend Skinning, volume loss is maximum at ~90-130° flexion
+      // Non-linear Hermite S-curve weight redistribution dynamically modulated by flexion:
+      const dynFactor = flexion * volumeCompensationFactor;
+
+      for (let k = 0; k < binding.vertices.length; k++) {
+        const v = binding.vertices[k];
+
+        // S-curve and Hermite volumetric profile
+        const sCurve = 0.5 - 0.5 * Math.cos(Math.PI * v.baseRatio);
+        const hermite = v.baseRatio * v.baseRatio * (3 - 2 * v.baseRatio);
+        const targetRatio = sCurve * 0.5 + hermite * 0.5;
+
+        // Dynamic interpolation between rest ratio and target volumetric curve
+        const dynamicRatio = v.baseRatio * (1.0 - dynFactor * 0.65) + targetRatio * (dynFactor * 0.65);
+
+        // Hypertrophic volume dilation factor counteracting the cross-sectional collapse
+        const dilation = 1.0 + Math.sin(Math.PI * dynamicRatio) * (0.22 * dynFactor);
+
+        const newProx = v.totalJointWeight * (1.0 - dynamicRatio) * dilation;
+        const newDist = v.totalJointWeight * dynamicRatio * dilation;
+
+        let total = newProx + newDist;
+        for (let o = 0; o < v.otherSlots.length; o++) {
+          total += v.otherSlots[o].weight;
+        }
+
+        const invTotal = 1.0 / Math.max(0.0001, total);
+        const finalProx = newProx * invTotal;
+        const finalDist = newDist * invTotal;
+
+        // Write directly to component slots
+        if (v.proxSlot === 0) (skinWeightAttr as any).setX(v.vertexIndex, finalProx);
+        else if (v.proxSlot === 1) (skinWeightAttr as any).setY(v.vertexIndex, finalProx);
+        else if (v.proxSlot === 2) (skinWeightAttr as any).setZ(v.vertexIndex, finalProx);
+        else if (v.proxSlot === 3) (skinWeightAttr as any).setW(v.vertexIndex, finalProx);
+
+        if (v.distSlot === 0) (skinWeightAttr as any).setX(v.vertexIndex, finalDist);
+        else if (v.distSlot === 1) (skinWeightAttr as any).setY(v.vertexIndex, finalDist);
+        else if (v.distSlot === 2) (skinWeightAttr as any).setZ(v.vertexIndex, finalDist);
+        else if (v.distSlot === 3) (skinWeightAttr as any).setW(v.vertexIndex, finalDist);
+
+        meshNeedsUpdate = true;
+      }
+    }
+
+    if (meshNeedsUpdate) {
+      skinWeightAttr.needsUpdate = true;
+    }
+  });
+}
+
+// ============================================================================
+// MODEL POOLING & GPU VRAM RETENTION SYSTEM (Male & Female Variants via Draco)
+// Keeps decompressed Draco GLTF models for Male & Female variants resident in
+// GPU video memory to enable instant, zero-latency gender toggling without re-parsing.
+// ============================================================================
+
+export interface PooledModelAsset {
+  gender: 'male' | 'female';
+  url: string;
+  scene: THREE.Group;
+  animations: THREE.AnimationClip[];
+  isRecalibrated: boolean;
+  cachedAt: number;
+}
+
+class AvatarModelPoolManager {
+  private static instance: AvatarModelPoolManager | null = null;
+  private pool: Map<string, PooledModelAsset> = new Map();
+  private dracoLoader: DRACOLoader | null = null;
+  private gltfLoader: GLTFLoader | null = null;
+  private pendingLoads: Map<string, Promise<PooledModelAsset>> = new Map();
+
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        const draco = new DRACOLoader();
+        draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+        draco.setDecoderConfig({ type: 'js' });
+        this.dracoLoader = draco;
+
+        const gltf = new GLTFLoader();
+        gltf.setDRACOLoader(draco);
+        this.gltfLoader = gltf;
+      } catch (err) {
+        console.warn('Draco loader init warning:', err);
+      }
+    }
+  }
+
+  public static getInstance(): AvatarModelPoolManager {
+    if (!AvatarModelPoolManager.instance) {
+      AvatarModelPoolManager.instance = new AvatarModelPoolManager();
+    }
+    return AvatarModelPoolManager.instance;
+  }
+
+  private getKey(gender: 'male' | 'female', url?: string): string {
+    return `${gender}:${url || 'default'}`;
+  }
+
+  public has(gender: 'male' | 'female', url?: string): boolean {
+    return this.pool.has(this.getKey(gender, url));
+  }
+
+  public get(gender: 'male' | 'female', url?: string): PooledModelAsset | undefined {
+    return this.pool.get(this.getKey(gender, url));
+  }
+
+  public set(gender: 'male' | 'female', url: string, asset: PooledModelAsset): void {
+    // Keep buffers resident in GPU video memory by configuring StaticDrawUsage and marking keepInVRAM
+    asset.scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.geometry) {
+          (mesh.geometry as any).keepInVRAM = true;
+          const setUsage = (attr: any) => {
+            if (attr) {
+              if ('usage' in attr) attr.usage = THREE.StaticDrawUsage;
+              if (attr.data && 'usage' in attr.data) attr.data.usage = THREE.StaticDrawUsage;
+            }
+          };
+          setUsage(mesh.geometry.attributes.position);
+          setUsage(mesh.geometry.attributes.normal);
+          setUsage(mesh.geometry.attributes.skinWeight);
+          setUsage(mesh.geometry.attributes.skinIndex);
+        }
+      }
+    });
+
+    this.pool.set(this.getKey(gender, url), asset);
+  }
+
+  public async preloadModel(gender: 'male' | 'female', url: string): Promise<PooledModelAsset | null> {
+    const key = this.getKey(gender, url);
+    if (this.pool.has(key)) {
+      return this.pool.get(key)!;
+    }
+    if (this.pendingLoads.has(key)) {
+      return this.pendingLoads.get(key)!;
+    }
+    if (!this.gltfLoader) return null;
+
+    const promise = new Promise<PooledModelAsset>((resolve, reject) => {
+      this.gltfLoader!.load(
+        url,
+        (gltf) => {
+          const scene = gltf.scene;
+          recalibrateJointSkinWeights(scene, {
+            preserveElbowVolume: true,
+            preserveKneeVolume: true,
+            smoothingStrength: 0.68,
+            curvaturePreservation: 0.75,
+          });
+
+          const asset: PooledModelAsset = {
+            gender,
+            url,
+            scene,
+            animations: gltf.animations || [],
+            isRecalibrated: true,
+            cachedAt: Date.now(),
+          };
+
+          this.set(gender, url, asset);
+          this.pendingLoads.delete(key);
+          resolve(asset);
+        },
+        undefined,
+        (error) => {
+          this.pendingLoads.delete(key);
+          reject(error);
+        }
+      );
+    });
+
+    this.pendingLoads.set(key, promise);
+    return promise;
+  }
+
+  public preloadBothGenders(maleUrl?: string, femaleUrl?: string): void {
+    if (maleUrl) {
+      this.preloadModel('male', maleUrl).catch(() => {});
+      try {
+        useGLTF.preload(maleUrl, true);
+      } catch {}
+    }
+    if (femaleUrl) {
+      this.preloadModel('female', femaleUrl).catch(() => {});
+      try {
+        useGLTF.preload(femaleUrl, true);
+      } catch {}
+    }
+  }
+
+  public clear(): void {
+    this.pool.forEach((item) => {
+      item.scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (mesh.geometry) mesh.geometry.dispose();
+          if (mesh.material) {
+            if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose());
+            else mesh.material.dispose();
+          }
+        }
+      });
+    });
+    this.pool.clear();
+    this.pendingLoads.clear();
+  }
+}
+
+export const avatarModelPool = AvatarModelPoolManager.getInstance();
+
+// ============================================================================
+// SINGLE GLTF MODEL INSTANCE (Resident in VRAM)
+// ============================================================================
+function SingleGLTFModelInstance({
   modelUrl,
+  gender,
+  isVisible,
   animationAsset,
-  gender = 'male',
-  isPlaying = true,
-  playbackSpeed = 1,
-  exercisePace,
-  cameraView = 'front',
-  activeMuscles = [],
-  secondaryMuscles = [],
-  highlightMode = 'all',
-  uHighlightColorPrimary,
-  uHighlightColorSecondary,
-  highlightColorPrimary,
-  highlightColorSecondary,
-  hoveredMuscle = null,
-  pulsingMuscle = null,
+  isPlaying,
+  resolvedPace,
+  currentPace,
+  cameraViewFloat,
+  activeMuscles,
+  secondaryMuscles,
+  highlightMode,
+  effPrimary,
+  effSecondary,
+  hoveredMuscle,
+  pulsingMuscle,
   onMuscleHover,
   onMuscleClick,
 }: {
   modelUrl: string;
+  gender: 'male' | 'female';
+  isVisible: boolean;
   animationAsset?: string;
-  gender?: 'male' | 'female';
-  isPlaying?: boolean;
-  playbackSpeed?: number;
-  exercisePace?: number;
-  cameraView?: 'front' | 'side' | 'detail' | 'back';
-  activeMuscles?: string[];
-  secondaryMuscles?: string[];
-  highlightMode?: MuscleHighlightMode;
-  uHighlightColorPrimary?: string;
-  uHighlightColorSecondary?: string;
-  highlightColorPrimary?: string;
-  highlightColorSecondary?: string;
+  isPlaying: boolean;
+  resolvedPace: number;
+  currentPace: number;
+  cameraViewFloat: number;
+  activeMuscles: string[];
+  secondaryMuscles: string[];
+  highlightMode: MuscleHighlightMode;
+  effPrimary: string;
+  effSecondary: string;
   hoveredMuscle?: string | null;
   pulsingMuscle?: string | null;
   onMuscleHover?: (muscle: string | null) => void;
   onMuscleClick?: (muscle: string) => void;
 }) {
-  const gltf = useGLTF(modelUrl);
-  const clonedScene = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
+  // useGLTF with 'true' enables DRACOLoader automatically via @react-three/drei
+  const gltf = useGLTF(modelUrl, true);
   const groupRef = useRef<THREE.Group>(null);
   const shaderMaterialsRef = useRef<MuscleHighlightShaderMaterial[]>([]);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const activeActionRef = useRef<THREE.AnimationAction | null>(null);
 
-  // Initialize AnimationMixer
+  // Clone scene once, recalibrate weights, and register into VRAM resident pool
+  const clonedScene = useMemo(() => {
+    const clone = gltf.scene.clone(true);
+    recalibrateJointSkinWeights(clone, {
+      preserveElbowVolume: true,
+      preserveKneeVolume: true,
+      smoothingStrength: 0.68,
+      curvaturePreservation: 0.75,
+    });
+
+    avatarModelPool.set(gender, modelUrl, {
+      gender,
+      url: modelUrl,
+      scene: clone,
+      animations: gltf.animations || [],
+      isRecalibrated: true,
+      cachedAt: Date.now(),
+    });
+
+    return clone;
+  }, [gltf.scene, gender, modelUrl]);
+
+  // Animation Mixer
   useEffect(() => {
     if (!clonedScene || !gltf.animations || gltf.animations.length === 0) return;
     const mixer = new THREE.AnimationMixer(clonedScene);
     mixerRef.current = mixer;
 
-    // Find correct animation clip matching animationAsset or fallback to first
     let clip = gltf.animations[0];
     if (animationAsset) {
-      const found = gltf.animations.find(c => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
+      const found = gltf.animations.find((c) => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
       if (found) clip = found;
     }
 
@@ -1736,12 +2568,11 @@ export function GLTFAnatomicalModel({
     };
   }, [clonedScene, gltf.animations, animationAsset]);
 
-  // Handle smooth animation state transitions and playback speed
   useEffect(() => {
     if (!mixerRef.current || !gltf.animations || gltf.animations.length === 0) return;
     let clip = gltf.animations[0];
     if (animationAsset) {
-      const found = gltf.animations.find(c => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
+      const found = gltf.animations.find((c) => c.name.toLowerCase().includes(animationAsset.toLowerCase()));
       if (found) clip = found;
     }
 
@@ -1758,18 +2589,7 @@ export function GLTFAnatomicalModel({
     }
   }, [animationAsset, gltf.animations]);
 
-  const cameraViewFloat = useMemo(() => {
-    if (cameraView === 'side') return 1.0;
-    if (cameraView === 'detail') return 2.0;
-    if (cameraView === 'back') return 3.0;
-    return 0.0;
-  }, [cameraView]);
-
-  const effPrimary = uHighlightColorPrimary || highlightColorPrimary;
-  const effSecondary = uHighlightColorSecondary || highlightColorSecondary;
-  const resolvedPace = exercisePace ?? playbackSpeed ?? 1.0;
-  const currentPace = isPlaying ? resolvedPace : 0.2;
-
+  // Attach ShaderMaterials to matching muscle meshes
   useEffect(() => {
     if (!clonedScene) return;
     shaderMaterialsRef.current.forEach((m) => m.dispose());
@@ -1784,7 +2604,6 @@ export function GLTFAnatomicalModel({
         const isPrim = isMuscleMatching(name, activeMuscles);
         const isSec = !isPrim && isMuscleMatching(name, secondaryMuscles);
 
-        // Apply highlightMode filtering
         let shouldHighlight = false;
         let isPrimary = false;
 
@@ -1824,13 +2643,16 @@ export function GLTFAnatomicalModel({
     };
   }, [clonedScene, activeMuscles, secondaryMuscles, highlightMode, hoveredMuscle, pulsingMuscle, cameraViewFloat, effPrimary, effSecondary, currentPace]);
 
+  // Frame loop: update animations and pulse on the instance
   useFrame((state, delta) => {
+    if (!isVisible) return;
     const time = state.clock.getElapsedTime();
     const cycle = (Math.sin(time * 2.2 * (isPlaying ? resolvedPace : 0)) + 1) / 2;
 
-    // Update Animation Mixer
     if (mixerRef.current && isPlaying) {
       mixerRef.current.update(delta * resolvedPace);
+      // Dynamically interpolate joint vertex weights based on live flexion angle to preserve volume
+      interpolateDynamicJointWeights(clonedScene);
     }
 
     shaderMaterialsRef.current.forEach((mat) => {
@@ -1851,22 +2673,175 @@ export function GLTFAnatomicalModel({
       ref={groupRef}
       object={clonedScene}
       position={[0, -0.3, 0]}
+      visible={isVisible}
       onPointerOver={(e: any) => {
+        if (!isVisible) return;
         e.stopPropagation();
         if (e.object?.name && onMuscleHover) {
           onMuscleHover(e.object.name);
         }
       }}
       onPointerOut={(e: any) => {
+        if (!isVisible) return;
         e.stopPropagation();
         if (onMuscleHover) onMuscleHover(null);
       }}
       onClick={(e: any) => {
+        if (!isVisible) return;
         e.stopPropagation();
         if (e.object?.name && onMuscleClick) {
           onMuscleClick(e.object.name);
         }
       }}
+    />
+  );
+}
+
+// ============================================================================
+// POOLED GLTF ANATOMICAL MODEL
+// Hosts both Male and Female models simultaneously in GPU memory.
+// Switching gender modifies visibility without unmounting or re-parsing geometry.
+// ============================================================================
+export function PooledGLTFAnatomicalModel({
+  maleModelUrl,
+  femaleModelUrl,
+  modelUrl,
+  activeGender = 'male',
+  animationAsset,
+  isPlaying = true,
+  playbackSpeed = 1,
+  exercisePace,
+  cameraView = 'front',
+  activeMuscles = [],
+  secondaryMuscles = [],
+  highlightMode = 'all',
+  uHighlightColorPrimary,
+  uHighlightColorSecondary,
+  highlightColorPrimary,
+  highlightColorSecondary,
+  hoveredMuscle = null,
+  pulsingMuscle = null,
+  onMuscleHover,
+  onMuscleClick,
+}: {
+  maleModelUrl?: string;
+  femaleModelUrl?: string;
+  modelUrl?: string;
+  activeGender: 'male' | 'female';
+  animationAsset?: string;
+  isPlaying?: boolean;
+  playbackSpeed?: number;
+  exercisePace?: number;
+  cameraView?: 'front' | 'side' | 'detail' | 'back';
+  activeMuscles?: string[];
+  secondaryMuscles?: string[];
+  highlightMode?: MuscleHighlightMode;
+  uHighlightColorPrimary?: string;
+  uHighlightColorSecondary?: string;
+  highlightColorPrimary?: string;
+  highlightColorSecondary?: string;
+  hoveredMuscle?: string | null;
+  pulsingMuscle?: string | null;
+  onMuscleHover?: (muscle: string | null) => void;
+  onMuscleClick?: (muscle: string) => void;
+}) {
+  const resolvedMaleUrl = maleModelUrl || modelUrl;
+  const resolvedFemaleUrl = femaleModelUrl || modelUrl;
+
+  const cameraViewFloat = useMemo(() => {
+    if (cameraView === 'side') return 1.0;
+    if (cameraView === 'detail') return 2.0;
+    if (cameraView === 'back') return 3.0;
+    return 0.0;
+  }, [cameraView]);
+
+  const effPrimary = uHighlightColorPrimary || highlightColorPrimary || '#ff0033';
+  const effSecondary = uHighlightColorSecondary || highlightColorSecondary || '#ff6a00';
+  const resolvedPace = exercisePace ?? playbackSpeed ?? 1.0;
+  const currentPace = isPlaying ? resolvedPace : 0.2;
+
+  // Single shared URL fallback if male and female point to the same file
+  const isSameUrl = Boolean(resolvedMaleUrl && resolvedFemaleUrl && resolvedMaleUrl === resolvedFemaleUrl);
+
+  return (
+    <group>
+      {isSameUrl && resolvedMaleUrl ? (
+        <SingleGLTFModelInstance
+          modelUrl={resolvedMaleUrl}
+          gender={activeGender}
+          isVisible={true}
+          animationAsset={animationAsset}
+          isPlaying={isPlaying}
+          resolvedPace={resolvedPace}
+          currentPace={currentPace}
+          cameraViewFloat={cameraViewFloat}
+          activeMuscles={activeMuscles}
+          secondaryMuscles={secondaryMuscles}
+          highlightMode={highlightMode}
+          effPrimary={effPrimary}
+          effSecondary={effSecondary}
+          hoveredMuscle={hoveredMuscle}
+          pulsingMuscle={pulsingMuscle}
+          onMuscleHover={onMuscleHover}
+          onMuscleClick={onMuscleClick}
+        />
+      ) : (
+        <>
+          {resolvedMaleUrl && (
+            <SingleGLTFModelInstance
+              modelUrl={resolvedMaleUrl}
+              gender="male"
+              isVisible={activeGender === 'male'}
+              animationAsset={animationAsset}
+              isPlaying={isPlaying}
+              resolvedPace={resolvedPace}
+              currentPace={currentPace}
+              cameraViewFloat={cameraViewFloat}
+              activeMuscles={activeMuscles}
+              secondaryMuscles={secondaryMuscles}
+              highlightMode={highlightMode}
+              effPrimary={effPrimary}
+              effSecondary={effSecondary}
+              hoveredMuscle={hoveredMuscle}
+              pulsingMuscle={pulsingMuscle}
+              onMuscleHover={onMuscleHover}
+              onMuscleClick={onMuscleClick}
+            />
+          )}
+          {resolvedFemaleUrl && (
+            <SingleGLTFModelInstance
+              modelUrl={resolvedFemaleUrl}
+              gender="female"
+              isVisible={activeGender === 'female'}
+              animationAsset={animationAsset}
+              isPlaying={isPlaying}
+              resolvedPace={resolvedPace}
+              currentPace={currentPace}
+              cameraViewFloat={cameraViewFloat}
+              activeMuscles={activeMuscles}
+              secondaryMuscles={secondaryMuscles}
+              highlightMode={highlightMode}
+              effPrimary={effPrimary}
+              effSecondary={effSecondary}
+              hoveredMuscle={hoveredMuscle}
+              pulsingMuscle={pulsingMuscle}
+              onMuscleHover={onMuscleHover}
+              onMuscleClick={onMuscleClick}
+            />
+          )}
+        </>
+      )}
+    </group>
+  );
+}
+
+// Backward-compatible single-model wrapper
+export function GLTFAnatomicalModel(props: any) {
+  return (
+    <PooledGLTFAnatomicalModel
+      {...props}
+      activeGender={props.gender || 'male'}
+      modelUrl={props.modelUrl}
     />
   );
 }
@@ -1931,58 +2906,78 @@ function AnatomicalAvatarModel({
   const armThickness = isFemale ? 0.9 : 1.08;
   const legThickness = isFemale ? 0.96 : 1.06;
 
-  // Sculpted anatomical geometries (Organic human atlas proportions)
+  // Sculpted anatomical geometries (Organic human atlas proportions matching reference image)
   const geo = useMemo(() => ({
     // Head with natural cranial dome and jawline
-    head: new THREE.SphereGeometry(0.16, 32, 32),
-    neck: new THREE.CylinderGeometry(0.075, isFemale ? 0.095 : 0.115, 0.16, 24),
-    // Pectorals with organic sternal & clavicular sweep
-    pectoral: new THREE.CapsuleGeometry(isFemale ? 0.125 : 0.145, 0.22, 24, 24),
-    pectoralUpper: new THREE.CapsuleGeometry(isFemale ? 0.095 : 0.115, 0.16, 20, 20),
+    head: createSculptedHeadGeometry(),
+    neck: createSculptedNeckGeometry(isFemale),
+    clavicles: createSculptedClaviclesGeometry(isFemale),
+    // Pectorals with organic sternal & clavicular sweep (left & right)
+    pectoralLeft: createSculptedPectoralGeometry(true, isFemale),
+    pectoralRight: createSculptedPectoralGeometry(false, isFemale),
     // Natural deltoids (three biomechanical heads: lateral, anterior, posterior)
-    deltoid: new THREE.SphereGeometry(isFemale ? 0.12 : 0.142, 24, 24),
-    deltoidLateral: new THREE.SphereGeometry(isFemale ? 0.105 : 0.125, 20, 20),
-    deltoidAnterior: new THREE.SphereGeometry(isFemale ? 0.095 : 0.115, 20, 20),
-    deltoidPosterior: new THREE.SphereGeometry(isFemale ? 0.095 : 0.115, 20, 20),
-    // Diamond trapezius covering upper back and cervical spine
-    trapezius: new THREE.BoxGeometry(isFemale ? 0.21 : 0.26, 0.12, 0.1),
-    // Biceps brachii with long and short heads
-    bicep: new THREE.CapsuleGeometry(0.08 * armThickness, 0.19, 20, 20),
-    // Triceps brachii (lateral, long, and medial heads)
-    tricep: new THREE.CapsuleGeometry(0.076 * armThickness, 0.18, 20, 20),
-    // Forearm with defined brachioradialis
-    forearm: new THREE.CapsuleGeometry(0.065 * armThickness, 0.22, 20, 20),
-    // Hand with natural palm and athletic grip
-    hand: new THREE.CapsuleGeometry(0.044, 0.09, 16, 16),
-    // Rectus abdominis with linea alba
-    absUpper: new THREE.BoxGeometry(isFemale ? 0.105 : 0.125, 0.08, 0.06),
-    absMid: new THREE.BoxGeometry(isFemale ? 0.095 : 0.115, 0.08, 0.06),
-    absLower: new THREE.BoxGeometry(isFemale ? 0.09 : 0.105, 0.07, 0.06),
-    // External obliques & serratus anterior
-    obliques: new THREE.CapsuleGeometry(isFemale ? 0.052 : 0.064, 0.22, 16, 16),
+    deltoidLateralLeft: createSculptedDeltoidGeometry('lateral', true, isFemale),
+    deltoidLateralRight: createSculptedDeltoidGeometry('lateral', false, isFemale),
+    deltoidAnteriorLeft: createSculptedDeltoidGeometry('anterior', true, isFemale),
+    deltoidAnteriorRight: createSculptedDeltoidGeometry('anterior', false, isFemale),
+    deltoidPosteriorLeft: createSculptedDeltoidGeometry('posterior', true, isFemale),
+    deltoidPosteriorRight: createSculptedDeltoidGeometry('posterior', false, isFemale),
+    // Trapezius and upper back
+    trapezius: new THREE.BoxGeometry(isFemale ? 0.22 : 0.27, 0.14, 0.08),
+    // 8-Pack Rectus Abdominis with Linea Alba & Transverse Inscriptions
+    abs: createSculptedAbdominalWallGeometry(isFemale),
+    // Lateral Serratus & Obliques
+    obliquesLeft: createSculptedSerratusObliquesGeometry(true, isFemale),
+    obliquesRight: createSculptedSerratusObliquesGeometry(false, isFemale),
     // Latissimus dorsi V-taper wings
-    lat: new THREE.CapsuleGeometry(isFemale ? 0.082 : 0.102, 0.26, 20, 20),
+    latLeft: createSculptedSerratusObliquesGeometry(true, isFemale),
+    latRight: createSculptedSerratusObliquesGeometry(false, isFemale),
+    // Biceps brachii with long and short heads
+    bicepLeft: createSculptedBicepGeometry(true, isFemale),
+    bicepRight: createSculptedBicepGeometry(false, isFemale),
+    // Triceps brachii (lateral, long, and medial heads)
+    tricepLeft: createSculptedTricepGeometry(true, isFemale),
+    tricepRight: createSculptedTricepGeometry(false, isFemale),
+    // Forearm with defined brachioradialis
+    forearmLeft: createSculptedForearmGeometry(true, isFemale),
+    forearmRight: createSculptedForearmGeometry(false, isFemale),
+    // Hand with natural palm and athletic grip
+    hand: createSculptedHandGeometry(true),
+    // Compression athletic shorts matching reference image
+    shorts: createSculptedShortsGeometry(isFemale),
     // Gluteus maximus
-    glutes: new THREE.SphereGeometry(0.15, 24, 24),
-    // Quadriceps femoris (rectus femoris, vastus lateralis, vastus medialis)
-    quadriceps: new THREE.CapsuleGeometry(0.115 * legThickness, 0.34, 24, 24),
+    gluteLeft: createSculptedGluteGeometry(true, isFemale),
+    gluteRight: createSculptedGluteGeometry(false, isFemale),
+    // Quadriceps femoris (rectus femoris, vastus lateralis, vastus medialis teardrop)
+    quadLeft: createSculptedQuadricepsGeometry(true, isFemale),
+    quadRight: createSculptedQuadricepsGeometry(false, isFemale),
     // Hamstrings
-    hamstring: new THREE.CapsuleGeometry(0.098 * legThickness, 0.32, 20, 20),
+    hamstringLeft: createSculptedHamstringsGeometry(true, isFemale),
+    hamstringRight: createSculptedHamstringsGeometry(false, isFemale),
     // Natural patella kneecap
-    knee: new THREE.SphereGeometry(0.054, 16, 16),
-    // Gastrocnemius and soleus
-    calf: new THREE.CapsuleGeometry(0.082 * legThickness, 0.30, 24, 24),
-    // Human athletic shoe
-    foot: new THREE.CapsuleGeometry(0.054, 0.18, 16, 16),
-    // Compression athletic shorts
-    shorts: new THREE.CapsuleGeometry(isFemale ? 0.16 : 0.175, 0.26, 24, 24),
-  }), [isFemale, armThickness, legThickness]);
+    patella: createSculptedPatellaGeometry(),
+    // Calf: Gastrocnemius (dual bellies) and soleus
+    calfLeft: createSculptedCalfGeometry(true, isFemale),
+    calfRight: createSculptedCalfGeometry(false, isFemale),
+    // Human athletic foot
+    foot: createSculptedFootGeometry(true),
+  }), [isFemale]);
 
   // Dark athletic shorts matching reference image
   const darkShortsMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#090d16',
-    roughness: 0.85,
-    metalness: 0.15,
+    color: '#080d17',
+    roughness: 0.82,
+    metalness: 0.18,
+  }), []);
+
+  // Sculpted Alabaster Porcelain Material for skeletal and non-muscular landmarks
+  const inactiveMat = useMemo(() => new THREE.MeshPhysicalMaterial({
+    color: '#dce3ef',
+    roughness: 0.28,
+    metalness: 0.04,
+    clearcoat: 0.48,
+    clearcoatRoughness: 0.16,
+    reflectivity: 0.65,
   }), []);
 
   // Biomechanical Motion Engine with smooth continuous interpolation
@@ -2313,12 +3308,12 @@ function AnatomicalAvatarModel({
       {/* Torso Spine Anchor */}
       <group ref={spineGroup} position={[0, 0.52, 0]}>
         
-        {/* Head & Neck (Organic anatomical head, cranium and throat columns) */}
+        {/* Head & Neck (Organic anatomical head, cranium, throat and clavicles) */}
         <group position={[0, 0.58, 0]}>
           <AnatomicalMuscleNode
             geometry={geo.head}
-            position={[0, 0.09, 0]}
-            scale={[0.85, 1.0, 0.92]}
+            position={[0, 0.12, 0.015]}
+            scale={[1.0, 1.0, 1.0]}
             muscleTag="head"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2328,7 +3323,7 @@ function AnatomicalAvatarModel({
           />
           <AnatomicalMuscleNode
             geometry={geo.neck}
-            position={[0, -0.06, 0]}
+            position={[0, -0.04, 0.005]}
             muscleTag="neck"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2338,7 +3333,7 @@ function AnatomicalAvatarModel({
           />
           <AnatomicalMuscleNode
             geometry={geo.trapezius}
-            position={[0, -0.08, -0.05]}
+            position={[0, -0.06, -0.05]}
             muscleTag="trapezius"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2346,28 +3341,18 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
+          {/* Clavicular Collarbone Ridge */}
+          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.07, 0.04]} castShadow />
+          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.07, 0.04]} scale={[-1, 1, 1]} castShadow />
         </group>
 
         {/* Chest & Upper Back Ribcage */}
         <group ref={chestGroup} position={[0, 0.38, 0]} scale={torsoScale}>
-          {/* Left Pectoralis Clavicular (Upper Chest) */}
+          {/* Left Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
-            geometry={geo.pectoralUpper}
-            position={[-0.088, 0.08, 0.065]}
-            rotation={[0.08, 0.16, -0.34]}
-            scale={chestScale}
-            muscleTag="pectoral_upper"
-            primaryMuscles={prim}
-            secondaryMuscles={sec}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            highlightOverride={highlightOverride}
-          />
-          {/* Left Pectoralis Sternal (Mid/Main Chest) */}
-          <AnatomicalMuscleNode
-            geometry={geo.pectoral}
-            position={[-0.095, 0.02, 0.06]}
-            rotation={[0.1, 0.12, -0.26]}
+            geometry={geo.pectoralLeft}
+            position={[-0.012, 0.04, 0.065]}
+            rotation={[0.04, 0.06, -0.06]}
             scale={chestScale}
             muscleTag="chest"
             primaryMuscles={prim}
@@ -2376,24 +3361,11 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
-          {/* Right Pectoralis Clavicular (Upper Chest) */}
+          {/* Right Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
-            geometry={geo.pectoralUpper}
-            position={[0.088, 0.08, 0.065]}
-            rotation={[0.08, -0.16, 0.34]}
-            scale={chestScale}
-            muscleTag="pectoral_upper"
-            primaryMuscles={prim}
-            secondaryMuscles={sec}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            highlightOverride={highlightOverride}
-          />
-          {/* Right Pectoralis Sternal (Mid/Main Chest) */}
-          <AnatomicalMuscleNode
-            geometry={geo.pectoral}
-            position={[0.095, 0.02, 0.06]}
-            rotation={[0.1, -0.12, 0.26]}
+            geometry={geo.pectoralRight}
+            position={[0.012, 0.04, 0.065]}
+            rotation={[0.04, -0.06, 0.06]}
             scale={chestScale}
             muscleTag="chest"
             primaryMuscles={prim}
@@ -2405,7 +3377,7 @@ function AnatomicalAvatarModel({
 
           {/* Latissimus Dorsi (Left & Right V-Taper Wings) */}
           <AnatomicalMuscleNode
-            geometry={geo.lat}
+            geometry={geo.latLeft}
             position={[-0.15, -0.03, -0.06]}
             rotation={[-0.1, 0.2, 0.25]}
             muscleTag="lat"
@@ -2416,7 +3388,7 @@ function AnatomicalAvatarModel({
             highlightOverride={highlightOverride}
           />
           <AnatomicalMuscleNode
-            geometry={geo.lat}
+            geometry={geo.latRight}
             position={[0.15, -0.03, -0.06]}
             rotation={[-0.1, -0.2, -0.25]}
             muscleTag="lat"
@@ -2428,31 +3400,11 @@ function AnatomicalAvatarModel({
           />
         </group>
 
-        {/* Abdominal Core & Obliques */}
+        {/* Abdominal Core (8-Pack Rectus Abdominis with Linea Alba & Transverse Inscriptions) */}
         <group position={[0, 0.18, 0]}>
           <AnatomicalMuscleNode
-            geometry={geo.absUpper}
-            position={[0, 0.08, 0.07]}
-            muscleTag="abs"
-            primaryMuscles={prim}
-            secondaryMuscles={sec}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            highlightOverride={highlightOverride}
-          />
-          <AnatomicalMuscleNode
-            geometry={geo.absMid}
-            position={[0, 0.0, 0.07]}
-            muscleTag="abs"
-            primaryMuscles={prim}
-            secondaryMuscles={sec}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            highlightOverride={highlightOverride}
-          />
-          <AnatomicalMuscleNode
-            geometry={geo.absLower}
-            position={[0, -0.08, 0.07]}
+            geometry={geo.abs}
+            position={[0, 0.01, 0.062]}
             muscleTag="abs"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2461,11 +3413,11 @@ function AnatomicalAvatarModel({
             highlightOverride={highlightOverride}
           />
 
-          {/* Lateral Obliques */}
+          {/* Lateral Serratus & Obliques */}
           <AnatomicalMuscleNode
-            geometry={geo.obliques}
-            position={[-0.11, 0.0, 0.03]}
-            rotation={[0, 0, 0.18]}
+            geometry={geo.obliquesLeft}
+            position={[-0.125, -0.01, 0.03]}
+            rotation={[0, 0, 0.14]}
             muscleTag="abs"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2474,9 +3426,9 @@ function AnatomicalAvatarModel({
             highlightOverride={highlightOverride}
           />
           <AnatomicalMuscleNode
-            geometry={geo.obliques}
-            position={[0.11, 0.0, 0.03]}
-            rotation={[0, 0, -0.18]}
+            geometry={geo.obliquesRight}
+            position={[0.125, -0.01, 0.03]}
+            rotation={[0, 0, -0.14]}
             muscleTag="abs"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2491,13 +3443,13 @@ function AnatomicalAvatarModel({
           <mesh
             geometry={geo.shorts}
             material={darkShortsMat}
-            position={[0, 0.04, 0]}
+            position={[0, 0.03, 0]}
             rotation={[0, 0, 0]}
             castShadow
           />
           {/* Gluteus Maximus Left */}
           <AnatomicalMuscleNode
-            geometry={geo.glutes}
+            geometry={geo.gluteLeft}
             position={[-0.10, 0.02, -0.09]}
             scale={gluteScale}
             muscleTag="glute"
@@ -2509,7 +3461,7 @@ function AnatomicalAvatarModel({
           />
           {/* Gluteus Maximus Right */}
           <AnatomicalMuscleNode
-            geometry={geo.glutes}
+            geometry={geo.gluteRight}
             position={[0.10, 0.02, -0.09]}
             scale={gluteScale}
             muscleTag="glute"
@@ -2523,11 +3475,10 @@ function AnatomicalAvatarModel({
 
         {/* Left Arm Chain */}
         <group ref={leftShoulder} position={[-shoulderOffset, 0.45, 0]}>
-          {/* Left Deltoid Lateral Head */}
+          {/* Left Deltoid Lateral Head (Signature glowing shoulder cap from image.png) */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidLateral}
-            position={[-0.035, 0, 0]}
-            scale={[0.85, 1.05, 0.9]}
+            geometry={geo.deltoidLateralLeft}
+            position={[-0.032, 0.02, 0]}
             muscleTag="deltoid_lateral"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2537,9 +3488,8 @@ function AnatomicalAvatarModel({
           />
           {/* Left Deltoid Anterior Head */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidAnterior}
-            position={[-0.015, -0.012, 0.045]}
-            scale={[0.8, 0.95, 0.85]}
+            geometry={geo.deltoidAnteriorLeft}
+            position={[-0.018, -0.01, 0.046]}
             muscleTag="deltoid_anterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2549,9 +3499,8 @@ function AnatomicalAvatarModel({
           />
           {/* Left Deltoid Posterior Head */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidPosterior}
-            position={[-0.015, -0.012, -0.045]}
-            scale={[0.8, 0.95, 0.85]}
+            geometry={geo.deltoidPosteriorLeft}
+            position={[-0.018, -0.01, -0.046]}
             muscleTag="deltoid_posterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2561,9 +3510,9 @@ function AnatomicalAvatarModel({
           />
           {/* Left Bicep (Anterior) */}
           <AnatomicalMuscleNode
-            geometry={geo.bicep}
-            position={[-0.015, -0.14, 0.02]}
-            rotation={[0, 0, 0.06]}
+            geometry={geo.bicepLeft}
+            position={[-0.012, -0.15, 0.025]}
+            rotation={[0, 0, 0.05]}
             muscleTag="bicep"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2573,9 +3522,9 @@ function AnatomicalAvatarModel({
           />
           {/* Left Tricep (Posterior) */}
           <AnatomicalMuscleNode
-            geometry={geo.tricep}
-            position={[-0.01, -0.14, -0.025]}
-            rotation={[0, 0, 0.06]}
+            geometry={geo.tricepLeft}
+            position={[-0.01, -0.15, -0.028]}
+            rotation={[0, 0, 0.05]}
             muscleTag="tricep"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2585,10 +3534,10 @@ function AnatomicalAvatarModel({
           />
 
           {/* Left Elbow & Forearm */}
-          <group ref={leftElbow} position={[0, -0.27, 0]}>
+          <group ref={leftElbow} position={[0, -0.28, 0]}>
             <AnatomicalMuscleNode
-              geometry={geo.forearm}
-              position={[0, -0.13, 0]}
+              geometry={geo.forearmLeft}
+              position={[0, -0.14, 0]}
               muscleTag="forearm"
               primaryMuscles={prim}
               secondaryMuscles={sec}
@@ -2597,21 +3546,20 @@ function AnatomicalAvatarModel({
               highlightOverride={highlightOverride}
             />
             {/* Left Hand Grip */}
-            <mesh geometry={geo.hand} material={darkShortsMat} position={[0, -0.27, 0]} castShadow />
+            <mesh geometry={geo.hand} material={inactiveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
-              <DumbbellGrip position={[0, -0.27, 0]} rotation={[0, 0, 0]} />
+              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />
             )}
           </group>
         </group>
 
         {/* Right Arm Chain */}
         <group ref={rightShoulder} position={[shoulderOffset, 0.45, 0]}>
-          {/* Right Deltoid Lateral Head */}
+          {/* Right Deltoid Lateral Head (Signature glowing shoulder cap from image.png) */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidLateral}
-            position={[0.035, 0, 0]}
-            scale={[0.85, 1.05, 0.9]}
+            geometry={geo.deltoidLateralRight}
+            position={[0.032, 0.02, 0]}
             muscleTag="deltoid_lateral"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2621,9 +3569,8 @@ function AnatomicalAvatarModel({
           />
           {/* Right Deltoid Anterior Head */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidAnterior}
-            position={[0.015, -0.012, 0.045]}
-            scale={[0.8, 0.95, 0.85]}
+            geometry={geo.deltoidAnteriorRight}
+            position={[0.018, -0.01, 0.046]}
             muscleTag="deltoid_anterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2633,9 +3580,8 @@ function AnatomicalAvatarModel({
           />
           {/* Right Deltoid Posterior Head */}
           <AnatomicalMuscleNode
-            geometry={geo.deltoidPosterior}
-            position={[0.015, -0.012, -0.045]}
-            scale={[0.8, 0.95, 0.85]}
+            geometry={geo.deltoidPosteriorRight}
+            position={[0.018, -0.01, -0.046]}
             muscleTag="deltoid_posterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2645,9 +3591,9 @@ function AnatomicalAvatarModel({
           />
           {/* Right Bicep (Anterior) */}
           <AnatomicalMuscleNode
-            geometry={geo.bicep}
-            position={[0.015, -0.14, 0.02]}
-            rotation={[0, 0, -0.06]}
+            geometry={geo.bicepRight}
+            position={[0.012, -0.15, 0.025]}
+            rotation={[0, 0, -0.05]}
             muscleTag="bicep"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2657,9 +3603,9 @@ function AnatomicalAvatarModel({
           />
           {/* Right Tricep (Posterior) */}
           <AnatomicalMuscleNode
-            geometry={geo.tricep}
-            position={[0.01, -0.14, -0.025]}
-            rotation={[0, 0, -0.06]}
+            geometry={geo.tricepRight}
+            position={[0.01, -0.15, -0.028]}
+            rotation={[0, 0, -0.05]}
             muscleTag="tricep"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2669,10 +3615,10 @@ function AnatomicalAvatarModel({
           />
 
           {/* Right Elbow & Forearm */}
-          <group ref={rightElbow} position={[0, -0.27, 0]}>
+          <group ref={rightElbow} position={[0, -0.28, 0]}>
             <AnatomicalMuscleNode
-              geometry={geo.forearm}
-              position={[0, -0.13, 0]}
+              geometry={geo.forearmRight}
+              position={[0, -0.14, 0]}
               muscleTag="forearm"
               primaryMuscles={prim}
               secondaryMuscles={sec}
@@ -2681,10 +3627,10 @@ function AnatomicalAvatarModel({
               highlightOverride={highlightOverride}
             />
             {/* Right Hand Grip */}
-            <mesh geometry={geo.hand} material={darkShortsMat} position={[0, -0.27, 0]} castShadow />
+            <mesh geometry={geo.hand} material={inactiveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
-              <DumbbellGrip position={[0, -0.27, 0]} rotation={[0, 0, 0]} />
+              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />
             )}
           </group>
         </group>
@@ -2704,11 +3650,11 @@ function AnatomicalAvatarModel({
 
       {/* Left Leg Chain */}
       <group ref={leftLeg} position={[-hipOffset, 0.38, 0]}>
-        {/* Left Quadriceps (Front Thigh) */}
+        {/* Left Quadriceps (Front Thigh: Rectus Femoris, Vastus Lateralis, Vastus Medialis Teardrop) */}
         <AnatomicalMuscleNode
-          geometry={geo.quadriceps}
-          position={[0, -0.17, 0.03]}
-          rotation={[0.05, 0, -0.04]}
+          geometry={geo.quadLeft}
+          position={[0, -0.18, 0.025]}
+          rotation={[0.04, 0, -0.03]}
           muscleTag="quad"
           primaryMuscles={prim}
           secondaryMuscles={sec}
@@ -2718,9 +3664,9 @@ function AnatomicalAvatarModel({
         />
         {/* Left Hamstrings (Back Thigh) */}
         <AnatomicalMuscleNode
-          geometry={geo.hamstring}
-          position={[0, -0.16, -0.035]}
-          rotation={[-0.05, 0, -0.04]}
+          geometry={geo.hamstringLeft}
+          position={[0, -0.18, -0.035]}
+          rotation={[-0.04, 0, -0.03]}
           muscleTag="hamstring"
           primaryMuscles={prim}
           secondaryMuscles={sec}
@@ -2730,12 +3676,12 @@ function AnatomicalAvatarModel({
         />
 
         {/* Left Knee Joint & Lower Leg */}
-        <group ref={leftKnee} position={[0, -0.37, 0]}>
-          <mesh geometry={geo.knee} material={darkShortsMat} position={[0, 0, 0.02]} />
-          {/* Left Gastrocnemius (Calf) */}
+        <group ref={leftKnee} position={[0, -0.38, 0]}>
+          <mesh geometry={geo.patella} material={inactiveMat} position={[0, 0, 0.032]} castShadow />
+          {/* Left Gastrocnemius (Calf with Dual Bellies) */}
           <AnatomicalMuscleNode
-            geometry={geo.calf}
-            position={[0, -0.16, -0.02]}
+            geometry={geo.calfLeft}
+            position={[0, -0.18, -0.02]}
             muscleTag="calf"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2743,12 +3689,12 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
-          {/* Left Foot Athletic Shoe */}
+          {/* Left Foot Planted Firmly */}
           <mesh
             geometry={geo.foot}
-            material={darkShortsMat}
-            position={[0, -0.33, 0.05]}
-            rotation={[Math.PI / 2, 0, 0]}
+            material={inactiveMat}
+            position={[0, -0.36, 0.05]}
+            rotation={[0, 0, 0]}
             castShadow
           />
         </group>
@@ -2756,11 +3702,11 @@ function AnatomicalAvatarModel({
 
       {/* Right Leg Chain */}
       <group ref={rightLeg} position={[hipOffset, 0.38, 0]}>
-        {/* Right Quadriceps (Front Thigh) */}
+        {/* Right Quadriceps (Front Thigh: Rectus Femoris, Vastus Lateralis, Vastus Medialis Teardrop) */}
         <AnatomicalMuscleNode
-          geometry={geo.quadriceps}
-          position={[0, -0.17, 0.03]}
-          rotation={[0.05, 0, 0.04]}
+          geometry={geo.quadRight}
+          position={[0, -0.18, 0.025]}
+          rotation={[0.04, 0, 0.03]}
           muscleTag="quad"
           primaryMuscles={prim}
           secondaryMuscles={sec}
@@ -2770,9 +3716,9 @@ function AnatomicalAvatarModel({
         />
         {/* Right Hamstrings (Back Thigh) */}
         <AnatomicalMuscleNode
-          geometry={geo.hamstring}
-          position={[0, -0.16, -0.035]}
-          rotation={[-0.05, 0, 0.04]}
+          geometry={geo.hamstringRight}
+          position={[0, -0.18, -0.035]}
+          rotation={[-0.04, 0, 0.03]}
           muscleTag="hamstring"
           primaryMuscles={prim}
           secondaryMuscles={sec}
@@ -2782,12 +3728,12 @@ function AnatomicalAvatarModel({
         />
 
         {/* Right Knee Joint & Lower Leg */}
-        <group ref={rightKnee} position={[0, -0.37, 0]}>
-          <mesh geometry={geo.knee} material={darkShortsMat} position={[0, 0, 0.02]} />
-          {/* Right Gastrocnemius (Calf) */}
+        <group ref={rightKnee} position={[0, -0.38, 0]}>
+          <mesh geometry={geo.patella} material={inactiveMat} position={[0, 0, 0.032]} castShadow />
+          {/* Right Gastrocnemius (Calf with Dual Bellies) */}
           <AnatomicalMuscleNode
-            geometry={geo.calf}
-            position={[0, -0.16, -0.02]}
+            geometry={geo.calfRight}
+            position={[0, -0.18, -0.02]}
             muscleTag="calf"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -2795,12 +3741,12 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
-          {/* Right Foot Athletic Shoe */}
+          {/* Right Foot Planted Firmly */}
           <mesh
             geometry={geo.foot}
-            material={darkShortsMat}
-            position={[0, -0.33, 0.05]}
-            rotation={[Math.PI / 2, 0, 0]}
+            material={inactiveMat}
+            position={[0, -0.36, 0.05]}
+            rotation={[0, 0, 0]}
             castShadow
           />
         </group>
@@ -3069,6 +4015,14 @@ export class AvatarAnatomico
     // Sync profile gender with global store
     if (this.props.profile) {
       avatarGlobalStore.syncWithUserProfile(this.props.profile);
+    }
+
+    // Preload both male and female Draco GLTF models into video memory pool
+    const prof = this.props.profile as any;
+    const mUrl = this.props.maleModelUrl || prof?.maleModelUrl || (prof?.gender === 'male' ? prof?.modelUrl : undefined);
+    const fUrl = this.props.femaleModelUrl || prof?.femaleModelUrl || (prof?.gender === 'female' ? prof?.modelUrl : undefined);
+    if (mUrl || fUrl) {
+      avatarModelPool.preloadBothGenders(mUrl, fUrl);
     }
 
     // Subscribe to global avatar state so changes anywhere sync here
@@ -3562,13 +4516,13 @@ export class AvatarAnatomico
       webglAvailable,
     } = this.state;
 
-    // Resolve dynamic model asset URL using useGLTF with gender-based model switching based on profile context
+    // Resolve custom GLTF model URL only if an explicit external model asset was provided
     const prof = this.props.profile as any;
     const profileMaleUrl = prof?.maleModelUrl || (prof?.gender === 'male' ? prof?.modelUrl : undefined);
     const profileFemaleUrl = prof?.femaleModelUrl || (prof?.gender === 'female' ? prof?.modelUrl : undefined);
 
-    const activeMaleUrl = maleModelUrl || profileMaleUrl || 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb';
-    const activeFemaleUrl = femaleModelUrl || profileFemaleUrl || 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb';
+    const activeMaleUrl = maleModelUrl || profileMaleUrl;
+    const activeFemaleUrl = femaleModelUrl || profileFemaleUrl;
 
     const resolvedModelUrl = modelUrl || (gender === 'female' ? activeFemaleUrl : activeMaleUrl);
 
@@ -3847,12 +4801,14 @@ export class AvatarAnatomico
               {/* Gym Bench Props (if exercise is seated/lying/incline) */}
               <GymBench position={exerciseWithMuscles.position} />
 
-              {/* 3D Anatomical Human Model: GLTF loaded via useGLTF with dynamic gender-based asset switching */}
-              {resolvedModelUrl ? (
-                <GLTFAnatomicalModel
+              {/* 3D Anatomical Human Model: GLTF loaded with Model Pooling & Draco VRAM retention */}
+              {activeMaleUrl || activeFemaleUrl || modelUrl ? (
+                <PooledGLTFAnatomicalModel
+                  maleModelUrl={activeMaleUrl || modelUrl}
+                  femaleModelUrl={activeFemaleUrl || modelUrl}
                   modelUrl={resolvedModelUrl}
+                  activeGender={gender}
                   animationAsset={this.props.animationAsset || exerciseWithMuscles.animationAsset}
-                  gender={gender}
                   isPlaying={isPlaying}
                   playbackSpeed={playbackSpeed}
                   exercisePace={effectiveExercisePace}

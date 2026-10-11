@@ -134,6 +134,20 @@ export const callWithModelFallback = async (
   throw lastError || new Error("Falha temporária ao comunicar com os modelos Gemini.");
 };
 
+export const getLanguagePromptDirective = (lang?: string): string => {
+  const norm = (lang || 'pt-BR').trim();
+  if (norm.startsWith('es')) {
+    return `\nCURRENT_APPLICATION_LANGUAGE: es-ES\nDIRECTIVA DE IDIOMA: Responda estrictamente en español fluido, profesional y natural. Todos los textos, explicaciones, títulos y consejos deben estar en español. NO use portugués.\n`;
+  }
+  if (norm.startsWith('fr')) {
+    return `\nCURRENT_APPLICATION_LANGUAGE: fr-FR\nDIRECTIVE DE LANGUE: Répondez strictement en français fluide, professionnel et naturel. Tous les textes, explications, titres et conseils doivent être en français. N'utilisez PAS le portugais.\n`;
+  }
+  if (norm.startsWith('en')) {
+    return `\nCURRENT_APPLICATION_LANGUAGE: en-US\nLANGUAGE DIRECTIVE: Respond strictly in fluent, natural English. All texts, explanations, titles, and tips must be in English. Do NOT use Portuguese.\n`;
+  }
+  return `\nCURRENT_APPLICATION_LANGUAGE: pt-BR\nDIRETIVA DE IDIOMA: Responda em português brasileiro fluente, acolhedor e natural.\n`;
+};
+
 export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
@@ -213,7 +227,7 @@ JSON RESPONSE SCHEMA:
 - action: 'NONE' | 'NAVIGATE' | 'DEMO_EXERCISE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
 - actionData: { tab?: string, exerciseId?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
 - DEMONSTRAÇÃO INTELIGENTE DE EXERCÍCIOS: Se o usuário pedir para ver, ensinar ou demonstrar um exercício (ex.: "como fazer elevação lateral", "mostra como fazer supino", "demonstra agachamento", etc.), use action: 'DEMO_EXERCISE' com actionData: { tab: 'trainer', exerciseId: '<id do exercício>' } (ex: 'seated-lateral-raises', 'dumbbell-shoulder-press', 'supino-reto', 'puxada-frontal', 'agachamento-livre', 'rosca-direta', etc.) e fale explicando o movimento de forma concisa.
-- CRITICAL: NutriAI exclusivamente supports 4 locations/languages: United States ('en-US'), United Kingdom ('en-GB'), Australia ('en-AU'), and Brazil ('pt-BR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em inglês britânico", "muda para Austrália", "speak english", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'en-US', 'en-GB', 'en-AU', 'pt-BR'), and speak the confirmation in that target language!`;
+- CRITICAL: NutriAI supports 4 primary languages/locales: Brazil ('pt-BR'), United States ('en-US'), Spain ('es-ES'), and France ('fr-FR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em espanhol", "troca para francês", "change to english", "habla en español", "parle en français", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'pt-BR', 'en-US', 'es-ES', 'fr-FR'), and speak the confirmation warmly in that target language!`;
 
   const schema: Schema = {
     type: Type.OBJECT,
@@ -274,6 +288,10 @@ JSON RESPONSE SCHEMA:
       'en-US': "I'm right here with you! Could you please tell me again what you need? 💚",
       'en-GB': "I'm right here with you! Could you please tell me again what you need today? 💚",
       'en-AU': "G'day! I'm right here with you! Could you please let me know what you need today? 💚",
+      'es': "¡Estoy aquí contigo! ¿En qué puedo ayudarte hoy? 💚",
+      'es-ES': "¡Estoy aquí contigo! ¿En qué puedo ayudarte hoy? 💚",
+      'fr': "Je suis là avec vous ! Dites-moi, comment puis-je vous aider aujourd'hui ? 💚",
+      'fr-FR': "Je suis là avec vous ! Dites-moi, comment puis-je vous aider aujourd'hui ? 💚",
       'pt-BR': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚",
       'pt': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚"
     };
@@ -295,7 +313,7 @@ export const generateMasterStrategy = async (
 
   const prompt = `Você é um Nutricionista e Personal Trainer de Alta Performance.
 Crie a estratégia nutricional e de treino mestra para este usuário.
-
+${getLanguagePromptDirective(profile?.language)}
 DADOS:
 Biotipo: ${profile?.bodyType || 'Endomorfo'}
 Metabolismo: ${profile?.metabolism || 'Moderado'}
@@ -369,13 +387,13 @@ export const generateWorkout = async (
   }
 
   const prompt = `Gere um treino de calistenia (peso do corpo) personalizado.
-  
+${getLanguagePromptDirective(profile?.language)}
 Perfil do Usuário:
 ${profileContext}
 
 Regras:
 1. Crie uma lista de 5 a 8 exercícios. Adeque o tempo do treino à rotina do usuário se informada.
-2. Use nomes em português.
+2. Escreva todos os nomes de exercícios, títulos, descrições, instruções, tutoriais e dicas no idioma definido pela diretiva de idioma.
 3. Defina 'primaryMuscles' (ex: 'quadriceps', 'chest', 'abs', 'triceps', 'back', 'glutes', 'shoulders') para o modelo 3D.
 4. Para cada exercício, inclua um tutorial em 3 passos: Posição Inicial, Execução e Finalização. Em cada passo defina 'animationState' (idle, executing ou tutorial) e 'cameraView' (front, side ou detail).
 5. Liste erros comuns e como corrigi-los.
@@ -516,7 +534,7 @@ export const generateWeeklyWorkoutPlan = async (
 
   const prompt = `Gere um Plano Semanal de Exercícios de Calistenia (Segunda a Domingo) personalizado.
 O plano DEVE estar estritamente sincronizado com os objetivos de nutrição do usuário (${profile?.goals || 'Emagrecimento'}) e seu nível de condicionamento físico (${profile?.activityLevel || 'Iniciante'}).
-
+${getLanguagePromptDirective(profile?.language)}
 Perfil do Usuário:
 ${profileContext}
 
@@ -525,7 +543,7 @@ Regras:
 2. Para cada dia, defina o título do treino (workoutTitle), o foco do treino (workoutFocus), a intensidade recomendada (Iniciante, Intermediário ou Avançado), os músculos alvo (targetMuscles) e um contexto nutricional sincronizado (nutritionContext) que informe qual apoio nutricional é ideal para aquele dia (ex: "Consumir mais carboidratos complexos hoje para suporte energético", "Foco em proteínas pós-treino", etc.).
 3. Inclua de 3 a 5 exercícios rápidos por dia de treino.
 4. Dias de descanso ativo ou repouso total também devem ser representados com foco em flexibilidade, alongamento ou regeneração.
-5. Use nomes em português para os exercícios e termos.
+5. Escreva todos os títulos, descrições, nomes de exercícios, focos e contexto nutricional no idioma definido pela diretiva de idioma.
 6. Responda APENAS com JSON validando o schema.`;
 
   const schema: Schema = {
@@ -718,10 +736,12 @@ Equipamentos disponíveis: ${safeJoin(profile?.equipment, "Todos")}
     : "";
 
   const prompt = `Gere uma receita saudável com base nos seguintes parâmetros:
+${getLanguagePromptDirective(profile?.language)}
 Ingredientes disponíveis: ${ingredients || "Qualquer ingrediente saudável comum"}
 Perfil do Usuário: ${profileText}${preferencesContext}${budgetContext}
 ATENÇÃO REDOBRADA: Você deve respeitar ESTRITAMENTE o Objetivo/Dieta e as Preferências (ex: se for vegano, não incluir NADA de origem animal; se for para Diabetes, controlar índice glicêmico).
 A receita deve ser equilibrada e alinhada perfeitamente com os requisitos solicitados.
+IMPORTANTE: Escreva o nome, descrição, ingredientes, instruções e dicas da receita estritamente no idioma indicado pela diretiva de idioma.
 Responda APENAS com um objeto JSON.`;
 
   const recipeSchema: Schema = {
@@ -877,8 +897,10 @@ Foco nutricional: ${profile.masterPlan.nutritionFocus}
   }
 
   const prompt = `Sugira 3 ou 4 refeições (como café da manhã, almoço, lanche e jantar) para o dia ${day}, levando em consideração o seguinte PERFIL E ESTRATÉGIA do usuário:
+${getLanguagePromptDirective(profile?.language)}
 ${profileText}
 O plano deve ser nutricionalmente equilibrado e atingir EXATAMENTE OU MUITO PRÓXIMO das macros totais caso informadas na estratégia. Adapte as sugestões à rotina informada.
+IMPORTANTE: Escreva todos os nomes de pratos, descrições, ingredientes, categorias e instruções estritamente no idioma indicado pela diretiva de idioma.
 Responda APENAS com um array JSON com os objetos de receita.`;
 
   const recipeSchema: Schema = {
@@ -1766,6 +1788,7 @@ export const analyzePlate = async (base64Image: string, mimeType: string, profil
     }
 
     const prompt = `Analise a imagem deste prato de comida e reconheça os alimentos presentes.
+${getLanguagePromptDirective(profile?.language)}
 Calcule aproximadamente os valores nutricionais totais do prato (proteína em gramas, carboidratos em gramas, gorduras em gramas, calorias totais, e fibras em gramas).
 
 Perfil e Plano Opcional:
@@ -1776,10 +1799,8 @@ Atribua um 'nutriScore' de 0 a 100 para a refeição, considerando o equilíbrio
 Crie também uma 'nutriScoreExplanation' (1 frase rápida) explicando por que essa nota foi dada e como o prato poderia ser melhorado (se aplicável).
 
 Verifique se a refeição corresponde de forma geral ao plano sugerido (quantidade, tipos de alimentos) ou ao objetivo do usuário.
-Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium.
-- Se o prato estiver de acordo com o plano, confirme o progresso positivamente (ex: "Isso aí! Esse prato está perfeito e super alinhado com o seu plano de hoje. Muito orgulho!").
-- Se não estiver, sugira ajustes ou encoraje sem culpa (ex: "Parece muito gostoso! Mas pra chegar no seu objetivo, faltou uma saladinha ou um pouco mais de proteína. Na próxima a gente acerta, sem estresse.").
-Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição na array 'suggestions'.
+Crie uma mensagem de voz muito humana e acolhedora na 'assistantMessage' com tom premium, escrita no idioma indicado pela diretiva de idioma.
+Deixe também 2 ou 3 sugestões curingas curtas de melhoria da refeição na array 'suggestions' (no idioma indicado).
 Garanta privacidade e reforço positivo ao hábito.
 Responda APENAS num json.`;
 

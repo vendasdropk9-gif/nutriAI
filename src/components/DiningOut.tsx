@@ -3,6 +3,7 @@ import { Utensils, Search, Loader2, Sparkles, AlertCircle, CheckCircle2, ArrowRi
 import { UserProfile, DiningOutAnalysis } from '../types';
 import { analyzeDiningOut } from '../lib/gemini';
 import { VoicePlayButton } from './VoicePlayButton';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DiningOutProps {
   profile: UserProfile | null;
@@ -10,6 +11,7 @@ interface DiningOutProps {
 }
 
 export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
+  const { language, t } = useLanguage();
   const [description, setDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<DiningOutAnalysis | null>(null);
@@ -31,7 +33,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
       const rec = new SpeechRecognitionAPI();
       rec.continuous = true;
       rec.interimResults = true;
-      rec.lang = 'pt-BR';
+      rec.lang = language || 'pt-BR';
 
       rec.onstart = () => {
         setIsRecording(true);
@@ -83,7 +85,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language]);
 
   const toggleRecording = async (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     e.preventDefault();

@@ -5,6 +5,7 @@ import { UserProfile } from '../types';
 import { chatWithAssistant } from '../lib/gemini';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { speak, stopSpeech } from '../lib/speech';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import { doc, getDoc, setDoc, serverTimestamp } from '../lib/firebase';
 import { db, auth } from '../lib/firebase';
@@ -24,6 +25,7 @@ interface SmartChatProps {
 }
 
 export function SmartChat({ profile, onNavigate }: SmartChatProps) {
+  const { language, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>('nutriai-chat-history', []);
   const [input, setInput] = useState('');
@@ -79,7 +81,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
        // Send initial welcome message
-       const welcomeText = "Oi… já entendi seu perfil. Vou cuidar disso com você 💚 O que vamos fazer hoje?";
+       const welcomeText = t('chat_welcome', "Oi… já entendi seu perfil. Vou cuidar disso com você 💚 O que vamos fazer hoje?");
        setMessages([{
            id: crypto.randomUUID(),
            sender: 'assistant',
@@ -91,7 +93,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
          playAssistantVoice(welcomeText);
        }
     }
-  }, [isOpen]);
+  }, [isOpen, voiceEnabled, t, language]);
 
   // Setup Speech Recognition
   useEffect(() => {
@@ -100,7 +102,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'pt-BR';
+      recognitionRef.current.lang = language || 'pt-BR';
 
       recognitionRef.current.onresult = (event: any) => {
         let interimTranscript = '';
@@ -140,7 +142,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
       }
       stopAudio();
     };
-  }, []);
+  }, [language]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -169,6 +171,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
     try {
       setIsSpeaking(true);
       await speak(text, {
+        lang: language,
         onEnded: () => setIsSpeaking(false)
       });
     } catch (e) {
