@@ -212,7 +212,7 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     return result;
   }, []);
 
-  // High-performance, multi-tier translation resolver
+  // High-performance, fully symmetrical bidirectional translation resolver
   const translate = useCallback((
     keyOrPhrase: string,
     defaultValueOrParams?: string | Record<string, any>,
@@ -220,57 +220,72 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
   ): string => {
     if (!keyOrPhrase || typeof keyOrPhrase !== 'string') return '';
 
-    const defaultValue = typeof defaultValueOrParams === 'string' ? defaultValueOrParams : keyOrPhrase;
+    const defaultValue = typeof defaultValueOrParams === 'string' ? defaultValueOrParams : undefined;
     const interpolationParams = typeof defaultValueOrParams === 'object' ? defaultValueOrParams : params;
 
     const currentLang = language || 'pt-BR';
-    const cleanLang = currentLang.split('-')[0];
-    const isPortuguese = currentLang.startsWith('pt');
-
-    // If target is Portuguese, resolve key from specific bundle or return defaultValue
-    if (isPortuguese) {
-      let ptStr = flattenedLocales[currentLang]?.[keyOrPhrase] || flattenedLocales['pt-BR']?.[keyOrPhrase] || defaultValue || keyOrPhrase;
-      if (interpolationParams && typeof interpolationParams === 'object') {
-        for (const [pKey, pVal] of Object.entries(interpolationParams)) {
-          ptStr = ptStr.replace(new RegExp(`{{\\s*${pKey}\\s*}}`, 'g'), String(pVal))
-                       .replace(new RegExp(`{\\s*${pKey}\\s*}`, 'g'), String(pVal));
-        }
-      }
-      return ptStr;
-    }
+    const isEn = currentLang.startsWith('en');
+    const targetBundleKey = isEn ? 'en-US' : 'pt-BR';
+    const flatBundle = flattenedLocales[targetBundleKey] || flattenedLocales[currentLang] || {};
 
     let translated: string | null = null;
     const cleanLower = keyOrPhrase.toLowerCase().trim();
 
-    // 1. Direct lookup in flattened target bundle (exact match or lowercased)
-    const flatBundle = flattenedLocales[currentLang] || flattenedLocales[cleanLang] || flattenedLocales['en-US'] || {};
-    if (flatBundle[keyOrPhrase]) {
+    // 1. Direct exact key lookup in target bundle
+    if (flatBundle[keyOrPhrase] !== undefined) {
       translated = flatBundle[keyOrPhrase];
-    } else if (flatBundle[cleanLower]) {
+    }
+    // 2. Direct clean lower key lookup
+    else if (flatBundle[cleanLower] !== undefined) {
       translated = flatBundle[cleanLower];
     }
+    // 3. Dot-separated path lookup (e.g. "common.save" -> flatBundle["common.save"] or flatBundle["save"])
+    else if (keyOrPhrase.includes('.')) {
+      const parts = keyOrPhrase.split('.');
+      const leafKey = parts[parts.length - 1];
+      if (flatBundle[keyOrPhrase] !== undefined) {
+        translated = flatBundle[keyOrPhrase];
+      } else if (flatBundle[leafKey] !== undefined) {
+        translated = flatBundle[leafKey];
+      }
+    }
 
-    // 2. Reverse lookup: if keyOrPhrase is a known phrase/key across any language, find its translated value
+    // 4. Reverse lookup: if keyOrPhrase is a phrase in any language, map to canonical key
     if (!translated) {
       const mappedKey = textToKeyMap.get(cleanLower);
       if (mappedKey) {
-        if (flatBundle[mappedKey]) {
+        if (flatBundle[mappedKey] !== undefined) {
           translated = flatBundle[mappedKey];
-        } else if (flatBundle[mappedKey.toLowerCase()]) {
+        } else if (flatBundle[mappedKey.toLowerCase()] !== undefined) {
           translated = flatBundle[mappedKey.toLowerCase()];
         }
       }
     }
 
-    // 3. Direct STATIC_APP_PHRASES lookup
-    if (!translated) {
-      const staticEntry = STATIC_APP_PHRASES[cleanLower] || STATIC_APP_PHRASES[keyOrPhrase];
-      if (staticEntry) {
-        translated = staticEntry[currentLang] || staticEntry[cleanLang] || staticEntry['en'] || null;
+    // 5. If defaultValue was provided and differs from keyOrPhrase, try looking up defaultValue as well
+    if (!translated && defaultValue && defaultValue !== keyOrPhrase) {
+      const cleanDefLower = defaultValue.toLowerCase().trim();
+      if (flatBundle[defaultValue] !== undefined) {
+        translated = flatBundle[defaultValue];
+      } else if (flatBundle[cleanDefLower] !== undefined) {
+        translated = flatBundle[cleanDefLower];
+      } else {
+        const mappedDefKey = textToKeyMap.get(cleanDefLower);
+        if (mappedDefKey && flatBundle[mappedDefKey] !== undefined) {
+          translated = flatBundle[mappedDefKey];
+        }
       }
     }
 
-    // 4. Try lookup with emoji / icon stripping
+    // 6. Direct STATIC_APP_PHRASES lookup
+    if (!translated) {
+      const staticEntry = STATIC_APP_PHRASES[cleanLower] || STATIC_APP_PHRASES[keyOrPhrase];
+      if (staticEntry) {
+        translated = isEn ? (staticEntry['en'] || staticEntry['en-US']) : (staticEntry['pt'] || staticEntry['pt-BR']);
+      }
+    }
+
+    // 7. Try lookup with emoji / icon stripping
     if (!translated) {
       const emojiRegex = /^([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)(.*?)([\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s•\-\+—\(\)\[\]\{\}:;!?#@]+)?$/u;
       const matchEmoji = keyOrPhrase.match(emojiRegex);
@@ -279,7 +294,7 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
         const coreLower = coreText.toLowerCase();
         const staticCore = STATIC_APP_PHRASES[coreLower];
         if (staticCore) {
-          const coreTrans = staticCore[currentLang] || staticCore[cleanLang] || staticCore['en'];
+          const coreTrans = isEn ? (staticCore['en'] || staticCore['en-US']) : (staticCore['pt'] || staticCore['pt-BR']);
           if (coreTrans) {
             translated = (matchEmoji[1] || '') + coreTrans + (matchEmoji[3] || '');
           }
@@ -290,19 +305,20 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
       }
     }
 
-    // 5. Direct RUNTIME_DICTIONARY lookup
+    // 8. Direct RUNTIME_DICTIONARY lookup
     if (!translated) {
-      translated = lookupRuntimeTranslation(keyOrPhrase, currentLang) || 
-                   (defaultValue ? lookupRuntimeTranslation(defaultValue, currentLang) : null);
+      const dictLang = isEn ? 'en' : 'pt';
+      translated = lookupRuntimeTranslation(keyOrPhrase, dictLang) || 
+                   (defaultValue ? lookupRuntimeTranslation(defaultValue, dictLang) : null);
     }
 
-    // 6. i18next initialized instance check
+    // 9. i18next initialized instance check
     if (!translated) {
       try {
         if (i18n && i18n.isInitialized) {
           const sentinel = '___I18N_MISSING___';
           const i18nRes = i18n.t(keyOrPhrase, {
-            lng: currentLang,
+            lng: targetBundleKey,
             defaultValue: sentinel,
             ...(interpolationParams || {})
           });
@@ -313,16 +329,10 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
       } catch (e) {}
     }
 
-    // 7. English fallback for any missing key or phrase
-    if (!translated && cleanLang !== 'en') {
-      const enFlat = flattenedLocales['en-US'] || flattenedLocales['en'] || {};
-      translated = enFlat[keyOrPhrase] || enFlat[cleanLower] || STATIC_APP_PHRASES[cleanLower]?.['en'] || null;
-    }
-
-    // 8. Final fallback
+    // 10. Fallback resolution:
     let finalStr = translated || defaultValue || keyOrPhrase;
 
-    // 9. Parameter interpolation
+    // 11. Parameter interpolation
     if (interpolationParams && typeof interpolationParams === 'object') {
       for (const [pKey, pVal] of Object.entries(interpolationParams)) {
         finalStr = finalStr.replace(new RegExp(`{{\\s*${pKey}\\s*}}`, 'g'), String(pVal))

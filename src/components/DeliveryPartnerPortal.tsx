@@ -12,7 +12,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
   const [phone, setPhone] = useState('');
   const [cnh, setCnh] = useState('');
   const [rg, setRg] = useState('');
-  const [vehicleType, setVehicleType] = useState<'bicicleta' | 'moto'>('bicicleta');
+  const [vehicleType, setVehicleType] = useState<'bicicleta' | 'moto' | 'pe'>('bicicleta');
   const [vehicleModel, setVehicleModel] = useState('');
   const [plate, setPlate] = useState('');
   const [routes, setRoutes] = useState('Centro, Paulista, Augusta');
@@ -26,7 +26,7 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
   // Register New Courier on backend
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || !cnh) return;
+    if (!name || !phone || (vehicleType !== 'pe' && !cnh)) return;
 
     setIsLoading(true);
     try {
@@ -36,10 +36,10 @@ export function DeliveryPartnerPortal({ onBack, addNotification }: { onBack: () 
         body: JSON.stringify({
           name,
           phone,
-          cnh,
+          cnh: vehicleType === 'pe' ? 'N/A' : cnh,
           rg,
           vehicleType,
-          vehicleModel: vehicleModel || (vehicleType === 'moto' ? "Yamaha Factor 125" : "Bicicleta Caloi"),
+          vehicleModel: vehicleModel || (vehicleType === 'moto' ? "Yamaha Factor 125" : vehicleType === 'bicicleta' ? "Bicicleta Caloi" : "Mochila Térmica (A pé)"),
           plate: vehicleType === 'moto' ? plate : 'N/A',
           routes: routes.split(',').map(r => r.trim()),
           hours

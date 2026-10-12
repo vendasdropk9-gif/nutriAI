@@ -155,7 +155,7 @@
   "reading_mode_disable": "Desativar Modo de Leitura",
   "switch_light_mode": "Mudar para modo claro",
   "switch_dark_mode": "Mudar para modo escuro",
-  "change_language": "Mudar Idioma",
+  "change_language": "Mudar idioma",
   "leave_feedback": "Deixe seu feedback",
   "points_acquired": "Pontos Adquiridos!",
   "prep_time": "Tempo de Preparo",
@@ -268,5 +268,17 @@
   "view_recipe": "Ver Receita",
   "recipe_full": "Receita Completa",
   "favorite": "Favorito",
-  "saved": "Salvo"
+  "saved": "Salvo",
+  "pantry": "Despensa",
+  "admin": "Admin DB",
+  "start_tour": "Iniciar Tour Interativo",
+  "loading_module": "Carregando módulo inteligente...",
+  "eggplant": "Berinjela",
+  "zucchini": "Abobrinha",
+  "arugula": "Rúcula",
+  "cilantro": "Coentro",
+  "bell_pepper": "Pimentão",
+  "calorie_limit": "Limite Calórico",
+  "smart_swaps": "Trocas Inteligentes",
+  "calorie_optimizer": "Otimizador de Limite Calórico"
 }

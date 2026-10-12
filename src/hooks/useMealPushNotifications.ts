@@ -7,6 +7,7 @@ import {
   DEFAULT_CHALLENGE_TIMES 
 } from '../lib/pushScheduler';
 import { playSfx, vibrate } from '../lib/sensory';
+import { analyzeSmartHydration } from '../lib/smartHydrationEngine';
 
 const PROACTIVE_TIPS = [
   "Você bebeu pouca água hoje. Que tal um copo fresco agora?",
@@ -72,6 +73,56 @@ export function useMealPushNotifications(
     }, 60000); // Checagem a cada 60s
 
     return () => clearInterval(proactiveInterval);
+  }, [profile, addNotification]);
+
+  // Sistema de Notificações Push Inteligentes de Hidratação (Clima + Atividade Física)
+  useEffect(() => {
+    if (!profile) return;
+    const hydrationCheck = setInterval(async () => {
+      const currentHour = new Date().getHours();
+      if (currentHour < 8 || currentHour >= 22) return;
+
+      const analysis = await analyzeSmartHydration(profile);
+      const hydrationLogs = profile?.hydrationLogs || [];
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayHydration = hydrationLogs.filter(log => log.date.startsWith(todayStr));
+      const latestLog = todayHydration.length > 0
+        ? [...todayHydration].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+        : null;
+
+      let shouldNotify = false;
+      if (latestLog) {
+        const diffMins = Math.floor((Date.now() - new Date(latestLog.date).getTime()) / (1000 * 60));
+        if (diffMins >= analysis.recommendedIntervalMinutes) {
+          shouldNotify = true;
+        }
+      } else if (todayHydration.length === 0 && currentHour >= 9) {
+        shouldNotify = true;
+      }
+
+      if (shouldNotify) {
+        const notifKey = `smart-hydration-${todayStr}-${currentHour}`;
+        if (!notifiedKeys.current.has(notifKey)) {
+          notifiedKeys.current.add(notifKey);
+
+          playSfx('crystal');
+          vibrate([100, 50, 100]);
+
+          addNotification({
+            title: analysis.pushTitle,
+            message: analysis.pushMessage,
+            type: 'info'
+          });
+
+          sendNativePushNotification(analysis.pushTitle, analysis.pushMessage, {
+            tag: `hydration-${todayStr}-${currentHour}`,
+            data: { url: '/?tab=habits' }
+          });
+        }
+      }
+    }, 45000);
+
+    return () => clearInterval(hydrationCheck);
   }, [profile, addNotification]);
 
   // Monitor e Agendador de Alertas de Refeições e Desafios (Coordenação com Service Worker)

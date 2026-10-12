@@ -17,7 +17,9 @@ import {
   ArrowRight,
   Target,
   ChevronUp,
-  ChevronLeft
+  ChevronLeft,
+  Compass,
+  LocateFixed
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -30,6 +32,19 @@ import { useTranslation } from '../contexts/LanguageContext';
 import 'leaflet/dist/leaflet.css';
 
 const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333]; // São Paulo Center
+
+// Haversine distance calculator
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
 
 const MOCK_STORES: FreshnessStore[] = [
   {
@@ -158,6 +173,10 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [userLocation, setUserLocation] = useState<[number, number]>(DEFAULT_CENTER);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<string>('');
+  const [radiusKm, setRadiusKm] = useState<number>(20);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -165,6 +184,60 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
     }, 6000);
     return () => clearInterval(timer);
   }, []);
+
+  // Request user GPS location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const coords: [number, number] = [lat, lng];
+          setUserLocation(coords);
+          setMapCenter(coords);
+          setIsLocating(false);
+          setLocationStatus('GPS Ativo');
+        },
+        (error) => {
+          console.warn('GPS geolocation permission denied or unavailable, using default center:', error);
+          setIsLocating(false);
+          setLocationStatus('Usando São Paulo (Padrão)');
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      );
+    }
+  }, []);
+
+  const handleGetGpsLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocalização não é suportada pelo seu navegador.');
+      return;
+    }
+    setIsLocating(true);
+    playSfx('tap');
+    vibrate(40);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const coords: [number, number] = [lat, lng];
+        setUserLocation(coords);
+        setMapCenter(coords);
+        setIsLocating(false);
+        setLocationStatus('GPS Atualizado');
+        playSfx('success');
+        vibrate(80);
+      },
+      (error) => {
+        console.error('Erro ao obter GPS:', error);
+        setIsLocating(false);
+        alert('Não foi possível obter sua localização GPS. Verifique as permissões do navegador.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleSpeak = async (text: string) => {
     if (isPlaying) return;
@@ -180,8 +253,20 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
     setMapCenter([store.coordinates.lat, store.coordinates.lng]);
   };
 
+  // Compute stores with dynamic distances calculated from userLocation
+  const storesWithDynamicDistance = useMemo(() => {
+    return MOCK_STORES.map(store => {
+      const distKm = calculateDistance(userLocation[0], userLocation[1], store.coordinates.lat, store.coordinates.lng);
+      return {
+        ...store,
+        computedDistance: distKm,
+        distance: `${distKm.toFixed(1)} km`
+      };
+    }).sort((a, b) => a.computedDistance - b.computedDistance);
+  }, [userLocation]);
+
   const filteredStores = useMemo(() => {
-    return MOCK_STORES.filter(store => {
+    return storesWithDynamicDistance.filter(store => {
       const searchLower = searchQuery.toLowerCase().trim();
       const matchesSearch = !searchLower || 
         store.name.toLowerCase().includes(searchLower) ||
@@ -200,9 +285,10 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
         (searchLower.includes('laranja') && store.id === 's1');
 
       const matchesFilter = filter === 'all' || store.tags.some(tag => tag.type === filter);
-      return matchesSearch && matchesFilter;
+      const matchesRadius = store.computedDistance <= radiusKm;
+      return matchesSearch && matchesFilter && matchesRadius;
     });
-  }, [filter, searchQuery]);
+  }, [filter, searchQuery, storesWithDynamicDistance, radiusKm]);
 
   const handleSearchSubmit = () => {
     playSfx('success');
@@ -211,10 +297,6 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
       selectStore(filteredStores[0]);
     }
   };
-
-  useEffect(() => {
-    // Initial banner animation timer is handled above
-  }, []);
 
   return (
     <div className="flex-1 flex flex-col w-full h-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden min-h-[600px] box-border">
@@ -225,6 +307,16 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
         title="Voltar para o Hortifruti"
       >
         <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+      </button>
+
+      {/* GPS Location Floating Button - Right Floating */}
+      <button 
+        onClick={handleGetGpsLocation}
+        disabled={isLocating}
+        className="absolute top-6 right-6 z-[1001] bg-emerald-600 hover:bg-emerald-500 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-emerald-400/50 group cursor-pointer focus:outline-none disabled:opacity-50"
+        title="Centralizar na minha localização GPS"
+      >
+        <LocateFixed className={`w-5 h-5 ${isLocating ? 'animate-spin' : 'group-hover:rotate-45'} transition-transform`} />
       </button>
 
       {/* Floating Centered Back Button */}
@@ -274,7 +366,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                   transition={{ delay: 0.3 }}
                   className="inline-block px-3 py-1 bg-emerald-500 text-white text-[10px] md:text-xs font-black uppercase tracking-[3px] rounded-full w-max shadow-lg pointer-events-auto"
                 >
-                  Destaque IA
+                  {locationStatus || 'GPS Ativo'}
                 </motion.span>
                 <motion.h2 
                   className="text-xl sm:text-2xl md:text-4xl font-serif font-bold text-white leading-tight drop-shadow-md pointer-events-auto"
@@ -292,10 +384,10 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
-                      const store = MOCK_STORES.find(s => s.id === BANNER_SLIDES[currentSlide].storeId);
+                      const store = filteredStores.find(s => s.id === BANNER_SLIDES[currentSlide].storeId) || filteredStores[0];
                       if (store) selectStore(store);
                     }}
-                    className="px-5 md:px-6 py-2.5 md:py-3 clay-btn text-emerald-800 dark:text-emerald-400 font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors"
+                    className="px-5 md:px-6 py-2.5 md:py-3 clay-btn text-emerald-800 dark:text-emerald-400 font-black text-[10px] md:text-xs uppercase tracking-[2px] shadow-xl flex items-center gap-2 w-max hover:bg-emerald-50 transition-colors cursor-pointer"
                   >
                     Comprar Agora
                     <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
@@ -343,14 +435,14 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
             />
           ))}
           
-          {/* User Location Simulated Marker */}
+          {/* User GPS Location Marker */}
           <Marker 
-            position={DEFAULT_CENTER} 
+            position={userLocation} 
             icon={L.divIcon({
               className: 'user-icon',
-              html: '<div style="background-color: #3b82f6; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);"></div>',
-              iconSize: [20, 20],
-              iconAnchor: [10, 10],
+              html: '<div style="background-color: #3b82f6; width: 18px; height: 18px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);"></div>',
+              iconSize: [22, 22],
+              iconAnchor: [11, 11],
             })}
           />
         </MapContainer>
@@ -383,24 +475,52 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
               Buscar
             </motion.button>
           </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar w-full box-border">
-            {[
-              { id: 'frescor', label: 'Mais Fresco', icon: Leaf, color: 'emerald' },
-              { id: 'preco', label: 'Melhor Preço', icon: TrendingDown, color: 'amber' }
-            ].map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setFilter(filter === cat.id ? 'all' : cat.id as any)}
-                className={`px-4 md:px-6 py-2.5 md:py-3 rounded-[20px] md:rounded-2xl flex items-center gap-2 md:gap-3 whitespace-nowrap text-[10px] md:text-xs font-black uppercase tracking-wider transition-all border shadow-lg shrink-0 ${
-                  filter === cat.id 
-                  ? `bg-${cat.color}-500 text-white border-transparent`
-                  : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg text-slate-600 border-slate-100 dark:border-slate-800 w-full max-w-max'
-                }`}
-              >
-                <cat.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                {cat.label}
-              </button>
-            ))}
+          <div className="flex flex-col gap-2.5 w-full box-border">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar w-full box-border">
+              {[
+                { id: 'frescor', label: 'Mais Fresco', icon: Leaf, color: 'emerald' },
+                { id: 'preco', label: 'Melhor Preço', icon: TrendingDown, color: 'amber' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilter(filter === cat.id ? 'all' : cat.id as any)}
+                  className={`px-4 md:px-6 py-2.5 md:py-3 rounded-[20px] md:rounded-2xl flex items-center gap-2 md:gap-3 whitespace-nowrap text-[10px] md:text-xs font-black uppercase tracking-wider transition-all border shadow-lg shrink-0 cursor-pointer ${
+                    filter === cat.id 
+                    ? `bg-${cat.color}-500 text-white border-transparent`
+                    : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg text-slate-600 border-slate-100 dark:border-slate-800 w-full max-w-max'
+                  }`}
+                >
+                  <cat.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Radius Slider Filter (1km - 20km) */}
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-4 py-3 rounded-[20px] md:rounded-2xl shadow-xl border border-white/50 dark:border-slate-800 w-full flex flex-col gap-1.5 box-border">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                  Raio de Distância
+                </span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-black text-xs bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                  Até {radiusKm} km
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold text-slate-400">1 km</span>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="20" 
+                  step="1"
+                  value={radiusKm}
+                  onChange={(e) => setRadiusKm(Number(e.target.value))}
+                  className="flex-1 accent-emerald-500 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
+                />
+                <span className="text-[10px] font-bold text-slate-400">20 km</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -434,7 +554,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
                 </div>
                 <button 
                   onClick={() => setSelectedStore(null)}
-                  className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 shrink-0 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 shrink-0 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                 >
                   <Navigation className="w-5 h-5 ml-0.5 mt-0.5" />
                 </button>
@@ -474,11 +594,15 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
 
               <div className="flex gap-3 w-full box-border">
                 <button 
-                  className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate text-[#00ff01]"
+                  onClick={() => setSelectedStore(null)}
+                  className="flex-1 h-12 md:h-14 clay-btn px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl truncate text-[#00ff01] cursor-pointer"
                 >
                   Ver Produtos
                 </button>
-                <button className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate text-white">
+                <button 
+                  onClick={() => setSelectedStore(null)}
+                  className="flex-1 h-12 md:h-14 clay-primary px-2 py-2 md:py-3 font-black text-[9px] md:text-xs uppercase tracking-widest shadow-lg md:shadow-xl shadow-emerald-500/20 truncate text-white cursor-pointer"
+                >
                   Comprar
                 </button>
               </div>

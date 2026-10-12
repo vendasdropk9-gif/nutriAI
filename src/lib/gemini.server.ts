@@ -136,12 +136,6 @@ export const callWithModelFallback = async (
 
 export const getLanguagePromptDirective = (lang?: string): string => {
   const norm = (lang || 'pt-BR').trim();
-  if (norm.startsWith('es')) {
-    return `\nCURRENT_APPLICATION_LANGUAGE: es-ES\nDIRECTIVA DE IDIOMA: Responda estrictamente en español fluido, profesional y natural. Todos los textos, explicaciones, títulos y consejos deben estar en español. NO use portugués.\n`;
-  }
-  if (norm.startsWith('fr')) {
-    return `\nCURRENT_APPLICATION_LANGUAGE: fr-FR\nDIRECTIVE DE LANGUE: Répondez strictement en français fluide, professionnel et naturel. Tous les textes, explications, titres et conseils doivent être en français. N'utilisez PAS le portugais.\n`;
-  }
   if (norm.startsWith('en')) {
     return `\nCURRENT_APPLICATION_LANGUAGE: en-US\nLANGUAGE DIRECTIVE: Respond strictly in fluent, natural English. All texts, explanations, titles, and tips must be in English. Do NOT use Portuguese.\n`;
   }
@@ -227,7 +221,7 @@ JSON RESPONSE SCHEMA:
 - action: 'NONE' | 'NAVIGATE' | 'DEMO_EXERCISE' | 'OPEN_MODAL' | 'APPLY_FILTER' | 'CONFIRM_ACTION' | 'CHANGE_LANGUAGE'
 - actionData: { tab?: string, exerciseId?: string, modal?: 'language' | 'feedback' | 'pricing', filter?: string, actionType?: string, language?: string }
 - DEMONSTRAÇÃO INTELIGENTE DE EXERCÍCIOS: Se o usuário pedir para ver, ensinar ou demonstrar um exercício (ex.: "como fazer elevação lateral", "mostra como fazer supino", "demonstra agachamento", etc.), use action: 'DEMO_EXERCISE' com actionData: { tab: 'trainer', exerciseId: '<id do exercício>' } (ex: 'seated-lateral-raises', 'dumbbell-shoulder-press', 'supino-reto', 'puxada-frontal', 'agachamento-livre', 'rosca-direta', etc.) e fale explicando o movimento de forma concisa.
-- CRITICAL: NutriAI supports 4 primary languages/locales: Brazil ('pt-BR'), United States ('en-US'), Spain ('es-ES'), and France ('fr-FR'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em espanhol", "troca para francês", "change to english", "habla en español", "parle en français", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'pt-BR', 'en-US', 'es-ES', 'fr-FR'), and speak the confirmation warmly in that target language!`;
+- CRITICAL: NutriAI supports 2 primary languages/locales: Brazil ('pt-BR') and United States ('en-US'). If the user asks to change or speak another language (e.g. "muda para inglês", "fale em inglês", "change to english", "switch to english", "mude para português", "fale em português", "speak portuguese", etc.), set action to 'CHANGE_LANGUAGE', actionData to { language: '<ISO-subtag>' } (one of 'pt-BR', 'en-US'), and speak the confirmation warmly in that target language!`;
 
   const schema: Schema = {
     type: Type.OBJECT,
@@ -288,10 +282,6 @@ JSON RESPONSE SCHEMA:
       'en-US': "I'm right here with you! Could you please tell me again what you need? 💚",
       'en-GB': "I'm right here with you! Could you please tell me again what you need today? 💚",
       'en-AU': "G'day! I'm right here with you! Could you please let me know what you need today? 💚",
-      'es': "¡Estoy aquí contigo! ¿En qué puedo ayudarte hoy? 💚",
-      'es-ES': "¡Estoy aquí contigo! ¿En qué puedo ayudarte hoy? 💚",
-      'fr': "Je suis là avec vous ! Dites-moi, comment puis-je vous aider aujourd'hui ? 💚",
-      'fr-FR': "Je suis là avec vous ! Dites-moi, comment puis-je vous aider aujourd'hui ? 💚",
       'pt-BR': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚",
       'pt': "Estou aqui com você! Me conta de novo como posso te ajudar hoje? 💚"
     };

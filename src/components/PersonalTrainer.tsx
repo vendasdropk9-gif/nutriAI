@@ -253,6 +253,26 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [isSpeakingTips, setIsSpeakingTips] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  
+  // Weather integration
+  const [weatherInfo, setWeatherInfo] = useState<{ temp: number, condition: string } | null>(null);
+  const [isFetchingWeather, setIsFetchingWeather] = useState(false);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+        setIsFetchingWeather(true);
+        try {
+            const hydration = await import('../lib/smartHydrationEngine');
+            const analysis = await hydration.analyzeSmartHydration(profile);
+            setWeatherInfo({ temp: analysis.temperature, condition: analysis.climateCondition });
+        } catch (e) {
+            console.error("Failed to fetch weather", e);
+        } finally {
+            setIsFetchingWeather(false);
+        }
+    };
+    fetchWeather();
+  }, [profile]);
 
   // Global listener for opening Smart Exercise Demonstration
   useEffect(() => {
@@ -286,6 +306,15 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       setWeeklyPlan(DEFAULT_WEEKLY_PLAN);
     }
   }, [profile?.weeklyWorkoutPlan]);
+
+  const [weatherSuggestion, setWeatherSuggestion] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (weatherInfo && workout) {
+      const prompt = `Considerando o clima: ${weatherInfo.temp}°C e condição ${weatherInfo.condition}, e o treino: ${workout.title}, sugira o melhor horário e intensidade, ou uma alternativa indoor se necessário. Seja breve.`;
+      chatWithAssistant(profile!, [], prompt).then(res => setWeatherSuggestion(res.text));
+    }
+  }, [weatherInfo, workout]);
 
   const startWeeklyDayWorkout = (day: WeeklyWorkoutDay) => {
     playSfx('tap');
@@ -664,6 +693,12 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Personal Trainer
         </h2>
+        {weatherInfo && (
+           <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-sm text-slate-600 dark:text-slate-300">
+             Clima Atual: {weatherInfo.temp}°C, {weatherInfo.condition}.
+             {weatherSuggestion && <p className="mt-2 text-emerald-700 dark:text-emerald-300 font-semibold">{weatherSuggestion}</p>}
+           </div>
+        )}
         <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
           Treine em casa com precisão. Siga seu plano de exercícios semanais sugerido pela IA ou inicie o treino guiado.
         </p>

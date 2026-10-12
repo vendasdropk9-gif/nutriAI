@@ -76,8 +76,10 @@ import { GlobalSearch } from './components/GlobalSearch';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { OfflineSyncBanner } from './components/OfflineSyncBanner';
+import { OfflineSyncResolver } from './components/OfflineSyncResolver';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
+import { useMealReminders } from './hooks/useMealReminders';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 
@@ -108,6 +110,37 @@ function AppContent() {
     return () => clearTimeout(splashTimer);
   }, []);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
+  
+  // Dark Mode based on sun
+  useEffect(() => {
+    const applyAutoDarkMode = async () => {
+      // Check if user has already set a preference manually
+      if (window.localStorage.getItem('nutri-dark-mode-manual') === 'true') return;
+
+      if (!navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(`https://api.sunrise-sunset.org/json?lat=${latitude}&lng=${longitude}&formatted=0`);
+          const data = await response.json();
+          if (data.status === 'OK') {
+            const sunrise = new Date(data.results.sunrise);
+            const sunset = new Date(data.results.sunset);
+            const now = new Date();
+            
+            const isNight = now < sunrise || now > sunset;
+            setIsDarkMode(isNight);
+          }
+        } catch (error) {
+          console.error("Failed to fetch sun times:", error);
+        }
+      });
+    };
+
+    applyAutoDarkMode();
+  }, []);
+
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
   const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
@@ -309,6 +342,7 @@ function AppContent() {
   }, []);
 
   useMealPushNotifications(profile, addNotification);
+  useMealReminders(profile);
 
   // Pré-aquecimento em segundo plano de imagens do catálogo para suporte offline robusto
   useEffect(() => {
@@ -664,7 +698,10 @@ function AppContent() {
               <motion.button 
                 whileHover={{ scale: 1.06 }} 
                 whileTap={{ scale: 0.94 }}
-                onClick={() => setIsDarkMode(!isDarkMode)}
+                onClick={() => {
+                  window.localStorage.setItem('nutri-dark-mode-manual', 'true');
+                  setIsDarkMode(!isDarkMode);
+                }}
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-slate-600 hover:text-amber-500 hover:bg-amber-50 dark:text-slate-300 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
                 title={isDarkMode ? t('switch_light_mode', 'Mudar para modo claro') : t('switch_dark_mode', 'Mudar para modo escuro')}
               >
@@ -835,7 +872,7 @@ function AppContent() {
                   <PersonalTrainer profile={profile} onAwardPoints={awardPoints} onUpdateProfile={updateProfile} />
                 )}
                 {activeTab === 'wellness' && (
-                  <WellnessHub />
+                  <WellnessHub profile={profile} />
                 )}
                 {activeTab === 'prediction' && (
                   <ResultPrediction 
@@ -867,7 +904,12 @@ function AppContent() {
                   />
                 )}
                 {activeTab === 'swaps' && (
-                  <SmartSwaps profile={profile} onAwardPoints={awardPoints} />
+                  <SmartSwaps
+                    profile={profile}
+                    mealPlan={mealPlan}
+                    onUpdatePlan={handleUpdatePlan}
+                    onAwardPoints={awardPoints}
+                  />
                 )}
                 {activeTab === 'dining' && (
                   <DiningOut profile={profile} onAwardPoints={awardPoints} />
@@ -990,6 +1032,7 @@ function AppContent() {
       <AutoTranslator />
       <OfflineIndicator />
       <OfflineSyncBanner />
+      <OfflineSyncResolver />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </div>

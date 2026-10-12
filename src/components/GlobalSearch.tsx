@@ -10,6 +10,8 @@ import {
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { useVoiceTabNavigator } from '../hooks/useVoiceTabNavigator';
+import { useAuth } from '../contexts/AuthContext';
+import { db, doc, setDoc, onSnapshot } from '../lib/firebase';
 
 interface GlobalSearchProps {
   activeTab: string;
@@ -455,6 +457,71 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
   const [queryText, setQueryText] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const { user } = useAuth();
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('nutriai_recent_searches');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Real-time synchronization of recent searches with Firebase
+  useEffect(() => {
+    if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'settings', 'recentSearches');
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (Array.isArray(data.searches)) {
+          setRecentSearches(data.searches);
+          try {
+            localStorage.setItem('nutriai_recent_searches', JSON.stringify(data.searches));
+          } catch (e) {}
+        }
+      }
+    }, (err) => {
+      console.warn("Error syncing recent searches from Firestore:", err);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const saveRecentSearch = (term: string) => {
+    if (!term || !term.trim()) return;
+    const cleaned = term.trim();
+    setRecentSearches(prev => {
+      const filtered = prev.filter(item => item.toLowerCase() !== cleaned.toLowerCase());
+      const updated = [cleaned, ...filtered].slice(0, 6);
+      try {
+        localStorage.setItem('nutriai_recent_searches', JSON.stringify(updated));
+      } catch (e) {}
+
+      if (user) {
+        const docRef = doc(db, 'users', user.uid, 'settings', 'recentSearches');
+        setDoc(docRef, { searches: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(err => {
+          console.warn("Error saving recent search to Firestore:", err);
+        });
+      }
+
+      return updated;
+    });
+  };
+
+  const clearRecentSearches = () => {
+    playSfx('tap');
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem('nutriai_recent_searches');
+    } catch (e) {}
+
+    if (user) {
+      const docRef = doc(db, 'users', user.uid, 'settings', 'recentSearches');
+      setDoc(docRef, { searches: [], updatedAt: new Date().toISOString() }, { merge: true }).catch(err => {
+        console.warn("Error clearing recent searches in Firestore:", err);
+      });
+    }
+  };
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [detectedVoiceIntent, setDetectedVoiceIntent] = useState<'recipe' | 'ingredient' | 'herb' | 'feature' | 'general' | null>(null);
@@ -513,15 +580,9 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
     try {
       const recognition = new SpeechRecognitionAPI();
       
-      // Match active language dialect
-      if (activeLangCode === 'en-US' || activeLangCode === 'en-GB' || activeLangCode === 'en-AU') {
-        recognition.lang = activeLangCode;
-      } else if (activeLangCode.startsWith('en')) {
+      // Match active language dialect (English or Portuguese)
+      if (activeLangCode === 'en-US' || activeLangCode === 'en-GB' || activeLangCode === 'en-AU' || activeLangCode.startsWith('en')) {
         recognition.lang = 'en-US';
-      } else if (activeLangCode.startsWith('es')) {
-        recognition.lang = 'es-ES';
-      } else if (activeLangCode.startsWith('fr')) {
-        recognition.lang = 'fr-FR';
       } else {
         recognition.lang = 'pt-BR';
       }
@@ -691,6 +752,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
     playSfx('tap');
     vibrate(12);
     setIsOpen(false);
+    saveRecentSearch(item.name);
     setQueryText('');
 
     if (item.category === "feature") {
@@ -716,8 +778,13 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && results.length > 0) {
-      handleResultClick(results[0]);
+    if (e.key === 'Enter') {
+      if (queryText.trim()) {
+        saveRecentSearch(queryText);
+      }
+      if (results.length > 0) {
+        handleResultClick(results[0]);
+      }
     }
   };
 
@@ -928,29 +995,80 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
             )}
 
             {!queryText.trim() ? (
-              <div className="py-6 text-center text-slate-400 dark:text-slate-500 text-sm flex flex-col items-center justify-center gap-2">
-                <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <p className="font-semibold text-slate-500 dark:text-slate-300">
-                  {isPt ? "O que você está procurando?" : "What are you looking for?"}
-                </p>
-                <p className="text-xs px-4 max-w-xs leading-relaxed">
-                  {isPt 
-                    ? "Fale no microfone ou busque por receitas, ingredientes da despensa, chás e recursos."
-                    : "Speak into the microphone or search recipes, pantry ingredients, teas, and features."}
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 px-2">
-                  {["Panqueca Fit", "Chá de Alecrim", "Frango com Quinoa", "Pratos Rápidos", "Despensa"].map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => setQueryText(tag)}
-                      className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-emerald-500 transition-colors cursor-pointer"
-                    >
-                      {tag}
-                    </button>
-                  ))}
+              <div className="py-4 space-y-4">
+                {recentSearches.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+                      <span>{isPt ? "Buscas Recentes" : "Recent Searches"}</span>
+                      <button 
+                        type="button"
+                        onClick={clearRecentSearches}
+                        className="text-[10px] text-rose-500 hover:underline lowercase font-medium cursor-pointer"
+                      >
+                        {isPt ? "limpar" : "clear"}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 px-1">
+                      {recentSearches.map((term, i) => (
+                        <div 
+                          key={i}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-500 transition-colors group cursor-pointer"
+                          onClick={() => {
+                            playSfx('tap');
+                            setQueryText(term);
+                          }}
+                        >
+                          <span>{term}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playSfx('tap');
+                              setRecentSearches(prev => {
+                                const next = prev.filter((_, idx) => idx !== i);
+                                try {
+                                  localStorage.setItem('nutriai_recent_searches', JSON.stringify(next));
+                                } catch (e) {}
+                                return next;
+                              });
+                            }}
+                            className="text-slate-400 hover:text-rose-500 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-center text-slate-400 dark:text-slate-500 text-sm flex flex-col items-center justify-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <p className="font-semibold text-slate-500 dark:text-slate-300">
+                    {isPt ? "O que você está procurando?" : "What are you looking for?"}
+                  </p>
+                  <p className="text-xs px-4 max-w-xs leading-relaxed">
+                    {isPt 
+                      ? "Fale no microfone ou busque por receitas, ingredientes da despensa, chás e recursos."
+                      : "Speak into the microphone or search recipes, pantry ingredients, teas, and features."}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 px-2">
+                    {["Panqueca Fit", "Chá de Alecrim", "Frango com Quinoa", "Pratos Rápidos", "Despensa"].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          saveRecentSearch(tag);
+                          setQueryText(tag);
+                        }}
+                        className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-emerald-500 transition-colors cursor-pointer"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : results.length === 0 ? (
@@ -1158,31 +1276,80 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
                 )}
 
                 {!queryText.trim() ? (
-                  <div className="py-12 text-center text-slate-300 flex flex-col items-center justify-center gap-3">
-                    <div className="p-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 animate-pulse">
-                      <Sparkles className="w-7 h-7" />
-                    </div>
-                    <p className="font-bold text-lg text-white">
-                      {isPt ? "Como podemos ajudar?" : "How can we help?"}
-                    </p>
-                    <p className="text-sm px-6 max-w-xs text-slate-400 leading-relaxed">
-                      {isPt 
-                        ? "Dite receitas por voz, busque chás medicinais (alecrim, camomila), pratos rápidos ou ingredientes!"
-                        : "Speak recipe voice commands, search herbal teas (rosemary, chamomile), quick dishes, or ingredients!"}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2 px-4 max-w-md">
-                      {["Pratos Rápidos", "Chá de Alecrim", "Panqueca Fit", "Suco Verde", "Geladeira", "Despensa"].map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => {
-                            setQueryText(tag);
-                          }}
-                          className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-emerald-400 hover:bg-white/10 transition-all cursor-pointer"
-                        >
-                          {tag}
-                        </button>
-                      ))}
+                  <div className="py-6 space-y-4">
+                    {recentSearches.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+                          <span>{isPt ? "Buscas Recentes" : "Recent Searches"}</span>
+                          <button 
+                            type="button"
+                            onClick={clearRecentSearches}
+                            className="text-[10px] text-rose-400 hover:underline lowercase font-medium cursor-pointer"
+                          >
+                            {isPt ? "limpar" : "clear"}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 px-1">
+                          {recentSearches.map((term, i) => (
+                            <div 
+                              key={i}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 text-xs font-medium text-white hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors group cursor-pointer border border-white/5"
+                              onClick={() => {
+                                playSfx('tap');
+                                setQueryText(term);
+                              }}
+                            >
+                              <span>{term}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  playSfx('tap');
+                                  setRecentSearches(prev => {
+                                    const next = prev.filter((_, idx) => idx !== i);
+                                    try {
+                                      localStorage.setItem('nutriai_recent_searches', JSON.stringify(next));
+                                    } catch (e) {}
+                                    return next;
+                                  });
+                                }}
+                                className="text-slate-400 hover:text-rose-400 rounded-full p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="py-8 text-center text-slate-300 flex flex-col items-center justify-center gap-3 pt-2 border-t border-white/10">
+                      <div className="p-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 animate-pulse">
+                        <Sparkles className="w-7 h-7" />
+                      </div>
+                      <p className="font-bold text-lg text-white">
+                        {isPt ? "Como podemos ajudar?" : "How can we help?"}
+                      </p>
+                      <p className="text-sm px-6 max-w-xs text-slate-400 leading-relaxed">
+                        {isPt 
+                          ? "Dite receitas por voz, busque chás medicinais (alecrim, camomila), pratos rápidos ou ingredientes!"
+                          : "Speak recipe voice commands, search herbal teas (rosemary, chamomile), quick dishes, or ingredients!"}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-2 mt-2 px-4 max-w-md">
+                        {["Pratos Rápidos", "Chá de Alecrim", "Panqueca Fit", "Suco Verde", "Geladeira", "Despensa"].map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              saveRecentSearch(tag);
+                              setQueryText(tag);
+                            }}
+                            className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-emerald-400 hover:bg-white/10 transition-all cursor-pointer"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : results.length === 0 ? (

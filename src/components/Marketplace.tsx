@@ -78,7 +78,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'bicicleta' | 'retirada'>('bicicleta');
+  const [deliveryMethod, setDeliveryMethod] = useState<'moto' | 'bicicleta' | 'pe' | 'retirada'>('bicicleta');
   const [activeDeliveryId, setActiveDeliveryId] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [addingAI, setAddingAI] = useState(false);
@@ -216,7 +216,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const deliveryFee = deliveryMethod === 'moto' ? 5.90 : deliveryMethod === 'bicicleta' ? 3.90 : 0;
+  const deliveryFee = deliveryMethod === 'moto' ? 5.90 : deliveryMethod === 'bicicleta' ? 3.90 : deliveryMethod === 'pe' ? 1.90 : 0;
   const finalTotal = cartTotal + deliveryFee;
 
   // Sorted Partners by selected criteria (default Proximity)
@@ -888,33 +888,47 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                         <Leaf className="w-3 h-3" /> Pegada Neutra
                       </span>
                     )}
+                    {deliveryMethod === 'pe' && (
+                      <span className="text-[10px] bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <User className="w-3 h-3" /> Curta Distância (Zero Poluição)
+                      </span>
+                    )}
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="grid grid-cols-4 gap-1.5 mb-4">
+                    <button 
+                      onClick={() => setDeliveryMethod('pe')}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all outline-none ${deliveryMethod === 'pe' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="text-[10px] font-bold block leading-none">A Pé</span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 1,90 · 10min</span>
+                    </button>
+
                     <button 
                       onClick={() => setDeliveryMethod('bicicleta')}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'bicicleta' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all outline-none ${deliveryMethod === 'bicicleta' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
                     >
-                      <Bike className="w-5 h-5" />
-                      <span className="text-[11px] font-bold block leading-none">Bicicleta</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 3,90 · 20min</span>
+                      <Bike className="w-4 h-4" />
+                      <span className="text-[10px] font-bold block leading-none">Bike</span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 3,90 · 20min</span>
                     </button>
                     
                     <button 
                       onClick={() => setDeliveryMethod('moto')}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'moto' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all outline-none ${deliveryMethod === 'moto' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
                     >
-                      <Zap className="w-5 h-5 text-amber-500" />
-                      <span className="text-[11px] font-bold block leading-none">Moto</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 5,90 · 12min</span>
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      <span className="text-[10px] font-bold block leading-none">Moto</span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-500 block leading-none font-medium">R$ 5,90 · 12min</span>
                     </button>
 
                     <button 
                       onClick={() => setDeliveryMethod('retirada')}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all outline-none ${deliveryMethod === 'retirada' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all outline-none ${deliveryMethod === 'retirada' ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20 scale-[1.02]' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:border-emerald-250 hover:bg-slate-50/50'}`}
                     >
-                      <Store className="w-5 h-5" />
-                      <span className="text-[11px] font-bold block leading-none">Retirar</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block leading-none font-medium">Grátis · 10min</span>
+                      <Store className="w-4 h-4" />
+                      <span className="text-[10px] font-bold block leading-none">Retirar</span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-500 block leading-none font-medium">Grátis</span>
                     </button>
                   </div>
                 </div>

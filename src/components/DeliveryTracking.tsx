@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Navigation, Map as MapIcon, Package, CheckCircle2, Clock, Phone, MessageCircle, X, Store, Star, Leaf, Bike, Zap } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Package, CheckCircle2, Clock, Phone, MessageCircle, X, Store, Star, Leaf, Bike, Zap, User } from 'lucide-react';
 
 interface DeliveryTrackingProps {
   orderTotal: number;
@@ -21,7 +21,7 @@ interface DeliveryDoc {
   id: string;
   orderId: string;
   total: number;
-  vehicleType: 'moto' | 'bicicleta';
+  vehicleType: 'moto' | 'bicicleta' | 'pe';
   courierId: string;
   courierName: string;
   courierPhone: string;
@@ -185,6 +185,8 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
         <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg flex items-center gap-2">
           {vehicleType === 'bicicleta' ? (
             <Bike className="w-5 h-5 text-emerald-500" />
+          ) : vehicleType === 'pe' ? (
+            <User className="w-5 h-5 text-blue-500" />
           ) : (
             <Zap className="w-5 h-5 text-amber-500" />
           )}
@@ -258,7 +260,7 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
             transition={{ type: 'spring', stiffness: 60, damping: 15 }}
             style={{ transform: 'translate(-50%, -50%)' }}
           >
-            <span className="text-xl animate-bounce">{vehicleType === 'bicicleta' ? '🚲' : '🛵'}</span>
+            <span className="text-xl animate-bounce">{vehicleType === 'bicicleta' ? '🚲' : vehicleType === 'pe' ? '🚶' : '🛵'}</span>
           </motion.div>
         </div>
       </div>
@@ -277,9 +279,9 @@ export function DeliveryTracking({ orderTotal, activeDeliveryId, onClose }: Deli
             </p>
           </div>
           <div className="flex flex-col items-end">
-            <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${vehicleType === 'bicicleta' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600'}`}>
-              {vehicleType === 'bicicleta' ? <Leaf className="w-3 h-3 text-emerald-500" /> : <Zap className="w-3 h-3 text-amber-500" />}
-              {vehicleType === 'bicicleta' ? 'Entrega Verde' : 'Entrega Turbo'}
+            <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${vehicleType === 'bicicleta' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600' : vehicleType === 'pe' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600'}`}>
+              {vehicleType === 'bicicleta' ? <Leaf className="w-3 h-3 text-emerald-500" /> : vehicleType === 'pe' ? <User className="w-3 h-3 text-blue-500" /> : <Zap className="w-3 h-3 text-amber-500" />}
+              {vehicleType === 'bicicleta' ? 'Entrega Verde' : vehicleType === 'pe' ? 'Entrega a Pé (Curta Distância)' : 'Entrega Turbo'}
             </span>
           </div>
         </div>

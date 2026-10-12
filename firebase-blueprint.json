@@ -508,6 +508,22 @@
         "role": { "type": "string" }
       },
       "required": ["userId", "userName", "status", "isOnline", "lastActiveAt", "updatedAt"]
+    },
+    "FoodLabelAnalysis": {
+      "title": "Food Label Analysis",
+      "description": "User's scanned food labels or products analyzed for macronutrients",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "productName": { "type": "string" },
+        "nutrients": { "$ref": "#/entities/NutritionInfo" },
+        "category": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["photoURL", "productName", "nutrients", "date", "userId", "createdAt"]
     }
   },
   "firestore": {
@@ -615,6 +631,10 @@
       "schema": "AllergyScan",
       "description": "The user's allergen scan history for the Food Allergy Detector"
     },
+    "/users/{userId}/foodLabelAnalyses/{id}": {
+      "schema": "FoodLabelAnalysis",
+      "description": "The user's food label analysis history"
+    },
     "/users/{userId}/productComparisons/{id}": {
       "schema": "ProductComparison",
       "description": "The user's smart product comparison logs"
@@ -637,3 +657,5 @@
     }
   }
 }
+
+

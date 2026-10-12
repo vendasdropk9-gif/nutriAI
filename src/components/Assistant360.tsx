@@ -11,6 +11,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { DashboardQuickTips } from './DashboardQuickTips';
 import { ConnectedHealthWidget } from './ConnectedHealthWidget';
 import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
+import { WeeklyNutritionChart } from './WeeklyNutritionChart';
 
 interface Assistant360Props {
   profile: UserProfile | null;
@@ -397,6 +398,9 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           onLogIntake={onLogIntake}
           onUpdateProfile={onUpdateProfile}
         />
+
+        {/* PROGRESSO SEMANAL DE MACRONUTRIENTES */}
+        <WeeklyNutritionChart />
       </div>
 
       {/* NOVO: BANNER DESTAQUE PARA O RESTAURANTE INTELIGENTE */}

@@ -22,11 +22,11 @@ if (rootEl) {
     createRoot(rootEl).render(
       <StrictMode>
         <ErrorBoundary>
-          <AuthProvider>
-            <LanguageProvider>
+          <LanguageProvider>
+            <AuthProvider>
               <App />
-            </LanguageProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </LanguageProvider>
         </ErrorBoundary>
       </StrictMode>,
     );

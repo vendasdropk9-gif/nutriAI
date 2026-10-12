@@ -10,7 +10,7 @@ import {
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
   User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
-  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers
+  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -109,6 +109,27 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [customPhotoUrlInput, setCustomPhotoUrlInput] = useState('');
   const [showUrlInputModal, setShowUrlInputModal] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [userRole, setUserRole] = useState<'client' | 'merchant' | 'admin'>(() => {
+    if (profile?.role === 'merchant' || profile?.role === 'seller') return 'merchant';
+    if (profile?.role === 'admin') return 'admin';
+    return 'client';
+  });
+  const [backupDestination, setBackupDestination] = useState<string>(profile?.backupDestination || '');
+
+  useEffect(() => {
+    if (profile?.role) {
+      setUserRole(profile.role === 'merchant' || profile.role === 'seller' ? 'merchant' : profile.role === 'admin' ? 'admin' : 'client');
+    }
+  }, [profile?.role]);
+
+  const handleRoleChange = (newRole: 'client' | 'merchant' | 'admin') => {
+    setUserRole(newRole);
+    playSfx('tap');
+    if (profile) {
+      const updated = { ...profile, role: newRole };
+      onSaveProfile(updated);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: profile?.name || '',
@@ -678,6 +699,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       challengeRemindersEnabled,
       challengeReminderTime: challengeTime,
       challengeReviewTime: challengeReviewTime,
+      backupDestination: backupDestination as 'google_drive' | 'dropbox' | 'onedrive' || undefined,
     };
     
     onSaveProfile(processedProfile);
@@ -899,6 +921,27 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               );
             })}
           </div>
+        </div>
+
+        {/* Backup Destination Selection */}
+        <div className="w-full bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-slate-200 dark:border-slate-700 space-y-4">
+          <h3 className="font-serif text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <Database className="w-5 h-5 text-emerald-500" />
+            Configurações de Backup
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Escolha o destino para seus backups automáticos de dados nutricionais e logs.
+          </p>
+          <select
+            value={backupDestination}
+            onChange={(e) => setBackupDestination(e.target.value)}
+            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+          >
+            <option value="">Nenhum (Local)</option>
+            <option value="google_drive">Google Drive</option>
+            <option value="dropbox">Dropbox</option>
+            <option value="onedrive">OneDrive</option>
+          </select>
         </div>
 
         <div className="space-y-6">
@@ -1566,6 +1609,99 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* RBAC Role-Based Access Control & Profile Segmentation */}
+          <div className="space-y-4 w-full">
+            <div className="flex items-center justify-between">
+              <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                Controle de Acesso Baseado em Funções (RBAC)
+              </label>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-emerald-500/30">
+                Segurança Ativa
+              </span>
+            </div>
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-5">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-base">
+                  Segmentação de Perfil & Permissões
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Alterne entre o perfil de <strong>Cliente / Consumidor</strong> (focado em dietas, smart swaps, assistente de voz e compras) e o perfil de <strong>Estabelecimento / Comerciante</strong> (focado em gestão de hortifrúti, estoque, pedidos e câmeras de frescor).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Client Profile Option */}
+                <button
+                  type="button"
+                  onClick={() => handleRoleChange('client')}
+                  className={`flex flex-col p-4 rounded-2xl border transition-all text-left outline-none cursor-pointer active:scale-98 select-none ${
+                    userRole === 'client'
+                      ? 'bg-emerald-500/15 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-md shadow-emerald-500/10'
+                      : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2.5 rounded-xl ${userRole === 'client' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-sm block">Cliente / Consumidor</span>
+                        <span className="text-[11px] opacity-80">Experiência Pessoal & Saúde</span>
+                      </div>
+                    </div>
+                    {userRole === 'client' && (
+                      <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs opacity-90 mt-2 leading-relaxed">
+                    Acesso a planos de refeições personalizados, analisadores calóricos, SmartSwaps, assistente de voz Malu, roleta fitness, treinos e rotas de entrega.
+                  </p>
+                </button>
+
+                {/* Merchant Profile Option */}
+                <button
+                  type="button"
+                  onClick={() => handleRoleChange('merchant')}
+                  className={`flex flex-col p-4 rounded-2xl border transition-all text-left outline-none cursor-pointer active:scale-98 select-none ${
+                    userRole === 'merchant'
+                      ? 'bg-emerald-500/15 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-md shadow-emerald-500/10'
+                      : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2.5 rounded-xl ${userRole === 'merchant' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                        <Store className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-sm block">Estabelecimento / Comerciante</span>
+                        <span className="text-[11px] opacity-80">Portal do Parceiro & Hortifrúti</span>
+                      </div>
+                    </div>
+                    {userRole === 'merchant' && (
+                      <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs opacity-90 mt-2 leading-relaxed">
+                    Acesso restrito ao Portal do Parceiro, gestão de catálogo de hortifrúti, controle de estoque preventivo, pedidos, relatórios de vendas e câmeras de frescor.
+                  </p>
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-3 text-xs text-emerald-900 dark:text-emerald-200 font-medium">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span>
+                  O controle de acesso baseado em funções (RBAC) garante isolamento completo de dados e ferramentas entre clientes e comerciantes na nuvem.
+                </span>
+              </div>
             </div>
           </div>
 

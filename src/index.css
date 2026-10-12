@@ -29,10 +29,12 @@ body {
   background-color: #FAFBFC;
   color: #1E293B;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 .dark body {
   background-color: #0B0F14;
   color: #FFFFFF;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @keyframes scan {

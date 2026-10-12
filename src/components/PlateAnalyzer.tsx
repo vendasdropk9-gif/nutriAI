@@ -13,6 +13,8 @@ import { VoicePlayButton } from './VoicePlayButton';
 import { PlateAnalysisResult, UserProfile } from '../types';
 import { exportElementAsImage, downloadBlobUrl, copyBlobToClipboard, shareFileOrBlob } from '../lib/cardExport';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
+import { LabelHistory } from './LabelHistory';
+import { addDoc, collection, serverTimestamp, db, auth } from '../lib/firebase';
 
 interface PlateAnalyzerProps {
   profile?: UserProfile | null;
@@ -24,8 +26,8 @@ type CardFormat = 'card' | 'story' | 'square';
 
 export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwardPoints?: (points: number, reason: string) => void }) {
   const { t } = useTranslation();
-  // Main sub-tabs: 'scanner' (analysis) or 'share' (dedicated social card studio)
-  const [activeSubTab, setActiveSubTab] = useState<'scanner' | 'share'>('scanner');
+  // Main sub-tabs: 'scanner' (analysis), 'share' (dedicated social card studio), or 'history' (label history)
+  const [activeSubTab, setActiveSubTab] = useState<'scanner' | 'share' | 'history'>('scanner');
 
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -384,6 +386,18 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           playTTS(data.assistantMessage);
         }
         if (onAwardPoints) onAwardPoints(50, 'Análise de prato via foto concluída');
+
+        if (auth.currentUser) {
+          await addDoc(collection(db, 'users', auth.currentUser.uid, 'foodLabelAnalyses'), {
+            photoURL: base64Data,
+            productName: data.foods?.[0] || 'Unknown',
+            nutrients: data.nutrition,
+            category: 'prepared_meal',
+            date: new Date().toISOString(),
+            userId: auth.currentUser.uid,
+            createdAt: serverTimestamp()
+          });
+        }
       } else {
         // Fallback guaranteed structure
         setAnalysisResult({
@@ -526,6 +540,18 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           {analysisResult && (
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute -top-0.5 -right-0.5" />
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('history')}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 flex items-center justify-center gap-2 text-center ${
+            activeSubTab === 'history'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Cpu className="w-4 h-4" />
+          <span>Histórico</span>
         </button>
       </div>
 
@@ -1314,6 +1340,12 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
 
           </div>
 
+        </div>
+      )}
+
+      {activeSubTab === 'history' && (
+        <div className="clay-card p-4 sm:p-8 bg-white dark:bg-[#0c1524] border border-slate-200/80 dark:border-slate-800/80 rounded-[28px] shadow-xl">
+          <LabelHistory />
         </div>
       )}
 

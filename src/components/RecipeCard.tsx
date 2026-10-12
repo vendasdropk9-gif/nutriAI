@@ -16,6 +16,7 @@ import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
+import { PrintPreviewModal } from './PrintPreviewModal';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -299,6 +300,8 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
   // Pre-calculate default target meal time (1 hour from now + preparation time)
   const [isSchedulingOpen, setIsSchedulingOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [targetEatTime, setTargetEatTime] = useState(() => {
     const now = new Date();
     const prepMinutes = parsePrepTime(recipe.prepTime);
@@ -355,13 +358,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
   const handlePrintRecipe = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    playSfx('tap');
-    vibrate(15);
-    printRecipe(recipe, {
-      chefTip: prepTips?.chefSecret,
-      category: (recipe as any).category,
-      servings: (recipe as any).servings
-    });
+    setIsPreviewModalOpen(true);
   };
 
   useEffect(() => {
@@ -1831,6 +1828,30 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           )}
 
           {!isSchedulingOpen && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handlePrintRecipe}
+              className="flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/15 border border-slate-400/20 hover:border-slate-400/35 text-slate-700 dark:text-slate-300 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 cursor-pointer"
+              title="Imprimir esta receita"
+              id={`btn-print-${recipe.id}`}
+              disabled={isPrinting}
+            >
+              {isPrinting ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                >
+                  <div className="w-4 h-4 border-2 border-slate-700 dark:border-slate-300 border-t-transparent rounded-full" />
+                </motion.div>
+              ) : (
+                <Printer className="w-4 h-4 text-emerald-500" />
+              )}
+              <span>{isPrinting ? 'Preparando...' : 'Imprimir'}</span>
+            </motion.button>
+          )}
+
+          {!isSchedulingOpen && (
             <button
               onClick={handleToggleOffline}
               className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer border ${
@@ -3111,6 +3132,11 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           )}
         </AnimatePresence>
       )}
+      <PrintPreviewModal 
+        isOpen={isPreviewModalOpen} 
+        onClose={() => setIsPreviewModalOpen(false)} 
+        recipe={recipe} 
+      />
     </div>
   );
 }

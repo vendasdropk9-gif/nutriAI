@@ -30,16 +30,14 @@ export interface LiveAssistantProps {
   onUpdateProfile?: (updater: React.SetStateAction<UserProfile | null>) => void;
 }
 
-// Inactivity timeout in milliseconds (8 seconds of silence closes the session)
-const INACTIVITY_TIMEOUT_MS = 8000;
+// Inactivity timeout in milliseconds (12 seconds of total silence closes the continuous session)
+const INACTIVITY_TIMEOUT_MS = 12000;
 
-// Compute time-appropriate greeting in active language (pt-BR, en-US, es-ES, fr-FR)
+// Compute time-appropriate greeting in active language (pt-BR, en-US)
 function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): { spoken: string; display: string } {
   const currentHour = new Date().getHours();
   const normalizedLang = (lang || 'pt-BR').toLowerCase();
   const isEn = normalizedLang.startsWith('en');
-  const isEs = normalizedLang.startsWith('es');
-  const isFr = normalizedLang.startsWith('fr');
   const isAu = normalizedLang.includes('au');
   const isGb = normalizedLang.includes('gb') || normalizedLang.includes('uk');
   
@@ -47,28 +45,7 @@ function getTimeGreeting(profile?: UserProfile | null, lang: string = 'pt-BR'): 
   let icon = "🌙";
   let question = "Como posso ajudar você hoje?";
 
-  if (isEs) {
-    question = "¿Cómo puedo ayudarte hoy?";
-    if (currentHour >= 5 && currentHour < 12) {
-      timeGreeting = "Buenos días";
-      icon = "☀️";
-    } else if (currentHour >= 12 && currentHour < 19) {
-      timeGreeting = "Buenas tardes";
-      icon = "🌤️";
-    } else {
-      timeGreeting = "Buenas noches";
-      icon = "🌙";
-    }
-  } else if (isFr) {
-    question = "Comment puis-je vous aider aujourd'hui ?";
-    if (currentHour >= 5 && currentHour < 18) {
-      timeGreeting = "Bonjour";
-      icon = "☀️";
-    } else {
-      timeGreeting = "Bonsoir";
-      icon = "🌙";
-    }
-  } else if (isEn) {
+  if (isEn) {
     if (isAu) {
       question = "How can I help you today?";
       if (currentHour >= 5 && currentHour < 12) {
@@ -681,6 +658,7 @@ export function LiveAssistant({
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [statusText, setStatusText] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'success'>('idle');
@@ -696,6 +674,7 @@ export function LiveAssistant({
   const isListeningRef = useRef(false);
   const isSpeakingRef = useRef(false);
   const isProcessingRef = useRef(false);
+  const isSessionActiveRef = useRef(false);
   const isAssistantActiveRef = useRef(false);
   const latestTranscriptRef = useRef<string>('');
 
@@ -812,8 +791,9 @@ export function LiveAssistant({
     isListeningRef.current = isListening;
     isSpeakingRef.current = isSpeaking;
     isProcessingRef.current = isProcessing;
-    isAssistantActiveRef.current = isListening || isSpeaking || isProcessing;
-  }, [isListening, isSpeaking, isProcessing]);
+    isSessionActiveRef.current = isSessionActive;
+    isAssistantActiveRef.current = isSessionActive || isListening || isSpeaking || isProcessing;
+  }, [isListening, isSpeaking, isProcessing, isSessionActive]);
 
   const showStatus = useCallback((text: string, type: 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'success' = 'idle', autoHideMs = 4000) => {
     setStatusText(text);
@@ -837,6 +817,8 @@ export function LiveAssistant({
 
   // Stop everything immediately
   const stopAll = useCallback((options?: { silent?: boolean; goodbye?: boolean }) => {
+    isSessionActiveRef.current = false;
+    setIsSessionActive(false);
     clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
@@ -927,6 +909,8 @@ export function LiveAssistant({
     setIsSpeaking(false);
     setIsListening(false);
     setIsProcessing(true);
+    setIsSessionActive(true);
+    isSessionActiveRef.current = true;
 
     const locStrings = getLocalizedAssistantStrings(currentLanguage);
     showStatus(t('malu_thinking', locStrings.thinking), 'processing', 0);
@@ -994,22 +978,37 @@ export function LiveAssistant({
 
       setIsProcessing(false);
       setIsSpeaking(true);
+      setIsSessionActive(true);
+      isSessionActiveRef.current = true;
       showStatus(t('malu_speaking', locStrings.speaking), 'speaking', 0);
 
-      // Play voice in the current active language
+      // Play voice in the current active language using Aoede
       await speak(replyText, {
         lang: currentLanguage,
+        voice: 'Aoede',
         onEnded: () => {
-          console.log('[NutriAI Query] Malu voice playback completed. Restarting listening...');
+          console.log('[NutriAI Query] Malu voice playback completed. Session remains active. Opening microphone for next user response...');
           setIsSpeaking(false);
+          setIsSessionActive(true);
+          isSessionActiveRef.current = true;
           showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
-          startListeningRef.current();
+          setTimeout(() => {
+            if (isSessionActiveRef.current && !isSpeakingRef.current && !isProcessingRef.current) {
+              startListeningRef.current();
+            }
+          }, 150);
         },
         onError: (err) => {
           console.warn('[NutriAI Query] Malu voice playback error:', err);
           setIsSpeaking(false);
+          setIsSessionActive(true);
+          isSessionActiveRef.current = true;
           showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
-          startListeningRef.current();
+          setTimeout(() => {
+            if (isSessionActiveRef.current && !isSpeakingRef.current && !isProcessingRef.current) {
+              startListeningRef.current();
+            }
+          }, 150);
         }
       });
 
@@ -1018,9 +1017,11 @@ export function LiveAssistant({
       setIsProcessing(false);
       setIsSpeaking(false);
       showStatus(t('malu_try_again', locStrings.tryAgain), 'error', 3000);
-      // Restart listening after brief pause
+      // Restart listening after brief pause if session was active
       setTimeout(() => {
-        if (isAssistantActiveRef.current) {
+        if (isSessionActiveRef.current || isAssistantActiveRef.current) {
+          setIsSessionActive(true);
+          isSessionActiveRef.current = true;
           startListeningRef.current();
         }
       }, 1500);
@@ -1029,8 +1030,10 @@ export function LiveAssistant({
 
   // Handler for inactivity timeout
   const handleInactivityTimeout = useCallback(() => {
-    console.log('[NutriAI LiveAssistant] Inactivity timeout reached (8s silence)');
-    if (isListeningRef.current) {
+    console.log('[NutriAI LiveAssistant] Inactivity timeout reached (silence)');
+    if (isSessionActiveRef.current || isListeningRef.current) {
+      isSessionActiveRef.current = false;
+      setIsSessionActive(false);
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) {}
       }
@@ -1136,28 +1139,53 @@ export function LiveAssistant({
 
       recognition.onerror = (event: any) => {
         console.warn(`[NutriAI SpeechRecognition] Recognition event notice: "${event?.error}"`, event);
-        clearInactivityTimer();
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isSessionActiveRef.current = false;
+          setIsSessionActive(false);
+          clearInactivityTimer();
           showStatus(t('malu_mic_error', locStrings.micError), 'error', 4500);
         } else if (event.error === 'audio-capture') {
+          isSessionActiveRef.current = false;
+          setIsSessionActive(false);
+          clearInactivityTimer();
           showStatus(t('malu_no_mic', locStrings.noMic), 'error', 4500);
         } else if (event.error === 'no-speech') {
-          console.log('[NutriAI SpeechRecognition] No speech detected in listening window');
+          console.log('[NutriAI SpeechRecognition] No speech detected in listening window. Keeping session and mic active for user response...');
+          if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
+            setTimeout(() => {
+              if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current && !isListeningRef.current) {
+                startListeningRef.current();
+              }
+            }, 200);
+          }
         } else if (event.error !== 'aborted') {
-          showStatus(t('malu_try_again', locStrings.tryAgain), 'error', 3000);
+          if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
+            setTimeout(() => {
+              if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current && !isListeningRef.current) {
+                startListeningRef.current();
+              }
+            }, 300);
+          }
         }
         setIsListening(false);
       };
 
       recognition.onend = () => {
-        console.log(`[NutriAI SpeechRecognition] Recognition session ended. Captured transcript: "${latestTranscriptRef.current}"`);
-        clearInactivityTimer();
+        console.log(`[NutriAI SpeechRecognition] Recognition turn ended. Captured transcript: "${latestTranscriptRef.current}"`);
         setIsListening(false);
 
         const textToProcess = latestTranscriptRef.current.trim();
         if (textToProcess && !isProcessingRef.current) {
           console.log(`[NutriAI SpeechRecognition] Processing captured transcript on recognition end: "${textToProcess}"`);
           handleUserQuery(textToProcess);
+        } else if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current) {
+          // Continuous session active: keep mic open waiting for user answer!
+          console.log('[NutriAI SpeechRecognition] Continuous session active. Keeping mic open for user response...');
+          setTimeout(() => {
+            if (isSessionActiveRef.current && !isProcessingRef.current && !isSpeakingRef.current && !isListeningRef.current) {
+              startListeningRef.current();
+            }
+          }, 150);
         }
       };
 
@@ -1171,6 +1199,10 @@ export function LiveAssistant({
   // Start listening
   const startListening = useCallback(() => {
     console.log('[NutriAI LiveAssistant] startListening invoked');
+    if (isListeningRef.current) {
+      console.log('[NutriAI LiveAssistant] startListening: already listening');
+      return;
+    }
     clearInactivityTimer();
     stopSpeech();
     setIsSpeaking(false);
@@ -1212,10 +1244,12 @@ export function LiveAssistant({
 
   startListeningRef.current = startListening;
 
-  // Greet user on first tap, speak greeting with Malu voice, then open mic
+  // Greet user on first tap, speak greeting with Malu voice, then keep session active and open mic for user response
   const activateAssistantWithGreeting = useCallback(async () => {
     console.log('[NutriAI LiveAssistant] Activating Malu with greeting...');
     clearInactivityTimer();
+    setIsSessionActive(true);
+    isSessionActiveRef.current = true;
     setIsProcessing(false);
     setIsListening(false);
     setIsSpeaking(true);
@@ -1228,17 +1262,30 @@ export function LiveAssistant({
 
     await speak(spoken, {
       lang: currentLanguage,
+      voice: 'Aoede',
       onEnded: () => {
-        console.log('[NutriAI LiveAssistant] Greeting ended. Starting speech recognition...');
+        console.log('[NutriAI LiveAssistant] Greeting ended. Keeping session active and opening microphone for user response...');
         setIsSpeaking(false);
+        setIsSessionActive(true);
+        isSessionActiveRef.current = true;
         showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
-        startListening();
+        setTimeout(() => {
+          if (isSessionActiveRef.current && !isSpeakingRef.current && !isProcessingRef.current) {
+            startListening();
+          }
+        }, 150);
       },
       onError: (err) => {
         console.warn('[NutriAI LiveAssistant] Greeting speech error:', err);
         setIsSpeaking(false);
+        setIsSessionActive(true);
+        isSessionActiveRef.current = true;
         showStatus(t('malu_listening', locStrings.listening), 'listening', 0);
-        startListening();
+        setTimeout(() => {
+          if (isSessionActiveRef.current && !isSpeakingRef.current && !isProcessingRef.current) {
+            startListening();
+          }
+        }, 150);
       }
     });
   }, [clearInactivityTimer, currentLanguage, profile, showStatus, startListening, t]);
@@ -1250,7 +1297,7 @@ export function LiveAssistant({
     playSfx('tap');
     vibrate(20);
 
-    const isCurrentlyActive = isListening || isSpeaking || isProcessing;
+    const isCurrentlyActive = isSessionActive || isListening || isSpeaking || isProcessing;
 
     if (isCurrentlyActive) {
       console.log('[NutriAI LiveAssistant] Deactivating Malu session...');
@@ -1265,13 +1312,13 @@ export function LiveAssistant({
         if (micResult.isDeviceNotFound) {
           const noMicMsg = t('malu_no_mic', locStrings.noMic);
           showStatus(noMicMsg, 'error', 5000);
-          speak(noMicMsg, { lang: currentLanguage });
+          speak(noMicMsg, { lang: currentLanguage, voice: 'Aoede' });
         } else {
           showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
         }
         return;
       }
-      // 1st Tap: Activate Malu immediately with time-based greeting
+      // 1st Tap: Activate Malu immediately with time-based greeting, keeping session active
       activateAssistantWithGreeting();
     }
   };
@@ -1327,7 +1374,7 @@ export function LiveAssistant({
     };
   }, [clearInactivityTimer]);
 
-  const isActive = isListening || isSpeaking || isProcessing;
+  const isActive = isSessionActive || isListening || isSpeaking || isProcessing;
 
   return (
     <div 

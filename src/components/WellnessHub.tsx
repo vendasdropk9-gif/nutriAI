@@ -15,6 +15,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
 import { SmartWellnessDashboard } from './SmartWellnessDashboard';
 import { SleepActivityAdvisor } from './SleepActivityAdvisor';
+import { WeeklyNutritionChart } from './WeeklyNutritionChart';
 
 type ActivityType = 'breathing' | 'stretching' | 'meditation' | 'sleep';
 
@@ -91,11 +92,20 @@ const SESSIONS: WellnessSession[] = [
   }
 ];
 
-export function WellnessHub() {
+import { UserProfile, AppNotification } from '../types';
+
+// ... (imports remain the same)
+
+interface WellnessHubProps {
+  profile: UserProfile | null;
+}
+
+export function WellnessHub({ profile }: WellnessHubProps) {
   const [activeCategory, setActiveCategory] = useState<ActivityType | 'all'>('all');
   const [activeSession, setActiveSession] = useState<WellnessSession | null>(null);
   
-  // Player state
+  
+  // ... (rest of the component)
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [timeLeftInStep, setTimeLeftInStep] = useState(0);
@@ -203,7 +213,10 @@ export function WellnessHub() {
           </div>
 
           <SmartWellnessDashboard />
+          
+
           <SleepActivityAdvisor />
+          <WeeklyNutritionChart />
 
           <div className="w-full flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
             {[

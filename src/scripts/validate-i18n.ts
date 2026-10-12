@@ -2,7 +2,7 @@
  * NutriAI Advanced i18n Validation Script
  * Path: src/scripts/validate-i18n.ts
  * 
- * Compares translation files/bundles (pt-BR, en-US, es-ES, fr-FR) to identify:
+ * Compares translation files/bundles (pt-BR, en-US) to identify:
  * - Missing keys
  * - Structural inconsistencies (e.g., string vs nested object)
  * - Duplicate keys / malformed structure
@@ -35,9 +35,9 @@ function flattenKeys(obj: any, prefix = ''): Record<string, string> {
 }
 
 export function validateI18n(): boolean {
-  console.info('🔍 [NutriAI i18n Validator] Starting comprehensive validation across pt-BR, en-US, es-ES, fr-FR...');
+  console.info('🔍 [NutriAI i18n Validator] Starting comprehensive validation across pt-BR and en-US...');
 
-  const targetLocales = ['pt-BR', 'en-US', 'es-ES', 'fr-FR'];
+  const targetLocales = ['pt-BR', 'en-US'];
   const referenceLocale = 'pt-BR';
   const refBundle = localesMap[referenceLocale];
 
@@ -90,7 +90,6 @@ export function validateI18n(): boolean {
     if (fs.existsSync(jsonPath)) {
       try {
         const rawContent = fs.readFileSync(jsonPath, 'utf-8');
-        // Simple check for duplicate keys in JSON object via regex or custom parser
         const keyMatches = rawContent.match(/"([^"]+)"\s*:/g);
         if (keyMatches) {
           const seen = new Set<string>();
@@ -115,7 +114,7 @@ export function validateI18n(): boolean {
   console.info('\n============================================================');
   console.info('📋 NUTRIAI i18n VALIDATION REPORT');
   console.info('============================================================');
-  console.info(`reference Locale: ${referenceLocale} (${refKeys.length} keys)`);
+  console.info(`Reference Locale: ${referenceLocale} (${refKeys.length} keys)`);
   console.info(`Locales Checked: ${targetLocales.join(', ')}`);
   console.info(`Total Issues Detected: ${issues.length}`);
   console.info('============================================================\n');
@@ -128,7 +127,7 @@ export function validateI18n(): boolean {
     console.error('\n❌ i18n validation failed due to translation inconsistencies.');
     return false;
   } else {
-    console.info('🎉 Success! All translation files (pt-BR, en-US, es-ES, fr-FR) are 100% consistent, with no missing keys or structural inconsistencies.');
+    console.info('🎉 Success! All translation files (pt-BR, en-US) are 100% consistent, with no missing keys or structural inconsistencies.');
     return true;
   }
 }

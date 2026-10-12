@@ -67,37 +67,22 @@ for (const [phraseKey, translations] of Object.entries(STATIC_APP_PHRASES)) {
   }
 }
 
-// Helper to normalize any incoming locale code strictly to one of the 4 supported options: pt-BR, en-US, es-ES, fr-FR
+// Helper to normalize any incoming locale code strictly to supported options: pt-BR (Português) or en-US (English)
 export const normalizeToSupportedLocale = (input?: string | null): SupportedLocale => {
   if (!input) return 'pt-BR';
   const clean = input.trim().toLowerCase();
 
-  // 1. Portuguese
-  if (clean.startsWith('pt')) {
-    return 'pt-BR';
-  }
-
-  // 2. English
+  // 1. English
   if (clean.startsWith('en')) {
     return 'en-US';
   }
 
-  // 3. Spanish
-  if (clean.startsWith('es')) {
-    return 'es-ES';
+  // 2. Portuguese
+  if (clean.startsWith('pt')) {
+    return 'pt-BR';
   }
 
-  // 4. French
-  if (clean.startsWith('fr')) {
-    return 'fr-FR';
-  }
-
-  // Exact match fallback
-  if (clean === 'pt-br') return 'pt-BR';
-  if (clean === 'en-us') return 'en-US';
-  if (clean === 'es-es') return 'es-ES';
-  if (clean === 'fr-fr') return 'fr-FR';
-
+  // Fallback to Portuguese (pt-BR)
   return 'pt-BR';
 };
 
@@ -146,10 +131,6 @@ i18n
     resources,
     lng: initialLanguage,
     fallbackLng: {
-      'es-ES': ['es', 'pt-BR'],
-      'es': ['es-ES', 'pt-BR'],
-      'fr-FR': ['fr', 'en-US', 'pt-BR'],
-      'fr': ['fr-FR', 'en-US', 'pt-BR'],
       'en-US': ['en', 'pt-BR'],
       'en': ['en-US', 'pt-BR'],
       'pt-BR': ['pt'],

@@ -94,6 +94,7 @@ export interface UserProfile {
   preferred_language?: string;
   address?: string;
   preferences?: string;
+  role?: 'client' | 'merchant' | 'buyer' | 'seller' | 'admin' | 'courier';
   restrictions: string[];
   allergies: string[];
   goals: string;
@@ -161,6 +162,7 @@ export interface UserProfile {
   challengeReviewTime?: string; // "19:00"
   notificationPreferences?: NotificationPreferences;
   healthIntegrations?: HealthIntegrationConfig;
+  backupDestination?: 'google_drive' | 'dropbox' | 'onedrive';
 }
 
 export interface HealthIntegrationConfig {

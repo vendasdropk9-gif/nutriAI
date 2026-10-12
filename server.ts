@@ -1645,7 +1645,7 @@ ${JSON.stringify(chunkTexts)}`;
   app.post("/api/delivery/couriers/register", async (req, res) => {
     try {
       const { name, phone, cnh, rg, vehicleType, vehicleModel, plate, routes, hours } = req.body;
-      if (!name || !phone || !cnh || !vehicleType || !routes || !hours) {
+      if (!name || !phone || (vehicleType !== 'pe' && !cnh) || !vehicleType || !routes || !hours) {
         return res.status(400).json({ error: "Campos obrigatórios ausentes!" });
       }
 
@@ -1657,8 +1657,8 @@ ${JSON.stringify(chunkTexts)}`;
         cnh,
         rg,
         photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200",
-        vehicleType, // "moto" ou "bicicleta"
-        vehicleModel: vehicleModel || (vehicleType === 'moto' ? "Honda CG 160cc" : "Bicicleta Caloi"),
+        vehicleType, // "moto", "bicicleta" ou "pe"
+        vehicleModel: vehicleModel || (vehicleType === 'moto' ? "Honda CG 160cc" : vehicleType === 'bicicleta' ? "Bicicleta Caloi" : "Mochila Térmica"),
         plate: plate || (vehicleType === 'moto' ? "ABC-1234" : "N/A"),
         routes: Array.isArray(routes) ? routes : [routes],
         hours, // ex: "08:00 - 18:50"

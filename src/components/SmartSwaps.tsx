@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   RefreshCw,
   ArrowRight,
@@ -12,22 +12,53 @@ import {
   ArrowRightLeft,
   ChevronDown,
   ChevronUp,
-  Tag
+  Tag,
+  TrendingDown
 } from 'lucide-react';
-import { UserProfile, SmartSwap, FoodNutritionComparison } from '../types';
+import { UserProfile, SmartSwap, FoodNutritionComparison, MealPlan, Recipe } from '../types';
 import { generateSmartSwap, compareFoodsNutrition } from '../lib/gemini';
 import { VoicePlayButton } from './VoicePlayButton';
 import { NutritionalComparisonChart } from './NutritionalComparisonChart';
 import { COMPARISON_PRESETS, generateFallbackComparison } from '../data/foodNutritionDatabase';
+import { MealPlanCalorieSwapAnalyzer } from './MealPlanCalorieSwapAnalyzer';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface SmartSwapsProps {
   profile: UserProfile | null;
+  mealPlan?: MealPlan;
+  onUpdatePlan?: (day: string, mealName: string, recipeId: string | null, recipeObj?: Recipe) => void;
   onAwardPoints?: (amount: number, reason: string) => void;
+  initialTab?: 'discover' | 'compare' | 'mealPlanAudit';
 }
 
-export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
-  // Navigation tabs: 'discover' (Substituições Inteligentes) | 'compare' (Comparador A vs B)
-  const [activeTab, setActiveTab] = useState<'discover' | 'compare'>('discover');
+export function SmartSwaps({
+  profile,
+  mealPlan,
+  onUpdatePlan,
+  onAwardPoints,
+  initialTab = 'discover'
+}: SmartSwapsProps) {
+  const { t } = useTranslation();
+  // Navigation tabs: 'discover' (Substituições Inteligentes) | 'compare' (Comparador A vs B) | 'mealPlanAudit' (Otimizador de Limite Calórico)
+  const [activeTab, setActiveTab] = useState<'discover' | 'compare' | 'mealPlanAudit'>(initialTab);
+
+  useEffect(() => {
+    const handleSubNav = (e: any) => {
+      if (e.detail?.subTab === 'mealPlanAudit' || e.detail === 'mealPlanAudit') {
+        setActiveTab('mealPlanAudit');
+      } else if (e.detail?.subTab === 'compare' || e.detail === 'compare') {
+        setActiveTab('compare');
+      } else if (e.detail?.subTab === 'discover' || e.detail === 'discover') {
+        setActiveTab('discover');
+      }
+    };
+    window.addEventListener('app:navigate', handleSubNav);
+    window.addEventListener('app:swapsSubTab', handleSubNav);
+    return () => {
+      window.removeEventListener('app:navigate', handleSubNav);
+      window.removeEventListener('app:swapsSubTab', handleSubNav);
+    };
+  }, []);
 
   // Discover state
   const [foodItem, setFoodItem] = useState('');
@@ -129,15 +160,20 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
     }
   };
 
+  const handleExploreInDiscover = (food: string) => {
+    setFoodItem(food);
+    setActiveTab('discover');
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       {/* Cabeçalho do Componente */}
       <div className="text-center space-y-4">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
-          Trocas & Comparador Nutricional
+          {t('smart_swaps_title', 'Trocas & Comparador Nutricional')}
         </h2>
         <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
-          Descubra alternativas saudáveis para qualquer alimento ou compare lado a lado o valor nutricional de dois ingredientes através de gráficos de barras.
+          {t('smart_swaps_subtitle', 'Descubra alternativas saudáveis para qualquer alimento ou compare lado a lado o valor nutricional de dois ingredientes através de gráficos de barras.')}
         </p>
 
         {/* Seletor de Abas / Modos de Uso */}
@@ -152,7 +188,7 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
               }`}
             >
               <Lightbulb className="w-4 h-4 text-emerald-500" />
-              Descobrir Substituição
+              {t('discover_swap', 'Descobrir Substituição')}
             </button>
             <button
               onClick={() => {
@@ -168,7 +204,18 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
               }`}
             >
               <BarChart2 className="w-4 h-4 text-emerald-500" />
-              Comparador (A vs B)
+              {t('comparator_ab', 'Comparador (A vs B)')}
+            </button>
+            <button
+              onClick={() => setActiveTab('mealPlanAudit')}
+              className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all flex items-center gap-2 ${
+                activeTab === 'mealPlanAudit'
+                  ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <TrendingDown className="w-4 h-4 text-emerald-500" />
+              {t('calorie_optimizer', 'Analisador de Limite Calórico')}
             </button>
           </div>
         </div>
@@ -429,6 +476,18 @@ export function SmartSwaps({ profile, onAwardPoints }: SmartSwapsProps) {
             </div>
           )}
         </div>
+      )}
+
+      {/* ABA 3: ANALISADOR DO PLANO ALIMENTAR & LIMITE CALÓRICO */}
+      {activeTab === 'mealPlanAudit' && (
+        <MealPlanCalorieSwapAnalyzer
+          mealPlan={mealPlan}
+          profile={profile}
+          onUpdatePlan={onUpdatePlan}
+          onOpenInComparator={handleOpenInComparator}
+          onAwardPoints={onAwardPoints}
+          onExploreInDiscover={handleExploreInDiscover}
+        />
       )}
     </div>
   );

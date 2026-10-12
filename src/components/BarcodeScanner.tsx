@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { db, collection, addDoc } from '../lib/firebase';
+import { serverTimestamp } from 'firebase/firestore';
 import { analyzeBarcodeProduct, analyzeProductImage } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { UserProfile } from '../types';
@@ -125,18 +127,31 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
     try {
       const result = await analyzeProductImage(base64Data, mimeType, profile);
       if (result) {
-        setProductData({
+        const productData = {
           product_name: result.productName || "Produto Identificado",
           brands: result.brand || "Marca Reconhecida",
           quantity: result.quantity || "Análise visual",
+          image_url: null,
+          analysis: {
+            verdict: result.verdict,
+            warning: result.warning,
+            assistantMessage: result.assistantMessage,
+            nutrition: result.nutrition
+          },
+          createdAt: serverTimestamp(),
+          userId: profile?.id || 'anonymous'
+        };
+        
+        setProductData({
+          product_name: productData.product_name,
+          brands: productData.brands,
+          quantity: productData.quantity,
           image_url: null
         });
-        setAnalysis({
-          verdict: result.verdict,
-          warning: result.warning,
-          assistantMessage: result.assistantMessage,
-          nutrition: result.nutrition
-        });
+        setAnalysis(productData.analysis);
+
+        // Cache the product scan
+        await addDoc(collection(db, 'productCache'), productData);
       } else {
         setError("Não foi possível analisar o produto. Tente tirar uma foto mais nítida.");
       }

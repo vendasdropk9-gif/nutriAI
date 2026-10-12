@@ -1,15 +1,15 @@
 /**
  * NutriAI Translation Consistency Unit Test Script
- * Scans translation objects for pt-BR, en-US, es-ES, and fr-FR to verify that
+ * Scans translation objects for pt-BR and en-US to verify that
  * all keys are consistent, preventing missing or orphan keys across languages.
  */
 
 import { localesMap } from '../src/i18n/locales';
 
 export function validateLocales(): boolean {
-  console.info('🔍 [NutriAI i18n Unit Test] Scanning translation keys across pt-BR, en-US, es-ES, fr-FR for consistency...');
+  console.info('🔍 [NutriAI i18n Unit Test] Scanning translation keys across pt-BR and en-US for consistency...');
 
-  const targetLocales = ['pt-BR', 'en-US', 'es-ES', 'fr-FR'];
+  const targetLocales = ['pt-BR', 'en-US'];
   const referenceLocale = 'pt-BR';
   const refBundle = localesMap[referenceLocale];
 
@@ -56,7 +56,7 @@ export function validateLocales(): boolean {
     console.error('❌ i18n unit test failed: missing translation keys detected.');
     return false;
   } else {
-    console.info('🎉 Success! All translation files (pt-BR, en-US, es-ES, fr-FR) are fully consistent.');
+    console.info('🎉 Success! All translation files (pt-BR, en-US) are fully consistent.');
     return true;
   }
 }

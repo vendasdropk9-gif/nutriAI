@@ -151,8 +151,20 @@ export default defineConfig(({mode}) => {
               purpose: 'any',
             },
             {
+              src: '/icon-384.png',
+              sizes: '384x384',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
               src: '/pwa-512x512.png',
               sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: '/icon-1024.png',
+              sizes: '1024x1024',
               type: 'image/png',
               purpose: 'any',
             },
@@ -161,6 +173,35 @@ export default defineConfig(({mode}) => {
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
+            },
+            {
+              src: '/pwa-maskable-1024x1024.png',
+              sizes: '1024x1024',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+          screenshots: [
+            {
+              src: '/screenshots/screenshot-mobile-1.png',
+              sizes: '780x1688',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Plano Alimentar, Metas de Nutrição e Hidratação no NutriAI',
+            },
+            {
+              src: '/screenshots/screenshot-mobile-2.png',
+              sizes: '780x1688',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Consultoria e Dicas com a Nutricionista Virtual Malu por Voz e Chat',
+            },
+            {
+              src: '/screenshots/screenshot-desktop-1.png',
+              sizes: '1280x720',
+              type: 'image/png',
+              form_factor: 'wide',
+              label: 'Painel de Controle Completo de Saúde, Despensa e Treinos no Desktop',
             },
           ],
         },
@@ -174,15 +215,15 @@ export default defineConfig(({mode}) => {
           skipWaiting: true,
           importScripts: ['/sw-push-scheduler.js'],
           runtimeCaching: [
-            // 1. Planos Alimentares, Cardápios e Dietas (Prioritário para conexão lenta/intermitente) - StaleWhileRevalidate para acesso instantâneo com atualização em background
+            // 1. Planos Alimentares, Cardápios, Dietas e Histórico de Dados do Usuário (Prioridade máxima para conexão lenta/intermitente) - CacheFirst com revalidação em background (StaleWhileRevalidate)
             {
-              urlPattern: /(\/api\/(?:diet|meal|plan|nutrition|food)|.*(?:diet|meal|plan|refeicao|cardapio).*)|\b(diet|meal_plan|food_plan)\b/i,
+              urlPattern: /(\/api\/(?:diet|meal|plan|nutrition|food|history|log|logs|intake|profile)|.*(?:diet|meal|plan|refeicao|cardapio|historico|log|perfil|user).*)|\b(diet|meal_plan|food_plan|user_history|intake_logs|health_logs)\b/i,
               handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'food-plans-priority-cache',
+                cacheName: 'food-plans-and-user-history-priority-cache',
                 expiration: {
-                  maxEntries: 200,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias de persistência para planos alimentares
+                  maxEntries: 400,
+                  maxAgeSeconds: 60 * 60 * 24 * 60, // 60 dias de persistência máxima para planos e histórico offline
                   purgeOnQuotaError: true,
                 },
                 cacheableResponse: {

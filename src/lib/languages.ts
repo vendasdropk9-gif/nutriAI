@@ -1,8 +1,8 @@
 export interface LanguageOption {
-  code: string;       // Primary i18n key (e.g., 'en-US', 'pt-BR', 'en-GB', 'en-AU')
-  subtag: string;     // Full ISO subtag (e.g., 'en-US', 'pt-BR')
-  originalName: string; // Native name of the language (e.g., 'English', 'Português')
-  translatedName: string; // Display name with variant (e.g., 'English (US)', 'Português (Brasil)')
+  code: string;       // Primary i18n key (e.g., 'pt-BR', 'en-US')
+  subtag: string;     // Full ISO subtag (e.g., 'pt-BR', 'en-US')
+  originalName: string; // Native name of the language (e.g., 'Português', 'English')
+  translatedName: string; // Display name with variant (e.g., 'Português (Brasil)', 'English (United States)')
   country: string;    // Main country name
   flag: string;       // Country flag emoji
   priority: 'premium' | 'growth' | 'global';
@@ -12,11 +12,9 @@ export interface LanguageOption {
 }
 
 /**
- * Exclusively supported 4 primary languages for NutriAI:
- * 1. 🇧🇷 Português brasileiro — pt-BR
- * 2. 🇺🇸 Inglês — en-US
- * 3. 🇪🇸 Espanhol — es-ES
- * 4. 🇫🇷 Francês — fr-FR
+ * Exclusively supported languages for NutriAI:
+ * 1. 🇧🇷 Português (Brasil) — pt-BR
+ * 2. 🇺🇸 English (United States) — en-US
  */
 export const languagesList: LanguageOption[] = [
   // --- Brasil (Português) ---
@@ -45,32 +43,6 @@ export const languagesList: LanguageOption[] = [
     currencySymbol: '$',
     unitSystem: 'imperial',
   },
-  // --- Espanha (Español) ---
-  {
-    code: 'es-ES',
-    subtag: 'es-ES',
-    originalName: 'Español',
-    translatedName: 'Español (España)',
-    country: 'España',
-    flag: '🇪🇸',
-    priority: 'premium',
-    currency: 'EUR',
-    currencySymbol: '€',
-    unitSystem: 'metric',
-  },
-  // --- França (Français) ---
-  {
-    code: 'fr-FR',
-    subtag: 'fr-FR',
-    originalName: 'Français',
-    translatedName: 'Français (France)',
-    country: 'France',
-    flag: '🇫🇷',
-    priority: 'premium',
-    currency: 'EUR',
-    currencySymbol: '€',
-    unitSystem: 'metric',
-  },
 ];
 
 export function searchLanguages(query: string): LanguageOption[] {
@@ -87,11 +59,6 @@ export function searchLanguages(query: string): LanguageOption[] {
 
 export function getLanguageBySubtag(subtag: string): LanguageOption {
   const normalized = subtag ? subtag.trim().toLowerCase() : 'pt-br';
-  if (normalized === 'pt' || normalized.startsWith('pt')) return languagesList[0];
   if (normalized === 'en' || normalized.startsWith('en')) return languagesList[1];
-  if (normalized === 'es' || normalized.startsWith('es')) return languagesList[2];
-  if (normalized === 'fr' || normalized.startsWith('fr')) return languagesList[3];
-  
-  const found = languagesList.find(l => l.subtag.toLowerCase() === normalized || l.code.toLowerCase() === normalized);
-  return found || languagesList[0];
+  return languagesList[0];
 }

@@ -28,6 +28,7 @@ import {
   analyzeEmotionalImage,
 } from "../lib/gemini";
 import { VoicePlayButton } from "./VoicePlayButton";
+import { MoodMacronutrientCorrelationChart } from "./MoodMacronutrientCorrelationChart";
 
 interface EmotionalTrackerProps {
   profile: UserProfile | null;
@@ -641,6 +642,7 @@ export function EmotionalTracker({
               Últimos Registros
             </h3>
           </div>
+          <MoodMacronutrientCorrelationChart logs={logs} intakeLogs={profile?.intakeLogs || []} />
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {logs.length === 0 ? (
               <p className="text-slate-400 italic text-center py-10">

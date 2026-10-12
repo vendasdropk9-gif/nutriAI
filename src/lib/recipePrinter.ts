@@ -19,6 +19,8 @@ export interface PrintableRecipeOptions {
   chefTip?: string;
   category?: string;
   servings?: string | number;
+  showPhoto?: boolean;
+  showNutrition?: boolean;
 }
 
 export type PrintableRecipeInput = {
@@ -206,9 +208,9 @@ export function generatePrintableRecipeHtml(
       color: #065f46;
     }
 
-    /* Nutrition Bar */
+    /* Nutrition Bar - Conditionally hidden */
     .nutrition-strip {
-      display: grid;
+      display: ${options?.showNutrition !== false ? 'grid' : 'none'};
       grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       background: #f8fafc;
@@ -382,10 +384,11 @@ export function generatePrintableRecipeHtml(
           <span class="badge">💪 ${protein}g proteína</span>
         </div>
       </div>
-      ${imageSrc ? `<img src="${imageSrc}" alt="${title}" class="recipe-hero-img" />` : ''}
+      ${options?.showPhoto !== false && imageSrc ? `<img src="${imageSrc}" alt="${title}" class="recipe-hero-img" />` : ''}
     </div>
 
-    <!-- Nutrition Values -->
+    <!-- Nutrition Values - Conditionally hidden -->
+    ${options?.showNutrition !== false ? `
     <div class="nutrition-strip">
       <div class="nutri-col">
         <span class="nutri-label">Calorias</span>
@@ -408,6 +411,7 @@ export function generatePrintableRecipeHtml(
         <span class="nutri-val">${fiber}g</span>
       </div>
     </div>
+    ` : ''}
 
     <!-- Main Grid: Ingredients + Instructions -->
     <div class="recipe-grid">

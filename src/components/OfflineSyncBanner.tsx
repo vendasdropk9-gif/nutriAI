@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi, RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
+import { WifiOff, RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
 import { getPendingOfflineMutations, flushOfflineMutations, PendingMutation } from '../lib/offlineSyncEngine';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -18,8 +18,10 @@ export function OfflineSyncBanner() {
       const count = getPendingOfflineMutations().length;
       if (count > 0) {
         setIsSyncing(true);
-        const flushed = await flushOfflineMutations();
+        window.dispatchEvent(new CustomEvent('nutri:sync-progress', { detail: { syncing: true, count } }));
+        await flushOfflineMutations();
         setIsSyncing(false);
+        window.dispatchEvent(new CustomEvent('nutri:sync-progress', { detail: { syncing: false, count: 0 } }));
         setPendingCount(0);
         setSyncedSuccessToast(true);
         setTimeout(() => setSyncedSuccessToast(false), 3500);
@@ -50,20 +52,42 @@ export function OfflineSyncBanner() {
   const handleManualFlush = async () => {
     if (!isOnline) return;
     setIsSyncing(true);
+    window.dispatchEvent(new CustomEvent('nutri:sync-progress', { detail: { syncing: true, count: pendingCount } }));
     playSfx('tap');
-    const flushed = await flushOfflineMutations();
+    await flushOfflineMutations();
     setIsSyncing(false);
+    window.dispatchEvent(new CustomEvent('nutri:sync-progress', { detail: { syncing: false, count: 0 } }));
     setPendingCount(0);
     setSyncedSuccessToast(true);
     setTimeout(() => setSyncedSuccessToast(false), 3500);
   };
 
-  if (isOnline && pendingCount === 0 && !syncedSuccessToast) {
+  if (isOnline && pendingCount === 0 && !isSyncing && !syncedSuccessToast) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 animate-fade-in">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 z-50 animate-fade-in flex flex-col gap-2 max-w-md w-full px-4 sm:px-0">
+      {isSyncing && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-2xl border border-indigo-400/40 flex items-center justify-between gap-3 text-xs font-bold backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 shrink-0 animate-spin text-indigo-200" />
+            <div>
+              <p className="font-extrabold flex items-center gap-1.5">
+                <span>Sincronização em Progresso</span>
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              </p>
+              <p className="text-[10px] text-indigo-100 font-normal">
+                Enviando dados do IndexedDB para o Firebase...
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-black/30 text-[10px] font-mono tracking-wider">
+            SYNC...
+          </span>
+        </div>
+      )}
+
       {!isOnline && (
         <div className="p-3.5 rounded-2xl bg-amber-500 text-white shadow-2xl border border-amber-400/40 flex items-center justify-between gap-3 text-xs font-bold backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -83,7 +107,7 @@ export function OfflineSyncBanner() {
         </div>
       )}
 
-      {isOnline && pendingCount > 0 && (
+      {isOnline && pendingCount > 0 && !isSyncing && (
         <div className="p-3.5 rounded-2xl bg-indigo-600 text-white shadow-2xl border border-indigo-500/40 flex items-center justify-between gap-3 text-xs font-bold backdrop-blur-md">
           <div className="flex items-center gap-2">
             <CloudUpload className="w-5 h-5 shrink-0 animate-bounce" />
@@ -99,7 +123,7 @@ export function OfflineSyncBanner() {
             disabled={isSyncing}
             className="px-3 py-1.5 rounded-full bg-white text-indigo-700 hover:bg-indigo-50 font-extrabold text-[11px] shadow-sm cursor-pointer"
           >
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            Sincronizar
           </button>
         </div>
       )}
@@ -107,7 +131,7 @@ export function OfflineSyncBanner() {
       {syncedSuccessToast && (
         <div className="p-3.5 rounded-2xl bg-emerald-600 text-white shadow-2xl border border-emerald-500/40 flex items-center gap-2 text-xs font-bold backdrop-blur-md">
           <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-          <span>Todas as alterações salvas offline foram sincronizadas com sucesso!</span>
+          <span>Sincronização concluída com sucesso! Todos os dados enviados ao Firebase.</span>
         </div>
       )}
     </div>

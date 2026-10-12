@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Droplet, Sparkles, X, Check, Bell } from 'lucide-react';
+import { Droplet, Sparkles, X, Check, Bell, Flame, Sun, CloudRain } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, HydrationLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
+import { analyzeSmartHydration, HydrationAnalysis } from '../lib/smartHydrationEngine';
 
 interface SmartHydrationBannerProps {
   profile: UserProfile | null;
@@ -19,12 +20,20 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
 }) => {
   const [dismissed, setDismissed] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [smartAnalysis, setSmartAnalysis] = useState<HydrationAnalysis | null>(null);
+
+  useEffect(() => {
+    analyzeSmartHydration(profile).then(res => {
+      setSmartAnalysis(res);
+    });
+  }, [profile]);
 
   const today = new Date().toISOString().split('T')[0];
   const hydrationLogs = profile?.hydrationLogs || [];
   const todayHydration = hydrationLogs.filter(log => log.date.startsWith(today));
   const currentTotalWater = todayHydration.reduce((sum, log) => sum + log.amount, 0);
-  const recommendedWater = profile?.weight ? Math.round(profile.weight * 35) : 2500;
+  
+  const recommendedWater = smartAnalysis?.recommendedWaterTotal || (profile?.weight ? Math.round(profile.weight * 35) : 2500);
   const goalWater = profile?.waterGoal || recommendedWater;
 
   const latestLog = todayHydration.length > 0
@@ -32,7 +41,7 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     : null;
 
   const reminderEnabled = profile?.waterReminderEnabled ?? true;
-  const intervalMinutes = profile?.waterReminderIntervalMinutes ?? 60;
+  const intervalMinutes = smartAnalysis?.recommendedIntervalMinutes || profile?.waterReminderIntervalMinutes || 60;
 
   useEffect(() => {
     if (!reminderEnabled) return;
@@ -102,16 +111,21 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
             <Droplet className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-                💧 Pausa para Hidratação
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Sun className="w-3 h-3" /> Clima: {smartAnalysis?.temperature ?? 28}°C ({smartAnalysis?.climateCondition || 'quente'})
               </span>
               <span className="text-xs font-medium text-cyan-100">
                 Hoje: {currentTotalWater}ml / {goalWater}ml
               </span>
+              {smartAnalysis?.hasWorkoutToday && (
+                <span className="text-xs font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Flame className="w-3 h-3" /> Treino Ativo ({smartAnalysis.workoutIntensity})
+                </span>
+              )}
             </div>
             <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
-              Hora de fazer uma pausa inteligente! Beba um copo d'água para manter sua energia e metabolismo ativos.
+              {smartAnalysis?.pushMessage || "Hora de fazer uma pausa inteligente! Beba um copo d'água para manter sua energia."}
             </p>
           </div>
         </div>

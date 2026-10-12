@@ -66,10 +66,16 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
+    let reachedSevenToday = false;
     if (lastActive === yesterdayStr) {
       newStreak += 1;
+      if (newStreak === 7) reachedSevenToday = true;
     } else if (lastActive === null || lastActive < yesterdayStr) {
       newStreak = 1;
+    }
+
+    if (reachedSevenToday) {
+      setShowConfetti(true);
     }
 
     onUpdateProfile({
