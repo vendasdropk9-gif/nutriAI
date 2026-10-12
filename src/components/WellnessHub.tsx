@@ -14,6 +14,7 @@ import {
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
 import { SmartWellnessDashboard } from './SmartWellnessDashboard';
+import { HydrationProPanel } from './HydrationProPanel';
 import { SleepActivityAdvisor } from './SleepActivityAdvisor';
 import { WeeklyNutritionChart } from './WeeklyNutritionChart';
 
@@ -213,6 +214,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
           </div>
 
           <SmartWellnessDashboard />
+          <HydrationProPanel profile={profile} />
           
 
           <SleepActivityAdvisor />

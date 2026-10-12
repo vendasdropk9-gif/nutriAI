@@ -163,6 +163,15 @@ export interface UserProfile {
   notificationPreferences?: NotificationPreferences;
   healthIntegrations?: HealthIntegrationConfig;
   backupDestination?: 'google_drive' | 'dropbox' | 'onedrive';
+  chronotype?: 'morning' | 'night' | 'intermediate';
+  circadianNotificationConfig?: CircadianNotificationConfig;
+}
+
+export interface CircadianNotificationConfig {
+  enabled: boolean;
+  intensityAdjustmentEnabled: boolean;
+  reminderEnabled: boolean;
+  lastNotifiedDate?: string;
 }
 
 export interface HealthIntegrationConfig {

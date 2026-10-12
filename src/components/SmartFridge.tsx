@@ -740,8 +740,27 @@ export function SmartFridge() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredItems.map((item) => (
-                  <div 
+                  <motion.div 
                     key={item.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      ...(item.status === 'perto_vencimento' ? {
+                        boxShadow: [
+                          "0 0 0px 0px rgba(245, 158, 11, 0.3)",
+                          "0 0 0px 10px rgba(245, 158, 11, 0)",
+                          "0 0 0px 0px rgba(245, 158, 11, 0)"
+                        ]
+                      } : {})
+                    }}
+                    transition={{
+                      boxShadow: {
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 0.5
+                      }
+                    }}
                     className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-[24px] p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
@@ -802,7 +821,7 @@ export function SmartFridge() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}

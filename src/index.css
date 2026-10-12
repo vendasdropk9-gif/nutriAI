@@ -28,13 +28,15 @@ h1, h2, h3, h4, .font-serif, .font-display {
 body {
   background-color: #FAFBFC;
   color: #1E293B;
+  filter: brightness(var(--app-brightness, 1));
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, filter 0.5s ease;
 }
 .dark body {
   background-color: #0B0F14;
   color: #FFFFFF;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  filter: brightness(var(--app-brightness, 1));
+  transition: background-color 0.3s ease, color 0.3s ease, filter 0.5s ease;
 }
 
 @keyframes scan {

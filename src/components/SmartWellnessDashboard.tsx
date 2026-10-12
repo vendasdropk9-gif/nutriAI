@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Droplet, Moon, Bell, BellOff, Info, Clock, Activity, Settings, Check } from 'lucide-react';
+import { Droplet, Moon, Bell, BellOff, Info, Clock, Activity, Settings, Check, Heart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { DailyNutritionalTipCard } from './DailyNutritionalTipCard';
+import { CalorieProgressRing } from './CalorieProgressRing';
+import { FavoriteRecipesList } from './FavoriteRecipesList';
+import { RecipeSearchPanel } from './RecipeSearchPanel';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function SmartWellnessDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+
+  const today = new Date().toISOString().split('T')[0];
+  const currentCalories = (user?.intakeLogs || [])
+    .filter(log => log.date.startsWith(today))
+    .reduce((acc, log) => acc + log.actual.calories, 0);
+  
+  const goalCalories = user?.masterPlan?.dailyCalories || 2000;
   
   // Hydration state
   const [hydrationGoal, setHydrationGoal] = useLocalStorage('hydration_goal', 2500); // ml
@@ -15,6 +26,11 @@ export function SmartWellnessDashboard() {
   const [hydrationNotifsEnabled, setHydrationNotifsEnabled] = useLocalStorage('hydration_notifs_enabled', false);
   const [showHydrationSettings, setShowHydrationSettings] = useState(false);
   const [isDynamicMode, setIsDynamicMode] = useLocalStorage('dynamic_hydration', false);
+  const [recipesToShow, setRecipesToShow] = useState<Recipe[]>(user?.savedRecipes || []);
+
+  useEffect(() => {
+     setRecipesToShow(user?.savedRecipes || []);
+  }, [user?.savedRecipes]);
 
   // Sleep state
   const [sleepTarget, setSleepTarget] = useLocalStorage('sleep_target', 8); // hours
@@ -118,6 +134,13 @@ export function SmartWellnessDashboard() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Defina metas e receba lembretes inteligentes baseados na sua rotina.
           </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+             <p className="text-xs font-bold text-slate-400 uppercase">Calorias Hoje</p>
+             <p className="text-2xl font-serif font-bold text-slate-800 dark:text-slate-100">{currentCalories} / {goalCalories} kcal</p>
+          </div>
+          <CalorieProgressRing current={currentCalories} goal={goalCalories} />
         </div>
       </div>
 
@@ -324,7 +347,30 @@ export function SmartWellnessDashboard() {
             </button>
           </div>
         </div>
+        <DailyNutritionalTipCard profile={user as any} />
+        
+        {/* Search & Recipe Panel */}
+        <div className="col-span-1 md:col-span-2">
+            <RecipeSearchPanel 
+              profile={user as any}
+              savedRecipes={user?.savedRecipes || []}
+              onFoundRecipes={(recipes) => setRecipesToShow(recipes)}
+            />
+        </div>
 
+        {/* Favorite Recipes Card */}
+        <div className="bg-white dark:bg-slate-800 rounded-[24px] p-6 border border-slate-200 dark:border-slate-700 col-span-1 md:col-span-2">
+           <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+             <Heart className="w-5 h-5 text-red-500" />
+             Receitas
+           </h4>
+           <FavoriteRecipesList 
+              recipes={recipesToShow} 
+              onRemoveFavorite={(id) => {
+                  console.log('Remover favorito', id);
+              }}
+           />
+        </div>
       </div>
     </div>
   );

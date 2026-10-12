@@ -80,6 +80,7 @@ import { OfflineSyncResolver } from './components/OfflineSyncResolver';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { useMealReminders } from './hooks/useMealReminders';
+import { useSolarCircadianNotification } from './hooks/useSolarCircadianNotification';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 
@@ -343,6 +344,7 @@ function AppContent() {
 
   useMealPushNotifications(profile, addNotification);
   useMealReminders(profile);
+  useSolarCircadianNotification(profile, addNotification, updateProfile);
 
   // Pré-aquecimento em segundo plano de imagens do catálogo para suporte offline robusto
   useEffect(() => {

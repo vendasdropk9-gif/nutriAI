@@ -12,6 +12,7 @@ import firebaseConfig from "./firebase-applet-config.json";
 import { DEFAULT_MEDICINAL_HERBS } from "./src/data/medicinalHerbsData";
 import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController";
 import { lookupRuntimeTranslation } from "./src/i18n/runtimeDictionary";
+import { generateNutritionalTip } from "./src/lib/nutritionalTips.server";
 
 async function startServer() {
   const firebaseApp = initializeApp(firebaseConfig);
@@ -466,6 +467,18 @@ async function startServer() {
       console.warn("Aviso ao obter ervas medicinais em /api/herbs, usando catálogo integrado:", err?.message || err);
     }
     return res.json(DEFAULT_MEDICINAL_HERBS);
+  });
+
+  // GET Nutritional Tip
+  app.post("/api/nutritional-tip", async (req, res) => {
+    try {
+      const { profile } = req.body;
+      const tip = await generateNutritionalTip(profile);
+      return res.json({ tip });
+    } catch (err: any) {
+      console.error("Erro ao obter dica nutricional:", err);
+      return res.status(500).json({ error: "Erro ao gerar dica." });
+    }
   });
 
   // ========== TELEMETRY STORE FOR GEMINI & AI INTEGRATION METRICS ==========
