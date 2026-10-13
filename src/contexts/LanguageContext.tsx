@@ -133,7 +133,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children, in
 const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, initialLang }) => {
   // Single source of truth for app-wide language state
   const [language, setLanguageState] = useState<string>(() => {
-    return initialLang || i18n.language || getInitialLanguage() || 'pt-BR';
+    return initialLang || i18n.language || getInitialLanguage() || 'en-US';
   });
 
   const [renderCount, setRenderCount] = useState(0);
@@ -223,7 +223,7 @@ const LanguageProviderInner: React.FC<LanguageProviderProps> = ({ children, init
     const defaultValue = typeof defaultValueOrParams === 'string' ? defaultValueOrParams : undefined;
     const interpolationParams = typeof defaultValueOrParams === 'object' ? defaultValueOrParams : params;
 
-    const currentLang = language || 'pt-BR';
+    const currentLang = language || 'en-US';
     const isEn = currentLang.startsWith('en');
     const targetBundleKey = isEn ? 'en-US' : 'pt-BR';
     const flatBundle = flattenedLocales[targetBundleKey] || flattenedLocales[currentLang] || {};

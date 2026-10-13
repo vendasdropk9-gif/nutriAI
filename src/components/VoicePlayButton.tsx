@@ -28,7 +28,7 @@ export function VoicePlayButton({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const activeLang = lang || language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') : null) || 'pt-BR';
+  const activeLang = lang || language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') : null) || 'en-US';
 
   useEffect(() => {
     return () => {

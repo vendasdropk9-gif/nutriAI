@@ -5,7 +5,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { Play, Pause, SkipForward, PlayCircle, Trophy, Sparkles, Volume2, Clock, Zap, Activity, Info, ChevronRight, RefreshCw, Music, VolumeX, CheckCircle2, Calendar, Dumbbell, Flame, Apple, Heart, FileText, Share2, Download, Eye, Compass, ZoomIn, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, WorkoutSession, Exercise, WeeklyWorkoutPlan, WeeklyWorkoutDay } from '../types';
-import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech } from '../lib/gemini';
+import { generateWorkout, generateWeeklyWorkoutPlan, textToSpeech, chatWithAssistant } from '../lib/gemini';
 import { Static3DAvatarPlaceholder } from './Static3DAvatarPlaceholder';
 import { WorkoutSummaryReportModal } from './WorkoutSummaryReportModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';

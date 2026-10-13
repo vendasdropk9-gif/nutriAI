@@ -233,16 +233,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
           </div>
 
-          {/* Skip Button */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            whileHover={{ opacity: 0.9, scale: 1.05 }}
-            onClick={handleSkip}
-            className="absolute bottom-8 right-8 text-[11px] text-slate-400 font-medium tracking-wider uppercase bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full cursor-pointer transition-all duration-200 z-[110]"
-          >
-            {t('Pular →', 'Skip →')}
-          </motion.button>
 
           {/* Elegant Loading Line (Bottom) */}
           <motion.div 

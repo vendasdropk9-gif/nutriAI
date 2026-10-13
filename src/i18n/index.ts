@@ -69,7 +69,7 @@ for (const [phraseKey, translations] of Object.entries(STATIC_APP_PHRASES)) {
 
 // Helper to normalize any incoming locale code strictly to supported options: pt-BR (Português) or en-US (English)
 export const normalizeToSupportedLocale = (input?: string | null): SupportedLocale => {
-  if (!input) return 'pt-BR';
+  if (!input) return 'en-US';
   const clean = input.trim().toLowerCase();
 
   // 1. English
@@ -82,15 +82,15 @@ export const normalizeToSupportedLocale = (input?: string | null): SupportedLoca
     return 'pt-BR';
   }
 
-  // Fallback to Portuguese (pt-BR)
-  return 'pt-BR';
+  // Fallback to English (en-US)
+  return 'en-US';
 };
 
 // Safe helper to determine initial language based on strict priority:
 // 1. Next.js style route query (?lang=... or ?locale=...)
 // 2. Saved localStorage 'nutriai_language' (or legacy keys)
 // 3. Browser navigator.language
-// 4. Fallback to pt-BR
+// 4. Fallback to en-US
 export const getInitialLanguage = (): SupportedLocale => {
   try {
     // 0. Route parameter check
@@ -102,23 +102,18 @@ export const getInitialLanguage = (): SupportedLocale => {
       }
     }
 
-    // 1. LocalStorage check
-    const saved = localStorage.getItem('nutriai_language') || 
-                  localStorage.getItem('language') || 
-                  localStorage.getItem('i18nextLng');
-    if (saved) {
-      return normalizeToSupportedLocale(saved);
-    }
-    
-    // 2. Browser navigator check
-    const navLng = typeof navigator !== 'undefined' ? navigator.language : null;
-    if (navLng) {
-      return normalizeToSupportedLocale(navLng);
+    // 1. LocalStorage check - strictly for deliberate user preference
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('nutriai_language');
+      if (saved) {
+        return normalizeToSupportedLocale(saved);
+      }
     }
   } catch (e) {
     // ignore
   }
-  return 'pt-BR';
+  // Default strictly to English (en-US)
+  return 'en-US';
 };
 
 const initialLanguage = getInitialLanguage();
@@ -133,9 +128,9 @@ i18n
     fallbackLng: {
       'en-US': ['en', 'pt-BR'],
       'en': ['en-US', 'pt-BR'],
-      'pt-BR': ['pt'],
-      'pt': ['pt-BR'],
-      'default': ['pt-BR']
+      'pt-BR': ['pt', 'en-US'],
+      'pt': ['pt-BR', 'en-US'],
+      'default': ['en-US']
     },
     ns: ['common', 'translation'],
     defaultNS: 'common',

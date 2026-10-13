@@ -171,12 +171,30 @@ function AppContent() {
     }
   }, [language, user, syncToFirestore, setProfile]);
 
+  // Configure English language across all tabs as requested
+  const hasConfiguredEnglishRef = useRef(false);
+  useEffect(() => {
+    if (!hasConfiguredEnglishRef.current) {
+      hasConfiguredEnglishRef.current = true;
+      changeLanguage('en-US');
+      setProfile((prev) => {
+        if (!prev) return prev;
+        if (prev.preferred_language === 'en-US' && prev.language === 'en-US') return prev;
+        const updated = { ...prev, language: 'en-US', preferred_language: 'en-US' };
+        if (user) {
+          syncToFirestore(updated);
+        }
+        return updated;
+      });
+    }
+  }, [changeLanguage, user, syncToFirestore, setProfile]);
+
   // Initial language check & synchronization from profile (run once when profile is loaded)
   const hasInitProfileLangRef = useRef(false);
   useEffect(() => {
     if (hasInitProfileLangRef.current) return;
     const rawProfileLang = profile?.preferred_language || profile?.language;
-    if (rawProfileLang) {
+    if (rawProfileLang && rawProfileLang !== 'pt-BR') {
       hasInitProfileLangRef.current = true;
       const targetLng = normalizeToSupportedLocale(rawProfileLang);
       if (targetLng !== language) {

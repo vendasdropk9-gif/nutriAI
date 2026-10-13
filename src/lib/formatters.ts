@@ -16,7 +16,7 @@ const CURRENCY_MAP: Record<string, string> = {
 };
 
 export function getActiveLocale(): string {
-  return i18n.language || 'pt-BR';
+  return i18n.language || 'en-US';
 }
 
 /**

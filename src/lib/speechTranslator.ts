@@ -12,7 +12,7 @@ export function translateSpeechText(text: string, targetLanguage?: string): stri
 
   const lang = targetLanguage || 
     (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 
-    'pt-BR';
+    'en-US';
 
   const isPt = lang.toLowerCase().startsWith('pt');
   if (isPt) {

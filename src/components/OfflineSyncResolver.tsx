@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string */
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Cloud, HardDrive, Check, X, RefreshCw, Layers, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Cloud, HardDrive, Check, X, RefreshCw, Layers } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 
 export interface SyncConflictItem {
@@ -99,18 +99,7 @@ export function OfflineSyncResolver() {
   };
 
   if (!isOpen || !activeConflict) {
-    return (
-      <div className="fixed bottom-6 left-6 z-40">
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('nutri:trigger-demo-conflict'))}
-          className="px-3 py-2 rounded-xl bg-amber-500/90 hover:bg-amber-600 text-white shadow-lg backdrop-blur-md text-xs font-extrabold flex items-center gap-2 transition-transform active:scale-95 cursor-pointer border border-amber-300/40"
-          title="Verificar ou Simular Conflitos de Sincronização"
-        >
-          <ShieldAlert className="w-4 h-4 animate-pulse" />
-          <span>Resolver Conflitos (Offline)</span>
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (

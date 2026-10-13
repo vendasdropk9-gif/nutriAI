@@ -7,7 +7,7 @@ export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'achievement' | 'point' | 'streak' | 'info' | 'success';
+  type: 'achievement' | 'point' | 'streak' | 'info' | 'success' | 'warning' | 'error';
 }
 
 interface NotificationSystemProps {

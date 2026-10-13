@@ -93,7 +93,7 @@ const SESSIONS: WellnessSession[] = [
   }
 ];
 
-import { UserProfile, AppNotification } from '../types';
+import { UserProfile } from '../types';
 
 // ... (imports remain the same)
 

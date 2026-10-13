@@ -5,7 +5,7 @@ const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const currentLang = (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+  const currentLang = (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'en-US';
 
   const processedArgs = (args || []).map(arg => {
     if (arg && typeof arg === 'object' && !Array.isArray(arg) && ('goals' in arg || 'restrictions' in arg || 'language' in arg || 'bodyType' in arg)) {
@@ -123,7 +123,7 @@ export interface TtsOptions {
 
 export const textToSpeech = async (text: string, language?: string, options?: TtsOptions): Promise<string | null> => {
   if (!text || !text.trim()) return null;
-  const currentLang = language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'pt-BR';
+  const currentLang = language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'en-US';
   const cleanKey = text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 40);
   const cacheKey = `tts_v5_${currentLang}_${options?.voiceName || 'Aoede'}_${cleanKey}`;
   

@@ -8,17 +8,20 @@ import { CalorieProgressRing } from './CalorieProgressRing';
 import { FavoriteRecipesList } from './FavoriteRecipesList';
 import { RecipeSearchPanel } from './RecipeSearchPanel';
 import { motion, AnimatePresence } from 'motion/react';
+import { Recipe, UserProfile } from '../types';
 
 export function SmartWellnessDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [profile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+  const [savedRecipes] = useLocalStorage<Recipe[]>('nutri_saved_recipes', []);
 
   const today = new Date().toISOString().split('T')[0];
-  const currentCalories = (user?.intakeLogs || [])
+  const currentCalories = (profile?.intakeLogs || [])
     .filter(log => log.date.startsWith(today))
     .reduce((acc, log) => acc + log.actual.calories, 0);
   
-  const goalCalories = user?.masterPlan?.dailyCalories || 2000;
+  const goalCalories = profile?.masterPlan?.dailyCalories || 2000;
   
   // Hydration state
   const [hydrationGoal, setHydrationGoal] = useLocalStorage('hydration_goal', 2500); // ml
@@ -26,11 +29,11 @@ export function SmartWellnessDashboard() {
   const [hydrationNotifsEnabled, setHydrationNotifsEnabled] = useLocalStorage('hydration_notifs_enabled', false);
   const [showHydrationSettings, setShowHydrationSettings] = useState(false);
   const [isDynamicMode, setIsDynamicMode] = useLocalStorage('dynamic_hydration', false);
-  const [recipesToShow, setRecipesToShow] = useState<Recipe[]>(user?.savedRecipes || []);
+  const [recipesToShow, setRecipesToShow] = useState<Recipe[]>(savedRecipes || []);
 
   useEffect(() => {
-     setRecipesToShow(user?.savedRecipes || []);
-  }, [user?.savedRecipes]);
+     setRecipesToShow(savedRecipes || []);
+  }, [savedRecipes]);
 
   // Sleep state
   const [sleepTarget, setSleepTarget] = useLocalStorage('sleep_target', 8); // hours
@@ -347,13 +350,13 @@ export function SmartWellnessDashboard() {
             </button>
           </div>
         </div>
-        <DailyNutritionalTipCard profile={user as any} />
+        <DailyNutritionalTipCard profile={profile} />
         
         {/* Search & Recipe Panel */}
         <div className="col-span-1 md:col-span-2">
             <RecipeSearchPanel 
-              profile={user as any}
-              savedRecipes={user?.savedRecipes || []}
+              profile={profile}
+              savedRecipes={savedRecipes}
               onFoundRecipes={(recipes) => setRecipesToShow(recipes)}
             />
         </div>

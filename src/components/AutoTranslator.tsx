@@ -40,7 +40,7 @@ export function AutoTranslator() {
 
   // Build high-performance bidirectional translation dictionary
   const translationMap = useMemo(() => {
-    const currentLang = activeLang || 'pt-BR';
+    const currentLang = activeLang || 'en-US';
     const cleanLang = currentLang.split('-')[0];
     const isPortuguese = currentLang.startsWith('pt');
 
