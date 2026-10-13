@@ -12,6 +12,8 @@ import { DashboardQuickTips } from './DashboardQuickTips';
 import { ConnectedHealthWidget } from './ConnectedHealthWidget';
 import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
 import { WeeklyNutritionChart } from './WeeklyNutritionChart';
+import { RecipeCollectionsView } from './RecipeCollectionsView';
+
 
 interface Assistant360Props {
   profile: UserProfile | null;
@@ -23,6 +25,12 @@ interface Assistant360Props {
 export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile }: Assistant360Props) {
   const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
+
+  const handleRemoveFavorite = (recipeId: string) => {
+    if (!profile || !onUpdateProfile) return;
+    const updatedFavorites = ((profile.favorites || []) as any[]).filter(r => (typeof r === 'string' ? r : r?.id) !== recipeId);
+    onUpdateProfile(prev => prev ? { ...prev, favorites: updatedFavorites } : null);
+  };
 
   const proactiveTips = useMemo(() => {
     const isEn = language.startsWith('en');
@@ -482,6 +490,9 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           ))}
         </div>
       </div>
+
+      {/* RECIPE COLLECTIONS VIEW */}
+      <RecipeCollectionsView favoriteRecipes={(profile?.favorites || []) as any} onRemoveFavorite={handleRemoveFavorite} />
 
     </div>
   );

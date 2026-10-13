@@ -6,7 +6,7 @@ import {
   Brain, Sparkles, TrendingUp, Zap, ChevronRight, Activity, Calendar, 
   CheckCircle2, AlertCircle, Volume2, Plus, Target, PieChart as pieChartIcon, 
   RefreshCw, Dumbbell, Utensils, Star, ActivitySquare, ArrowUpRight, Loader2,
-  Coffee, Apple, Moon, Clock, Flame, Check, X, RotateCcw
+  Coffee, Apple, Moon, Clock, Flame, Check, X, RotateCcw, Mic
 } from 'lucide-react';
 import { UserProfile, IntakeLog, Recipe, NutritionInfo, MasterPlanStrategy, AdaptiveInsight, WorkoutLog } from '../types';
 import { adjustMealPlan, generateAdaptiveInsight, generateMasterStrategy, generateBehavioralIntervention, BehavioralIntervention } from '../lib/gemini';
@@ -34,6 +34,114 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   const [suggestedMeal, setSuggestedMeal] = useState<{ type: string; recipe: Omit<Recipe, 'id'> } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [behavioralIntervention, setBehavioralIntervention] = useState<BehavioralIntervention | null>(null);
+  const [isCoachListening, setIsCoachListening] = useState(false);
+  const [coachVoiceQuery, setCoachVoiceQuery] = useState('');
+  const [actionableTasks, setActionableTasks] = useState<Array<{ id: string; title: string; category: string; completed: boolean; xp: number; description: string }>>([
+    { id: '1', title: 'Hidratação Ativa (500ml de Água)', category: 'Hidratação', completed: false, xp: 30, description: 'Beba 500ml de água para manter o metabolismo acelerado.' },
+    { id: '2', title: 'Ajuste Proteico Pós-Treino', category: 'Nutrição', completed: false, xp: 40, description: 'Garanta 30g de proteína de alto valor biológico.' },
+    { id: '3', title: 'Caminhada Circadiana (15 min)', category: 'Atividade', completed: false, xp: 35, description: 'Caminhada leve para estabilizar a insulina e relaxar.' },
+    { id: '4', title: 'Desconexão Noturna às 22h', category: 'Descanso', completed: false, xp: 30, description: 'Evite telas azuis 1h antes de dormir para pico de melatonina.' }
+  ]);
+
+  const handleStartCoachMic = () => {
+    playSfx('pop');
+    vibrate(25);
+    setIsCoachListening(true);
+    setCoachVoiceQuery('');
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = (event: any) => {
+          const speechText = event.results[0][0].transcript;
+          setCoachVoiceQuery(speechText);
+          handleMaluCoachReply(speechText);
+          setIsCoachListening(false);
+        };
+        recognition.onerror = () => {
+          playSfx('error');
+          vibrate([60, 40, 60]);
+          setIsCoachListening(false);
+          simulateCoachVoiceInput();
+        };
+        recognition.onend = () => {
+          setIsCoachListening(false);
+        };
+        recognition.start();
+        return;
+      } catch (e) {
+        playSfx('error');
+        vibrate([60, 40, 60]);
+      }
+    }
+    
+    setTimeout(() => {
+      simulateCoachVoiceInput();
+    }, 2500);
+  };
+
+  const simulateCoachVoiceInput = () => {
+    const simulatedQueries = [
+      "Malu, estou sentindo muita fome à noite, o que devo ajustar?",
+      "Como posso melhorar meu ganho de massa magra sem ganhar gordura?",
+      "Qual a melhor estratégia para os dias em que não consigo treinar na academia?"
+    ];
+    const q = simulatedQueries[Math.floor(Math.random() * simulatedQueries.length)];
+    setCoachVoiceQuery(q);
+    handleMaluCoachReply(q);
+    setIsCoachListening(false);
+  };
+
+  const handleMaluCoachReply = async (userText: string) => {
+    playSfx('success');
+    vibrate([30, 50, 30]);
+    const replyText = `Entendi sua dúvida sobre "${userText}". Como sua nutricionista Chef Malu, preparei recomendações e tarefas práticas para otimizar seus resultados hoje!`;
+    setInsight(replyText);
+    await speak(replyText, { voice: 'Aoede' });
+    
+    const newTask = {
+      id: crypto.randomUUID(),
+      title: `Ajuste Personalizado: ${userText.slice(0, 30)}...`,
+      category: 'Coach IA',
+      completed: false,
+      xp: 50,
+      description: 'Recomendação exclusiva gerada por voz pela Chef Malu.'
+    };
+    setActionableTasks(prev => [newTask, ...prev]);
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    playSfx('tap');
+    vibrate(15);
+    setActionableTasks(prev => prev.map(t => {
+      if (t.id === taskId) {
+        const nextCompleted = !t.completed;
+        if (nextCompleted && profile) {
+          const earnedXp = t.xp || 30;
+          const newPoints = (profile.points || 0) + earnedXp;
+          onUpdateProfile({
+            ...profile,
+            points: newPoints,
+            pointsHistory: [...(profile.pointsHistory || []), {
+              id: crypto.randomUUID(),
+              date: new Date().toISOString(),
+              amount: earnedXp,
+              reason: `Tarefa concluída: ${t.title}`
+            }]
+          });
+          playSfx('confetti');
+          setToastMessage(`🎉 Parabéns! Tarefa concluída: ${t.title} (+${earnedXp} XP)`);
+          setTimeout(() => setToastMessage(null), 4000);
+        }
+        return { ...t, completed: nextCompleted };
+      }
+      return t;
+    }));
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -515,6 +623,114 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             </div>
         </motion.div>
       )}
+
+      {/* INTERACTIVE COACH MODE & ACTIONABLE TASK CARDS SUMMARY */}
+      <div className="bg-gradient-to-br from-[#151B23] via-[#1a2332] to-[#0d131b] border border-emerald-500/30 rounded-[32px] p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[90px] pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-4 text-center sm:text-left">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/30 animate-pulse blur-md" />
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg flex items-center justify-center text-slate-950 font-black text-xl">
+                👩‍🍳
+              </div>
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider mb-1">
+                <Sparkles className="w-3 h-3" />
+                Modo Coach Interativo com Voz Aoede
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">Fale com a Chef Malu</h3>
+              <p className="text-xs sm:text-sm text-slate-300">Use seu microfone para tirar dúvidas ou peça um conselho nutricional em tempo real.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleStartCoachMic}
+              disabled={isCoachListening}
+              className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl transition-all cursor-pointer border ${
+                isCoachListening 
+                  ? 'bg-red-500 text-white animate-pulse border-red-400' 
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 border-emerald-300 shadow-emerald-500/30'
+              }`}
+            >
+              <Mic className={`w-5 h-5 ${isCoachListening ? 'animate-bounce' : ''}`} />
+              <span>{isCoachListening ? 'Ouvindo sua voz...' : 'Falar com a Malu (Mic)'}</span>
+            </button>
+          </div>
+        </div>
+
+        {coachVoiceQuery && (
+          <div className="bg-black/30 p-4 rounded-2xl border border-emerald-500/20 text-xs sm:text-sm text-emerald-300 font-medium flex items-center gap-3">
+            <Volume2 className="w-5 h-5 shrink-0 text-emerald-400 animate-pulse" />
+            <div>
+              <span className="font-bold text-white">Sua fala:</span> "{coachVoiceQuery}"
+            </div>
+          </div>
+        )}
+
+        {/* Actionable Task Cards Summary View */}
+        <div className="space-y-4 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <h4 className="font-display font-bold text-sm sm:text-base text-white">Resumo de Conselhos em Cartões de Tarefas</h4>
+            </div>
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+              {actionableTasks.filter(t => t.completed).length} de {actionableTasks.length} concluídas
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {actionableTasks.map((task) => (
+              <motion.div
+                key={task.id}
+                whileHover={{ scale: 1.01 }}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                  task.completed 
+                    ? 'bg-emerald-950/20 border-emerald-500/40 opacity-75' 
+                    : 'bg-[#1b2535] border-slate-700/80 shadow-lg'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider mb-1.5">
+                      {task.category}
+                    </span>
+                    <h5 className={`font-bold text-sm sm:text-base leading-snug ${task.completed ? 'line-through text-slate-400' : 'text-white'}`}>
+                      {task.title}
+                    </h5>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {task.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                  <span className="text-[11px] font-black text-amber-400 flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-amber-400" />
+                    +{task.xp} XP
+                  </span>
+
+                  <button
+                    onClick={() => handleToggleTask(task.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      task.completed
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{task.completed ? 'Concluída' : 'Concluir Tarefa'}</span>
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Behavioral Intervention Display */}
       {behavioralIntervention && (

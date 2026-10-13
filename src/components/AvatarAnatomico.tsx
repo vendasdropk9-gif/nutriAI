@@ -2972,12 +2972,12 @@ function AnatomicalAvatarModel({
 
   // Sculpted Alabaster Porcelain Material for skeletal and non-muscular landmarks
   const inactiveMat = useMemo(() => new THREE.MeshPhysicalMaterial({
-    color: '#dce3ef',
-    roughness: 0.28,
-    metalness: 0.04,
-    clearcoat: 0.48,
-    clearcoatRoughness: 0.16,
-    reflectivity: 0.65,
+    color: '#e2e8f0',
+    roughness: 0.22,
+    metalness: 0.08,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.12,
+    reflectivity: 0.85,
   }), []);
 
   // Biomechanical Motion Engine with smooth continuous interpolation

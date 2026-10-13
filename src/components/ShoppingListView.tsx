@@ -35,7 +35,9 @@ import {
   Mic,
   MicOff,
   BarChart3,
-  History
+  History,
+  FileText,
+  Download
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -1101,7 +1103,127 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
               className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white transition-all shadow-sm"
             />
           </div>
-          <div className="md:col-span-4 flex flex-col sm:flex-row justify-end gap-2">
+          <div className="md:col-span-4 flex flex-wrap justify-end gap-2">
+            <button
+              onClick={() => {
+                vibrate(10);
+                playSfx('tap');
+                let exportText = "MINHA LISTA DE COMPRAS - NUTRIAI\n";
+                exportText += "=================================\n\n";
+                Object.entries(groupedItems).forEach(([cat, items]) => {
+                  if (items.length > 0) {
+                    const catTotal = items.reduce((acc, it) => acc + (costEstimation.itemPriceMap[it.name]?.price || 0), 0);
+                    exportText += `[ ${cat.toUpperCase()} ] (Est. R$ ${catTotal.toFixed(2)})\n`;
+                    items.forEach(item => {
+                      const itemData = costEstimation.itemPriceMap[item.name];
+                      const priceStr = itemData ? ` (~R$ ${itemData.price.toFixed(2)}/${itemData.unit})` : '';
+                      exportText += `  [${item.checked ? 'X' : ' '}] ${item.name}${priceStr}\n`;
+                    });
+                    exportText += "\n";
+                  }
+                });
+                exportText += `---------------------------------\n`;
+                exportText += `Custo Total Estimado: R$ ${costEstimation.totalListCost.toFixed(2)}\n`;
+                if (costEstimation.selectedCount > 0) {
+                  exportText += `Selecionados (${costEstimation.selectedCount}): R$ ${costEstimation.selectedIngredientsCost.toFixed(2)}\n`;
+                  exportText += `Restante: R$ ${costEstimation.pendingIngredientsCost.toFixed(2)}\n`;
+                }
+                exportText += `Gerado por NutriAI - Inteligência Nutricional\n`;
+
+                const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Lista_de_Compras_NutriAI_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}
+              className="px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+              title="Baixar lista em arquivo de texto (.txt)"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-500" /> Baixar TXT
+            </button>
+            <button
+              onClick={async () => {
+                vibrate(15);
+                playSfx('success');
+                try {
+                  const { jsPDF } = await import('jspdf');
+                  const doc = new jsPDF();
+                  
+                  doc.setFillColor(16, 185, 129);
+                  doc.rect(0, 0, 210, 30, 'F');
+                  
+                  doc.setTextColor(255, 255, 255);
+                  doc.setFontSize(18);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text("NutriAI - Lista de Compras Inteligente", 14, 19);
+                  
+                  doc.setTextColor(100, 100, 100);
+                  doc.setFontSize(10);
+                  doc.text(`Data: ${new Date().toLocaleDateString()} | Total Estimado: R$ ${costEstimation.totalListCost.toFixed(2)}`, 14, 38);
+
+                  let y = 46;
+                  Object.entries(groupedItems).forEach(([cat, items]) => {
+                    if (items.length > 0) {
+                      if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                      }
+                      doc.setFillColor(240, 253, 244);
+                      doc.rect(14, y, 182, 8, 'F');
+                      doc.setTextColor(16, 185, 129);
+                      doc.setFontSize(11);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text(cat, 18, y + 6);
+                      y += 12;
+
+                      items.forEach(item => {
+                        if (y > 280) {
+                          doc.addPage();
+                          y = 20;
+                        }
+                        const itemData = costEstimation.itemPriceMap[item.name];
+                        const priceStr = itemData ? ` (~R$ ${itemData.price.toFixed(2)}/${itemData.unit})` : '';
+                        
+                        doc.setTextColor(50, 50, 50);
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        const checkChar = item.checked ? '[X]' : '[  ]';
+                        doc.text(`${checkChar} ${item.name}${priceStr}`, 20, y);
+                        y += 7;
+                      });
+                      y += 4;
+                    }
+                  });
+
+                  if (y > 260) doc.addPage();
+                  y += 6;
+                  doc.setDrawColor(200, 200, 200);
+                  doc.line(14, y, 196, y);
+                  y += 8;
+                  doc.setTextColor(16, 185, 129);
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text(`Custo Total Estimado: R$ ${costEstimation.totalListCost.toFixed(2)}`, 14, y);
+                  y += 6;
+                  doc.setTextColor(120, 120, 120);
+                  doc.setFontSize(9);
+                  doc.text("Valores estimados com base nos preços médios do comércio local. Gerado por NutriAI.", 14, y);
+
+                  doc.save(`Lista_de_Compras_NutriAI_${new Date().toISOString().split('T')[0]}.pdf`);
+                } catch (err) {
+                  console.error("Erro ao gerar PDF", err);
+                  alert("Não foi possível gerar o arquivo PDF. Tente usar a opção Baixar TXT ou Copiar Lista.");
+                }
+              }}
+              className="px-3 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
+              title="Gerar e baixar documento em PDF formatado"
+            >
+              <Download className="w-3.5 h-3.5" /> Baixar PDF
+            </button>
             <button
               onClick={() => {
                 vibrate(10);
@@ -1126,16 +1248,18 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 }
                 exportText += `📍 Preços médios estimados com base no comércio local.\n`;
                 navigator.clipboard.writeText(exportText)
-                  .then(() => alert("Lista copiada com estimativas de preços locais!"))
+                  .then(() => { vibrate(30); playSfx('success'); })
                   .catch(() => alert("Erro ao copiar a lista."));
               }}
-              className="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl border border-slate-200 dark:border-slate-800 transition-all cursor-pointer inline-flex items-center gap-1 w-full sm:w-auto justify-center"
+              className="px-4 py-3 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all cursor-pointer inline-flex items-center gap-2"
+              title="Copiar texto formatado para a área de transferência"
             >
-              <Copy className="w-3.5 h-3.5" /> Copiar Lista
+              <FileText className="w-4 h-4" /> Copiar para WhatsApp
             </button>
             <button
               onClick={handleClearAll}
-              className="px-4 py-3 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-2xl border border-rose-200 dark:border-rose-950 transition-all cursor-pointer inline-flex items-center gap-1 w-full sm:w-auto justify-center"
+              className="px-3 py-2.5 text-xs font-bold text-rose-500 hover:text-white hover:bg-rose-500 rounded-2xl border border-rose-200 dark:border-rose-950 transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+              title="Limpar todos os itens da lista"
             >
               <Trash2 className="w-3.5 h-3.5" /> Limpar
             </button>

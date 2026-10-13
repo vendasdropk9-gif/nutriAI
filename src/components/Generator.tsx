@@ -18,9 +18,12 @@ interface GeneratorProps {
   onGeneratingChange?: (generating: boolean) => void;
 }
 
-export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingChange }: GeneratorProps) {
+export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingChange, initialIngredients }: GeneratorProps) {
   const { language } = useLanguage();
-  const [ingredients, setIngredients] = useState('');
+  const [ingredients, setIngredients] = useState(initialIngredients || '');
+  useEffect(() => {
+    if (initialIngredients) setIngredients(initialIngredients);
+  }, [initialIngredients]);
   const [preferences, setPreferences] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);

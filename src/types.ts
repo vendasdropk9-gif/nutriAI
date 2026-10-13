@@ -157,6 +157,12 @@ export interface UserProfile {
   notes?: Note[];
   mealRemindersEnabled?: boolean;
   mealNotificationTimes?: MealNotificationTimes;
+  ingestionRemindersEnabled?: boolean;
+  ingestionRemindersList?: Array<{ id: string; title: string; time: string; nutrient: string; enabled: boolean; }>;
+  geoHydrationEnabled?: boolean;
+  geoHydrationLocation?: string;
+  geoHydrationTemp?: number;
+  geoHydrationHumidity?: number;
   challengeRemindersEnabled?: boolean;
   challengeReminderTime?: string; // "09:00"
   challengeReviewTime?: string; // "19:00"

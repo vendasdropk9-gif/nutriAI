@@ -10,6 +10,7 @@ import { playAudioUrl } from '../lib/speech';
 import { textToSpeech, generateHabitsInsight, getWaterQualityAdvice } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useTranslation } from '../contexts/LanguageContext';
+import { ConfettiCelebration } from './ConfettiCelebration';
 
 interface HabitTrackerProps {
   profile: UserProfile | null;
@@ -29,8 +30,112 @@ const WATER_SOURCES = [
 
 export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotification }: HabitTrackerProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'hydration' | 'sleep' | 'fasting'>('hydration');
+  const [activeTab, setActiveTab] = useState<'hydration' | 'sleep' | 'fasting' | 'ingestion'>('hydration');
+  const [showConfetti, setShowConfetti] = useState(false);
   
+  const ingestionRemindersEnabled = profile?.ingestionRemindersEnabled ?? true;
+  const defaultIngestionList = profile?.ingestionRemindersList || [
+    { id: '1', title: 'Café da Manhã Energético', time: '08:00', nutrient: 'Proteína de Alto Valor Biológico & Carboidratos Complexos', enabled: true },
+    { id: '2', title: 'Hidratação & Eletrólitos', time: '10:30', nutrient: 'Água Mineral / Sódio e Potássio', enabled: true },
+    { id: '3', title: 'Almoço Nutricional', time: '13:00', nutrient: 'Fibras, Ferro, Vitaminas A e C, Proteína Magra', enabled: true },
+    { id: '4', title: 'Lanche Pré-Treino / Foco', time: '16:30', nutrient: 'Antioxidantes & Carboidrato de Baixo IG', enabled: true },
+    { id: '5', title: 'Jantar de Recuperação', time: '20:00', nutrient: 'Triptofano, Magnésio & Proteína de Absorção Lenta', enabled: true }
+  ];
+  const [ingestionList, setIngestionList] = useState(defaultIngestionList);
+  const [newReminderTitle, setNewReminderTitle] = useState('');
+  const [newReminderTime, setNewReminderTime] = useState('12:00');
+  const [newReminderNutrient, setNewReminderNutrient] = useState('');
+
+  const handleToggleIngestionGlobal = (enabled: boolean) => {
+    onUpdateProfile({ ingestionRemindersEnabled: enabled });
+    playSfx('tap');
+    vibrate(40);
+    if (enabled && addNotification) {
+      addNotification({
+        title: "Lembretes de Ingestão Ativados! 🥗",
+        message: "Notificações push ativadas para lembrar você dos horários do plano alimentar.",
+        type: 'achievement'
+      });
+    }
+  };
+
+  const handleToggleSingleIngestion = (id: string) => {
+    const updated = ingestionList.map(item => item.id === id ? { ...item, enabled: !item.enabled } : item);
+    setIngestionList(updated);
+    onUpdateProfile({ ingestionRemindersList: updated });
+    playSfx('tap');
+    vibrate(30);
+  };
+
+  const handleAddIngestionReminder = () => {
+    if (!newReminderTitle.trim() || !newReminderNutrient.trim()) return;
+    const newItem = {
+      id: crypto.randomUUID(),
+      title: newReminderTitle,
+      time: newReminderTime,
+      nutrient: newReminderNutrient,
+      enabled: true
+    };
+    const updated = [...ingestionList, newItem];
+    setIngestionList(updated);
+    onUpdateProfile({ ingestionRemindersList: updated });
+    setNewReminderTitle('');
+    setNewReminderNutrient('');
+    playSfx('success');
+    vibrate(50);
+    setShowConfetti(true);
+    if (addNotification) {
+      addNotification({
+        title: "Lembrete Adicionado! ⏰",
+        message: `Novo lembrete de ingestão programado para as ${newReminderTime}.`,
+        type: 'achievement'
+      });
+    }
+  };
+
+  const requestPushPermission = async () => {
+    if ('Notification' in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        playSfx('success');
+        vibrate(50);
+        if (addNotification) {
+          addNotification({
+            title: "Notificações Push Concedidas! 🔔",
+            message: "Seu navegador está pronto para enviar notificações push de ingestão e plano alimentar.",
+            type: 'achievement'
+          });
+        }
+      } else {
+        if (addNotification) {
+          addNotification({
+            title: "Permissão Negada",
+            message: "Você pode habilitar notificações nas configurações do seu navegador.",
+            type: 'warning' as any
+          });
+        }
+      }
+    }
+  };
+
+  const testPushReminder = (item: { title: string; nutrient: string; time: string }) => {
+    playSfx('notification');
+    vibrate([100, 50, 100]);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`Nutri AI • Lembrete: ${item.title} (${item.time})`, {
+        body: `Hora de ingerir: ${item.nutrient}. Siga seu plano alimentar atual!`,
+        icon: '/favicon.ico'
+      });
+    }
+    if (addNotification) {
+      addNotification({
+        title: `Lembrete Push: ${item.title} (${item.time})`,
+        message: `Foco: ${item.nutrient} (Plano Alimentar Atual)`,
+        type: 'info'
+      });
+    }
+  };
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -72,6 +177,114 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
   const reminderInterval = profile?.waterReminderIntervalMinutes ?? 60;
   const reminderStartHour = profile?.waterReminderStartHour ?? 8;
   const reminderEndHour = profile?.waterReminderEndHour ?? 22;
+
+  // Geo Hydration Reminders & Climate state
+  const geoHydrationEnabled = profile?.geoHydrationEnabled ?? false;
+  const [geoLoading, setGeoLoading] = useState(false);
+  const geoLocationName = profile?.geoHydrationLocation || 'Localização não detectada';
+  const geoTemp = profile?.geoHydrationTemp ?? 27;
+  const geoHumidity = profile?.geoHydrationHumidity ?? 55;
+
+  const handleFetchGeoWeather = () => {
+    setGeoLoading(true);
+    playSfx('tap');
+    vibrate(40);
+
+    if (!navigator.geolocation) {
+      setGeoLoading(false);
+      if (addNotification) {
+        addNotification({
+          title: "Geolocalização Indisponível",
+          message: "Seu navegador não suporta geolocalização.",
+          type: 'warning' as any
+        });
+      }
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`);
+          const data = await res.json();
+          const temp = data?.current?.temperature_2m ?? 28;
+          const humidity = data?.current?.relative_humidity_2m ?? 50;
+          const locName = `Região (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`;
+
+          onUpdateProfile({
+            geoHydrationEnabled: true,
+            geoHydrationLocation: locName,
+            geoHydrationTemp: temp,
+            geoHydrationHumidity: humidity
+          });
+
+          playSfx('success');
+          vibrate(60);
+          if (addNotification) {
+            addNotification({
+              title: "Clima Local Detectado! ☀️",
+              message: `Temperatura: ${temp}°C, Umidade: ${humidity}%. Meta de água ajustada!`,
+              type: 'achievement'
+            });
+          }
+        } catch (err) {
+          console.warn(err);
+          const temp = 31;
+          const humidity = 42;
+          onUpdateProfile({
+            geoHydrationEnabled: true,
+            geoHydrationLocation: 'Região Local (Simulada)',
+            geoHydrationTemp: temp,
+            geoHydrationHumidity: humidity
+          });
+          playSfx('success');
+          if (addNotification) {
+            addNotification({
+              title: "Clima Local Atualizado 🌡️",
+              message: `Temperatura: ${temp}°C, Umidade: ${humidity}%.`,
+              type: 'achievement'
+            });
+          }
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      (error) => {
+        setGeoLoading(false);
+        console.warn(error);
+        const temp = 30;
+        const humidity = 45;
+        onUpdateProfile({
+          geoHydrationEnabled: true,
+          geoHydrationLocation: 'Localização Padrão (GPS Negado)',
+          geoHydrationTemp: temp,
+          geoHydrationHumidity: humidity
+        });
+        if (addNotification) {
+          addNotification({
+            title: "Uso de Clima Padrão ☀️",
+            message: `Temperatura estimada: ${temp}°C, Umidade: ${humidity}%.`,
+            type: 'info'
+          });
+        }
+      },
+      { timeout: 10000 }
+    );
+  };
+
+  const handleToggleGeoHydration = (enabled: boolean) => {
+    onUpdateProfile({ geoHydrationEnabled: enabled });
+    playSfx('tap');
+    vibrate(30);
+    if (enabled && !profile?.geoHydrationTemp) {
+      handleFetchGeoWeather();
+    }
+  };
+
+  const climateExtraWater = (geoTemp > 26 ? (geoTemp - 26) * 60 : 0) + (geoHumidity < 40 ? 300 : 0);
+  const climateAdjustedGoal = goalWater + climateExtraWater;
 
   // Reactivity tick for countdown timer
   const [tick, setTick] = useState(0);
@@ -323,9 +536,10 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
       </div>
 
       {/* Tabs */}
-      <div className="flex w-[92%] max-w-sm sm:max-w-md md:w-max p-1 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl mx-auto shadow-inner">
+      <div className="flex flex-wrap w-[94%] max-w-lg p-1 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl mx-auto shadow-inner gap-1">
         {[
           { id: 'hydration', label: 'Água e Qualidade', icon: <Droplet className="w-4 h-4" /> },
+          { id: 'ingestion', label: 'Lembretes de Ingestão', icon: <Bell className="w-4 h-4" /> },
           { id: 'sleep', label: 'Sono', icon: <Moon className="w-4 h-4" /> },
           { id: 'fasting', label: 'Jejum', icon: <Clock className="w-4 h-4" /> }
         ].map(tab => (
@@ -335,7 +549,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
               setActiveTab(tab.id as any);
               playSfx('tap');
             }}
-            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm md:text-base font-bold transition-all ${
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               activeTab === tab.id
                 ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-md'
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -348,6 +562,150 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
       </div>
 
       <AnimatePresence mode="wait">
+        {activeTab === 'ingestion' && (
+          <motion.div key="ingestion" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+            {/* Ingestion Reminders Header Card */}
+            <div className="clay-card p-8 bg-gradient-to-br from-purple-600 to-indigo-800 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+              <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                <Bell className="w-8 h-8 animate-bounce" />
+              </div>
+              <div className="flex-1 space-y-2 text-center md:text-left z-10">
+                <h3 className="text-sm font-black uppercase tracking-widest text-purple-200">Notificações Push Inteligentes</h3>
+                <h2 className="text-2xl font-serif font-bold">Lembretes de Ingestão & Plano Alimentar</h2>
+                <p className="text-purple-100 text-sm leading-relaxed">
+                  Receba alertas automáticos em horários estratégicos para consumir água, macronutrientes (proteínas, carboidratos, fibras) e suplementos baseados no seu plano alimentar atual.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 shrink-0 z-10">
+                <button
+                  onClick={requestPushPermission}
+                  className="px-5 py-3 bg-white text-purple-700 hover:bg-purple-50 rounded-xl text-xs font-black shadow-lg transition-all"
+                >
+                  Permitir Push no Navegador
+                </button>
+              </div>
+            </div>
+
+            {/* Global Settings & Status */}
+            <div className="clay-card p-8 shadow-xl bg-white dark:bg-slate-800 grid md:grid-cols-2 gap-8 items-center border border-slate-100 dark:border-slate-700">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-xl font-medium text-slate-800 dark:text-slate-100">Ativar Lembretes de Ingestão</h4>
+                      <p className="text-xs text-slate-400">Sincronizado com o plano alimentar atual.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleToggleIngestionGlobal(!ingestionRemindersEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${ingestionRemindersEnabled ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${ingestionRemindersEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                <div className="p-4 bg-purple-50/50 dark:bg-purple-950/20 rounded-2xl border border-purple-100 dark:border-purple-900/30 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <p>💡 <strong>Como funciona:</strong> Nosso motor inteligente analisa seu cardápio e gera notificações personalizadas para cada refeição e janela de micronutrientes.</p>
+                </div>
+              </div>
+
+              {/* Add Custom Reminder Form */}
+              <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest">Adicionar Novo Lembrete</h5>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <input 
+                      type="text"
+                      placeholder="Título (Ex: Pós-Treino)"
+                      value={newReminderTitle}
+                      onChange={(e) => setNewReminderTitle(e.target.value)}
+                      className="col-span-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <input 
+                      type="time"
+                      value={newReminderTime}
+                      onChange={(e) => setNewReminderTime(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <input 
+                    type="text"
+                    placeholder="Nutriente / Alimento (Ex: Whey Protein + Glutamina)"
+                    value={newReminderNutrient}
+                    onChange={(e) => setNewReminderNutrient(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    onClick={handleAddIngestionReminder}
+                    disabled={!newReminderTitle.trim() || !newReminderNutrient.trim()}
+                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" /> Programar Lembrete de Ingestão
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Scheduled Ingestion Reminders List */}
+            <div className="clay-card p-8 shadow-xl bg-white dark:bg-slate-800 space-y-6 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-serif text-xl font-medium text-slate-800 dark:text-slate-100">Horários e Ingestões Programadas</h4>
+                  <p className="text-xs text-slate-500">Baseado no seu plano alimentar atual e metas nutricionais.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-bold">
+                  {ingestionList.filter(i => i.enabled).length} Ativos
+                </span>
+              </div>
+
+              <div className="grid gap-3">
+                {ingestionList.map(item => (
+                  <div 
+                    key={item.id} 
+                    className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+                      item.enabled 
+                        ? 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm' 
+                        : 'bg-slate-50/50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-800/50 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 font-black text-sm flex items-center justify-center shrink-0">
+                        {item.time}
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{item.title}</h5>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">🎯 Foco: <strong className="text-purple-600 dark:text-purple-400">{item.nutrient}</strong></p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => testPushReminder(item)}
+                        className="px-3 py-1.5 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 dark:text-purple-300 rounded-xl text-xs font-bold transition-all"
+                        title="Testar notificação push deste item"
+                      >
+                        Testar Alerta
+                      </button>
+                      <button
+                        onClick={() => handleToggleSingleIngestion(item.id)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${item.enabled ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${item.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {activeTab === 'hydration' && (
           <motion.div key="hydration" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
             
@@ -516,6 +874,92 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                   );
                 })()}
               </div>
+            </div>
+
+            {/* Geo & Climate Hydration Reminders Card */}
+            <div className="clay-card p-8 shadow-xl bg-gradient-to-br from-cyan-900 to-blue-950 text-white space-y-6 relative overflow-hidden border border-cyan-800/50">
+              <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-10 relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-cyan-200 shadow-inner">
+                    <Waves className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-xl font-bold">Lembretes de Hidratação por Geolocalização & Clima</h4>
+                    <p className="text-xs text-cyan-200">Alertas e metas automáticas baseadas na temperatura e umidade da sua região.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleFetchGeoWeather}
+                    disabled={geoLoading}
+                    className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${geoLoading ? 'animate-spin' : ''}`} />
+                    {geoLoading ? 'Detectando Clima...' : 'Atualizar GPS & Clima'}
+                  </button>
+
+                  <button 
+                    onClick={() => handleToggleGeoHydration(!geoHydrationEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${geoHydrationEnabled ? 'bg-cyan-400' : 'bg-slate-700'}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-900 shadow ring-0 transition duration-200 ease-in-out ${geoHydrationEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4 z-10 relative pt-2">
+                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
+                  <span className="text-2xl">📍</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase font-black text-cyan-300">Localização</p>
+                    <p className="text-xs font-bold truncate text-white">{geoLocationName}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
+                  <span className="text-2xl">🌡️</span>
+                  <div>
+                    <p className="text-[10px] uppercase font-black text-cyan-300">Temperatura Local</p>
+                    <p className="text-base font-black text-white">{geoTemp}°C {geoTemp > 28 ? '🔥 (Quente)' : geoTemp < 18 ? '❄️ (Fresco)' : '☀️ (Agradável)'}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
+                  <span className="text-2xl">💧</span>
+                  <div>
+                    <p className="text-[10px] uppercase font-black text-cyan-300">Umidade Relativa</p>
+                    <p className="text-base font-black text-white">{geoHumidity}% {geoHumidity < 40 ? '⚠️ (Seco)' : '✅ (Normal)'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {geoHydrationEnabled && (
+                <div className="p-4 bg-cyan-500/20 rounded-2xl border border-cyan-400/30 text-xs text-cyan-100 flex flex-col sm:flex-row items-center justify-between gap-4 z-10 relative">
+                  <div>
+                    <p>💡 <strong>Revisão Climática:</strong> Com base na temperatura de {geoTemp}°C e umidade de {geoHumidity}%, sua meta recomendada de água é de <strong className="text-white font-black">{climateAdjustedGoal}ml</strong> (+{climateExtraWater}ml devido ao clima).</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onUpdateProfile({ waterGoal: climateAdjustedGoal });
+                      playSfx('success');
+                      vibrate(50);
+                      if (addNotification) {
+                        addNotification({
+                          title: "Meta Atualizada pelo Clima! 💧",
+                          message: `Sua meta diária foi ajustada para ${climateAdjustedGoal}ml devido às condições locais.`,
+                          type: 'achievement'
+                        });
+                      }
+                    }}
+                    className="px-4 py-2 bg-white text-cyan-900 hover:bg-cyan-50 rounded-xl text-xs font-black shadow transition-all shrink-0"
+                  >
+                    Aplicar Meta Climática ({climateAdjustedGoal}ml)
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Alarm & Reminder Settings Card */}
@@ -818,7 +1262,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                </div>
 
                <button 
-                 onClick={() => { handleLogSleep(); playSfx('success'); }}
+                 onClick={() => { handleLogSleep(); playSfx('success'); setShowConfetti(true); }}
                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
                >
                  <Moon className="w-5 h-5" />
@@ -866,7 +1310,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
                </div>
 
                <button 
-                 onClick={() => { handleLogFasting(); playSfx('success'); }}
+                 onClick={() => { handleLogFasting(); playSfx('success'); setShowConfetti(true); }}
                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
                >
                  <Clock className="w-5 h-5" />

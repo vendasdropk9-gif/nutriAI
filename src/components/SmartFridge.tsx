@@ -16,6 +16,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { PantryScanner } from './PantryScanner';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
+import { RecipeStepTimer } from './RecipeStepTimer';
 
 interface FridgeItem {
   id: string;
@@ -62,7 +63,8 @@ interface FirestoreErrorInfo {
   }
 }
 
-export function SmartFridge() {
+interface SmartFridgeProps { onGenerateRecipeWithIngredient?: (ingredient: string) => void; }
+export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor'>('fridge');
@@ -796,6 +798,61 @@ export function SmartFridge() {
                       <p className="font-sans text-sm text-slate-500 dark:text-slate-400 mt-1">
                         Quantidade: <span className="font-medium text-slate-750 dark:text-slate-200">{item.quantity}</span>
                       </p>
+<button
+  onClick={() => onGenerateRecipeWithIngredient?.(item.name)}
+  className="flex items-center gap-2 mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+>
+  <ChefHat className="w-3.5 h-3.5" />
+  Gerar Receita Rápida
+</button>
+
+                      {/* Shelf Life Visual Indicator (Green/Yellow/Red) */}
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        const expDate = new Date(item.expirationDate + 'T12:00:00');
+                        const addedDate = new Date(item.addedAt || item.expirationDate);
+                        const totalDays = Math.max(1, Math.ceil((expDate.getTime() - addedDate.getTime()) / (1000 * 60 * 60 * 24)));
+                        const daysRemaining = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        const progressPercent = Math.min(100, Math.max(0, (daysRemaining / totalDays) * 100));
+
+                        let dotColor = 'bg-emerald-500';
+                        let textColor = 'text-emerald-700 dark:text-emerald-300';
+                        let barColor = 'bg-emerald-500';
+                        let badgeText = `${daysRemaining}d restantes`;
+
+                        if (daysRemaining <= 0) {
+                          dotColor = 'bg-rose-500';
+                          textColor = 'text-rose-700 dark:text-rose-300';
+                          barColor = 'bg-rose-500';
+                          badgeText = 'Vencido';
+                        } else if (daysRemaining <= 3) {
+                          dotColor = 'bg-amber-500';
+                          textColor = 'text-amber-700 dark:text-amber-300';
+                          barColor = 'bg-amber-500';
+                          badgeText = `${daysRemaining}d restantes (Próx.)`;
+                        }
+
+                        return (
+                          <div className="mt-3 bg-slate-50 dark:bg-slate-750/50 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${dotColor} animate-pulse`} />
+                                Vida Útil (Shelf Life)
+                              </span>
+                              <span className={`font-bold ${textColor}`}>
+                                {badgeText}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${barColor} transition-all duration-500 rounded-full`} 
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
@@ -1555,6 +1612,7 @@ export function SmartFridge() {
                         {idx + 1}
                       </span>
                       <p className="mt-0.5 leading-relaxed">{step}</p>
+                      <RecipeStepTimer stepText={step} stepIndex={idx} recipeName={selectedRecipe.title} />
                     </li>
                   ))}
                 </ol>

@@ -72,6 +72,17 @@ export const getGenAI = (customKey?: string): GoogleGenAI | null => {
   }
 };
 
+export const generateSingleTip = async (lang: string = "pt-BR"): Promise<string> => {
+  const ai = getGenAI();
+  if (!ai) return lang === 'pt-BR' ? "Mantenha uma dieta equilibrada." : "Keep a balanced diet.";
+  const prompt = `Forneça uma dica de saúde curta (${lang === "pt-BR" ? "em português" : "em inglês"}). Responda APENAS com a dica.`;
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-flash-lite",
+    contents: prompt,
+  });
+  return response.text || (lang === 'pt-BR' ? "Mantenha uma dieta equilibrada." : "Keep a balanced diet.");
+};
+
 export const GEMINI_FALLBACK_MODELS = [
   "gemini-3.8-flash",
   "gemini-3.1-flash-lite",

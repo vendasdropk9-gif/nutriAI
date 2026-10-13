@@ -976,6 +976,18 @@ export function LiveAssistant({
       // Update history with model response
       setConversationHistory([...updatedHistory, { role: 'model', text: replyText }]);
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('malu:command', {
+          detail: {
+            query: cleanQuery,
+            response: replyText,
+            action: actionToRun,
+            actionData: actionDataToRun,
+            timestamp: Date.now()
+          }
+        }));
+      }
+
       setIsProcessing(false);
       setIsSpeaking(true);
       setIsSessionActive(true);
@@ -1115,6 +1127,16 @@ export function LiveAssistant({
         latestTranscriptRef.current = currentTranscript;
         setTranscript(currentTranscript);
         setAudioVolume(0.85);
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('malu:transcript', {
+            detail: {
+              text: currentTranscript,
+              isFinal: hasFinalResult,
+              timestamp: Date.now()
+            }
+          }));
+        }
 
         if (speechEndDebounceTimer) {
           clearTimeout(speechEndDebounceTimer);
@@ -1373,6 +1395,50 @@ export function LiveAssistant({
       stopSpeech();
     };
   }, [clearInactivityTimer]);
+
+  // Broadcast Malu live state globally for dashboard floating widgets and transcript inspectors
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const detail = {
+      isListening,
+      isProcessing,
+      isSpeaking,
+      isSessionActive,
+      isActive: isListening || isProcessing || isSpeaking || isSessionActive,
+      statusText,
+      statusType,
+      audioVolume,
+      transcript
+    };
+    window.dispatchEvent(new CustomEvent('malu:live-state', { detail }));
+  }, [isListening, isProcessing, isSpeaking, isSessionActive, statusText, statusType, audioVolume, transcript]);
+
+  // Support on-demand state polling and external stop controls
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleRequest = () => {
+      window.dispatchEvent(new CustomEvent('malu:live-state', {
+        detail: {
+          isListening: isListeningRef.current,
+          isProcessing: isProcessingRef.current,
+          isSpeaking: isSpeakingRef.current,
+          isSessionActive: isSessionActiveRef.current,
+          isActive: isListeningRef.current || isProcessingRef.current || isSpeakingRef.current || isSessionActiveRef.current,
+          statusText,
+          statusType,
+          audioVolume,
+          transcript: latestTranscriptRef.current
+        }
+      }));
+    };
+    const handleStop = () => stopAll({ silent: true });
+    window.addEventListener('malu:request-state', handleRequest);
+    window.addEventListener('app:stopLiveAssistant', handleStop);
+    return () => {
+      window.removeEventListener('malu:request-state', handleRequest);
+      window.removeEventListener('app:stopLiveAssistant', handleStop);
+    };
+  }, [audioVolume, statusText, statusType, stopAll]);
 
   const isActive = isSessionActive || isListening || isSpeaking || isProcessing;
 

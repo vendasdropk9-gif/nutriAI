@@ -98,7 +98,7 @@ export const playLogoIntroSound = () => {
   }
 };
 
-export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crystal' | 'scratch' | 'confetti') => {
+export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crystal' | 'scratch' | 'confetti' | 'error') => {
   try {
     const ctx = getSafeAudioContext();
     if (!ctx) return;
@@ -111,7 +111,16 @@ export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crys
 
     const now = ctx.currentTime;
 
-    if (type === 'scratch') {
+    if (type === 'error') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(250, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.2);
+      gainNode.gain.setValueAtTime(0.1, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+      return;
+    } else if (type === 'scratch') {
       // Noise/scratch-like sound using buffer
       const bufferSize = ctx.sampleRate * 0.1; // 100ms
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);

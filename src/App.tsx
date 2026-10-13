@@ -96,7 +96,7 @@ const TAB_ORDER = [
   'academies', 'gamification', 'prediction', 'profile', 'pricing', 'partner', 'delivery'
 ];
 
-function AppContent() {
+function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient] = useState('');
   const { user, loading: authLoading } = useAuth();
   const { language, changeLanguage, t, renderKey } = useLanguage();
   const currentAppLang = language;
@@ -790,7 +790,7 @@ function AppContent() {
                   </motion.div>
                 )}
                 {activeTab === 'generator' && (
-                  <Generator 
+                  <Generator initialIngredients={quickRecipeIngredient} 
                     onSaveRecipe={handleSaveRecipe} 
                     profile={profile} 
                     onAwardPoints={awardPoints} 
@@ -979,7 +979,7 @@ function AppContent() {
                   <SmartPlateCombiner onClose={() => setActiveTab('assistant360')} profile={profile} />
                 )}
                 {activeTab === 'fridge' && (
-                  <SmartFridge />
+                  <SmartFridge onGenerateRecipeWithIngredient={(ing) => { setQuickRecipeIngredient(ing); setActiveTab('generator'); }} />
                 )}
                 {activeTab === 'pantry' && (
                   <div className="max-w-6xl mx-auto px-4 py-6">
