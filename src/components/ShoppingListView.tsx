@@ -50,6 +50,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { safeGet } from '../lib/storage';
 import { useTranslation } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { speak, stopSpeech } from '../lib/speech';
@@ -439,6 +440,20 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [speakingPromoId, setSpeakingPromoId] = useState<string | null>(null);
+
+  // Sync automatically if external components (e.g. MealPlanView) add items to shopping list
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        const raw = safeGet('nutri-shopping-custom-items');
+        if (raw) setCustomItems(JSON.parse(raw));
+        const rawChecked = safeGet('nutri-shopping-checked');
+        if (rawChecked) setCheckedItems(JSON.parse(rawChecked));
+      } catch (e) {}
+    };
+    window.addEventListener('nutri:shopping-list-updated', handleUpdate);
+    return () => window.removeEventListener('nutri:shopping-list-updated', handleUpdate);
+  }, [setCustomItems, setCheckedItems]);
 
   // Geolocation and suggested markets states
   const [userCoords, setUserCoords] = useState<[number, number]>(DEFAULT_CENTER);

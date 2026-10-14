@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateRecipe } from '../lib/gemini';
 import { Recipe, UserProfile } from '../types';
-import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles, Lightbulb, X, Check, Leaf, ShieldAlert, Info, ArrowRight } from 'lucide-react';
+import { Loader2, ChefHat, PiggyBank, Star, Mic, MicOff, Flame, Sparkles, Lightbulb, X, Check, Leaf, ShieldAlert, Info, ArrowRight, Sliders, BarChart2 } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { RecipeCard } from './RecipeCard';
 import { Scanner } from './Scanner';
 import { Skeleton } from './Skeleton';
@@ -16,9 +17,44 @@ interface GeneratorProps {
   profile: UserProfile | null;
   onAwardPoints?: (amount: number, reason: string) => void;
   onGeneratingChange?: (generating: boolean) => void;
+  initialIngredients?: string;
 }
 
 export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingChange, initialIngredients }: GeneratorProps) {
+  const { t } = useLanguage();
+  interface FlavorProfile {
+    sweet: number;
+    salty: number;
+    umami: number;
+    bitter: number;
+    sour: number;
+  }
+
+  const computeFlavorProfile = (recipe: Recipe | null): FlavorProfile => {
+    if (!recipe) return { sweet: 30, salty: 40, umami: 50, bitter: 20, sour: 35 };
+    const text = `${recipe.name || ''} ${recipe.title || ''} ${recipe.description || ''} ${recipe.ingredients.join(' ')}`.toLowerCase();
+    
+    let sweet = 25;
+    let salty = 45;
+    let umami = 45;
+    let bitter = 20;
+    let sour = 30;
+
+    if (text.includes('açúcar') || text.includes('mel') || text.includes('fruta') || text.includes('chocolate') || text.includes('doce') || text.includes('banana') || text.includes('açucar')) sweet += 45;
+    if (text.includes('sal') || text.includes('queijo') || text.includes('atum') || text.includes('bacon') || text.includes('shoyu') || text.includes('caldo')) salty += 35;
+    if (text.includes('carne') || text.includes('cogumelo') || text.includes('tomate') || text.includes('frango') || text.includes('parmesão')) umami += 45;
+    if (text.includes('rúcula') || text.includes('cacau') || text.includes('café') || text.includes('berinjela') || text.includes('espinafre')) bitter += 40;
+    if (text.includes('limão') || text.includes('vinagre') || text.includes('laranja') || text.includes('iogurte') || text.includes('limao')) sour += 40;
+
+    return {
+      sweet: Math.min(100, Math.max(10, sweet)),
+      salty: Math.min(100, Math.max(10, salty)),
+      umami: Math.min(100, Math.max(10, umami)),
+      bitter: Math.min(100, Math.max(10, bitter)),
+      sour: Math.min(100, Math.max(10, sour)),
+    };
+  };
+
   const { language } = useLanguage();
   const [ingredients, setIngredients] = useState(initialIngredients || '');
   useEffect(() => {
@@ -28,6 +64,14 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
+  const [showFlavorAnalysis, setShowFlavorAnalysis] = useState(false);
+  const [flavorPreferences, setFlavorPreferences] = useState<FlavorProfile>({
+    sweet: 50,
+    salty: 50,
+    umami: 50,
+    bitter: 30,
+    sour: 50,
+  });
   
   // Smart Tip Pop-up State
   const [hasSeenDietTip, setHasSeenDietTip] = useLocalStorage<boolean>('nutri-generator-diet-tip-seen', false);
@@ -280,7 +324,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-4">
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
-          Descubra Novas Refeições
+          {t('discover_new_meals', 'Discover New Meals')}
         </h2>
         <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
           Informe o que você tem na geladeira ou tire uma foto. A Inteligência Artificial criará uma receita exclusiva respeitando seu perfil.
@@ -483,6 +527,24 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                 </div>
               </button>
 
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">Filtros:</span>
+                {['High Protein', 'Low Carb', 'Low Calorie'].map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setPreferences(prev => prev.includes(f) ? prev.replace(f, '').trim() : `${prev} ${f}`.trim())}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                      preferences.includes(f)
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
               <motion.button
                 type="submit"
                 disabled={isGenerating}
@@ -539,6 +601,116 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
               Salvar Receita
             </button>
           </div>
+          {/* Flavor Analysis Toggle & Radar Chart */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  setShowFlavorAnalysis(!showFlavorAnalysis);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs sm:text-sm font-bold shadow-sm hover:bg-purple-500/20 transition-all cursor-pointer"
+              >
+                <BarChart2 className="w-4 h-4 text-purple-500" />
+                <span>{showFlavorAnalysis ? 'Ocultar Análise de Sabor' : '📊 Análise de Sabor & Perfil (Radar)'}</span>
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {showFlavorAnalysis && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="clay-card p-6 mb-6 overflow-hidden bg-white/80 dark:bg-slate-900/80 border border-purple-500/20"
+                >
+                  <div className="flex flex-col md:flex-row gap-8 items-center">
+                    <div className="w-full md:w-1/2 flex flex-col items-center">
+                      <h4 className="font-serif text-lg font-bold text-purple-700 dark:text-purple-300 mb-1">
+                        Perfil Sensorial Previsto
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-4">
+                        Análise preditiva dos 5 pilares do paladar desta receita.
+                      </p>
+                      <div className="w-full h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart
+                            data={[
+                              { subject: 'Doce', A: computeFlavorProfile(generatedRecipe).sweet, fullMark: 100 },
+                              { subject: 'Salgado', A: computeFlavorProfile(generatedRecipe).salty, fullMark: 100 },
+                              { subject: 'Umami', A: computeFlavorProfile(generatedRecipe).umami, fullMark: 100 },
+                              { subject: 'Amargo', A: computeFlavorProfile(generatedRecipe).bitter, fullMark: 100 },
+                              { subject: 'Ácido', A: computeFlavorProfile(generatedRecipe).sour, fullMark: 100 },
+                            ]}
+                          >
+                            <PolarGrid stroke="#cbd5e1" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                            <Radar name="Sabor" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div className="w-full md:w-1/2 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-purple-500" />
+                        <h4 className="font-serif text-base font-bold text-slate-800 dark:text-slate-100">
+                          Ajustar Preferências de Sabor
+                        </h4>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Personalize o equilíbrio sensorial desejado antes de salvar ou refinar sua receita final.
+                      </p>
+
+                      <div className="space-y-3 pt-2">
+                        {[
+                          { key: 'sweet', label: 'Doce (Sweet)', color: 'accent-amber-500' },
+                          { key: 'salty', label: 'Salgado (Salty)', color: 'accent-blue-500' },
+                          { key: 'umami', label: 'Umami (Savory)', color: 'accent-purple-500' },
+                          { key: 'bitter', label: 'Amargo (Bitter)', color: 'accent-emerald-500' },
+                          { key: 'sour', label: 'Ácido / Azedo (Sour)', color: 'accent-rose-500' },
+                        ].map(item => (
+                          <div key={item.key} className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              <span>{item.label}</span>
+                              <span className="font-mono text-purple-600 dark:text-purple-400">
+                                {(flavorPreferences as any)[item.key]}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={(flavorPreferences as any)[item.key]}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFlavorPreferences(prev => ({ ...prev, [item.key]: val }));
+                                setPreferences(p => `${p} [Preferência de Sabor - ${item.label}: ${val}%]`.trim());
+                              }}
+                              className="w-full accent-purple-600 cursor-pointer"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+                        >
+                          <span>Regerar com Preferências de Sabor</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <RecipeCard recipe={generatedRecipe} />
           
           <div className="mt-8 clay-card p-6 flex flex-col items-center justify-center space-y-4">

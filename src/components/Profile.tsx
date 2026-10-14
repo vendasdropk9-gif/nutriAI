@@ -155,6 +155,10 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     goals: profile?.goals || '',
     preferences: profile?.preferences || '',
     equipment: profile?.equipment?.join(', ') || '',
+    dailyCalories: profile?.masterPlan?.dailyCalories?.toString() || '',
+    proteinGoal: profile?.masterPlan?.macros?.protein?.toString() || '',
+    carbsGoal: profile?.masterPlan?.macros?.carbs?.toString() || '',
+    fatGoal: profile?.masterPlan?.macros?.fat?.toString() || '',
   });
 
   // Keep form data in sync if profile updates asynchronously (e.g. initial Firestore load)
@@ -185,6 +189,10 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         goals: profile.goals || prev.goals || '',
         preferences: profile.preferences || prev.preferences || '',
         equipment: profile.equipment ? profile.equipment.join(', ') : prev.equipment,
+        dailyCalories: profile.masterPlan?.dailyCalories?.toString() || prev.dailyCalories,
+        proteinGoal: profile.masterPlan?.macros?.protein?.toString() || prev.proteinGoal,
+        carbsGoal: profile.masterPlan?.macros?.carbs?.toString() || prev.carbsGoal,
+        fatGoal: profile.masterPlan?.macros?.fat?.toString() || prev.fatGoal,
       }));
     }
   }, [profile]);
@@ -700,6 +708,17 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       challengeReminderTime: challengeTime,
       challengeReviewTime: challengeReviewTime,
       backupDestination: backupDestination as 'google_drive' | 'dropbox' | 'onedrive' || undefined,
+      masterPlan: {
+        dailyCalories: formData.dailyCalories ? Number(formData.dailyCalories) : (profile?.masterPlan?.dailyCalories || 0),
+        macros: {
+          protein: formData.proteinGoal ? Number(formData.proteinGoal) : (profile?.masterPlan?.macros?.protein || 0),
+          carbs: formData.carbsGoal ? Number(formData.carbsGoal) : (profile?.masterPlan?.macros?.carbs || 0),
+          fat: formData.fatGoal ? Number(formData.fatGoal) : (profile?.masterPlan?.macros?.fat || 0),
+        },
+        workoutFocus: profile?.masterPlan?.workoutFocus || '',
+        nutritionFocus: profile?.masterPlan?.nutritionFocus || '',
+        adaptiveNotes: profile?.masterPlan?.adaptiveNotes || '',
+      },
     };
     
     onSaveProfile(processedProfile);
@@ -1236,6 +1255,64 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               if (updated) onSaveProfile(updated);
             }}
           />
+
+          {/* Custom Daily Goals */}
+          <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+            <h3 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Target className="w-5 h-5 text-emerald-500" />
+              Metas Diárias Personalizadas (Macros)
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                  Calorias
+                </label>
+                <input
+                  type="number"
+                  value={formData.dailyCalories}
+                  onChange={(e) => handleChange('dailyCalories', e.target.value)}
+                  placeholder="Ex: 2000"
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                  Proteína (g)
+                </label>
+                <input
+                  type="number"
+                  value={formData.proteinGoal}
+                  onChange={(e) => handleChange('proteinGoal', e.target.value)}
+                  placeholder="Ex: 150"
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                  Carboidratos (g)
+                </label>
+                <input
+                  type="number"
+                  value={formData.carbsGoal}
+                  onChange={(e) => handleChange('carbsGoal', e.target.value)}
+                  placeholder="Ex: 200"
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                  Gorduras (g)
+                </label>
+                <input
+                  type="number"
+                  value={formData.fatGoal}
+                  onChange={(e) => handleChange('fatGoal', e.target.value)}
+                  placeholder="Ex: 70"
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </form>
 

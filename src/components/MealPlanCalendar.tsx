@@ -1,13 +1,22 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { MealPlan, Recipe, UserProfile, IntakeLog } from '../types';
-import { Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, Download, ExternalLink, Sparkles, Search, BookOpen, Clock, Flame, Dumbbell, Leaf, Zap, Utensils, Check, TrendingDown } from 'lucide-react';
+import { MealPlan, Recipe, UserProfile, IntakeLog, PantryItem } from '../types';
+import { 
+  Plus, X, Wand2, Loader2, Info, PieChart, Activity, Share2, 
+  Download, ExternalLink, Sparkles, Search, BookOpen, Clock, 
+  Flame, Dumbbell, Leaf, Zap, Utensils, Check, TrendingDown, 
+  Folder, ShoppingCart, CheckCircle2, AlertCircle, ArrowRight, 
+  RefreshCw, CheckSquare, Square, ChevronDown, ChevronUp
+} from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
+import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
 import { playSfx, vibrate } from '../lib/sensory';
+import { auth, db, collection, getDocs, doc, setDoc } from '../lib/firebase';
+import { safeGet, safeSet } from '../lib/storage';
 
 interface MealPlanProps {
   mealPlan: MealPlan;
@@ -48,6 +57,313 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
+
+  // States for 'Sync to Shopping List' checking against PantryScanner
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [syncScope, setSyncScope] = useState<'week' | 'day'>('week');
+  const [isAnalyzingPantry, setIsAnalyzingPantry] = useState(false);
+  const [pantryInventory, setPantryInventory] = useState<PantryItem[]>([]);
+  const [analyzedIngredients, setAnalyzedIngredients] = useState<Array<{
+    id: string;
+    name: string;
+    raw: string;
+    recipeName: string;
+    day: string;
+    inPantry: boolean;
+    pantryMatch?: PantryItem;
+    selected: boolean;
+  }>>([]);
+  const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
+  const [showInPantrySection, setShowInPantrySection] = useState(false);
+  const [isSyncingToShopping, setIsSyncingToShopping] = useState(false);
+
+  const cleanIngredientName = (raw: string): string => {
+    if (!raw) return '';
+    let cleaned = raw.trim();
+    cleaned = cleaned.replace(/^[-•*]\s*/, '');
+    cleaned = cleaned.replace(/^\d+([.,]\d+)?\s*(g|kg|ml|l|colheres?\s*(de\s*sopa|de\s*chá)?|xícaras?|fatias?|unidades?|copos?|dentes?|pitadas?|latas?|potes?|ramos?)?\s*(de\s*)?/i, '');
+    cleaned = cleaned.replace(/\s*\(.*?\)/g, '');
+    cleaned = cleaned.replace(/\s*,\s*(a gosto|picado|fatiado|cozido|grelhado|ralado|moído|em cubos).*$/i, '');
+    cleaned = cleaned.replace(/\s+a gosto.*$/i, '');
+    cleaned = cleaned.trim();
+    if (cleaned.length < 2) return raw.trim();
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+
+  const normalizeStr = (str: string): string => {
+    return str
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/s\b/g, "");
+  };
+
+  const matchPantryItem = (ingredientName: string, pantryList: PantryItem[]): PantryItem | null => {
+    const normIng = normalizeStr(cleanIngredientName(ingredientName));
+    if (!normIng) return null;
+
+    for (const p of pantryList) {
+      const isExpired = p.daysRemaining !== undefined ? p.daysRemaining < 0 : p.status === 'vencido';
+      if (isExpired) continue;
+
+      const normPantry = normalizeStr(p.name);
+      if (normIng.includes(normPantry) || normPantry.includes(normIng)) {
+        return p;
+      }
+
+      const ingWords = normIng.split(/\s+/).filter(w => w.length >= 4);
+      const pantryWords = normPantry.split(/\s+/).filter(w => w.length >= 4);
+      if (ingWords.some(w => pantryWords.includes(w))) {
+        return p;
+      }
+    }
+
+    return null;
+  };
+
+  const analyzePlanAgainstPantry = async (scope: 'week' | 'day', dayToUse = selectedDay) => {
+    setIsAnalyzingPantry(true);
+    let items: PantryItem[] = [];
+
+    // 1. Read localStorage pantry items
+    try {
+      const local = safeGet('nutri_pantry_items') || localStorage.getItem('nutri_pantry_items');
+      if (local) items = JSON.parse(local);
+    } catch (e) {}
+
+    // 2. Read Firestore pantry items if user logged in
+    try {
+      const user = auth.currentUser || (profile?.id ? { uid: profile.id } : null);
+      if (user) {
+        const snap = await getDocs(collection(db, `users/${user.uid}/pantryItems`));
+        if (!snap.empty) {
+          items = snap.docs.map(d => ({ id: d.id, ...d.data() } as PantryItem));
+        }
+      }
+    } catch (e) {
+      console.warn("Aviso ao carregar itens da despensa do Firestore:", e);
+    }
+
+    // 3. Baseline demo items fallback if completely empty
+    if (!items || items.length === 0) {
+      items = [
+        {
+          id: 'item-demo-1',
+          name: 'Peito de Frango Resfriado',
+          quantity: '600g',
+          category: 'Proteínas & Carnes',
+          expirationDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+          daysRemaining: 2,
+          status: 'perto_vencimento',
+          storageLocation: 'geladeira',
+          addedAt: new Date().toISOString()
+        },
+        {
+          id: 'item-demo-2',
+          name: 'Iogurte Grego Natural',
+          quantity: '2 potes',
+          category: 'Laticínios & Ovos',
+          expirationDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+          daysRemaining: 3,
+          status: 'perto_vencimento',
+          storageLocation: 'geladeira',
+          addedAt: new Date().toISOString()
+        },
+        {
+          id: 'item-demo-3',
+          name: 'Tomates Maduros',
+          quantity: '4 unidades',
+          category: 'Vegetais & Frutas',
+          expirationDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+          daysRemaining: 3,
+          status: 'perto_vencimento',
+          storageLocation: 'geladeira',
+          addedAt: new Date().toISOString()
+        },
+        {
+          id: 'item-demo-4',
+          name: 'Creme de Leite Leve',
+          quantity: '1 caixa',
+          category: 'Laticínios & Ovos',
+          expirationDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+          daysRemaining: 30,
+          status: 'fresco',
+          storageLocation: 'despensa',
+          addedAt: new Date().toISOString()
+        },
+        {
+          id: 'item-demo-5',
+          name: 'Macarrão Integral Penne',
+          quantity: '500g',
+          category: 'Grãos & Massas',
+          expirationDate: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+          daysRemaining: 180,
+          status: 'fresco',
+          storageLocation: 'despensa',
+          addedAt: new Date().toISOString()
+        }
+      ];
+    }
+    setPantryInventory(items);
+
+    // 4. Extract ingredients from meal plan
+    const daysToScan = scope === 'week' ? DAYS_OF_WEEK : [dayToUse];
+    const candidateList: Array<{
+      id: string;
+      name: string;
+      raw: string;
+      recipeName: string;
+      day: string;
+      inPantry: boolean;
+      pantryMatch?: PantryItem;
+      selected: boolean;
+    }> = [];
+
+    const seenCleanNames = new Set<string>();
+
+    daysToScan.forEach(dayName => {
+      const dayMeals = mealPlan[dayName]?.meals;
+      if (dayMeals) {
+        Object.entries(dayMeals).forEach(([mealKey, recipe]) => {
+          if (recipe && Array.isArray(recipe.ingredients)) {
+            recipe.ingredients.forEach((rawIng, idx) => {
+              const clean = cleanIngredientName(rawIng);
+              const key = clean.toLowerCase();
+              if (key.length >= 2 && !seenCleanNames.has(key)) {
+                seenCleanNames.add(key);
+                const match = matchPantryItem(clean, items);
+                const inPantry = !!match;
+                candidateList.push({
+                  id: `sync_${dayName}_${mealKey}_${idx}`,
+                  name: clean,
+                  raw: rawIng,
+                  recipeName: recipe.name || recipe.title || 'Receita do Plano',
+                  day: dayName,
+                  inPantry,
+                  pantryMatch: match || undefined,
+                  selected: !inPantry
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    setAnalyzedIngredients(candidateList);
+    setIsAnalyzingPantry(false);
+  };
+
+  const handleOpenSyncModal = () => {
+    setIsSyncModalOpen(true);
+    setSyncSuccessToast(null);
+    analyzePlanAgainstPantry(syncScope, selectedDay);
+  };
+
+  const handleScopeChange = (newScope: 'week' | 'day') => {
+    setSyncScope(newScope);
+    analyzePlanAgainstPantry(newScope, selectedDay);
+  };
+
+  const handleToggleIngredient = (id: string) => {
+    setAnalyzedIngredients(prev => 
+      prev.map(item => item.id === id ? { ...item, selected: !item.selected } : item)
+    );
+  };
+
+  const handleToggleSelectAll = (select: boolean) => {
+    setAnalyzedIngredients(prev =>
+      prev.map(item => !item.inPantry ? { ...item, selected: select } : item)
+    );
+  };
+
+  const handleConfirmSyncToShoppingList = async () => {
+    const missingToAdd = analyzedIngredients.filter(i => !i.inPantry && i.selected);
+    if (missingToAdd.length === 0) {
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Nenhum item selecionado",
+          message: "Selecione ao menos um ingrediente para adicionar à lista de compras.",
+          type: "info"
+        }
+      }));
+      return;
+    }
+
+    setIsSyncingToShopping(true);
+
+    let existingCustom: Array<{ name: string; checked: boolean; [k: string]: any }> = [];
+    try {
+      const raw = safeGet('nutri-shopping-custom-items');
+      if (raw) existingCustom = JSON.parse(raw);
+    } catch (e) {}
+
+    let checkedMap: Record<string, boolean> = {};
+    try {
+      const rawChecked = safeGet('nutri-shopping-checked');
+      if (rawChecked) checkedMap = JSON.parse(rawChecked);
+    } catch (e) {}
+
+    const existingNames = new Set(existingCustom.map(i => i.name.toLowerCase().trim()));
+    const newItemsCreated: any[] = [];
+
+    missingToAdd.forEach((item, idx) => {
+      const cleanName = item.name.trim();
+      checkedMap[cleanName] = false;
+      checkedMap[item.raw] = false;
+
+      if (!existingNames.has(cleanName.toLowerCase())) {
+        const newItem = {
+          id: `shop_mealplan_${Date.now()}_${idx}`,
+          name: cleanName,
+          checked: false,
+          addedAt: new Date().toISOString(),
+          source: 'meal-plan-sync',
+          recipeName: item.recipeName,
+          day: item.day
+        };
+        newItemsCreated.push(newItem);
+        existingNames.add(cleanName.toLowerCase());
+      }
+    });
+
+    const updatedCustomList = [...existingCustom, ...newItemsCreated];
+
+    safeSet('nutri-shopping-custom-items', JSON.stringify(updatedCustomList));
+    safeSet('nutri-shopping-checked', JSON.stringify(checkedMap));
+
+    try {
+      const targetUid = auth.currentUser?.uid || profile?.id;
+      if (targetUid) {
+        for (const item of newItemsCreated) {
+          await setDoc(doc(db, 'users', targetUid, 'shoppingList', item.id), item, { merge: true });
+        }
+      }
+    } catch (e) {
+      console.warn("Aviso ao persistir itens sincronizados no Firestore:", e);
+    }
+
+    window.dispatchEvent(new CustomEvent('nutri:shopping-list-updated'));
+    window.dispatchEvent(new CustomEvent('app:notification', {
+      detail: {
+        title: "Sincronizado com Sucesso! 🛒",
+        message: `${missingToAdd.length} ingredientes adicionados à Lista de Compras.`,
+        type: "success"
+      }
+    }));
+
+    playSfx('success');
+    vibrate([30, 50]);
+
+    setIsSyncingToShopping(false);
+    setSyncSuccessToast(`${missingToAdd.length} ingredientes faltantes foram adicionados à sua Lista de Compras!`);
+  };
+
+  const handleNavigateToShoppingList = () => {
+    setIsSyncModalOpen(false);
+    window.dispatchEvent(new CustomEvent('app:navigate', { detail: 'shopping' }));
+  };
 
   const handleExportCard = async () => {
     if (!shareCardRef.current) return;
@@ -101,9 +417,10 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
   const [quickLogCarbs, setQuickLogCarbs] = useState<number>(25);
   const [quickLogFat, setQuickLogFat] = useState<number>(5);
 
-  // States for CategoryFilter
+  // States for CategoryFilter & Recipe Collections
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategoryTag>('all');
   const [recipeSearch, setRecipeSearch] = useState('');
+  const [savedRecipesViewMode, setSavedRecipesViewMode] = useState<'collections' | 'categories'>('collections');
 
   const categoryCounts = useMemo(() => getRecipeCategoryCounts(savedRecipes), [savedRecipes]);
 
@@ -273,6 +590,14 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
 
   const currentNutrition = activeTrackerTab === 'planned' ? plannedNutrition : actualNutrition;
 
+  const proteinDeviation = recommendedNutrition.protein > 0 ? (plannedNutrition.protein - recommendedNutrition.protein) / recommendedNutrition.protein : 0;
+  const carbsDeviation = recommendedNutrition.carbs > 0 ? (plannedNutrition.carbs - recommendedNutrition.carbs) / recommendedNutrition.carbs : 0;
+  const fatDeviation = recommendedNutrition.fat > 0 ? (plannedNutrition.fat - recommendedNutrition.fat) / recommendedNutrition.fat : 0;
+  
+  const isProteinOff = Math.abs(proteinDeviation) > 0.2;
+  const isCarbsOff = Math.abs(carbsDeviation) > 0.2;
+  const isFatOff = Math.abs(fatDeviation) > 0.2;
+
   const handleQuickLogSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickLogName.trim()) return;
@@ -390,8 +715,16 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
+                onClick={handleOpenSyncModal}
+                className="bg-teal-50 dark:bg-teal-900/40 hover:bg-teal-100 dark:hover:bg-teal-800/60 text-teal-700 dark:text-teal-300 font-semibold px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm border border-teal-500/20 shadow-sm cursor-pointer"
+                title="Sincronizar ingredientes faltantes com a Lista de Compras checando a Despensa"
+              >
+                <ShoppingCart className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span>Sincronizar Lista</span>
+              </button>
+              <button
                 onClick={() => setIsShareModalOpen(true)}
-                className="bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center justify-center gap-2 text-sm"
+                className="bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-medium px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
                 {t('share', 'Compartilhar')}
@@ -399,7 +732,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               <button
                 onClick={handleGenerateDay}
                 disabled={isGenerating}
-                className="bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium px-4 py-2 rounded-full transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                className="bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
               >
                 {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 Auto-Completar
@@ -577,6 +910,19 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Ver Trocas no SmartSwaps</span>
                 </button>
+              </div>
+            )}
+            
+            {/* Macro Deviation Alerts */}
+            {activeTrackerTab === 'planned' && (isProteinOff || isCarbsOff || isFatOff) && (
+              <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-200 dark:border-amber-900/40 flex items-center gap-3 animate-in fade-in">
+                <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  {isProteinOff && `Proteínas ${proteinDeviation > 0 ? 'acima' : 'abaixo'} da meta (${(proteinDeviation * 100).toFixed(0)}%). `}
+                  {isCarbsOff && `Carboidratos ${carbsDeviation > 0 ? 'acima' : 'abaixo'} da meta (${(carbsDeviation * 100).toFixed(0)}%). `}
+                  {isFatOff && `Gorduras ${fatDeviation > 0 ? 'acima' : 'abaixo'} da meta (${(fatDeviation * 100).toFixed(0)}%). `}
+                  Revise seu plano para melhor alinhamento.
+                </p>
               </div>
             )}
 
@@ -915,7 +1261,7 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               </div>
             );
           })}
-          {/* Saved Recipes Explorer Section with CategoryFilter */}
+          {/* Saved Recipes Explorer Section with CategoryFilter and Recipe Collections */}
           {savedRecipes.length > 0 && (
             <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -925,20 +1271,56 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                     <span>{t('saved_recipes_hub', 'Banco de Receitas Salvas')}</span>
                   </div>
                   <h4 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">
-                    {t('filter_by_category', 'Filtrar por Categoria')}
+                    {savedRecipesViewMode === 'collections' ? 'Coleções e Pastas Personalizadas' : t('filter_by_category', 'Filtrar por Categoria')}
                   </h4>
                   <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-                    {t('filter_recipes_desc', 'Explore suas receitas favoritas por tags como Vegano, Hiperproteico, Preparo Rápido e Low-Carb.')}
+                    {savedRecipesViewMode === 'collections'
+                      ? 'Organize e acesse suas receitas em pastas como Weekly Meal Prep, Post-Workout e Desserts.'
+                      : t('filter_recipes_desc', 'Explore suas receitas favoritas por tags como Vegano, Hiperproteico, Preparo Rápido e Low-Carb.')}
                   </p>
+                </div>
+
+                {/* View Mode Toggle: Coleções vs Categorias */}
+                <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => { playSfx('tap'); setSavedRecipesViewMode('collections'); }}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                      savedRecipesViewMode === 'collections'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>Pastas & Coleções</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { playSfx('tap'); setSavedRecipesViewMode('categories'); }}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                      savedRecipesViewMode === 'categories'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>Categorias</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Category Filter Component */}
-              <CategoryFilter
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                recipeCounts={categoryCounts}
-              />
+              {savedRecipesViewMode === 'collections' ? (
+                <RecipeCollectionsView 
+                  savedRecipes={savedRecipes}
+                  onSelectRecipe={(recipe) => setViewRecipe(recipe)}
+                />
+              ) : (
+                <>
+                  {/* Category Filter Component */}
+                  <CategoryFilter
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                    recipeCounts={categoryCounts}
+                  />
 
               {/* Grid of Filtered Recipes */}
               {filteredSavedRecipes.length > 0 ? (
@@ -1021,6 +1403,8 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
                   </button>
                 </div>
               )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1041,16 +1425,15 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
       )}
 
       {/* Modal de Compartilhamento */}
-      {typeof document !== 'undefined' && (
-        <AnimatePresence>
-          {isShareModalOpen && (
-            <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="bg-[#0b131f] text-slate-100 rounded-[28px] sm:rounded-[36px] max-w-lg w-full p-5 sm:p-7 shadow-2xl relative border border-emerald-500/30 max-h-[92vh] flex flex-col my-auto"
-              >
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[99999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#0b131f] text-slate-100 rounded-[28px] sm:rounded-[36px] max-w-lg w-full p-5 sm:p-7 shadow-2xl relative border border-emerald-500/30 max-h-[92vh] flex flex-col my-auto"
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 shrink-0 pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2.5">
@@ -1214,7 +1597,232 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
             </div>
           )}
         </AnimatePresence>
-      )}
+        {/* Sincronização Inteligente com Lista de Compras & Despensa */}
+        <AnimatePresence>
+          {isSyncModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              >
+                {/* Header */}
+                <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-teal-500/10 via-emerald-500/5 to-transparent">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 font-bold">
+                      <ShoppingCart className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
+                        Sincronizar com Lista de Compras
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {t('sync_modal_hint', 'Automatically checks your meal plan against your Pantry / Fridge inventory.')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsSyncModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                  {/* Scope Selector */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                        Escopo da Sincronização
+                      </span>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {syncScope === 'week' ? 'Analisando a semana inteira (7 dias)' : `Analisando apenas o dia selecionado (${selectedDay})`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
+                      <button
+                        onClick={() => handleScopeChange('week')}
+                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                          syncScope === 'week'
+                            ? 'bg-teal-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Semana Inteira
+                      </button>
+                      <button
+                        onClick={() => handleScopeChange('day')}
+                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                          syncScope === 'day'
+                            ? 'bg-teal-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        Apenas {selectedDay}
+                      </button>
+                    </div>
+                  </div>
+
+                  {syncSuccessToast && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300 animate-in fade-in duration-300">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-xs font-semibold leading-relaxed">{syncSuccessToast}</span>
+                      </div>
+                      <button
+                        onClick={handleNavigateToShoppingList}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 flex items-center gap-1.5"
+                      >
+                        <span>Ver Lista</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {isAnalyzingPantry ? (
+                    <div className="py-16 flex flex-col items-center justify-center space-y-3">
+                      <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+                      <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                        {t('analyzing_pantry', 'Analyzing recipes and cross-referencing with your Pantry inventory...')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                            Ingredientes Identificados ({analyzedIngredients.length})
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Itens já presentes na despensa são marcados automaticamente. Desmarque para não adicionar.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleSelectAll(true)}
+                            className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline"
+                          >
+                            Selecionar Faltantes
+                          </button>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <button
+                            onClick={() => handleToggleSelectAll(false)}
+                            className="text-xs font-semibold text-slate-500 hover:underline"
+                          >
+                            Desmarcar Todos
+                          </button>
+                        </div>
+                      </div>
+
+                      {analyzedIngredients.length === 0 ? (
+                        <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-800">
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Nenhum ingrediente encontrado no plano alimentar selecionado. Adicione refeições ao seu plano primeiro!
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                          {analyzedIngredients.map((item) => (
+                            <div
+                              key={item.id}
+                              onClick={() => handleToggleIngredient(item.id)}
+                              className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                                item.selected
+                                  ? 'bg-teal-500/5 dark:bg-teal-500/10 border-teal-500/30 shadow-sm'
+                                  : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <button
+                                  type="button"
+                                  className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
+                                    item.selected
+                                      ? 'bg-teal-600 text-white'
+                                      : 'border border-slate-300 dark:border-slate-600 bg-transparent'
+                                  }`}
+                                >
+                                  {item.selected && <Check className="w-3.5 h-3.5" />}
+                                </button>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">
+                                      {item.name}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-medium">
+                                      {item.day}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                    Original: "{item.raw}" • <span className="italic">{item.recipeName}</span>
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 flex items-center">
+                                {item.inPantry ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Em Estoque ({item.pantryMatch?.storageLocation || 'despensa'})
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Faltando
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between gap-4">
+                  <button
+                    onClick={() => analyzePlanAgainstPantry(syncScope, selectedDay)}
+                    disabled={isAnalyzingPantry}
+                    className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzingPantry ? 'animate-spin' : ''}`} />
+                    <span>Recalcular Despensa</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsSyncModalOpen(false)}
+                      className="px-4 py-2.5 bg-slate-200/60 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                    <button
+                      onClick={handleConfirmSyncToShoppingList}
+                      disabled={isSyncingToShopping || analyzedIngredients.filter(i => !i.inPantry && i.selected).length === 0}
+                      className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-teal-600/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isSyncingToShopping ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Sincronizando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Adicionar Faltantes ({analyzedIngredients.filter(i => !i.inPantry && i.selected).length})</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

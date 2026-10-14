@@ -607,6 +607,7 @@ export interface Recipe {
   nutrition: NutritionInfo;
   image?: string;
   imageUrl?: string;
+  tags?: string[];
 }
 
 export interface MealPlanDay {

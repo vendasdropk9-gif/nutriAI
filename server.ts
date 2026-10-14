@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage, GenerateVideosOperation } from "@google/genai";
 import { WebSocketServer } from "ws";
 import * as geminiServer from "./src/lib/gemini.server";
 import { initializeApp } from "firebase/app";
@@ -444,6 +444,69 @@ async function startServer() {
   // API Health route
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Video Generation Routes
+  app.post("/api/generate-video", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const operation = await (ai as any).models.generateVideos({
+        model: 'veo-3.1-lite-generate-preview',
+        prompt,
+        config: {
+          numberOfVideos: 1,
+          resolution: '1080p',
+          aspectRatio: '16:9'
+        }
+      });
+      res.json({ operationName: operation.name });
+    } catch (e) {
+      console.error("Generate video start failed:", e);
+      res.status(500).json({ error: "Failed to start video generation" });
+    }
+  });
+
+  app.post("/api/video-status", async (req, res) => {
+    try {
+      const { operationName } = req.body;
+      const op = new GenerateVideosOperation();
+      op.name = operationName;
+      const updated = await (ai as any).operations.getVideosOperation({ operation: op });
+      res.json({ done: updated.done });
+    } catch (e) {
+      console.error("Video status check failed:", e);
+      res.status(500).json({ error: "Failed to check video status" });
+    }
+  });
+
+  app.post("/api/video-download", async (req, res) => {
+    try {
+      const { operationName } = req.body;
+      const op = new GenerateVideosOperation();
+      op.name = operationName;
+      const updated = await (ai as any).operations.getVideosOperation({ operation: op });
+      const uri = updated.response?.generatedVideos?.[0]?.video?.uri;
+      
+      const videoRes = await fetch(uri!, {
+        headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY! },
+      });
+      
+      res.setHeader('Content-Type', 'video/mp4');
+      
+      // Adapt the stream to the express response
+      if (videoRes.body) {
+          const reader = videoRes.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(value);
+          }
+          res.end();
+      }
+    } catch (e) {
+      console.error("Video download failed:", e);
+      res.status(500).json({ error: "Failed to download video" });
+    }
   });
 
   // Serve the manual directly

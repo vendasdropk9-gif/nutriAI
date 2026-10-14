@@ -83,6 +83,7 @@ import { useMealReminders } from './hooks/useMealReminders';
 import { useSolarCircadianNotification } from './hooks/useSolarCircadianNotification';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 import { SmartHydrationBanner } from './components/SmartHydrationBanner';
+import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
 
@@ -363,6 +364,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   useMealPushNotifications(profile, addNotification);
   useMealReminders(profile);
   useSolarCircadianNotification(profile, addNotification, updateProfile);
+  usePantrySpoilageChecker(profile);
 
   // Pré-aquecimento em segundo plano de imagens do catálogo para suporte offline robusto
   useEffect(() => {

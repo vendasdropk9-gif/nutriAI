@@ -33,6 +33,26 @@ import { printRecipe } from '../lib/recipePrinter';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, setDoc } from '../lib/firebase';
 import { speak } from '../lib/speech';
+
+function parsePrepTime(prepTime: string): number {
+  if (!prepTime) return 30;
+  const hourMatch = prepTime.match(/(\d+)\s*(?:hora|horas|h)/i);
+  const minMatch = prepTime.match(/(\d+)\s*(?:min|minutos|m)/i);
+  
+  let totalMinutes = 0;
+  if (hourMatch) {
+    totalMinutes += parseInt(hourMatch[1], 10) * 60;
+  }
+  if (minMatch) {
+    totalMinutes += parseInt(minMatch[1], 10);
+  } else if (!hourMatch) {
+    const justNum = prepTime.match(/(\d+)/);
+    if (justNum) {
+      totalMinutes = parseInt(justNum[1], 10);
+    }
+  }
+  return totalMinutes || 30;
+}
 import { generateQuickDishes } from '../lib/gemini';
 import { getClientFallbackQuickDishes, DEFAULT_FALLBACK_IMAGE } from '../lib/quickDishesData';
 import { prefetchDishes } from '../lib/recipeImagePrefetcher';
@@ -391,10 +411,10 @@ export function QuickDishes({
             <span>{t('quick_dishes_badge', 'Inteligência Culinária Instantânea')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <span>🍽️ {t('quick_dishes_title', 'Pratos Rápidos com IA')}</span>
+            <span>🍽️ {t('quick_dishes_title', 'Quick Dishes with AI')}</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-            {t('quick_dishes_desc', 'Selecione seu objetivo para receber instantaneamente 3 sugestões deliciosas, balanceadas e com fotos reais de alta definição gastronômica.')}
+            {t('quick_dishes_desc', 'Select your goal to instantly receive 3 delicious, balanced suggestions with real high-definition gastronomic photos.')}
           </p>
         </div>
 
@@ -588,6 +608,14 @@ export function QuickDishes({
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span>OPÇÃO {idx + 1}</span>
                     </div>
+
+                    {/* Quick Prep Badge (< 15 min) */}
+                    {parsePrepTime(dish.prepTime) < 15 && (
+                      <div className="absolute top-3 right-14 px-2.5 py-1 rounded-full bg-amber-500/90 text-white text-[11px] font-extrabold shadow-md flex items-center gap-1 backdrop-blur-md animate-pulse">
+                        <Zap className="w-3 h-3 fill-current" />
+                        <span>⚡ Rápido &lt;15m</span>
+                      </div>
+                    )}
 
                     {/* Favorite Button on Image */}
                     <button

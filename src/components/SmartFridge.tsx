@@ -103,6 +103,73 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
   // Selected Recipe details modal
   const [selectedRecipe, setSelectedRecipe] = useState<any | null>(null);
 
+  // Threshold-based frequent ingredient consumption alerts from MealPlan
+  const [frequentAlerts, setFrequentAlerts] = useState<Array<{ name: string; count: number; inFridge: boolean; quantity?: string }>>([]);
+
+  useEffect(() => {
+    try {
+      const rawPlan = safeGet('meal_plan') || safeGet('nutri_meal_plan');
+      if (rawPlan) {
+        const planObj = typeof rawPlan === 'string' ? JSON.parse(rawPlan) : rawPlan;
+        const counts: Record<string, number> = {};
+        const originalNames: Record<string, string> = {};
+
+        Object.values(planObj).forEach((dayData: any) => {
+          if (dayData && dayData.meals) {
+            Object.values(dayData.meals).forEach((recipe: any) => {
+              if (recipe && Array.isArray(recipe.ingredients)) {
+                recipe.ingredients.forEach((ing: string) => {
+                  let clean = ing.trim().replace(/^[-•*]\s*/, '');
+                  clean = clean.replace(/^\d+([.,]\d+)?\s*(g|kg|ml|l|colheres?|xícaras?|fatias?|unidades?)?\s*(de\s*)?/i, '').trim();
+                  if (clean.length >= 3) {
+                    const key = clean.toLowerCase();
+                    counts[key] = (counts[key] || 0) + 1;
+                    if (!originalNames[key]) {
+                      originalNames[key] = clean.charAt(0).toUpperCase() + clean.slice(1);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+
+        const alerts: Array<{ name: string; count: number; inFridge: boolean; quantity?: string }> = [];
+        Object.entries(counts).forEach(([normName, count]) => {
+          if (count >= 2) {
+            const matching = fridgeItems.find(fi => fi.name.toLowerCase().includes(normName) || normName.includes(fi.name.toLowerCase()));
+            const isLow = !matching || (matching.quantity && (matching.quantity.toLowerCase().includes('1') || matching.quantity.toLowerCase().includes('pouco') || matching.status === 'vencido'));
+            if (!matching || isLow) {
+              alerts.push({
+                name: originalNames[normName] || normName,
+                count,
+                inFridge: !!matching,
+                quantity: matching?.quantity
+              });
+            }
+          }
+        });
+        setFrequentAlerts(alerts);
+      }
+    } catch (e) {
+      console.warn("Error calculating frequent meal plan alerts:", e);
+    }
+  }, [fridgeItems]);
+
+  const handleAddAlertToShopping = (name: string) => {
+    const newItem = {
+      id: crypto.randomUUID(),
+      name,
+      category: "Planejamento Semanal",
+      reason: "Item frequente com estoque baixo/faltando no plano",
+      checked: false
+    };
+    setShoppingList(prev => [...prev, newItem]);
+    playSfx('success');
+    vibrate(30);
+    alert(`"${name}" foi adicionado à sua Lista de Compras!`);
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -617,6 +684,63 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            {/* Threshold-based Consumption & Low Stock Alerts */}
+            {frequentAlerts.length > 0 && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 dark:from-amber-950/40 dark:to-rose-950/40 border border-amber-200 dark:border-amber-900 rounded-[28px] p-6 shadow-xl backdrop-blur-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">
+                    <Bell className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100">
+                      Alertas de Estoque Baixo (Baseado no seu Plano de Refeições)
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Ingredientes frequentes no seu planejamento semanal que estão acabando ou faltando na geladeira.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {frequentAlerts.map((alertItem, idx) => (
+                    <div key={idx} className="bg-white/70 dark:bg-slate-800/70 border border-amber-100 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{alertItem.name}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                            {alertItem.count}x no plano
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {alertItem.inFridge ? `Estoque atual baixo (${alertItem.quantity || 'Pouco'})` : 'Não encontrado na geladeira'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleAddAlertToShopping(alertItem.name)}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-sans text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                          title="Adicionar à Lista de Compras"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" />
+                          <span>Comprar</span>
+                        </button>
+                        {onGenerateRecipeWithIngredient && (
+                          <button
+                            onClick={() => onGenerateRecipeWithIngredient(alertItem.name)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-sans text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Gerar Receita"
+                          >
+                            <ChefHat className="w-3.5 h-3.5" />
+                            <span>Receita</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Quick Expiration alerts dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 rounded-[24px] p-5 flex items-center gap-4">

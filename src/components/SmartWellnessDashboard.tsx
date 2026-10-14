@@ -6,6 +6,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { DailyNutritionalTipCard } from './DailyNutritionalTipCard';
 import { CalorieProgressRing } from './CalorieProgressRing';
 import { FavoriteRecipesList } from './FavoriteRecipesList';
+import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { RecipeSearchPanel } from './RecipeSearchPanel';
 import { motion, AnimatePresence } from 'motion/react';
 import { Recipe, UserProfile } from '../types';
@@ -361,13 +362,9 @@ export function SmartWellnessDashboard() {
             />
         </div>
 
-        {/* Favorite Recipes Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-[24px] p-6 border border-slate-200 dark:border-slate-700 col-span-1 md:col-span-2">
-           <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-             <Heart className="w-5 h-5 text-red-500" />
-             Receitas
-           </h4>
-           <FavoriteRecipesList 
+        {/* Favorite Recipes & Collections Card */}
+        <div className="col-span-1 md:col-span-2">
+           <RecipeCollectionsView 
               recipes={recipesToShow} 
               onRemoveFavorite={(id) => {
                   console.log('Remover favorito', id);

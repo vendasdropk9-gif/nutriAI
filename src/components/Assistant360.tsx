@@ -33,34 +33,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   };
 
   const proactiveTips = useMemo(() => {
-    const isEn = language.startsWith('en');
-    const isEs = language.startsWith('es');
-
-    if (isEn) {
-      return [
-        { text: "Your hydration goal needs 600ml to be completed today.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
-        { text: "Recommended post-workout protein intake: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
-        { text: "Light 20-min walk recommended to stabilize blood sugar.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
-        { text: "Sleep quality last night reached 88%. Excellent physical recovery!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
-      ];
-    }
-
-    if (isEs) {
-      return [
-        { text: "Tu meta de hidratación necesita 600ml para completarse hoy.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
-        { text: "Ingesta de proteína recomendada post-entrenamiento: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
-        { text: "Caminata ligera de 20 min recomendada para estabilizar glucemia.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
-        { text: "La calidad del sueño anoche alcanzó el 88%. ¡Excelente recuperación corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
-      ];
-    }
-
     return [
-      { text: "Sua meta de hidratação precisa de 600ml para ser concluída hoje.", icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
-      { text: "Ingestão de proteínas recomendada para o pós-treino: 35g.", icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
-      { text: "Caminhada leve de 20 min recomendada para estabilizar glicemia.", icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
-      { text: "Qualidade do sono ontem atingiu 88%. Excelente recuperação corporal!", icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
+      { text: t("tip_hydration", "Your hydration goal needs 600ml to be completed today."), icon: <Droplets className="w-5 h-5 text-blue-500" />, type: 'warning' },
+      { text: t("tip_protein", "Recommended post-workout protein intake: 35g."), icon: <Utensils className="w-5 h-5 text-emerald-500" />, type: 'suggestion' },
+      { text: t("tip_walk", "Light 20-min walk recommended to stabilize blood sugar."), icon: <Activity className="w-5 h-5 text-amber-500" />, type: 'suggestion' },
+      { text: t("tip_sleep", "Sleep quality last night reached 88%. Excellent physical recovery!"), icon: <Moon className="w-5 h-5 text-indigo-400" />, type: 'alert' }
     ];
-  }, [language]);
+  }, [t]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -177,11 +156,11 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
-                {t('greeting_hello', 'Olá')}, {profile?.name?.split(' ')[0] || t('user', 'Usuário')}!
+                {t('greeting_hello', 'Hello')}, {profile?.name?.split(' ')[0] || t('user', 'User')}!
               </h2>
 
               <p className="text-sm text-[#B5BDC9] max-w-md leading-relaxed font-sans">
-                "{t('today_overview_quote', 'Seu metabolismo está operando em padrão ótimo hoje. Lembre-se de manter a hidratação contínua.')}"
+                "{t('today_overview_quote', 'Your metabolism is operating at an optimal level today. Remember to maintain continuous hydration.')}"
               </p>
             </div>
           </div>
@@ -202,7 +181,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>{t('btn_talk_malu', 'Falar com NutriAI')}</span>
+            <span>{t('btn_talk_malu', 'Talk to NutriAI')}</span>
           </motion.button>
         </div>
       </div>
@@ -226,13 +205,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[11px] font-bold tracking-wide uppercase">
                 <Sparkles className="w-3 h-3" />
-                <span>{t('1 toque • fotos ia • 3 opções', '1 Toque • Fotos IA • 3 Opções')}</span>
+                <span>{t('1 toque • fotos ia • 3 opções', '1 Tap • AI Photos • 3 Options')}</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {t('🍽️ pratos rápidos com ia', '🍽️ Pratos Rápidos com IA')}
+                {t('🍽️ pratos rápidos com ia', '🍽️ Quick Dishes with AI')}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
-                {t('quick_dishes_desc', 'Escolha Emagrecer, Ganhar Massa ou Lanches Fit e receba 3 sugestões imediatas com foto realista e macros.')}
+                {t('quick_dishes_desc', 'Choose Weight Loss, Muscle Gain, or Fit Snacks and receive 3 immediate suggestions with realistic photos and macros.')}
               </p>
             </div>
           </div>
@@ -242,7 +221,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             whileTap={{ scale: 0.95 }}
             className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 shrink-0 group-hover:shadow-orange-500/50 transition-all"
           >
-            <span>{t('gerar pratos rápidos', 'GERAR PRATOS RÁPIDOS')}</span>
+            <span>{t('gerar pratos rápidos', 'GENERATE QUICK DISHES')}</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </motion.button>
         </div>
@@ -263,7 +242,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           </div>
           <div>
             <div className="text-[10px] font-bold text-slate-400 dark:text-[#B5BDC9] uppercase tracking-wider mb-0.5">
-              {t('realtime_insight', 'Insight em Tempo Real')}
+              {t('realtime_insight', 'Real-time Insight')}
             </div>
             <p className="text-sm font-semibold text-slate-800 dark:text-white leading-snug">
               {proactiveTips[activeTip]?.text}
@@ -313,6 +292,33 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
                 {waterCurrent} <span className="text-xs font-normal text-slate-400">/ {waterTarget}ml</span>
               </div>
+            </div>
+            {/* Quick add water buttons */}
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={() => {
+                  if (!onUpdateProfile) return;
+                  const newLog = { id: crypto.randomUUID(), date: new Date().toISOString(), amount: 250 };
+                  onUpdateProfile(prev => prev ? { ...prev, hydrationLogs: [...(prev.hydrationLogs || []), newLog] } : null);
+                  playSfx('crystal');
+                  vibrate(40);
+                }}
+                className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                +250ml
+              </button>
+              <button
+                onClick={() => {
+                  if (!onUpdateProfile) return;
+                  const newLog = { id: crypto.randomUUID(), date: new Date().toISOString(), amount: 500 };
+                  onUpdateProfile(prev => prev ? { ...prev, hydrationLogs: [...(prev.hydrationLogs || []), newLog] } : null);
+                  playSfx('crystal');
+                  vibrate(60);
+                }}
+                className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                +500ml
+              </button>
             </div>
             {/* Progress Bar */}
             <div className="w-full bg-slate-100 dark:bg-[#232C39] h-2 rounded-full overflow-hidden">
@@ -492,7 +498,11 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       </div>
 
       {/* RECIPE COLLECTIONS VIEW */}
-      <RecipeCollectionsView favoriteRecipes={(profile?.favorites || []) as any} onRemoveFavorite={handleRemoveFavorite} />
+      <RecipeCollectionsView 
+        favoriteRecipes={(profile?.favorites || []) as any} 
+        savedRecipes={profile?.savedRecipes || []}
+        onRemoveFavorite={handleRemoveFavorite} 
+      />
 
     </div>
   );

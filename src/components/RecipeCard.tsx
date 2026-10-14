@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer } from 'lucide-react';
+import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -111,6 +111,72 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoReadEnabled, setIsAutoReadEnabled] = useState<boolean>(true);
   const [showAiAdvisor, setShowAiAdvisor] = useState(false);
+  const [servings, setServings] = useState<number>(2);
+  const [tags, setTags] = useState<string[]>(recipe.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoOpName, setVideoOpName] = useState<string | null>(null);
+
+  function scaleIngredient(ingredient: string, multiplier: number): string {
+    if (multiplier === 1) return ingredient;
+    const match = ingredient.match(/^([\d\/.,\s-]+)(.*)$/);
+    if (!match) return ingredient;
+    
+    const numPart = match[1].trim();
+    const restPart = match[2];
+
+    let parsedVal: number | null = null;
+    if (numPart.includes('/')) {
+      const parts = numPart.split('/');
+      if (parts.length === 2) {
+        parsedVal = parseFloat(parts[0]) / parseFloat(parts[1]);
+      }
+    } else {
+      const cleanedNum = parseFloat(numPart.replace(',', '.'));
+      if (!isNaN(cleanedNum)) {
+        parsedVal = cleanedNum;
+      }
+    }
+
+    if (parsedVal === null || isNaN(parsedVal)) {
+      return ingredient;
+    }
+
+    const scaled = parsedVal * multiplier;
+    let formattedNum = '';
+    if (scaled >= 10) {
+      formattedNum = Math.round(scaled).toString();
+    } else if (Math.abs(scaled - Math.round(scaled)) < 0.1) {
+      formattedNum = Math.round(scaled).toString();
+    } else if (Math.abs(scaled - 0.5) < 0.15) {
+      formattedNum = '1/2';
+    } else if (Math.abs(scaled - 0.25) < 0.1) {
+      formattedNum = '1/4';
+    } else if (Math.abs(scaled - 0.75) < 0.1) {
+      formattedNum = '3/4';
+    } else if (Math.abs(scaled - 1.5) < 0.1) {
+      formattedNum = '1 1/2';
+    } else {
+      formattedNum = scaled.toFixed(1).replace('.', ',');
+    }
+
+    return `${formattedNum}${restPart}`;
+  }
+
+  const baseServings = 2;
+  const multiplier = servings / baseServings;
+  const ingredients = recipe.ingredients.map(ing => scaleIngredient(ing, multiplier));
+  const nutrition = {
+    calories: Math.round((recipe.nutrition.calories || 0) * multiplier),
+    protein: Math.round(((recipe.nutrition.protein || 0) * multiplier) * 10) / 10,
+    carbs: Math.round(((recipe.nutrition.carbs || 0) * multiplier) * 10) / 10,
+    fat: Math.round(((recipe.nutrition.fat || 0) * multiplier) * 10) / 10,
+    fiber: recipe.nutrition.fiber !== undefined ? Math.round(((recipe.nutrition.fiber || 0) * multiplier) * 10) / 10 : undefined,
+    sugar: recipe.nutrition.sugar !== undefined ? Math.round(((recipe.nutrition.sugar || 0) * multiplier) * 10) / 10 : undefined,
+    vitamins: recipe.nutrition.vitamins,
+    minerals: recipe.nutrition.minerals,
+  };
   
   const isPlayingRef = useRef(false);
   const currentStepIndexRef = useRef(0);
@@ -260,7 +326,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     setIsNarratingFull(false);
     setIsPlaying(false);
     setIsNarratingIngredients(true);
-    const text = `Lista de ingredientes para ${recipe.name}: ` + recipe.ingredients.map((ing, i) => `Item ${i + 1}: ${ing}`).join('. ');
+    const text = `Lista de ingredientes para ${recipe.name}: ` + ingredients.map((ing, i) => `Item ${i + 1}: ${ing}`).join('. ');
     speak(text, {
       onEnded: () => setIsNarratingIngredients(false),
       onError: () => setIsNarratingIngredients(false)
@@ -278,7 +344,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     setIsPlaying(false);
     setIsNarratingFull(true);
     
-    const text = `Receita: ${recipe.name}. ${recipe.description}. Tempo de preparo: ${recipe.prepTime}. Calorias: ${recipe.nutrition.calories} calorias. Ingredientes: ${recipe.ingredients.join(', ')}. Modo de preparo: ` + recipe.instructions.map((step, idx) => `Passo ${idx + 1}: ${step}`).join('. ');
+    const text = `Receita: ${recipe.name}. ${recipe.description}. Tempo de preparo: ${recipe.prepTime}. Calorias: ${nutrition.calories} calorias. Ingredientes: ${ingredients.join(', ')}. Modo de preparo: ` + recipe.instructions.map((step, idx) => `Passo ${idx + 1}: ${step}`).join('. ');
     
     speak(text, {
       onEnded: () => setIsNarratingFull(false),
@@ -287,16 +353,14 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   };
 
   const handleToggleAllIngredients = () => {
-    const allChecked = recipe.ingredients.every((_, i) => !!checkedIngredients[i]);
+    const allChecked = ingredients.every((_, i) => !!checkedIngredients[i]);
     const next: Record<number, boolean> = {};
     if (!allChecked) {
-      recipe.ingredients.forEach((_, i) => { next[i] = true; });
+      ingredients.forEach((_, i) => { next[i] = true; });
     }
     setCheckedIngredients(next);
     playSfx(allChecked ? 'pop' : 'success');
   };
-
-  const { nutrition } = recipe;
 
   // Pre-calculate default target meal time (1 hour from now + preparation time)
   const [isSchedulingOpen, setIsSchedulingOpen] = useState(false);
@@ -818,12 +882,17 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
   const handleVoiceCommand = (command: string) => {
     const trimmed = command.toLowerCase().trim();
+    const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+    const currentIdx = currentStepIndexRef.current !== null && currentStepIndexRef.current !== undefined
+      ? currentStepIndexRef.current 
+      : (activeStep !== null ? activeStep : 0);
     
-    if (trimmed.includes("próximo") || trimmed.includes("proximo") || trimmed.includes("avançar") || trimmed.includes("avancar") || trimmed.includes("seguinte")) {
-      setRecognizedCommand("próximo");
+    // Command: Next / Próximo
+    if (trimmed.includes("próximo") || trimmed.includes("proximo") || trimmed.includes("avançar") || trimmed.includes("avancar") || trimmed.includes("seguinte") || trimmed.includes("next") || trimmed.includes("forward")) {
+      setRecognizedCommand(isPt ? "próximo" : "next");
       setTimeout(() => setRecognizedCommand(null), 1500);
 
-      const nextIdx = activeStep === null ? 0 : activeStep + 1;
+      const nextIdx = currentIdx + 1;
       if (nextIdx < recipe.instructions.length) {
         stopSpeech();
         setIsPlaying(true);
@@ -831,14 +900,15 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         isContinuousRef.current = false;
         playStep(nextIdx);
       } else {
-        speak("Você chegou ao final do modo de preparo.");
+        speakWithWebSpeech(isPt ? "Você chegou ao final do modo de preparo." : "You have reached the end of the recipe instructions.", { lang: language || 'pt-BR' });
       }
     } 
-    else if (trimmed.includes("voltar") || trimmed.includes("anterior") || trimmed.includes("atrás") || trimmed.includes("atras")) {
-      setRecognizedCommand("voltar");
+    // Command: Back / Voltar
+    else if (trimmed.includes("voltar") || trimmed.includes("anterior") || trimmed.includes("atrás") || trimmed.includes("atras") || trimmed.includes("back") || trimmed.includes("previous")) {
+      setRecognizedCommand(isPt ? "voltar" : "back");
       setTimeout(() => setRecognizedCommand(null), 1500);
 
-      const prevIdx = activeStep === null ? 0 : activeStep - 1;
+      const prevIdx = currentIdx - 1;
       if (prevIdx >= 0) {
         stopSpeech();
         setIsPlaying(true);
@@ -846,38 +916,41 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         isContinuousRef.current = false;
         playStep(prevIdx);
       } else {
-        speak("Este é o primeiro passo da receita.");
+        speakWithWebSpeech(isPt ? "Este é o primeiro passo da receita." : "This is the first step of the recipe.", { lang: language || 'pt-BR' });
       }
     } 
-    else if (trimmed.includes("repetir") || trimmed.includes("repitir") || trimmed.includes("ouvir") || trimmed.includes("falar") || trimmed.includes("ler") || trimmed.includes("reproduzir")) {
-      setRecognizedCommand("repetir");
+    // Command: Repeat / Repetir
+    else if (trimmed.includes("repetir") || trimmed.includes("repitir") || trimmed.includes("ouvir") || trimmed.includes("falar") || trimmed.includes("ler") || trimmed.includes("reproduzir") || trimmed.includes("repeat") || trimmed.includes("again")) {
+      setRecognizedCommand(isPt ? "repetir" : "repeat");
       setTimeout(() => setRecognizedCommand(null), 1500);
 
-      const currentIdx = activeStep === null ? 0 : activeStep;
       stopSpeech();
       setIsPlaying(true);
       isPlayingRef.current = true;
       isContinuousRef.current = false;
       playStep(currentIdx);
     } 
-    else if (trimmed.includes("parar") || trimmed.includes("silenciar") || trimmed.includes("pausar") || trimmed.includes("mudo") || trimmed.includes("cancelar")) {
-      setRecognizedCommand("parar");
+    // Command: Stop / Parar
+    else if (trimmed.includes("parar") || trimmed.includes("silenciar") || trimmed.includes("pausar") || trimmed.includes("mudo") || trimmed.includes("cancelar") || trimmed.includes("stop") || trimmed.includes("pause") || trimmed.includes("quiet")) {
+      setRecognizedCommand(isPt ? "parar" : "stop");
       setTimeout(() => setRecognizedCommand(null), 1500);
 
       stopSpeech();
       setIsPlaying(false);
       isPlayingRef.current = false;
     } 
-    else if (trimmed.includes("ajuda") || trimmed.includes("comandos") || trimmed.includes("manual") || trimmed.includes("instruções") || trimmed.includes("instrucoes")) {
-      setRecognizedCommand("ajuda");
+    // Command: Help / Ajuda
+    else if (trimmed.includes("ajuda") || trimmed.includes("comandos") || trimmed.includes("manual") || trimmed.includes("instruções") || trimmed.includes("instrucoes") || trimmed.includes("help") || trimmed.includes("commands")) {
+      setRecognizedCommand(isPt ? "ajuda" : "help");
       setTimeout(() => setRecognizedCommand(null), 1500);
       
       stopSpeech();
-      speak("Os comandos disponíveis são: próximo, voltar, repetir, parar, fechar ou ajuda.");
+      speakWithWebSpeech(isPt ? "Os comandos disponíveis são: próximo, voltar, repetir, parar ou sair." : "Available commands are: next, back, repeat, stop, or exit.", { lang: language || 'pt-BR' });
       setVoiceHelpOpen(true);
     }
-    else if (trimmed.includes("fechar") || trimmed.includes("sair") || trimmed.includes("encerrar")) {
-      setRecognizedCommand("sair");
+    // Command: Exit / Sair
+    else if (trimmed.includes("fechar") || trimmed.includes("sair") || trimmed.includes("encerrar") || trimmed.includes("exit") || trimmed.includes("close")) {
+      setRecognizedCommand(isPt ? "sair" : "exit");
       setTimeout(() => setRecognizedCommand(null), 1500);
 
       setIsVoiceModeActive(false);
@@ -956,8 +1029,12 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
     if (isVoiceModeActive) {
       setVoiceError(null);
-      setVoiceTranscript("Pronto para ouvir! Fale 'próximo', 'voltar', 'repetir' ou simule abaixo.");
+      const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+      setVoiceTranscript(isPt ? "Modo Guiado por Voz ativo! Diga 'próximo', 'voltar', 'repetir' ou simule abaixo." : "Voice Guided Mode active! Say 'Next' or 'Repeat' to navigate.");
       startRecognition();
+      // Read current/first step aloud via Web Speech API
+      const initialIdx = activeStep !== null ? activeStep : 0;
+      playStep(initialIdx);
     } else {
       if (recognitionRef.current) {
         try {
@@ -979,7 +1056,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         } catch (e) {}
       }
     };
-  }, [isVoiceModeActive, activeStep]);
+  }, [isVoiceModeActive, language]);
 
   const contrastClasses = {
     'contrast-max': {
@@ -1240,7 +1317,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               </div>
               <div>
                 <span className={activeFont.statLabel}>Calorias</span>
-                <div className={`${activeFont.statValue} leading-none mt-1`}>{recipe.nutrition.calories} kcal</div>
+                <div className={`${activeFont.statValue} leading-none mt-1`}>{nutrition.calories} kcal</div>
               </div>
             </div>
 
@@ -1248,11 +1325,96 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               <div className={`p-3 rounded-xl ${activeContrast.badge}`}>
                 <Utensils className="w-6 h-6" />
               </div>
-              <div>
+              <div className="w-full">
                 <span className={activeFont.statLabel}>{t('recipe_proteins_macros', 'Proteínas & Macros')}</span>
-                <div className={`${activeFont.statValue} leading-none mt-1`}>
-                  {recipe.nutrition.protein}g <span className="text-sm font-normal">({recipe.nutrition.carbs}g C / {recipe.nutrition.fat}g G)</span>
+                <div className="space-y-2 mt-2">
+                  {[
+                    { label: 'Prot', value: nutrition.protein, max: 100, color: 'bg-blue-500' },
+                    { label: 'Carb', value: nutrition.carbs, max: 100, color: 'bg-amber-500' },
+                    { label: 'Gord', value: nutrition.fat, max: 100, color: 'bg-pink-500' }
+                  ].map(macro => (
+                    <div key={macro.label} className="text-xs">
+                      <div className="flex justify-between mb-1">
+                        <span>{macro.label}</span>
+                        <span>{macro.value}g</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, (macro.value / macro.max) * 100)}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className={`h-full ${macro.color}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Serving Size Adjuster */}
+          <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-4 ${activeContrast.card}`}>
+            <div className="flex items-center gap-3">
+              <span className={`p-2.5 rounded-xl ${activeContrast.badge}`}>
+                <Utensils className="w-5 h-5 text-emerald-500" />
+              </span>
+              <div>
+                <h4 className="font-bold text-sm sm:text-base leading-tight">Ajustador de Porções ({servings} {servings === 1 ? 'porção' : 'porções'}) - TEST</h4>
+                <p className="text-xs opacity-75">Recalcula automaticamente os ingredientes e os macros nutricionais</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {[1, 2, 4, 6, 8].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setServings(s);
+                    playSfx('tap');
+                    vibrate(10);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    servings === s
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : activeContrast.buttonSecondary
+                  }`}
+                >
+                  {s} {s === 1 ? 'porção' : 'porções'}
+                </button>
+              ))}
+
+              <div className="flex items-center ml-2 border rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (servings > 1) {
+                      setServings(servings - 1);
+                      playSfx('tap');
+                      vibrate(10);
+                    }
+                  }}
+                  className="px-3 py-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-sm font-bold cursor-pointer"
+                >
+                  -
+                </button>
+                <span className="px-3 py-1.5 text-xs sm:text-sm font-black min-w-[2.5rem] text-center bg-slate-100 dark:bg-slate-800">
+                  {servings}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (servings < 20) {
+                      setServings(servings + 1);
+                      playSfx('tap');
+                      vibrate(10);
+                    }
+                  }}
+                  className="px-3 py-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-sm font-bold cursor-pointer"
+                >
+                  +
+                </button>
               </div>
             </div>
           </div>
@@ -1706,6 +1868,12 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
       )}
 
       <div className="bg-white/30 dark:bg-slate-800/30 p-8 md:p-12 border-b border-white/60 dark:border-slate-700/50">
+        {parsePrepTime(recipe.prepTime) < 15 && (
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-extrabold shadow-xs animate-pulse mb-3">
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span>⚡ Preparo Rápido (&lt; 15 min)</span>
+          </div>
+        )}
         <h3 className="font-serif text-3xl md:text-4xl leading-tight mb-4 text-slate-800 dark:text-slate-100">
           {recipe.name}
         </h3>
@@ -1922,6 +2090,8 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             </h4>
             <div className="flex flex-wrap items-center gap-2">
               <button
+                id="toggle-voice-guided-mode-btn"
+                aria-label="Voice Guided Mode"
                 onClick={() => {
                   stopSpeech();
                   setIsVoiceModeActive(!isVoiceModeActive);
@@ -1933,7 +2103,11 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 }`}
               >
                 {isVoiceModeActive ? <Mic className="w-3.5 h-3.5 text-white animate-pulse" /> : <ChefHat className="w-3.5 h-3.5" />}
-                {isVoiceModeActive ? 'Modo Cozinha Ativo' : 'Modo Cozinha (Voz)'}
+                <span>
+                  {isVoiceModeActive 
+                    ? ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Modo Guiado por Voz (Ativo)' : 'Voice Guided Mode (Active)')
+                    : ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Modo Guiado por Voz' : 'Voice Guided Mode')}
+                </span>
               </button>
 
               <button
@@ -2056,19 +2230,19 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       className="grid grid-cols-2 gap-2 bg-indigo-500/5 dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs"
                     >
                       <div className="p-2 space-y-0.5 border border-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 rounded-lg">
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Próximo"</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Next" / "Próximo"</span>
                         <span className="text-slate-500 dark:text-slate-400 text-[10px]">Avança ao próximo passo</span>
                       </div>
                       <div className="p-2 space-y-0.5 border border-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 rounded-lg">
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Voltar"</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Back" / "Voltar"</span>
                         <span className="text-slate-500 dark:text-slate-400 text-[10px]">Retorna ao passo anterior</span>
                       </div>
                       <div className="p-2 space-y-0.5 border border-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 rounded-lg">
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Repetir"</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Repeat" / "Repetir"</span>
                         <span className="text-slate-500 dark:text-slate-400 text-[10px]">Ouve o passo atual de novo</span>
                       </div>
                       <div className="p-2 space-y-0.5 border border-transparent hover:bg-white/40 dark:hover:bg-slate-800/40 rounded-lg">
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Parar"</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-indigo-600 dark:text-indigo-400">"Stop" / "Parar"</span>
                         <span className="text-slate-500 dark:text-slate-400 text-[10px]">Silencia o áudio atual</span>
                       </div>
                     </motion.div>
@@ -2079,42 +2253,42 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       <button
                         onClick={() => {
-                          setVoiceTranscript('Simulado: próximo');
-                          handleVoiceCommand('próximo');
+                          setVoiceTranscript('Simulado: Next / Próximo');
+                          handleVoiceCommand('next');
                         }}
                         className="flex items-center justify-between px-3 py-2 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 font-semibold text-xs rounded-xl transition-all active:scale-95 text-left animate-pulse"
                       >
-                        <span>Próximo Passo</span>
+                        <span>Próximo / Next</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
-                          setVoiceTranscript('Simulado: voltar');
-                          handleVoiceCommand('voltar');
+                          setVoiceTranscript('Simulado: Back / Voltar');
+                          handleVoiceCommand('back');
                         }}
                         className="flex items-center justify-between px-3 py-2 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 font-semibold text-xs rounded-xl transition-all active:scale-95 text-left"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
-                        <span>Passo Anterior</span>
+                        <span>Voltar / Back</span>
                       </button>
                       <button
                         onClick={() => {
-                          setVoiceTranscript('Simulado: repetir');
-                          handleVoiceCommand('repetir');
+                          setVoiceTranscript('Simulado: Repeat / Repetir');
+                          handleVoiceCommand('repeat');
                         }}
-                        className="flex items-center justify-between px-3 py-2 bg-emerald-500/5 hover:bg-emerald-555/10 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold text-xs rounded-xl transition-all active:scale-95 text-left"
+                        className="flex items-center justify-between px-3 py-2 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold text-xs rounded-xl transition-all active:scale-95 text-left"
                       >
-                        <span>Repetir Passo</span>
+                        <span>Repetir / Repeat</span>
                         <Volume2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
-                          setVoiceTranscript('Simulado: parar');
-                          handleVoiceCommand('parar');
+                          setVoiceTranscript('Simulado: Stop / Silenciar');
+                          handleVoiceCommand('stop');
                         }}
                         className="flex items-center justify-between px-3 py-2 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/40 text-rose-600 dark:text-rose-450 font-semibold text-xs rounded-xl transition-all active:scale-95 text-left"
                       >
-                        <span>Silenciar</span>
+                        <span>Silenciar / Stop</span>
                         <Square className="w-3 h-3 fill-current" />
                       </button>
                     </div>
@@ -3087,6 +3261,55 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                     </>
                   ) : (
                     <>
+                      <button
+                        onClick={async () => {
+                          setIsGeneratingVideo(true);
+                          try {
+                            const res = await fetch("/api/generate-video", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ prompt: `A 15-second visual demonstration of: ${recipe.name}. ${recipe.description}` }),
+                            });
+                            const { operationName } = await res.json();
+                            setVideoOpName(operationName);
+
+                            // Polling
+                            let done = false;
+                            while (!done) {
+                              await new Promise(r => setTimeout(r, 5000));
+                              const statusRes = await fetch("/api/video-status", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ operationName }),
+                              });
+                              const status = await statusRes.json();
+                              done = status.done;
+                            }
+
+                            // Download
+                            const downloadRes = await fetch("/api/video-download", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ operationName }),
+                            });
+                            const blob = await downloadRes.blob();
+                            setVideoUrl(URL.createObjectURL(blob));
+                          } catch (e) {
+                            console.error("Video generation failed:", e);
+                          } finally {
+                            setIsGeneratingVideo(false);
+                          }
+                        }}
+                        disabled={isGeneratingVideo}
+                        className="flex-1 py-3 px-4 bg-purple-800 hover:bg-purple-700 text-purple-200 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-purple-700"
+                      >
+                        {isGeneratingVideo ? (
+                          <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Gerando...</>
+                        ) : (
+                          <><Video className="w-4 h-4" /> Gerar Vídeo</>
+                        )}
+                      </button>
+
                       <button
                         onClick={handleCopyText}
                         className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-slate-700"

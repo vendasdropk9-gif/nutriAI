@@ -606,6 +606,30 @@ self.addEventListener('message', (event) => {
       break;
     }
 
+    case 'SCHEDULE_PANTRY_NOTIFICATIONS': {
+      if (payload && Array.isArray(payload)) {
+        const today = new Date();
+        const twoDaysFromNow = new Date();
+        twoDaysFromNow.setDate(today.getDate() + 2);
+
+        payload.forEach(item => {
+          const expirationDate = new Date(item.expirationDate);
+          if (expirationDate <= twoDaysFromNow && expirationDate > today) {
+            triggerNativeNotification('⚠️ Alerta de Desperdício', {
+              body: `${item.name} vai estragar em breve! Consuma ou congele logo.`,
+              tag: `spoilage-${item.id}`,
+              data: { url: '/?tab=fridge', type: 'spoilage', itemId: item.id }
+            });
+          }
+        });
+      }
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ success: true });
+      }
+      break;
+    }
+
+
     // Persistência offline da Demonstração Inteligente
     case 'PERSIST_DEMO_STATE':
     case 'SAVE_EXERCISE_DEMO_STATE': {

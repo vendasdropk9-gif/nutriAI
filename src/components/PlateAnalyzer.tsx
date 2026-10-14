@@ -34,6 +34,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
   const [analysisResult, setAnalysisResult] = useState<PlateAnalysisResult | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isArModeActive, setIsArModeActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
@@ -607,7 +608,52 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           {/* State 2: Live Camera View */}
           {isCameraActive && !previewImage && (
             <div className="flex flex-col items-center justify-center space-y-6 w-full">
+              <button
+                onClick={() => setIsArModeActive(!isArModeActive)}
+                className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
+                  isArModeActive 
+                    ? 'bg-emerald-600 text-white' 
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                }`}
+              >
+                {isArModeActive ? 'Desativar Guia AR' : 'Ativar Guia de Porções AR'}
+              </button>
+
               <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-2xl">
+                
+                {/* AR Overlay */}
+                {isArModeActive && (() => {
+                  let veggies = 0.5;
+                  let protein = 0.25;
+                  let carbs = 0.25;
+
+                  if (profile?.masterPlan?.nutritionFocus) {
+                    const focus = profile.masterPlan.nutritionFocus.toLowerCase();
+                    if (focus.includes('protein') || focus.includes('muscle')) {
+                      protein = 0.35;
+                      veggies = 0.4;
+                      carbs = 0.25;
+                    } else if (focus.includes('weight') || focus.includes('loss')) {
+                      veggies = 0.6;
+                      protein = 0.25;
+                      carbs = 0.15;
+                    }
+                  }
+
+                  const pDeg = protein * 360;
+                  const cDeg = carbs * 360;
+                  const vDeg = veggies * 360;
+
+                  return (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" className="stroke-emerald-400 fill-none stroke-[0.5] opacity-50" />
+                      <path d={`M 50 50 L 50 10 A 40 40 0 ${pDeg > 180 ? 1 : 0} 1 ${50 + 40 * Math.sin(pDeg * Math.PI / 180)} ${50 - 40 * Math.cos(pDeg * Math.PI / 180)} Z`} className="fill-red-500/30 stroke-red-400 stroke-[0.5]" />
+                      <path d={`M 50 50 L ${50 + 40 * Math.sin(pDeg * Math.PI / 180)} ${50 - 40 * Math.cos(pDeg * Math.PI / 180)} A 40 40 0 ${cDeg > 180 ? 1 : 0} 1 ${50 + 40 * Math.sin((pDeg + cDeg) * Math.PI / 180)} ${50 - 40 * Math.cos((pDeg + cDeg) * Math.PI / 180)} Z`} className="fill-amber-500/30 stroke-amber-400 stroke-[0.5]" />
+                      <path d={`M 50 50 L ${50 + 40 * Math.sin((pDeg + cDeg) * Math.PI / 180)} ${50 - 40 * Math.cos((pDeg + cDeg) * Math.PI / 180)} A 40 40 0 ${vDeg > 180 ? 1 : 0} 1 50 10 Z`} className="fill-emerald-500/30 stroke-emerald-400 stroke-[0.5]" />
+                      <text x="50" y="95" className="text-[3px] fill-white font-bold" textAnchor="middle">Guia Personalizado</text>
+                    </svg>
+                  );
+                })()}
                 
                 {cameraStream && !cameraError && (
                   <video
