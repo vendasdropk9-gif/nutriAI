@@ -181,41 +181,35 @@ function AnatomicalMuscleMesh({
     if (colorOverride) {
       return new THREE.MeshStandardMaterial({
         color: colorOverride,
-        roughness: 0.3,
-        metalness: 0.15,
+        roughness: 0.82,
+        metalness: 0.0,
       });
     }
 
     if (isTarget) {
-      return new THREE.MeshPhysicalMaterial({
-        color: '#ff6a00',
-        emissive: '#ff5500',
-        emissiveIntensity: 2.8,
-        roughness: 0.2,
-        metalness: 0.1,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.2,
+      return new THREE.MeshStandardMaterial({
+        color: '#ef4444',
+        emissive: '#ef4444',
+        emissiveIntensity: 1.5,
+        roughness: 0.28,
+        metalness: 0.05,
       });
     }
 
     if (isSecondary) {
-      return new THREE.MeshPhysicalMaterial({
+      return new THREE.MeshStandardMaterial({
         color: '#f97316',
-        emissive: '#ea580c',
-        emissiveIntensity: 1.2,
-        roughness: 0.3,
-        metalness: 0.2,
-        clearcoat: 0.3,
-        clearcoatRoughness: 0.2,
+        emissive: '#f97316',
+        emissiveIntensity: 0.9,
+        roughness: 0.28,
+        metalness: 0.05,
       });
     }
 
-    return new THREE.MeshPhysicalMaterial({
-      color: '#1a1d26',
-      roughness: 0.5,
-      metalness: 0.4,
-      clearcoat: 0.2,
-      clearcoatRoughness: 0.4,
+    return new THREE.MeshStandardMaterial({
+      color: '#f8fafc',
+      roughness: 0.82,
+      metalness: 0.0,
     });
   }, [isTarget, isSecondary, colorOverride]);
 

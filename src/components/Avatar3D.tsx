@@ -84,9 +84,9 @@ function MusclePart({
   const mat = useMemo(() => {
     if (isJoint) {
       return new THREE.MeshStandardMaterial({
-        color: '#334155',
-        metalness: 0.8,
-        roughness: 0.25,
+        color: '#f8fafc',
+        metalness: 0.0,
+        roughness: 0.82,
         wireframe: false,
       });
     }
@@ -94,8 +94,8 @@ function MusclePart({
     if (colorOverride) {
       return new THREE.MeshStandardMaterial({
         color: colorOverride,
-        metalness: 0.4,
-        roughness: 0.3,
+        metalness: 0.0,
+        roughness: 0.82,
       });
     }
 
@@ -104,16 +104,16 @@ function MusclePart({
 
     return new THREE.MeshStandardMaterial({
       color: isMuscleActive 
-        ? (isWrong ? '#ef4444' : isPerfect ? '#10b981' : '#059669') 
-        : (muscleType === 'none' ? '#cbd5e1' : '#1e293b'),
+        ? (isWrong ? '#ef4444' : isPerfect ? '#10b981' : '#ef4444') 
+        : '#f8fafc',
       emissive: isMuscleActive 
-        ? (isWrong ? '#dc2626' : isPerfect ? '#34d399' : '#10b981') 
+        ? (isWrong ? '#dc2626' : isPerfect ? '#10b981' : '#ef4444') 
         : '#000000',
-      emissiveIntensity: isMuscleActive ? (isPerfect ? 3.0 : 1.8) : 0,
-      metalness: isMuscleActive ? 0.2 : 0.4,
-      roughness: isMuscleActive ? 0.25 : 0.35,
+      emissiveIntensity: isMuscleActive ? (isPerfect ? 2.5 : 1.5) : 0,
+      metalness: isMuscleActive ? 0.05 : 0.0,
+      roughness: isMuscleActive ? 0.28 : 0.82,
     });
-  }, [isMuscleActive, animation, colorOverride, isJoint, muscleType]);
+  }, [isMuscleActive, animation, colorOverride, isJoint]);
 
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -413,7 +413,7 @@ function RealisticHumanoidModel({
     <group ref={rootGroup} position={[0, 0, 0]}>
       {/* Upper Torso & Head (Attached to Spine for Natural Flexion) */}
       <group ref={spineGroup} position={[0, 0.8, 0]}>
-        {/* Head & Neck */}
+        {/* Head & Neck: Stylized Minimalist White Matte Mannequin (No facial details, matching prints) */}
         <group ref={headGroup} position={[0, 0.85, 0]}>
           {/* Cranium Sphere */}
           <MusclePart
@@ -423,7 +423,7 @@ function RealisticHumanoidModel({
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride={isCyber ? '#1e293b' : skinColor}
+            colorOverride="#f8fafc"
           />
           {/* Athletic Jawline */}
           <MusclePart
@@ -433,18 +433,8 @@ function RealisticHumanoidModel({
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride={isCyber ? '#0f172a' : skinColor}
+            colorOverride="#f8fafc"
           />
-          {/* Futuristic Visor Accent */}
-          <mesh geometry={geo.visor} position={[0, 0.12, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
-            <meshStandardMaterial
-              color={accentGlow}
-              emissive={accentGlow}
-              emissiveIntensity={2.4}
-              roughness={0.1}
-              metalness={0.9}
-            />
-          </mesh>
           {/* Cervical Neck */}
           <MusclePart
             geometry={geo.neck}
@@ -453,7 +443,7 @@ function RealisticHumanoidModel({
             muscleType="none"
             activeMuscles={activeMuscles}
             animation={animation}
-            colorOverride={isCyber ? '#334155' : skinColor}
+            colorOverride="#f8fafc"
           />
         </group>
 
@@ -645,7 +635,7 @@ function RealisticHumanoidModel({
               scale={[0.9, 1, 0.6]}
               muscleType="none"
               activeMuscles={activeMuscles}
-              colorOverride="#475569"
+              colorOverride="#f8fafc"
             />
           </group>
         </group>
@@ -706,7 +696,7 @@ function RealisticHumanoidModel({
               scale={[0.9, 1, 0.6]}
               muscleType="none"
               activeMuscles={activeMuscles}
-              colorOverride="#475569"
+              colorOverride="#f8fafc"
             />
           </group>
         </group>
@@ -801,13 +791,13 @@ function RealisticHumanoidModel({
             animation={animation}
           />
 
-          {/* Left Athletic Training Shoe */}
+          {/* Left Foot - Stylized Minimalist White Matte */}
           <group position={[0, -0.42, 0.06]}>
             <mesh geometry={geo.shoe} position={[0, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.2, 0.8]}>
-              <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.3} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.82} metalness={0.0} />
             </mesh>
             <mesh geometry={geo.shoeSole} position={[0, 0, 0.02]}>
-              <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={0.6} roughness={0.3} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.82} metalness={0.0} />
             </mesh>
           </group>
         </group>
@@ -872,13 +862,13 @@ function RealisticHumanoidModel({
             animation={animation}
           />
 
-          {/* Right Athletic Training Shoe */}
+          {/* Right Foot - Stylized Minimalist White Matte */}
           <group position={[0, -0.42, 0.06]}>
             <mesh geometry={geo.shoe} position={[0, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.2, 0.8]}>
-              <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.3} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.82} metalness={0.0} />
             </mesh>
             <mesh geometry={geo.shoeSole} position={[0, 0, 0.02]}>
-              <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={0.6} roughness={0.3} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.82} metalness={0.0} />
             </mesh>
           </group>
         </group>

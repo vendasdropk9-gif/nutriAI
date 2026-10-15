@@ -48,6 +48,8 @@ import {
   AvatarCameraViewType,
   MuscleHighlightMode,
 } from '../lib/avatarGlobalState';
+import { AvatarFace } from './AvatarFace';
+
 import { playSfx, vibrate } from '../lib/sensory';
 
 // Helper function to validate muscle raycast intersections
@@ -421,26 +423,17 @@ function CameraRig({
 // ============================================================================
 
 function StudioGymPlatform() {
-  const floorMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#070b14',
-    roughness: 0.55,
-    metalness: 0.35,
-  }), []);
-
-  const ringMat = useMemo(() => new THREE.MeshBasicMaterial({
-    color: '#00e5ff',
-    wireframe: true,
-    transparent: true,
-    opacity: 0.22,
+  const matMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#1a2230',
+    roughness: 0.85,
+    metalness: 0.1,
   }), []);
 
   return (
     <group position={[0, -0.32, 0]}>
-      <mesh material={floorMat} position={[0, -0.04, 0]} receiveShadow>
-        <cylinderGeometry args={[1.75, 1.85, 0.08, 48]} />
-      </mesh>
-      <mesh material={ringMat} position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.4, 1.48, 48]} />
+      {/* Rectangular training mat exactly matching reference screenshots */}
+      <mesh material={matMat} position={[0, -0.01, 0]} receiveShadow>
+        <boxGeometry args={[1.65, 0.02, 1.85]} />
       </mesh>
     </group>
   );
@@ -639,6 +632,7 @@ const muscleHighlightFragmentShader = `
   uniform float uCameraView;             // 0 = front, 1 = side, 2 = detail, 3 = back
   uniform float uIntensity;              // Base glow multiplier
   uniform float uContraction;            // 0.0 to 1.0 (synchronized with kinematic cycle)
+  uniform float uSweatIntensity;         // Sweat intensity: 0.0 (dry) to 1.0 (very sweaty)
 
   // =========================================================================
   // NORMAL MAPPING: Procedural Micro-Anatomical Muscle Fiber Heightfield
@@ -783,8 +777,9 @@ const muscleHighlightFragmentShader = `
 
     // Normal-mapped Specular Glistening: fibers glisten with intense athletic sheen at pulse apex
     float pulseSpecularBoost = 1.0 + pulseShape * 0.85 * paceIntensityFactor + uContraction * 0.50;
+    float sweatSpecularBoost = 1.0 + uSweatIntensity * 1.5; // Boost specularity with sweat
     vec3 specularColor = mix(vec3(1.0, 0.88, 0.75), vec3(1.0, 0.95, 0.90), step(0.5, uIsPrimary));
-    activeColor += specularColor * (specularGleam * 0.55 * pulseSpecularBoost);
+    activeColor += specularColor * (specularGleam * 0.55 * pulseSpecularBoost * sweatSpecularBoost);
 
     // Dynamic crest flash at the apex of the pulse wave
     if (uIsPrimary > 0.5) {
@@ -890,6 +885,7 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         uCameraView: { value: cameraViewNum },
         uIntensity: { value: options?.intensity ?? (isPrimary ? 1.65 : 1.15) },
         uContraction: { value: options?.contraction ?? 0.0 },
+        uSweatIntensity: { value: 0.0 },
       },
       vertexShader: muscleHighlightVertexShader,
       fragmentShader: muscleHighlightFragmentShader,
@@ -1637,14 +1633,14 @@ function AnatomicalMuscleNode({
     propHighlightPrimary ||
     context.uHighlightColorPrimary ||
     context.highlightColorPrimary ||
-    '#ff0033';
+    '#ef4444'; // Bright solid red
 
   const rawHighlightSecondary =
     propUHighlightSecondary ||
     propHighlightSecondary ||
     context.uHighlightColorSecondary ||
     context.highlightColorSecondary ||
-    '#ff6a00';
+    '#f97316'; // Bright solid orange
 
   // Camera view float for shader: 0=front, 1=side, 2=detail, 3=back
   const cameraViewFloat = useMemo(() => {
@@ -1696,63 +1692,49 @@ function AnatomicalMuscleNode({
 
   const isHighlighted = isPrimary || isSecondary;
 
-  // Custom ShaderMaterial in Red / Orange for active muscles with dynamic pace pulse
-  const shaderMat = useMemo(() => {
+  // Stylized Minimalist Solid-Color Material for target muscles (Zero complex textures, ultra-fast loading)
+  const solidMuscleMat = useMemo(() => {
     if (isHighlighted) {
-      return new MuscleHighlightShaderMaterial({
-        isPrimary,
-        cameraView,
-        intensity: isPrimary ? 1.65 : 1.15,
-        exercisePace: currentPace,
-        uHighlightColorPrimary: rawHighlightPrimary,
-        uHighlightColorSecondary: rawHighlightSecondary,
+      const targetColor = isPrimary ? rawHighlightPrimary : rawHighlightSecondary;
+      return new THREE.MeshStandardMaterial({
+        color: targetColor,
+        emissive: targetColor,
+        emissiveIntensity: isPrimary ? 1.5 : 0.9,
+        roughness: 0.28,
+        metalness: 0.05,
       });
     }
-    return null;
-  }, [isHighlighted, isPrimary, cameraView, currentPace, rawHighlightPrimary, rawHighlightSecondary]);
+    // White matte mannequin texture (branca fosca e sem texturas complexas)
+    return new THREE.MeshStandardMaterial({
+      color: '#f8fafc',
+      roughness: 0.82,
+      metalness: 0.0,
+    });
+  }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary]);
 
   useEffect(() => {
     return () => {
-      if (shaderMat) {
-        shaderMat.dispose();
-      }
+      solidMuscleMat.dispose();
     };
-  }, [shaderMat]);
+  }, [solidMuscleMat]);
 
-  // High-Definition Sculpted Matte Porcelain Atlas Mannequin for inactive body parts matching image.png
-  const inactiveMat = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: '#dce3ef',
-        roughness: 0.28,
-        metalness: 0.04,
-        clearcoat: 0.48,
-        clearcoatRoughness: 0.16,
-        reflectivity: 0.65,
-      }),
-    []
-  );
-
-  // Update Shader Uniforms and Dynamic Contraction Swelling
+  // Update dynamic solid color pulse and concentric expansion
   useFrame((state) => {
     if (!meshRef.current) return;
     const time = state.clock.getElapsedTime() * (isPlaying ? playbackSpeed : 0);
     const cycle = (Math.sin(time * 2.2) + 1) / 2;
 
-    if (shaderMat) {
-      shaderMat.updateTimeAndContraction(state.clock.getElapsedTime(), cycle, currentPace);
-      shaderMat.setCameraView(cameraViewFloat);
-      shaderMat.setIsPrimary(isPrimary);
-      if (rawHighlightPrimary) shaderMat.setHighlightColorPrimary(rawHighlightPrimary);
-      if (rawHighlightSecondary) shaderMat.setHighlightColorSecondary(rawHighlightSecondary);
+    if (isHighlighted && solidMuscleMat) {
+      const pulse = Math.sin(time * 3 * currentPace) * 0.28 + (isPrimary ? 1.35 : 0.85);
+      solidMuscleMat.emissiveIntensity = pulse;
     }
 
     // Dynamic hypertrophic swelling during concentric peak contraction
     if (isPrimary && isPlaying) {
-      const contractionSwell = 1.0 + cycle * 0.10; // 10% volume expansion
+      const contractionSwell = 1.0 + cycle * 0.08; // 8% volume expansion
       meshRef.current.scale.set(
         scale[0] * contractionSwell,
-        scale[1] * (1.0 + cycle * 0.03),
+        scale[1] * (1.0 + cycle * 0.02),
         scale[2] * contractionSwell
       );
     } else if (isSecondary && isPlaying) {
@@ -1777,7 +1759,7 @@ function AnatomicalMuscleNode({
     <mesh
       ref={meshRef}
       geometry={geometry}
-      material={shaderMat || inactiveMat}
+      material={solidMuscleMat}
       position={position}
       rotation={rotation}
       scale={scale}
@@ -1857,15 +1839,15 @@ export function recalibrateJointSkinWeights(
 
     if (preserveElbowVolume) {
       // Left Elbow: Left Arm / UpperArm <-> Left Forearm / LowerArm
-      const lArm = findBoneIndices(['leftarm', 'arm.l', 'arm_l', 'upperarm.l', 'upperarm_l', 'shoulder.l', 'left_arm', 'leftupperarm']);
-      const lForearm = findBoneIndices(['leftforearm', 'forearm.l', 'forearm_l', 'lowerarm.l', 'lowerarm_l', 'left_forearm', 'leftlowerarm']);
+      const lArm = findBoneIndices(['leftarm', 'arm.l', 'arm_l', 'upperarm.l', 'upperarm_l', 'shoulder.l', 'left_arm', 'leftupperarm', 'arm']);
+      const lForearm = findBoneIndices(['leftforearm', 'forearm.l', 'forearm_l', 'lowerarm.l', 'lowerarm_l', 'left_forearm', 'leftlowerarm', 'forearm', 'lowerarm']);
       if (lArm.length > 0 && lForearm.length > 0) {
         jointPairs.push({ name: 'Left Elbow', proximal: lArm, distal: lForearm, type: 'elbow' });
       }
 
       // Right Elbow: Right Arm / UpperArm <-> Right Forearm / LowerArm
-      const rArm = findBoneIndices(['rightarm', 'arm.r', 'arm_r', 'upperarm.r', 'upperarm_r', 'shoulder.r', 'right_arm', 'rightupperarm']);
-      const rForearm = findBoneIndices(['rightforearm', 'forearm.r', 'forearm_r', 'lowerarm.r', 'lowerarm_r', 'right_forearm', 'rightlowerarm']);
+      const rArm = findBoneIndices(['rightarm', 'arm.r', 'arm_r', 'upperarm.r', 'upperarm_r', 'shoulder.r', 'right_arm', 'rightupperarm', 'arm']);
+      const rForearm = findBoneIndices(['rightforearm', 'forearm.r', 'forearm_r', 'lowerarm.r', 'lowerarm_r', 'right_forearm', 'rightlowerarm', 'forearm', 'lowerarm']);
       if (rArm.length > 0 && rForearm.length > 0) {
         jointPairs.push({ name: 'Right Elbow', proximal: rArm, distal: rForearm, type: 'elbow' });
       }
@@ -1873,15 +1855,15 @@ export function recalibrateJointSkinWeights(
 
     if (preserveKneeVolume) {
       // Left Knee: Left UpLeg / Thigh <-> Left Leg / Shin / Calf
-      const lThigh = findBoneIndices(['leftupleg', 'upleg.l', 'upleg_l', 'thigh.l', 'thigh_l', 'femur.l', 'femur_l', 'left_thigh', 'leftthigh']);
-      const lShin = findBoneIndices(['leftleg', 'leg.l', 'leg_l', 'shin.l', 'shin_l', 'calf.l', 'calf_l', 'tibia.l', 'tibia_l', 'left_leg', 'leftshin']);
+      const lThigh = findBoneIndices(['leftupleg', 'upleg.l', 'upleg_l', 'thigh.l', 'thigh_l', 'femur.l', 'femur_l', 'left_thigh', 'leftthigh', 'thigh', 'upleg']);
+      const lShin = findBoneIndices(['leftleg', 'leg.l', 'leg_l', 'shin.l', 'shin_l', 'calf.l', 'calf_l', 'tibia.l', 'tibia_l', 'left_leg', 'leftshin', 'shin', 'calf', 'leg']);
       if (lThigh.length > 0 && lShin.length > 0) {
         jointPairs.push({ name: 'Left Knee', proximal: lThigh, distal: lShin, type: 'knee' });
       }
 
       // Right Knee: Right UpLeg / Thigh <-> Right Leg / Shin / Calf
-      const rThigh = findBoneIndices(['rightupleg', 'upleg.r', 'upleg_r', 'thigh.r', 'thigh_r', 'femur.r', 'femur_r', 'right_thigh', 'rightthigh']);
-      const rShin = findBoneIndices(['rightleg', 'leg.r', 'leg_r', 'shin.r', 'shin_r', 'calf.r', 'calf_r', 'tibia.r', 'tibia_r', 'right_leg', 'rightshin']);
+      const rThigh = findBoneIndices(['rightupleg', 'upleg.r', 'upleg_r', 'thigh.r', 'thigh_r', 'femur.r', 'femur_r', 'right_thigh', 'rightthigh', 'thigh', 'upleg']);
+      const rShin = findBoneIndices(['rightleg', 'leg.r', 'leg_r', 'shin.r', 'shin_r', 'calf.r', 'calf_r', 'tibia.r', 'tibia_r', 'right_leg', 'rightshin', 'shin', 'calf', 'leg']);
       if (rThigh.length > 0 && rShin.length > 0) {
         jointPairs.push({ name: 'Right Knee', proximal: rThigh, distal: rShin, type: 'knee' });
       }
@@ -1988,7 +1970,7 @@ export function recalibrateJointSkinWeights(
             const jointRadius = (joint.type === 'knee' ? 0.14 : 0.09) * transitionRadiusScale;
 
             if (distToJoint < jointRadius) {
-              const blendRatio = (1.0 - distToJoint / jointRadius) * 0.35 * smoothingStrength;
+              const blendRatio = Math.pow(1.0 - distToJoint / jointRadius, 2) * 0.55 * smoothingStrength;
 
               if (proxWeight > distWeight && distSlot !== -1) {
                 const transfer = proxWeight * blendRatio;
@@ -2412,8 +2394,9 @@ class AvatarModelPoolManager {
           recalibrateJointSkinWeights(scene, {
             preserveElbowVolume: true,
             preserveKneeVolume: true,
-            smoothingStrength: 0.68,
-            curvaturePreservation: 0.75,
+            smoothingStrength: 0.999,
+            curvaturePreservation: 0.999,
+            transitionRadiusScale: 2.0,
           });
 
           const asset: PooledModelAsset = {
@@ -2520,6 +2503,7 @@ function SingleGLTFModelInstance({
   const gltf = useGLTF(modelUrl, true);
   const groupRef = useRef<THREE.Group>(null);
   const shaderMaterialsRef = useRef<MuscleHighlightShaderMaterial[]>([]);
+  const sweatTimeRef = useRef(0);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const activeActionRef = useRef<THREE.AnimationAction | null>(null);
 
@@ -2529,8 +2513,9 @@ function SingleGLTFModelInstance({
     recalibrateJointSkinWeights(clone, {
       preserveElbowVolume: true,
       preserveKneeVolume: true,
-      smoothingStrength: 0.68,
-      curvaturePreservation: 0.75,
+      smoothingStrength: 0.999,
+      curvaturePreservation: 0.999,
+      transitionRadiusScale: 2.0,
     });
 
     avatarModelPool.set(gender, modelUrl, {
@@ -2657,10 +2642,17 @@ function SingleGLTFModelInstance({
 
     shaderMaterialsRef.current.forEach((mat) => {
       mat.updateTimeAndContraction(time, cycle, currentPace);
+      mat.uniforms.uSweatIntensity.value = Math.min(1.0, sweatTimeRef.current * 0.05);
       mat.uniforms.uCameraView.value = cameraViewFloat;
       if (effPrimary) mat.setHighlightColorPrimary(effPrimary);
       if (effSecondary) mat.setHighlightColorSecondary(effSecondary);
     });
+
+    if (isPlaying) {
+      sweatTimeRef.current += delta;
+    } else {
+      sweatTimeRef.current = Math.max(0, sweatTimeRef.current - delta * 0.5);
+    }
 
     if (groupRef.current && isPlaying && pulsingMuscle) {
       const pulse = 1 + Math.sin(time * 6 * resolvedPace) * 0.03;
@@ -2963,21 +2955,11 @@ function AnatomicalAvatarModel({
     foot: createSculptedFootGeometry(true),
   }), [isFemale]);
 
-  // Dark athletic shorts matching reference image
-  const darkShortsMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#080d17',
+  // White matte mannequin material for skeletal, pelvic and non-muscular landmarks (joints, collarbones, hands, feet)
+  const inactiveMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#f8fafc',
     roughness: 0.82,
-    metalness: 0.18,
-  }), []);
-
-  // Sculpted Alabaster Porcelain Material for skeletal and non-muscular landmarks
-  const inactiveMat = useMemo(() => new THREE.MeshPhysicalMaterial({
-    color: '#e2e8f0',
-    roughness: 0.22,
-    metalness: 0.08,
-    clearcoat: 0.7,
-    clearcoatRoughness: 0.12,
-    reflectivity: 0.85,
+    metalness: 0.0,
   }), []);
 
   // Biomechanical Motion Engine with smooth continuous interpolation
@@ -3321,6 +3303,7 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
+          <AvatarFace effort={isPlaying ? 0.6 : 0.1} />
           <AnatomicalMuscleNode
             geometry={geo.neck}
             position={[0, -0.04, 0.005]}
@@ -3438,11 +3421,11 @@ function AnatomicalAvatarModel({
           />
         </group>
 
-        {/* Pelvis, Athletic Shorts & Glutes */}
+        {/* Pelvis & Glutes */}
         <group position={[0, -0.02, 0]}>
           <mesh
             geometry={geo.shorts}
-            material={darkShortsMat}
+            material={inactiveMat}
             position={[0, 0.03, 0]}
             rotation={[0, 0, 0]}
             castShadow
@@ -3851,44 +3834,68 @@ function MuscleFocusCarousel({
   category,
   activeTargetIndex = 1,
   onSelectTarget,
+  highlightColor,
 }: {
   primaryMuscles: string[];
   secondaryMuscles?: string[];
   category: string;
   activeTargetIndex: number;
   onSelectTarget: (index: number) => void;
+  highlightColor?: string;
 }) {
-  const targetItems = useMemo(() => {
-    const mainMuscle = primaryMuscles[0] || 'Músculo Alvo';
-    const secMuscle = (secondaryMuscles && secondaryMuscles[0]) || primaryMuscles[1] || 'Sinergistas';
-    return [
-      { id: 'left', label: secMuscle, sub: 'Sinergistas', active: activeTargetIndex === 0 },
-      { id: 'center', label: mainMuscle, sub: 'Foco Principal', active: activeTargetIndex === 1 },
-      { id: 'right', label: 'Zoom Biomecânico', sub: 'Detalhe', active: activeTargetIndex === 2 },
-    ];
-  }, [primaryMuscles, secondaryMuscles, activeTargetIndex]);
+  const mainMuscle = primaryMuscles[0] || 'Chest';
+  const displayTitle = (mainMuscle.toLowerCase().includes('peit') || mainMuscle.toLowerCase().includes('chest'))
+    ? (activeTargetIndex === 0 ? 'MID CHEST' : activeTargetIndex === 1 ? 'FULL CHEST' : 'UPPER CHEST')
+    : mainMuscle.toUpperCase();
+
+  const neonColors = ['#ec4899', '#f97316', '#eab308'];
+  const activeColor = highlightColor || neonColors[activeTargetIndex % 3];
 
   return (
-    <div className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-2xl bg-black/55 backdrop-blur-md border border-white/10 shadow-2xl">
-      {targetItems.map((item, idx) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onSelectTarget(idx)}
-          className={`px-3 py-1.5 rounded-xl text-left transition-all cursor-pointer pointer-events-auto ${
-            item.active
-              ? 'bg-gradient-to-r from-red-600/90 to-red-500/90 text-white shadow-lg shadow-red-600/40 border border-red-400/50 scale-102'
-              : 'bg-slate-900/40 text-slate-300 hover:text-white border border-white/5 hover:border-white/20'
-          }`}
-        >
-          <p className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider opacity-85 leading-none">
-            {item.sub}
-          </p>
-          <p className="text-[11px] sm:text-xs font-bold leading-tight truncate max-w-[110px] sm:max-w-[140px]">
-            {item.label}
-          </p>
-        </button>
-      ))}
+    <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+      {/* Title above carousel matching prints */}
+      <div className="text-[11px] sm:text-xs font-black tracking-widest text-white/95 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+        {displayTitle}
+      </div>
+
+      {/* 3 Muscle Cards Carousel with Neon Glow Frame */}
+      <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 shadow-2xl">
+        {[
+          { label: 'Mid', index: 0, sub: 'Foco Central' },
+          { label: 'Full', index: 1, sub: 'Completo' },
+          { label: 'Upper', index: 2, sub: 'Superior' },
+        ].map((item) => {
+          const isActive = activeTargetIndex === item.index;
+          return (
+            <button
+              key={item.index}
+              type="button"
+              onClick={() => onSelectTarget(item.index)}
+              className={`w-14 h-16 sm:w-16 sm:h-18 rounded-xl flex flex-col items-center justify-center p-1 transition-all cursor-pointer ${
+                isActive
+                  ? 'border-2 scale-105 shadow-lg bg-black/80'
+                  : 'border border-white/10 opacity-55 hover:opacity-85 bg-black/40'
+              }`}
+              style={{
+                borderColor: isActive ? activeColor : 'rgba(255,255,255,0.1)',
+                boxShadow: isActive ? `0 0 16px ${activeColor}55` : undefined,
+              }}
+            >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-current" strokeWidth="1.8">
+                  <path d="M4 8l4-2 4 2 4-2 4 2v6l-4 4-4-2-4 2-4-4V8z" />
+                </svg>
+              </div>
+              <span className="text-[9px] font-bold uppercase text-white/90">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sets / Reps Counter at Bottom matching prints */}
+      <div className="text-[10px] font-mono font-bold tracking-wider text-slate-400">
+        3x10-15
+      </div>
     </div>
   );
 }
@@ -4592,6 +4599,7 @@ export class AvatarAnatomico
               category={exerciseWithMuscles.category}
               activeTargetIndex={activeTargetIndex}
               onSelectTarget={this.handleSelectMuscleTarget}
+              highlightColor={effectiveHighlightPrimary}
             />
           </div>
         )}
@@ -4746,14 +4754,14 @@ export class AvatarAnatomico
                 />
               )}
 
-              {/* Studio Lighting Exactly Matching Reference Image */}
-              <ambientLight intensity={0.55} color="#0f172a" />
+              {/* Studio Lighting: Soft neutral daylight / studio illumination preserving white matte texture */}
+              <ambientLight intensity={0.7} color="#ffffff" />
 
               {/* Key Cool White Light from Front-Right */}
               <directionalLight
-                position={[2.2, 4.0, 3.2]}
-                intensity={1.5}
-                color="#f8fafc"
+                position={[2.4, 4.0, 3.2]}
+                intensity={1.6}
+                color="#ffffff"
                 castShadow
                 shadow-mapSize-width={1024}
                 shadow-mapSize-height={1024}
@@ -4763,29 +4771,29 @@ export class AvatarAnatomico
               {/* Fill Light Front-Left */}
               <directionalLight
                 position={[-2.8, 2.5, 2.2]}
-                intensity={0.7}
-                color="#cbd5e1"
+                intensity={0.8}
+                color="#f1f5f9"
               />
 
-              {/* Signature Electric Blue / Cyan Rim Light from Behind & Sides */}
+              {/* Subtle Neutral Rim Lights to Sculpt the Mannequin Silhouette */}
               <directionalLight
                 position={[0, 2.8, -3.4]}
-                intensity={3.8}
-                color="#00e5ff"
+                intensity={1.2}
+                color="#f8fafc"
               />
               <directionalLight
                 position={[-3.5, 1.8, -2.0]}
-                intensity={2.4}
-                color="#00e5ff"
+                intensity={0.8}
+                color="#f8fafc"
               />
               <directionalLight
                 position={[3.5, 1.8, -2.0]}
-                intensity={2.4}
-                color="#00e5ff"
+                intensity={0.8}
+                color="#f8fafc"
               />
 
               {/* Floor Ambient Glow */}
-              <pointLight position={[0, 0.2, 0.8]} intensity={0.7} color="#ff0033" distance={2.5} />
+              <pointLight position={[0, 0.2, 0.8]} intensity={0.25} color="#ffffff" distance={2.5} />
 
               {/* Studio Floor Platform */}
               <StudioGymPlatform />

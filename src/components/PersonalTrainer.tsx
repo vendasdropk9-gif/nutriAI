@@ -17,6 +17,7 @@ import avatarFemaleCurl from '../assets/images/avatar_female_curl_1790881993449.
 import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jpg';
 import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
 import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
+import { resolveExerciseWithKinematics } from '../lib/animationManager';
 import avatarGlobalStore from '../lib/avatarGlobalState';
 
 // Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
@@ -404,19 +405,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
   const activeDetailedExercise = useMemo<DetailedExercise>(() => {
     if (!currentExercise) return EXERCISE_DATABASE[0];
-    const found = EXERCISE_DATABASE.find(e => 
-      e.name.toLowerCase().includes(currentExercise.name.toLowerCase()) ||
-      currentExercise.name.toLowerCase().includes(e.name.toLowerCase()) ||
-      e.id === currentExercise.id
-    );
-    if (found) return found;
-    return {
-      ...EXERCISE_DATABASE[0],
-      id: `custom-${currentExercise.id || 'ex'}`,
-      name: currentExercise.name,
-      primaryMuscles: currentExercise.primaryMuscles?.length ? currentExercise.primaryMuscles : ['Músculo Alvo'],
-      secondaryMuscles: (currentExercise as any).secondaryMuscles || []
-    };
+    const { detailedExercise } = resolveExerciseWithKinematics(currentExercise);
+    return detailedExercise;
   }, [currentExercise]);
 
   const handleExerciseSuccess = () => {
