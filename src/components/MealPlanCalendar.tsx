@@ -13,50 +13,24 @@ import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, Recip
 import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
-import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
-import { playSfx, vibrate } from '../lib/sensory';
-import { auth, db, collection, getDocs, doc, setDoc } from '../lib/firebase';
-import { safeGet, safeSet } from '../lib/storage';
 
-interface MealPlanProps {
+
+export function MealPlanView({
+  mealPlan,
+  savedRecipes,
+  onUpdatePlan,
+  onLogIntake,
+  profile,
+  onGeneratingChange
+}: {
   mealPlan: MealPlan;
   savedRecipes: Recipe[];
-  onUpdatePlan: (day: string, mealName: string, recipeId: string | null, recipeObj?: Recipe) => void;
+  onUpdatePlan: (newPlan: MealPlan) => void;
   onLogIntake: (log: IntakeLog) => void;
-  profile: UserProfile | null;
+  profile?: UserProfile | null;
   onGeneratingChange?: (generating: boolean) => void;
-}
-
-const DAYS_OF_WEEK = [
-  'Segunda-feira',
-  'Terça-feira',
-  'Quarta-feira',
-  'Quinta-feira',
-  'Sexta-feira',
-  'Sábado',
-  'Domingo'
-];
-
-const MEALS = [
-  { id: 'breakfast', label: 'Café da Manhã' },
-  { id: 'lunch', label: 'Almoço' },
-  { id: 'snack', label: 'Lanche' },
-  { id: 'dinner', label: 'Jantar' },
-];
-
-export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake, profile, onGeneratingChange }: MealPlanProps) {
+}) {
   const { t } = useTranslation();
-  const [selectedDay, setSelectedDay] = useState<string>(DAYS_OF_WEEK[0]);
-  const [addingTo, setAddingTo] = useState<{day: string, meal: string} | null>(null);
-  const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
-
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isExportingCard, setIsExportingCard] = useState(false);
-  const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
-  const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
-  const shareCardRef = useRef<HTMLDivElement>(null);
 
   // States for 'Sync to Shopping List' checking against PantryScanner
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -721,6 +695,18 @@ export function MealPlanView({ mealPlan, savedRecipes, onUpdatePlan, onLogIntake
               >
                 <ShoppingCart className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 <span>Sincronizar Lista</span>
+              </button>
+              <button
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(15);
+                  setIsPdfModalOpen(true);
+                }}
+                className="bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer border border-emerald-500/20"
+                title="Exportar Plano da Semana e Lista de Compras em PDF"
+              >
+                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Exportar PDF</span>
               </button>
               <button
                 onClick={() => setIsShareModalOpen(true)}

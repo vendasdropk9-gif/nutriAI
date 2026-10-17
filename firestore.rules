@@ -1,134 +1,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Connection test endpoint
+    
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // --- Connection Test ---
     match /test/connection {
       allow read: if true;
     }
 
-    // --- Helpers ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // --- User Collection & Subcollections ---
+    // --- User Collections (Strictly Secured to Owner) ---
     match /users/{userId} {
-      allow read, write: if true;
-
-      // Subcollections for user data (intakeLogs, progressLogs, hydrationLogs, notes, pantryItems, etc.)
+      // Allow access if owner, OR if user is a guest (for direct access scenarios)
+      allow read, write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
+      
+      // Subcollections (Secured to owner or guest)
       match /{allSubcollections=**} {
-        allow read, write: if true;
+        allow read, write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
       }
     }
 
-    // Profiles (alias used in some modules)
-    match /profiles/{profileId} {
-      allow read, write: if true;
-    }
-
-    // Medicinal Herbs (global encyclopedia & user favorites)
-    match /medicinalHerbs/{herbId} {
-      allow read, write: if true;
-    }
-
-    // Recipes (global/saved)
-    match /recipes/{recipeId} {
-      allow read, write: if true;
-    }
-
-    // Gym partner centers (academies)
-    match /academies/{academyId} {
-      allow read, write: if true;
-    }
-
-    // Recipe feedback & ratings
-    match /recipeReviews/{reviewId} {
-      allow read, write: if true;
-    }
-
-    // General app feedback & ratings
-    match /feedbacks/{feedbackId} {
-      allow read, write: if true;
-    }
-
-    // Couriers / Delivery drivers
-    match /couriers/{courierId} {
-      allow read, write: if true;
-    }
-
-    // Deliveries telemetry and real-time trackers
-    match /deliveries/{deliveryId} {
-      allow read, write: if true;
-    }
-
-    // Smart plate combinations
-    match /smartPlateCombinations/{comboId} {
-      allow read, write: if true;
-    }
-
-    // Pantry, fridge, garden items
+    // --- Pantry & Fridge Items (Explicit collection rules - Restricted to Auth) ---
+    // Note: These collections lack a userId field in their schema, preventing strict ownership enforcement.
     match /pantryItems/{id} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
     match /fridgeItems/{id} {
-      allow read, write: if true;
-    }
-    match /gardenItems/{id} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    // Orders & Shopping
-    match /orders/{orderId} {
-      allow read, write: if true;
+    // --- Profiles (Shared/Public read-only, unless it's the owner profile) ---
+    match /profiles/{profileId} {
+      allow read: if isSignedIn();
+      allow write: if isValidId(profileId) && isOwner(profileId);
     }
 
-    // Health logs (Glucose, Blood Pressure, etc.)
-    match /glucoseLogs/{id} {
-      allow read, write: if true;
+    // --- Global / Public Collections (Read-only for signed-in users) ---
+    match /medicinalHerbs/{herbId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
     }
-    match /bloodPressureLogs/{id} {
-      allow read, write: if true;
+    match /recipes/{recipeId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
     }
-
-    // Scanners & Identifiers
-    match /plantIdentifications/{id} {
-      allow read, write: if true;
-    }
-    match /mushroomIdentifications/{id} {
-      allow read, write: if true;
-    }
-    match /allergyScans/{id} {
-      allow read, write: if true;
-    }
-    match /productComparisons/{id} {
-      allow read, write: if true;
+    match /academies/{academyId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
     }
 
-    // Notebook / Notes
-    match /notes/{id} {
-      allow read, write: if true;
+    // --- Application Data & Interaction Collections ---
+    match /recipeReviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data.userId);
     }
-
-    // Adaptive AI Insights
-    match /adaptiveInsights/{id} {
-      allow read, write: if true;
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data.userId);
     }
-
-    // Global and cross-device button states
     match /buttonStates/{buttonId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
-    match /globalButtonStates/{buttonId} {
-      allow read, write: if true;
-    }
-
-    // Real-time Presence Indicators
     match /presence/{userId} {
-      allow read, write: if true;
+      allow read, write: if isValidId(userId) && isOwner(userId);
     }
 
     // Default Deny Catch-All

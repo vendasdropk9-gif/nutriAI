@@ -1212,7 +1212,23 @@ export const textToSpeech = async (
     } catch (e) {}
   }
 
-  // Synthesize with Gemini TTS (gemini-3.8-flash-tts / gemini-3.8-flash-lite-tts)
+  // 1. Try ElevenLabs TTS if key is configured
+  const elevenKey =
+    process.env.ELEVENLABS_API_KEY ||
+    process.env.ELEVEN_LABS_API_KEY ||
+    process.env.VITE_ELEVENLABS_API_KEY ||
+    process.env.ELEVENLABS_KEY;
+  if (elevenKey) {
+    try {
+      const elevenAudio = await getElevenLabsTTS(text);
+      if (elevenAudio) {
+        ttsServerCache.set(cacheKey, elevenAudio);
+        return elevenAudio;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Synthesize with Gemini TTS (gemini-3.8-flash-tts / gemini-3.8-flash-lite-tts with Malu Aoede voice)
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
   if (apiKey) {

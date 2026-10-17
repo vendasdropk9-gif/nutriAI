@@ -86,6 +86,7 @@ import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
+import { ConnectionDiagnostic } from './components/ConnectionDiagnostic';
 
 const TAB_ORDER = [
   "admin_library",
@@ -1045,6 +1046,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         }}
       />
       </motion.div>
+      <ConnectionDiagnostic />
     </div>
     );
   };

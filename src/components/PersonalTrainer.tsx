@@ -19,17 +19,22 @@ import avatarFemalePlank from '../assets/images/avatar_female_plank_179088202103
 import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
 import { resolveExerciseWithKinematics } from '../lib/animationManager';
 import avatarGlobalStore from '../lib/avatarGlobalState';
+import { PostureAnalyzer } from './PostureAnalyzer';
 
 // Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
 const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
 const SmartExerciseDemonstration = lazy(() => import('./SmartExerciseDemonstration'));
 const ExerciseDetailsModal = lazy(() => import('./ExerciseDetailsModal'));
+const WorkoutCalendarComponent = lazy(() => import('./WorkoutCalendar').then(m => ({ default: m.WorkoutCalendarComponent })));
 
 interface PersonalTrainerProps {
   profile: UserProfile | null;
   onAwardPoints?: (amount: number, reason: string) => void;
   onUpdateProfile?: (profile: UserProfile) => void;
 }
+
+// ... (in the component body)
+  const [isPostureActive, setIsPostureActive] = useState(false);
 
 const DEFAULT_WEEKLY_PLAN: WeeklyWorkoutPlan = {
   id: "weekly-plan-default",
@@ -227,7 +232,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   const { t } = useTranslation();
-  const [activeSubTab, setActiveSubTab] = useState<'demo' | 'training' | 'plan'>('demo');
+  const [activeSubTab, setActiveSubTab] = useState<'demo' | 'training' | 'plan' | 'calendar'>('demo');
   const [selectedDemoExerciseId, setSelectedDemoExerciseId] = useState<string>('seated-lateral-raises');
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyWorkoutPlan | null>(null);
   const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
@@ -290,9 +295,19 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     };
   }, []);
   
-  // Background Music State
-  const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
-  const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
+  // ... fatigue integration ...
+  const avatarState = useAvatarGlobalState();
+  const prevFatigue = useRef(0);
+
+  useEffect(() => {
+    if (avatarState.fatigueLevel !== prevFatigue.current) {
+      prevFatigue.current = avatarState.fatigueLevel;
+      if (avatarState.fatigueLevel > 0.6) {
+        // Fadiga alta: Malu fala mais devagar e com tom mais acolhedor
+        // Aqui seria a lógica de ajuste na ElevenLabs ou TTS
+      }
+    }
+  }, [avatarState.fatigueLevel]);
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Exercise Reference Card Modal State
@@ -414,6 +429,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     setShowSuccessAnimation(true);
     playSfx('success');
     vibrate([30, 50, 30]);
+    avatarGlobalStore.triggerMotivationalSmile(4500);
     playMotivationalMessage("Perfeito! Movimento impecável. Concluído com sucesso.");
     
     // Auto-advance after showing success
@@ -590,6 +606,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
       setCurrentExerciseIndex(nextIndex);
       setIsTimerActive(false);
       setTimeLeft(0);
+      avatarGlobalStore.triggerMotivationalSmile(4200);
       playMotivationalMessage(`Muito bom! Vamos pro próximo: ${workout.exercises[nextIndex].name}.`);
     } else {
       finishWorkout();
@@ -599,6 +616,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const finishWorkout = () => {
     setCurrentExerciseIndex(-2); // Special state for finished
     setIsTimerActive(false);
+    avatarGlobalStore.triggerMotivationalSmile(6000);
     if (onAwardPoints) onAwardPoints(150, `Treino Completo: ${workout?.title}`);
     
     if (onUpdateProfile && profile) {
@@ -923,6 +941,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
             })}
           </div>
         </div>
+      ) : activeSubTab === 'calendar' ? (
+        <WorkoutCalendarComponent profile={profile} onUpdateProfile={onUpdateProfile} />
       ) : (
         <div>
           {!workout ? (
@@ -1013,6 +1033,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                    heartRateSource={hrSync.source}
                    showReferenceControls={true}
                    showOverlayBadges={false}
+                   positiveFeedback={showSuccessAnimation}
                    onTogglePlay={(p) => setIsTimerActive(p)}
                  />
                </Suspense>
@@ -1041,6 +1062,19 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                 >
                   <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                   <span>Detalhes do Exercício</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(12);
+                    setIsPostureActive(!isPostureActive);
+                  }}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold ${isPostureActive ? 'bg-red-600 text-white' : 'bg-[#09152e]/90 text-red-300 border border-red-500/40'} backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95`}
+                  title="Ativar Análise de Postura"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  <span>{isPostureActive ? 'Desativar Postura' : 'Ativar Postura'}</span>
                 </button>
               </div>
 
@@ -1444,6 +1478,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                      playbackSpeed={1.5}
                      showReferenceControls={true}
                      showOverlayBadges={false}
+                     positiveFeedback={true}
+                     motivationalSmile={1.0}
                    />
                 </div>
              </motion.div>

@@ -1137,6 +1137,80 @@ async function startServer() {
     }
   });
 
+  // ========== ELEVENLABS REAL-TIME VOICE COACHING ENDPOINT ==========
+  app.post("/api/elevenlabs/tts", express.json(), async (req, res) => {
+    const { text, voiceId, emotion } = req.body || {};
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: "No text provided", success: false });
+    }
+
+    const elevenKey =
+      process.env.ELEVENLABS_API_KEY ||
+      process.env.ELEVEN_LABS_API_KEY ||
+      process.env.VITE_ELEVENLABS_API_KEY ||
+      process.env.ELEVENLABS_KEY;
+
+    if (elevenKey) {
+      try {
+        const targetVoiceId =
+          voiceId ||
+          process.env.ELEVENLABS_VOICE_ID ||
+          process.env.VITE_ELEVENLABS_VOICE_ID ||
+          "fhtZMBwha5du5OxuvexO";
+
+        const cleanText = text
+          .replace(/[*#_~`>\[\]\(\)\{\}]/g, ' ')
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/[\u{1F600}-\u{1F6FF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': elevenKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg'
+          },
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.85,
+              style: emotion === 'excited' ? 0.25 : 0.05,
+              use_speaker_boost: true
+            }
+          })
+        });
+
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          return res.status(200).json({
+            audio: `data:audio/mp3;base64,${base64}`,
+            provider: 'elevenlabs',
+            success: true
+          });
+        }
+      } catch (err: any) {
+        console.info("[ElevenLabs Route] Fallback to Gemini Aoede:", err?.message || err);
+      }
+    }
+
+    // Seamless fallback to Malu's Aoede voice via Gemini TTS
+    try {
+      const fallbackAudio = await geminiServer.textToSpeech(text, 'pt-BR', { voiceName: 'Aoede', emotion });
+      return res.status(200).json({
+        audio: fallbackAudio,
+        provider: 'gemini-aoede',
+        success: !!fallbackAudio
+      });
+    } catch (e: any) {
+      return res.status(200).json({ audio: null, error: e?.message, success: false });
+    }
+  });
+
   // ========== UNIVERSAL BATCH TRANSLATION ENDPOINT ==========
   const translationMemoryCache = new Map<string, string>();
   let apiRateLimitUntil = 0;

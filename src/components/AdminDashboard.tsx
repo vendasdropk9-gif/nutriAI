@@ -11,6 +11,7 @@ import {
   Wrench, History, Trash2, ChevronDown, ChevronUp, CheckSquare, Mic
 } from 'lucide-react';
 import { MaluVoiceTestView } from './MaluVoiceTestView';
+import { SecurityDiagnostic } from './SecurityDiagnostic';
 import { 
   checkDatabaseIntegrity, 
   getLatestDatabaseReport, 
@@ -53,7 +54,25 @@ interface AdminDashboardProps {
 export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) {
   const [report, setReport] = useState<DatabaseIntegrityReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance' | 'macros' | 'malu_voice'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'tables' | 'schema' | 'backups' | 'logs' | 'system_logs' | 'ai_performance' | 'macros' | 'malu_voice' | 'security'>('overview');
+// ...
+        <button
+          onClick={() => { setActiveSubTab('security'); playSfx('tap'); }}
+          className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'security'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4" />
+          <span>Diagnóstico de Segurança</span>
+        </button>
+// ...
+      {activeSubTab === 'security' && (
+        <div className="space-y-6 animate-fade-in">
+           <SecurityDiagnostic />
+        </div>
+      )}
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'firestore' | 'supabase'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ok' | 'warning' | 'error' | 'missing'>('all');
@@ -638,6 +657,18 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
         </button>
 
         <button
+          onClick={() => { setActiveSubTab('security'); playSfx('tap'); }}
+          className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'security'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4" />
+          <span>Diagnóstico de Segurança</span>
+        </button>
+
+        <button
           onClick={() => { setActiveSubTab('logs'); playSfx('tap'); }}
           className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'logs'
@@ -649,6 +680,12 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
           <span>Console & Diagnósticos</span>
         </button>
       </div>
+
+      {activeSubTab === 'security' && (
+        <div className="space-y-6 animate-fade-in">
+           <SecurityDiagnostic />
+        </div>
+      )}
 
       {/* Tab 1: Visão Geral */}
       {activeSubTab === 'overview' && (

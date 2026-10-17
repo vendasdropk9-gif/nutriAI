@@ -7,11 +7,13 @@ import * as THREE from 'three';
  * matching medical fitness standards (zero boxy artifacts, zero crude cylinders).
  */
 
-// Parametric surface builder with smooth vertex normal computation
-function createSmoothParametricSurface(
+// Parametric surface builder with adaptive topological distribution and smooth vertex normal computation
+export function createSmoothParametricSurface(
   uSegments: number,
   vSegments: number,
-  evaluator: (u: number, v: number, target: THREE.Vector3) => void
+  evaluator: (u: number, v: number, target: THREE.Vector3) => void,
+  vDistribution?: (vLinear: number) => number,
+  uDistribution?: (uLinear: number) => number
 ): THREE.BufferGeometry {
   const geom = new THREE.BufferGeometry();
   const indices: number[] = [];
@@ -20,9 +22,11 @@ function createSmoothParametricSurface(
   const target = new THREE.Vector3();
 
   for (let i = 0; i <= vSegments; i++) {
-    const v = i / vSegments;
+    const vLinear = i / vSegments;
+    const v = vDistribution ? vDistribution(vLinear) : vLinear;
     for (let j = 0; j <= uSegments; j++) {
-      const u = j / uSegments;
+      const uLinear = j / uSegments;
+      const u = uDistribution ? uDistribution(uLinear) : uLinear;
       evaluator(u, v, target);
       vertices.push(target.x, target.y, target.z);
       uvs.push(u, v);
@@ -47,6 +51,22 @@ function createSmoothParametricSurface(
   geom.computeVertexNormals();
   return geom;
 }
+
+/**
+ * Adaptive Topological Distribution Functions:
+ * Concentrates polygons around high-stress flexural joints (shoulders, elbows, knees)
+ * while keeping static body segments lightweight and high-performance.
+ */
+// Concentrates edge loops near v = 0 (e.g. knee in quadriceps, elbow in biceps/triceps)
+export const jointAtStart = (bias = 1.6) => (t: number) => Math.pow(t, bias);
+
+// Concentrates edge loops near v = 1 (e.g. knee in calf, elbow in forearm)
+export const jointAtEnd = (bias = 1.6) => (t: number) => 1 - Math.pow(1 - t, bias);
+
+// Concentrates edge loops at both articulation poles v = 0 and v = 1 (e.g. deltoids, forearm)
+export const jointsAtBothEnds = (bias = 0.48) => (t: number) =>
+  t - (bias / (2 * Math.PI)) * Math.sin(2 * Math.PI * t);
+
 
 /**
  * 1. HEAD & CRANIUM (Human Anatomical Proportions, Faceless Minimalist Mannequin)
@@ -133,21 +153,26 @@ export function createSculptedTrapeziusGeometry(isFemale: boolean): THREE.Buffer
   const height = isFemale ? 0.22 : 0.26;
   const depth = isFemale ? 0.08 : 0.10;
 
-  return createSmoothParametricSurface(24, 24, (u, v, target) => {
-    const normX = (u - 0.5) * 2; // -1 to +1 across shoulders
-    const normY = v; // 0 at T12, 1 at occiput
+  return createSmoothParametricSurface(
+    28,
+    28,
+    (u, v, target) => {
+      const normX = (u - 0.5) * 2; // -1 to +1 across shoulders
+      const normY = v; // 0 at T12, 1 at occiput
 
-    const diamondSpan = (1.0 - Math.abs(normY - 0.6) * 1.4) * (width * 0.5);
-    const x = normX * Math.max(0.04, diamondSpan);
-    const y = (normY - 0.5) * height;
+      const diamondSpan = (1.0 - Math.abs(normY - 0.6) * 1.4) * (width * 0.5);
+      const x = normX * Math.max(0.04, diamondSpan);
+      const y = (normY - 0.5) * height;
 
-    // Muscular thickness curving backward along the spine
-    const spineGroove = Math.min(1.0, Math.abs(normX) * 2.5);
-    const belly = Math.sin(normY * Math.PI);
-    const z = -depth * spineGroove * belly * (1.0 - normX * normX * 0.5);
+      // Muscular thickness curving backward along the spine
+      const spineGroove = Math.min(1.0, Math.abs(normX) * 2.5);
+      const belly = Math.sin(normY * Math.PI);
+      const z = -depth * spineGroove * belly * (1.0 - normX * normX * 0.5);
 
-    target.set(x, y, z);
-  });
+      target.set(x, y, z);
+    },
+    jointsAtBothEnds(0.40)
+  );
 }
 
 /**
@@ -270,19 +295,24 @@ export function createSculptedDeltoidGeometry(
   const height = isFemale ? 0.18 : 0.22;
   const depth = isFemale ? 0.11 : 0.14;
 
-  return createSmoothParametricSurface(40, 44, (u, v, target) => {
-    const phi = u * Math.PI; // dome angle
-    const y = (v - 0.5) * height;
+  return createSmoothParametricSurface(
+    40,
+    48,
+    (u, v, target) => {
+      const phi = u * Math.PI; // dome angle
+      const y = (v - 0.5) * height;
 
-    // Natural teardrop taper: broad at acromion origin (v=0.8), tapering to humeral insertion (v=0)
-    const taper = Math.sin(v * Math.PI * 0.82 + 0.18);
-    const r = (part === 'lateral' ? width : width * 0.9) * taper;
+      // Natural teardrop taper: broad at acromion origin (v=0.8), tapering to humeral insertion (v=0)
+      const taper = Math.sin(v * Math.PI * 0.82 + 0.18);
+      const r = (part === 'lateral' ? width : width * 0.9) * taper;
 
-    const x = sign * (r * Math.sin(phi));
-    const z = (part === 'anterior' ? depth * 0.92 : depth) * Math.cos(phi) * taper;
+      const x = sign * (r * Math.sin(phi));
+      const z = (part === 'anterior' ? depth * 0.92 : depth) * Math.cos(phi) * taper;
 
-    target.set(x, y, z);
-  });
+      target.set(x, y, z);
+    },
+    jointsAtBothEnds(0.50)
+  );
 }
 
 /**
@@ -293,22 +323,27 @@ export function createSculptedBicepGeometry(isLeft: boolean, isFemale: boolean):
   const length = isFemale ? 0.22 : 0.26;
   const maxRadius = isFemale ? 0.064 : 0.085;
 
-  return createSmoothParametricSurface(32, 36, (u, v, target) => {
-    const theta = u * Math.PI * 2;
-    const y = (v - 0.5) * length;
+  return createSmoothParametricSurface(
+    36,
+    44,
+    (u, v, target) => {
+      const theta = u * Math.PI * 2;
+      const y = (v - 0.5) * length;
 
-    // Fusiform belly peaked at mid-length (v ~ 0.5)
-    const belly = Math.sin(v * Math.PI);
-    let r = maxRadius * (0.35 + 0.65 * Math.pow(belly, 0.75));
+      // Fusiform belly peaked at mid-length (v ~ 0.5)
+      const belly = Math.sin(v * Math.PI);
+      let r = maxRadius * (0.35 + 0.65 * Math.pow(belly, 0.75));
 
-    const sinTheta = Math.sin(theta);
-    if (sinTheta > 0.2) {
-      // Anterior bicep peak
-      r *= 1.0 + Math.pow(belly, 1.2) * 0.18;
-    }
+      const sinTheta = Math.sin(theta);
+      if (sinTheta > 0.2) {
+        // Anterior bicep peak
+        r *= 1.0 + Math.pow(belly, 1.2) * 0.18;
+      }
 
-    target.set(r * Math.cos(theta), y, r * sinTheta);
-  });
+      target.set(r * Math.cos(theta), y, r * sinTheta);
+    },
+    jointAtStart(1.55)
+  );
 }
 
 /**
@@ -319,21 +354,26 @@ export function createSculptedTricepGeometry(isLeft: boolean, isFemale: boolean)
   const length = isFemale ? 0.22 : 0.26;
   const maxRadius = isFemale ? 0.062 : 0.082;
 
-  return createSmoothParametricSurface(36, 40, (u, v, target) => {
-    const theta = u * Math.PI * 2;
-    const y = (v - 0.5) * length;
+  return createSmoothParametricSurface(
+    38,
+    44,
+    (u, v, target) => {
+      const theta = u * Math.PI * 2;
+      const y = (v - 0.5) * length;
 
-    const belly = Math.sin(v * Math.PI);
-    let r = maxRadius * (0.38 + 0.62 * Math.pow(belly, 0.8));
+      const belly = Math.sin(v * Math.PI);
+      let r = maxRadius * (0.38 + 0.62 * Math.pow(belly, 0.8));
 
-    const sinTheta = Math.sin(theta);
-    if (sinTheta < -0.2) {
-      // Posterior tricep horseshoe fullness
-      r *= 1.0 + Math.pow(belly, 1.1) * 0.16;
-    }
+      const sinTheta = Math.sin(theta);
+      if (sinTheta < -0.2) {
+        // Posterior tricep horseshoe fullness
+        r *= 1.0 + Math.pow(belly, 1.1) * 0.16;
+      }
 
-    target.set(r * Math.cos(theta), y, r * sinTheta);
-  });
+      target.set(r * Math.cos(theta), y, r * sinTheta);
+    },
+    jointAtStart(1.58)
+  );
 }
 
 /**
@@ -346,12 +386,15 @@ export function createSculptedForearmGeometry(isLeft: boolean, isFemale: boolean
   const topRadius = isFemale ? 0.058 : 0.074;
   const wristRadius = isFemale ? 0.034 : 0.042;
 
-  return createSmoothParametricSurface(24, 28, (u, v, target) => {
-    const theta = u * Math.PI * 2;
-    const y = (v - 0.5) * length;
+  return createSmoothParametricSurface(
+    30,
+    40,
+    (u, v, target) => {
+      const theta = u * Math.PI * 2;
+      const y = (v - 0.5) * length;
 
-    // Organic transition with brachioradialis bulge in proximal 1/3 (v ~ 0.75)
-    let r = THREE.MathUtils.lerp(wristRadius, topRadius, Math.pow(v, 0.7));
+      // Organic transition with brachioradialis bulge in proximal 1/3 (v ~ 0.75)
+      let r = THREE.MathUtils.lerp(wristRadius, topRadius, Math.pow(v, 0.7));
 
     const cosTheta = Math.cos(theta);
     if (sign * cosTheta > 0.35 && v > 0.45) {
@@ -359,7 +402,9 @@ export function createSculptedForearmGeometry(isLeft: boolean, isFemale: boolean
     }
 
     target.set(r * cosTheta, y, r * Math.sin(theta));
-  });
+  },
+  jointsAtBothEnds(0.52)
+);
 }
 
 /**
@@ -388,40 +433,46 @@ export function createSculptedHandGeometry(isLeft: boolean): THREE.BufferGeometr
  * 13. QUADRICEPS FEMORIS (Thigh Anterior & Lateral Sweep)
  * Full anatomical quadriceps: rectus femoris down center, vastus lateralis outer sweep,
  * and prominent vastus medialis "teardrop" bulge above the medial patella.
+ * Adaptive topology packs dense rings at the distal knee joint while relaxing along mid-thigh.
  */
 export function createSculptedQuadricepsGeometry(isLeft: boolean, isFemale: boolean): THREE.BufferGeometry {
   const sign = isLeft ? -1 : 1;
   const length = isFemale ? 0.38 : 0.44;
   const midRadius = isFemale ? 0.11 : 0.138;
 
-  return createSmoothParametricSurface(40, 44, (u, v, target) => {
-    const theta = u * Math.PI * 2;
-    const y = (v - 0.5) * length;
+  return createSmoothParametricSurface(
+    40,
+    48,
+    (u, v, target) => {
+      const theta = u * Math.PI * 2;
+      const y = (v - 0.5) * length;
 
-    // Base athletic taper
-    let r = midRadius * Math.sin(v * Math.PI * 0.86 + 0.14);
+      // Base athletic taper
+      let r = midRadius * Math.sin(v * Math.PI * 0.86 + 0.14);
 
-    const sinTheta = Math.sin(theta); // anterior (+) / posterior (-)
-    const cosTheta = Math.cos(theta); // lateral / medial
+      const sinTheta = Math.sin(theta); // anterior (+) / posterior (-)
+      const cosTheta = Math.cos(theta); // lateral / medial
 
-    // Rectus femoris anterior ridge
-    if (sinTheta > 0.35) {
-      r *= 1.0 + Math.sin(v * Math.PI) * 0.15;
-    }
+      // Rectus femoris anterior ridge
+      if (sinTheta > 0.35) {
+        r *= 1.0 + Math.sin(v * Math.PI) * 0.15;
+      }
 
-    // Vastus lateralis outer sweep (upper 2/3)
-    if (sign * cosTheta > 0.3 && v > 0.35) {
-      r *= 1.18;
-    }
+      // Vastus lateralis outer sweep (upper 2/3)
+      if (sign * cosTheta > 0.3 && v > 0.35) {
+        r *= 1.18;
+      }
 
-    // Vastus medialis "Teardrop" over inner knee (v ~ 0.12 to 0.38)
-    if (sign * cosTheta < -0.2 && v >= 0.12 && v <= 0.40) {
-      const teardrop = Math.sin(((v - 0.12) / 0.28) * Math.PI);
-      r *= 1.0 + teardrop * 0.24;
-    }
+      // Vastus medialis "Teardrop" over inner knee (v ~ 0.12 to 0.38)
+      if (sign * cosTheta < -0.2 && v >= 0.12 && v <= 0.40) {
+        const teardrop = Math.sin(((v - 0.12) / 0.28) * Math.PI);
+        r *= 1.0 + teardrop * 0.24;
+      }
 
-    target.set(r * cosTheta, y, r * sinTheta);
-  });
+      target.set(r * cosTheta, y, r * sinTheta);
+    },
+    jointAtStart(1.62)
+  );
 }
 
 /**
@@ -432,7 +483,7 @@ export function createSculptedHamstringsGeometry(isLeft: boolean, isFemale: bool
   const length = isFemale ? 0.36 : 0.42;
   const radius = isFemale ? 0.096 : 0.118;
 
-  return createSmoothParametricSurface(18, 20, (u, v, target) => {
+  return createSmoothParametricSurface(20, 22, (u, v, target) => {
     const theta = u * Math.PI * 2;
     const y = (v - 0.5) * length;
 
@@ -453,7 +504,7 @@ export function createSculptedHamstringsGeometry(isLeft: boolean, isFemale: bool
  * Anatomical kneecap with natural patellar tendon groove and soft rounded margins.
  */
 export function createSculptedPatellaGeometry(): THREE.BufferGeometry {
-  const geom = new THREE.SphereGeometry(0.048, 16, 16);
+  const geom = new THREE.SphereGeometry(0.048, 24, 22);
   geom.scale(0.88, 1.05, 0.65);
   return geom;
 }
@@ -461,6 +512,7 @@ export function createSculptedPatellaGeometry(): THREE.BufferGeometry {
 /**
  * 16. CALF (Gastrocnemius Dual Bellies & Soleus)
  * Distinct medial and lateral muscular bellies tapering into the Achilles tendon.
+ * Adaptive topology packs dense rings at the proximal knee joint heads.
  */
 export function createSculptedCalfGeometry(isLeft: boolean, isFemale: boolean): THREE.BufferGeometry {
   const sign = isLeft ? -1 : 1;
@@ -468,13 +520,16 @@ export function createSculptedCalfGeometry(isLeft: boolean, isFemale: boolean): 
   const maxRadius = isFemale ? 0.082 : 0.104;
   const ankleRadius = isFemale ? 0.038 : 0.046;
 
-  return createSmoothParametricSurface(36, 40, (u, v, target) => {
-    const theta = u * Math.PI * 2;
-    const y = (v - 0.5) * length;
+  return createSmoothParametricSurface(
+    36,
+    44,
+    (u, v, target) => {
+      const theta = u * Math.PI * 2;
+      const y = (v - 0.5) * length;
 
-    // Muscular bellies peak at v ~ 0.72, tapering to Achilles tendon at ankle (v = 0)
-    const bellyCurve = Math.pow(v, 0.75) * Math.pow(1.0 - v * 0.25, 1.35);
-    let r = THREE.MathUtils.lerp(ankleRadius, maxRadius, bellyCurve * 1.55);
+      // Muscular bellies peak at v ~ 0.72, tapering to Achilles tendon at ankle (v = 0)
+      const bellyCurve = Math.pow(v, 0.75) * Math.pow(1.0 - v * 0.25, 1.35);
+      let r = THREE.MathUtils.lerp(ankleRadius, maxRadius, bellyCurve * 1.55);
 
     const sinTheta = Math.sin(theta);
     const cosTheta = Math.cos(theta);
@@ -489,7 +544,9 @@ export function createSculptedCalfGeometry(isLeft: boolean, isFemale: boolean): 
     }
 
     target.set(r * cosTheta, y, r * sinTheta);
-  });
+  },
+  jointAtEnd(1.58)
+);
 }
 
 /**

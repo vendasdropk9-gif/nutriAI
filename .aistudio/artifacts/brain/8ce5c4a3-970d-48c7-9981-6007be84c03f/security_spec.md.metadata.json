@@ -1,0 +1,6 @@
+{
+  "summary": "Security specification for Firestore rules, detailing invariants and threat model.",
+  "updatedAt": "2026-10-17T20:41:12.556662106Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

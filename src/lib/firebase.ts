@@ -34,6 +34,45 @@ import firebaseConfig from '../../firebase-applet-config.json';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { safeGet, safeSet } from './storage';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 // Initialize Firebase App & Services
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -469,7 +508,7 @@ export async function setDoc(docRef: any, data: any, options: any = { merge: tru
     await fsSetDoc(realRef, cleanData, options);
     console.log(`[NutriAI Firestore] Sucesso ao gravar doc: ${realRef.path}`);
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] Aviso na gravação Firestore (${docRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.WRITE, docRef?.path);
   }
 
   // 3. Optional Supabase dual-write if active
@@ -495,7 +534,7 @@ export async function addDoc(collectionRef: any, data: any) {
     console.log(`[NutriAI Firestore] Sucesso ao adicionar doc: ${docSnap.path}`);
     return docSnap;
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] Aviso ao adicionar no Firestore (${collectionRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.CREATE, collectionRef?.path);
     return localRes;
   }
 }
@@ -509,7 +548,7 @@ export async function updateDoc(docRef: any, data: any) {
     await fsUpdateDoc(realRef, cleanData);
     console.log(`[NutriAI Firestore] Sucesso na atualização doc: ${realRef.path}`);
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] Aviso ao atualizar Firestore (${docRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.UPDATE, docRef?.path);
   }
 
   if (isSupabaseConfigured && !docRef.userId?.startsWith('local-user-')) {
@@ -528,7 +567,7 @@ export async function deleteDoc(docRef: any) {
     await fsDeleteDoc(realRef);
     console.log(`[NutriAI Firestore] Sucesso ao excluir doc: ${realRef.path}`);
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] Aviso ao deletar Firestore (${docRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.DELETE, docRef?.path);
   }
 
   if (isSupabaseConfigured && !docRef.userId?.startsWith('local-user-')) {
@@ -547,7 +586,7 @@ export async function getDoc(docRef: any) {
       return snap;
     }
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] getDoc Firestore fallback para cache (${docRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.GET, docRef?.path);
   }
   return getDocLocal(docRef);
 }
@@ -568,7 +607,7 @@ export async function getDocs(queryOrColRef: any) {
       return snap;
     }
   } catch (err: any) {
-    console.warn(`[NutriAI Firestore] getDocs Firestore fallback para cache (${queryOrColRef?.path}):`, err?.message || err);
+    handleFirestoreError(err, OperationType.LIST, queryOrColRef?.path);
   }
   return getDocsLocal(queryOrColRef);
 }
@@ -598,7 +637,7 @@ export function onSnapshot(
     const unsubscribe = fsOnSnapshot(queryOrDocRef, (snap) => {
       onNext(snap);
     }, (err) => {
-      console.warn(`[NutriAI Firestore] onSnapshot listener error (${queryOrDocRef?.path}):`, err);
+      handleFirestoreError(err, OperationType.GET, queryOrDocRef?.path);
       if (onError) onError(err);
     });
     return unsubscribe;

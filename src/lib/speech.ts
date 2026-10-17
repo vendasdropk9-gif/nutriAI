@@ -1,5 +1,6 @@
 import { textToSpeech } from './gemini';
 import { translateSpeechText } from './speechTranslator';
+import avatarGlobalStore from './avatarGlobalState';
 
 export interface SpeechOptions {
   voice?: string;
@@ -121,6 +122,7 @@ export const stopSpeech = () => {
       activeAudio = null;
     } catch (e) {}
   }
+  avatarGlobalStore.setSpeaking(false);
 };
 
 /**

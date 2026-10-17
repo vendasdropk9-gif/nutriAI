@@ -19,6 +19,10 @@ export interface AvatarGlobalState {
   cycle: number;
   phase: 'concentric' | 'eccentric';
   breath: 'inhale' | 'exhale';
+  positiveFeedback: boolean;
+  motivationalSmile: number;
+  isSpeaking: boolean;
+  fatigueLevel: number;
 }
 
 const STORAGE_GENDER_KEY = 'nutriai_avatar_gender_pref';
@@ -58,7 +62,11 @@ class AvatarGlobalStateStore {
     heartRate: 72,
     cycle: 0,
     phase: 'concentric',
-    breath: 'exhale'
+    breath: 'exhale',
+    positiveFeedback: false,
+    motivationalSmile: 0,
+    isSpeaking: false,
+    fatigueLevel: 0
   };
 
   private listeners = new Set<() => void>();
@@ -196,6 +204,40 @@ class AvatarGlobalStateStore {
     this.state.phase = phase;
     this.state.breath = breath;
     // Don't trigger full React re-render per frame for performance unless needed
+  }
+
+  public triggerMotivationalSmile(durationMs: number = 4200) {
+    this.state.positiveFeedback = true;
+    this.state.motivationalSmile = 1.0;
+    this.emitChange();
+
+    setTimeout(() => {
+      this.state.positiveFeedback = false;
+      this.state.motivationalSmile = 0.0;
+      this.emitChange();
+    }, durationMs);
+  }
+
+  public setPositiveFeedback(active: boolean) {
+    if (this.state.positiveFeedback !== active) {
+      this.state.positiveFeedback = active;
+      this.state.motivationalSmile = active ? 1.0 : 0.0;
+      this.emitChange();
+    }
+  }
+
+  public setSpeaking(isSpeaking: boolean) {
+    if (this.state.isSpeaking !== isSpeaking) {
+      this.state.isSpeaking = isSpeaking;
+      this.emitChange();
+    }
+  }
+
+  public setFatigueLevel(level: number) {
+    if (this.state.fatigueLevel !== level) {
+      this.state.fatigueLevel = level;
+      this.emitChange();
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import { GLTFLoader, DRACOLoader } from 'three-stdlib';
 import {
   createSculptedHeadGeometry,
   createSculptedNeckGeometry,
+  createSculptedTrapeziusGeometry,
   createSculptedClaviclesGeometry,
   createSculptedPectoralGeometry,
   createSculptedAbdominalWallGeometry,
@@ -274,6 +275,10 @@ export interface AvatarAnatomicoProps {
   onGenderChange?: (newGender: 'male' | 'female') => void;
   /** Callback when user toggles play/pause from video pill */
   onTogglePlay?: (playing: boolean) => void;
+  /** Positive feedback state to trigger warm motivational smile blend shapes */
+  positiveFeedback?: boolean;
+  /** Motivational smile blend shape intensity (0.0 to 1.0) */
+  motivationalSmile?: number;
 }
 
 interface AvatarAnatomicoState {
@@ -2858,6 +2863,8 @@ function AnatomicalAvatarModel({
   hoveredMuscle,
   pulsingMuscle,
   onCycleUpdate,
+  positiveFeedback = false,
+  motivationalSmile = 0.0,
 }: {
   exercise: DetailedExercise;
   gender: 'male' | 'female';
@@ -2874,6 +2881,8 @@ function AnatomicalAvatarModel({
   hoveredMuscle?: string | null;
   pulsingMuscle?: string | null;
   onCycleUpdate?: (cycle: number, phase: 'concentric' | 'eccentric', breath: 'inhale' | 'exhale') => void;
+  positiveFeedback?: boolean;
+  motivationalSmile?: number;
 }) {
   const rootGroup = useRef<THREE.Group>(null);
   const spineGroup = useRef<THREE.Group>(null);
@@ -2915,7 +2924,7 @@ function AnatomicalAvatarModel({
     deltoidPosteriorLeft: createSculptedDeltoidGeometry('posterior', true, isFemale),
     deltoidPosteriorRight: createSculptedDeltoidGeometry('posterior', false, isFemale),
     // Trapezius and upper back
-    trapezius: new THREE.BoxGeometry(isFemale ? 0.22 : 0.27, 0.14, 0.08),
+    trapezius: createSculptedTrapeziusGeometry(isFemale),
     // 8-Pack Rectus Abdominis with Linea Alba & Transverse Inscriptions
     abs: createSculptedAbdominalWallGeometry(isFemale),
     // Lateral Serratus & Obliques
@@ -3303,7 +3312,13 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
-          <AvatarFace effort={isPlaying ? 0.6 : 0.1} />
+          <AvatarFace
+            effort={isPlaying ? 0.35 : 0.05}
+            motivationalSmile={motivationalSmile}
+            positiveFeedback={positiveFeedback}
+            isPlaying={isPlaying}
+            playbackSpeed={playbackSpeed}
+          />
           <AnatomicalMuscleNode
             geometry={geo.neck}
             position={[0, -0.04, 0.005]}
@@ -4850,6 +4865,8 @@ export class AvatarAnatomico
                   hoveredMuscle={hoveredMuscle}
                   pulsingMuscle={pulsingMuscle}
                   onCycleUpdate={onCycleUpdate}
+                  positiveFeedback={this.props.positiveFeedback}
+                  motivationalSmile={this.props.motivationalSmile}
                 />
               )}
             </Canvas>
