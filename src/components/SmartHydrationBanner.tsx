@@ -90,7 +90,10 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     return () => clearTimeout(autoDismissTimer);
   }, [showPrompt, dismissed, currentTotalWater, goalWater, showGoalModal]);
 
+  const [animatingIntake, setAnimatingIntake] = useState<number | null>(null);
+
   const handleQuickLog = (amount: number) => {
+    setAnimatingIntake(amount);
     const newLog: HydrationLog = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -102,7 +105,11 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     vibrate(60);
     if (onAwardPoints) onAwardPoints(10, `Hidratação rápida: +${amount}ml registrados!`);
     setShowPrompt(false);
-    setDismissed(true);
+    
+    setTimeout(() => {
+      setAnimatingIntake(null);
+      setDismissed(true);
+    }, 1200);
     setTimeout(() => setDismissed(false), 45 * 60 * 1000);
   };
 
@@ -128,6 +135,31 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
             transition={{ duration: 0.3 }}
             className="bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 text-white px-4 py-3 shadow-lg relative z-40 flex flex-col gap-2.5 overflow-hidden"
           >
+            {/* Fluid Wave / Water Filling Animation Overlay */}
+            <AnimatePresence>
+              {animatingIntake !== null && (
+                <motion.div
+                  initial={{ y: "100%", opacity: 0.8 }}
+                  animate={{ y: "0%", opacity: 0.96 }}
+                  exit={{ y: "-100%", opacity: 0 }}
+                  transition={{ duration: 0.7, ease: "easeInOut" }}
+                  className="absolute inset-0 z-30 bg-gradient-to-t from-cyan-400 via-teal-400 to-blue-500 flex flex-col items-center justify-center text-white p-4 shadow-2xl backdrop-blur-md"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1], rotate: [0, 12, -12, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.55 }}
+                    className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center mb-2 shadow-inner"
+                  >
+                    <Droplet className="w-8 h-8 text-white fill-white" />
+                  </motion.div>
+                  <p className="text-lg sm:text-xl font-serif font-black tracking-wide drop-shadow-md">
+                    +{animatingIntake}ml Registrados com Sucesso! 💧
+                  </p>
+                  <p className="text-xs sm:text-sm text-cyan-50 font-medium">Preenchendo sua hidratação diária...</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Top Row: Info and Quick Action Buttons */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">

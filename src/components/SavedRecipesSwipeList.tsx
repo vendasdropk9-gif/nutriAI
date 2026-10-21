@@ -2,12 +2,13 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import { 
   BookmarkCheck, Trash2, Eye, ChefHat, Clock, Flame, 
-  RotateCcw, X, Search, Sparkles, Utensils, MoveHorizontal, ArrowLeftRight
+  RotateCcw, X, Search, Sparkles, Utensils, MoveHorizontal, ArrowLeftRight, Download
 } from 'lucide-react';
 import { Recipe, UserProfile } from '../types';
 import { RecipeCard } from './RecipeCard';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useTranslation } from '../contexts/LanguageContext';
+import { printRecipe } from '../lib/recipePrinter';
 
 interface SavedRecipesSwipeListProps {
   profile: UserProfile | null;
@@ -279,10 +280,30 @@ export function SavedRecipesSwipeList({ profile, onSaveProfile }: SavedRecipesSw
           </div>
         </div>
 
-        {/* Gestures hint badge */}
-        <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-[11px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-          <MoveHorizontal className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-          <span>← {t('swipe_to_dismiss', 'Deslize para remover')} • {t('swipe_to_view', 'Deslize para ver')} →</span>
+        {/* Actions & Gestures hint */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {savedRecipes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('tap');
+                vibrate(15);
+                if (savedRecipes.length > 0) {
+                  printRecipe(savedRecipes[0]);
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Exportar Receitas Salvas para PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Exportar PDF</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-[11px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+            <MoveHorizontal className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+            <span>← {t('swipe_to_dismiss', 'Deslize para remover')} • {t('swipe_to_view', 'Deslize para ver')} →</span>
+          </div>
         </div>
       </div>
 
@@ -387,14 +408,29 @@ export function SavedRecipesSwipeList({ profile, onSaveProfile }: SavedRecipesSw
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             className="w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-transparent relative shadow-2xl rounded-3xl"
           >
-            <button
-              type="button"
-              onClick={() => setSelectedRecipe(null)}
-              className="fixed top-5 right-5 sm:top-8 sm:right-8 p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md shadow-lg border border-white/20 transition-transform active:scale-95 z-50 cursor-pointer"
-              aria-label="Fechar"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="fixed top-5 right-5 sm:top-8 sm:right-8 z-50 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(12);
+                  if (selectedRecipe) printRecipe(selectedRecipe);
+                }}
+                className="px-3.5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white backdrop-blur-md shadow-lg border border-white/20 font-bold text-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                title="Exportar Receita para PDF"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Exportar PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRecipe(null)}
+                className="p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md shadow-lg border border-white/20 transition-transform active:scale-95 cursor-pointer"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <RecipeCard recipe={selectedRecipe} />
           </motion.div>
         </div>

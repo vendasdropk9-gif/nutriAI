@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { X, Printer, Image as ImageIcon, Scale, Sparkles, Users, FileText, Check, Info, QrCode, Copy, Share2 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { 
   PrintableRecipeInput, 
   PrintableRecipeOptions, 
@@ -277,13 +278,43 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({ isOpen, on
           </div>
 
           {/* Paper Preview Area */}
-          <div className="flex-1 bg-slate-150 dark:bg-slate-950 p-4 sm:p-8 overflow-y-auto flex items-start justify-center">
+          <div className="flex-1 bg-slate-150 dark:bg-slate-950 p-4 sm:p-8 overflow-y-auto flex flex-col items-center gap-6">
             {/* Scoped CSS for the paper preview sheet */}
             <style>{`
               .nutri-print-preview-sheet {
                 ${printCss}
               }
             `}</style>
+            
+            {showNutrition && recipe.nutrition && (
+              <div className="w-full max-w-[210mm] bg-white rounded-xl p-4 shadow-lg flex items-center justify-center">
+                <div className="h-40 w-full max-w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Proteína', value: recipe.nutrition.protein || recipe.protein || 0 },
+                          { name: 'Gordura', value: recipe.nutrition.fat || recipe.fat || 0 },
+                          { name: 'Carboidrato', value: recipe.nutrition.carbs || recipe.carbs || 0 },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={30}
+                        outerRadius={50}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell fill="#ef4444" />
+                        <Cell fill="#eab308" />
+                        <Cell fill="#3b82f6" />
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
             
             <div 
               className="bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl border border-slate-200/80 w-full max-w-[210mm] min-h-[297mm] transition-all nutri-print-preview-sheet"
