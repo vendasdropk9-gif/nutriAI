@@ -701,6 +701,29 @@ self.addEventListener('message', (event) => {
       break;
     }
 
+    // Alertas de Validade & Despensa (Pantry Freshness & Anti-Waste)
+    case 'SCHEDULE_PANTRY_NOTIFICATIONS':
+    case 'PANTRY_EXPIRATION_ALERT': {
+      const items = Array.isArray(payload) ? payload : (payload?.items || []);
+      const count = items.length || 1;
+      const firstItemName = items[0]?.name || payload?.name || 'Alimento';
+      const title = payload?.title || `NutriAI: Alerta de Validade (${count} item${count > 1 ? 's' : ''}) 🥗`;
+      const body = payload?.body || (count === 1
+        ? `"${firstItemName}" está prestes a vencer! Consuma ou congele para evitar o desperdício.`
+        : `"${firstItemName}" e mais ${count - 1} alimento(s) vencem em breve na sua despensa.`);
+
+      triggerNativeNotification(title, {
+        body,
+        tag: `pantry-expiry-${Date.now()}`,
+        data: { url: '/?tab=pantry&sub=freshness', type: 'pantry_spoilage' },
+        actions: [
+          { action: 'open_pantry', title: 'Ver Despensa 🛒' },
+          { action: 'dismiss', title: 'Fechar' }
+        ]
+      });
+      break;
+    }
+
     // Prefetch de imagens de receitas
     case 'PREFETCH_RECIPE_IMAGES': {
       const urls = payload?.urls || payload?.images || [];

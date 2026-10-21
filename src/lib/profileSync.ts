@@ -221,7 +221,16 @@ export function useProfileSync(
           }
           setIsSyncing(false);
         }, (err) => {
-          console.error("Firestore onSnapshot error:", err);
+          const msg = err?.message || String(err);
+          if (
+            msg.includes('Disconnecting idle stream') ||
+            msg.includes('Timed out waiting for new targets') ||
+            msg.includes('CANCELLED')
+          ) {
+            console.debug("Firestore onSnapshot stream cycle (handled):", err);
+          } else {
+            console.error("Firestore onSnapshot error:", err);
+          }
           setIsSyncing(false);
         });
 

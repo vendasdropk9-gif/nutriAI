@@ -422,6 +422,8 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
 
   const handlePrintRecipe = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    playSfx('tap');
+    vibrate(15);
     setIsPreviewModalOpen(true);
   };
 
@@ -2000,9 +2002,9 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handlePrintRecipe}
-              className="flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/15 border border-slate-400/20 hover:border-slate-400/35 text-slate-700 dark:text-slate-300 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 cursor-pointer"
-              title="Imprimir esta receita"
-              id={`btn-print-${recipe.id}`}
+              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 cursor-pointer shadow-sm shadow-emerald-500/10"
+              title="Imprimir receita para cozinha em formato limpo A4 ou salvar como PDF"
+              id={`btn-print-recipe-${recipe.id}`}
               disabled={isPrinting}
             >
               {isPrinting ? (
@@ -2010,12 +2012,12 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 >
-                  <div className="w-4 h-4 border-2 border-slate-700 dark:border-slate-300 border-t-transparent rounded-full" />
+                  <div className="w-4 h-4 border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent rounded-full" />
                 </motion.div>
               ) : (
-                <Printer className="w-4 h-4 text-emerald-500" />
+                <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               )}
-              <span>{isPrinting ? 'Preparando...' : 'Imprimir'}</span>
+              <span>{isPrinting ? 'Preparando...' : 'Imprimir Receita'}</span>
             </motion.button>
           )}
 
@@ -2041,18 +2043,6 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   <span>Salvar para Offline</span>
                 </>
               )}
-            </button>
-          )}
-
-          {!isSchedulingOpen && (
-            <button
-              onClick={handlePrintRecipe}
-              className="flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/15 border border-slate-400/20 hover:border-slate-400/35 text-slate-700 dark:text-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
-              title="Imprimir receita formatada especificamente para papel ou salvar como PDF"
-              id={`btn-print-recipe-${recipe.id}`}
-            >
-              <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Imprimir Receita</span>
             </button>
           )}
 

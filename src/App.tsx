@@ -86,7 +86,6 @@ import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
-import { ConnectionDiagnostic } from './components/ConnectionDiagnostic';
 
 const TAB_ORDER = [
   "admin_library",
@@ -289,6 +288,48 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     };
     window.addEventListener('app:openLanguageModal', handleOpenLanguage);
     window.addEventListener('app:openLanguage', handleOpenLanguage);
+
+    // Automatic import of recipe shared via QR code link
+    try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const importB64 = urlParams.get('import_recipe');
+        if (importB64) {
+          const decoded = decodeURIComponent(escape(atob(importB64)));
+          const importedRecipe = JSON.parse(decoded);
+          if (importedRecipe && (importedRecipe.name || importedRecipe.title)) {
+            const recipeName = importedRecipe.name || importedRecipe.title;
+            const existingRaw = window.localStorage.getItem('nutri_saved_recipes');
+            let savedList: any[] = [];
+            try {
+              if (existingRaw) savedList = JSON.parse(existingRaw);
+            } catch (e) {}
+
+            const exists = savedList.some((r: any) => (r.name || r.title) === recipeName);
+            if (!exists) {
+              const fullRecipe = {
+                ...importedRecipe,
+                id: importedRecipe.id || `imported-${Date.now()}`,
+                savedAt: new Date().toISOString()
+              };
+              window.localStorage.setItem('nutri_saved_recipes', JSON.stringify([fullRecipe, ...savedList]));
+            }
+
+            addNotification({
+              title: 'Receita Importada via QR Code! 📲',
+              message: `"${recipeName}" foi importada com sucesso para o seu NutriAI.`,
+              type: 'success'
+            });
+
+            // Clean the query param from URL without refreshing the page
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, '', cleanUrl);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao processar receita importada via QR Code:', e);
+    }
 
     // Checker for scheduled recipe preparation reminders
     const checkRemindersInterval = setInterval(() => {
@@ -1046,7 +1087,6 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         }}
       />
       </motion.div>
-      <ConnectionDiagnostic />
     </div>
     );
   };

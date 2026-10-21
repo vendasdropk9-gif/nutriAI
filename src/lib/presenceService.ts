@@ -182,7 +182,6 @@ class PresenceManager {
 
   private constructor() {
     this.initLocalPresences();
-    this.setupFirestoreListener();
     this.setupActivityEventListeners();
   }
 
@@ -208,7 +207,8 @@ class PresenceManager {
     }
   }
 
-  private setupFirestoreListener() {
+  public setupFirestoreListener() {
+    if (this.firestoreUnsubscribe) return; // Already listening
     try {
       const presencesCol = collection(db, 'presence');
       this.firestoreUnsubscribe = onSnapshot(presencesCol, (snapshot) => {
@@ -220,10 +220,14 @@ class PresenceManager {
         });
         this.saveCacheAndNotify();
       }, (err) => {
-        console.warn('[PresenceManager] Firestore onSnapshot warning, keeping cached presence:', err);
+        console.debug('[PresenceManager] Firestore onSnapshot notice, using cached presence:', err);
+        if (this.firestoreUnsubscribe) {
+          try { this.firestoreUnsubscribe(); } catch (e) {}
+          this.firestoreUnsubscribe = null;
+        }
       });
     } catch (e) {
-      console.warn('[PresenceManager] Error initializing Firestore presence listener:', e);
+      console.debug('[PresenceManager] Notice initializing Firestore presence listener:', e);
     }
   }
 
@@ -318,6 +322,15 @@ class PresenceManager {
     this.currentProfile = profile;
     this.currentTab = currentTab;
     this.isUserActive = document.visibilityState === 'visible';
+    
+    // Attach live Firestore presence stream when user is active
+    if (user || profile) {
+      this.setupFirestoreListener();
+    } else if (this.firestoreUnsubscribe) {
+      try { this.firestoreUnsubscribe(); } catch (e) {}
+      this.firestoreUnsubscribe = null;
+    }
+
     this.updatePresence(this.isUserActive ? 'active' : 'inactive');
   }
 

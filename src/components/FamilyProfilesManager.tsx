@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Plus, Check, Heart, Shield, Sparkles, UserCheck, 
-  Trash2, Share2, Copy, CheckCircle2, Dog, Baby, User, Scale, Flame 
+  Trash2, Share2, Copy, CheckCircle2, Dog, Baby, User, Scale, Flame,
+  Droplets, Droplet
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -15,6 +16,7 @@ export interface FamilyMemberProfile {
   weight: number; // kg
   goal: string;
   dailyCalories: number;
+  waterGoal?: number; // ml/day
   allergies: string[];
   dietaryRestrictions: string[];
   avatarUrl?: string;
@@ -30,6 +32,7 @@ const DEFAULT_FAMILY: FamilyMemberProfile[] = [
     weight: 72,
     goal: 'Ganho de Massa & Saúde Global',
     dailyCalories: 2200,
+    waterGoal: 2500,
     allergies: ['Lactose'],
     dietaryRestrictions: ['Sem Glúten'],
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200&h=200'
@@ -42,6 +45,7 @@ const DEFAULT_FAMILY: FamilyMemberProfile[] = [
     weight: 60,
     goal: 'Perda de Gordura & Definição',
     dailyCalories: 1800,
+    waterGoal: 2100,
     allergies: [],
     dietaryRestrictions: ['Low Carb'],
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200&h=200'
@@ -54,6 +58,7 @@ const DEFAULT_FAMILY: FamilyMemberProfile[] = [
     weight: 28,
     goal: 'Crescimento Saudável & Nutrição Infantil',
     dailyCalories: 1600,
+    waterGoal: 1400,
     allergies: ['Amendoim'],
     dietaryRestrictions: ['Pouco Açúcar'],
     avatarUrl: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?auto=format&fit=crop&q=80&w=200&h=200'
@@ -91,6 +96,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
   const [newWeight, setNewWeight] = useState(35);
   const [newGoal, setNewGoal] = useState('Alimentação Equilibrada');
   const [newCalories, setNewCalories] = useState(1800);
+  const [newWaterGoal, setNewWaterGoal] = useState(1500);
   const [newAllergies, setNewAllergies] = useState('');
 
   const activeMember = members.find(m => m.id === activeId) || members[0];
@@ -112,6 +118,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
     vibrate(20);
 
     const isPet = newRelationship === 'pet';
+    const calculatedWater = isPet ? 500 : Math.round(Number(newWeight) * 35);
     const newMember: FamilyMemberProfile = {
       id: `family_${Date.now()}`,
       name: newName.trim(),
@@ -120,6 +127,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
       weight: Number(newWeight),
       goal: newGoal,
       dailyCalories: Number(newCalories),
+      waterGoal: Number(newWaterGoal) || calculatedWater,
       allergies: newAllergies.split(',').map(a => a.trim()).filter(Boolean),
       dietaryRestrictions: [],
       isPet,
@@ -131,6 +139,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
     setMembers([...members, newMember]);
     setShowAddModal(false);
     setNewName('');
+    setNewWaterGoal(1500);
   };
 
   const handleDeleteMember = (id: string, e: React.MouseEvent) => {
@@ -255,9 +264,15 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
               </div>
 
               <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] space-y-1">
-                <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>{member.dailyCalories} kcal/dia</span>
+                <div className="flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>{member.dailyCalories} kcal/dia</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400 font-bold">
+                    <Droplets className="w-3.5 h-3.5" />
+                    <span>{member.waterGoal || Math.round(member.weight * 35)} ml/dia</span>
+                  </div>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 truncate text-[10px]">
                   {member.goal}
@@ -287,7 +302,7 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-semibold text-indigo-100">
+        <div className="flex items-center gap-4 text-xs font-semibold text-indigo-100 flex-wrap sm:flex-nowrap">
           <div className="text-center">
             <span className="block text-[10px] text-indigo-300">Alergias</span>
             <span>{activeMember.allergies.length > 0 ? activeMember.allergies.join(', ') : 'Nenhuma'}</span>
@@ -296,6 +311,11 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
           <div className="text-center">
             <span className="block text-[10px] text-indigo-300">Calorias Recomendadas</span>
             <span className="text-emerald-400 font-bold">{activeMember.dailyCalories} kcal</span>
+          </div>
+          <div className="h-8 w-px bg-indigo-700/60" />
+          <div className="text-center">
+            <span className="block text-[10px] text-indigo-300">Meta de Água</span>
+            <span className="text-cyan-300 font-bold">{activeMember.waterGoal || Math.round(activeMember.weight * 35)} ml</span>
           </div>
         </div>
       </div>
@@ -374,6 +394,46 @@ export function FamilyProfilesManager({ currentProfile, onSelectProfile }: Famil
                     onChange={(e) => setNewCalories(Number(e.target.value))}
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
                   />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-slate-600 dark:text-slate-300 font-bold flex items-center gap-1">
+                    <Droplets className="w-3.5 h-3.5 text-cyan-500" />
+                    Meta Diária de Água (ml)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewWaterGoal(Math.round(newWeight * 35))}
+                    className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer font-medium"
+                  >
+                    Sugerir pelo peso (~{Math.round(newWeight * 35)}ml)
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  step="50"
+                  value={newWaterGoal}
+                  onChange={(e) => setNewWaterGoal(Number(e.target.value))}
+                  placeholder="Ex: 2000"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+                <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                  {[1200, 1500, 2000, 2500, 3000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setNewWaterGoal(preset)}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition cursor-pointer ${
+                        newWaterGoal === preset
+                          ? 'bg-cyan-600 text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      {preset}ml
+                    </button>
+                  ))}
                 </div>
               </div>
 

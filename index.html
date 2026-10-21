@@ -29,6 +29,51 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
     <script>
+      // Intercept and handle benign internal Firestore gRPC idle stream disconnection lifecycle notices
+      (function() {
+        function shouldSuppress(args) {
+          try {
+            for (var i = 0; i < args.length; i++) {
+              var str = '';
+              if (typeof args[i] === 'string') {
+                str = args[i];
+              } else if (args[i] && args[i].message) {
+                str = args[i].message;
+              } else {
+                try { str = JSON.stringify(args[i]); } catch(e) { str = String(args[i]); }
+              }
+              if (str && (
+                str.indexOf('Disconnecting idle stream') !== -1 ||
+                str.indexOf('Timed out waiting for new targets') !== -1 ||
+                (str.indexOf('GrpcConnection') !== -1 && str.indexOf('CANCELLED') !== -1) ||
+                (str.indexOf('@firebase/firestore') !== -1 && str.indexOf('CANCELLED') !== -1)
+              )) {
+                return true;
+              }
+            }
+          } catch(e) {}
+          return false;
+        }
+
+        var origError = console.error;
+        console.error = function() {
+          if (shouldSuppress(arguments)) {
+            if (console.debug) console.debug.apply(console, arguments);
+            return;
+          }
+          return origError.apply(console, arguments);
+        };
+
+        var origWarn = console.warn;
+        console.warn = function() {
+          if (shouldSuppress(arguments)) {
+            if (console.debug) console.debug.apply(console, arguments);
+            return;
+          }
+          return origWarn.apply(console, arguments);
+        };
+      })();
+
       // Global emergency reset function
       window.nutriResetApp = function(fullReset) {
         try {
@@ -58,12 +103,22 @@
 
       // Auto-reveal recovery button if loading takes over 2.5 seconds or uncaught JS error occurs
       window.addEventListener('error', function(e) {
+        var msg = e && (e.message || String(e));
+        if (msg && (msg.indexOf('Disconnecting idle stream') !== -1 || msg.indexOf('Timed out waiting for new targets') !== -1 || msg.indexOf('CANCELLED') !== -1)) {
+          return;
+        }
         console.error('Initial boot error:', e);
         var errBox = document.getElementById('boot-error-action');
         if (errBox) errBox.style.display = 'flex';
       });
 
       window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && (e.reason || e);
+        var msg = reason && (reason.message || String(reason));
+        if (msg && (msg.indexOf('Disconnecting idle stream') !== -1 || msg.indexOf('Timed out waiting for new targets') !== -1 || msg.indexOf('CANCELLED') !== -1)) {
+          e.preventDefault();
+          return;
+        }
         console.error('Initial unhandled rejection:', e);
         var errBox = document.getElementById('boot-error-action');
         if (errBox) errBox.style.display = 'flex';

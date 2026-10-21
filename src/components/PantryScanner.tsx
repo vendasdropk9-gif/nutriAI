@@ -11,6 +11,7 @@ import { speak } from '../lib/speech';
 import { PantryItem, PantryRecipeSuggestion, UserProfile, Recipe } from '../types';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
+import { PantryFreshness } from './PantryFreshness';
 import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '../lib/firebase';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -56,7 +57,7 @@ const SUGGESTED_ITEMS = [
 
 export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRecipe }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'inventory' | 'scan' | 'manual' | 'recipes' | 'waste' | 'advisor'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'scan' | 'manual' | 'recipes' | 'waste' | 'advisor' | 'freshness'>('inventory');
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterLocation, setFilterLocation] = useState<string>('todos');
@@ -576,6 +577,24 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
           >
             <ChefHat className="w-3.5 h-3.5" />
             <span>Chef Malu (Dúvidas de Cozinha)</span>
+          </button>
+
+          <button
+            id="tab-pantry-freshness"
+            onClick={() => setActiveTab('freshness')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'freshness'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm font-bold'
+                : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Frescor & Validades</span>
+            {urgentCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-bold animate-pulse">
+                {urgentCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -1276,6 +1295,16 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
       {activeTab === 'advisor' && (
         <div className="space-y-4">
           <AiCookingAdvisor profile={profile} />
+        </div>
+      )}
+
+      {/* TAB: PANTRY FRESHNESS (CONTROLE DE VALIDADES & NOTIFICAÇÕES) */}
+      {activeTab === 'freshness' && (
+        <div className="space-y-4">
+          <PantryFreshness 
+            profile={profile} 
+            onCookRecipe={onCookRecipe} 
+          />
         </div>
       )}
     </div>

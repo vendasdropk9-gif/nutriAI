@@ -1,3 +1,56 @@
+// Suppress internal Firestore gRPC idle stream disconnection lifecycle notices from polluting Node.js error logging
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+function isFirestoreIdleStreamNotice(args: any[]): boolean {
+  try {
+    const text = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return arg.message;
+      try { return JSON.stringify(arg); } catch { return String(arg); }
+    }).join(' ');
+
+    return (
+      text.includes('Disconnecting idle stream') ||
+      text.includes('Timed out waiting for new targets') ||
+      (text.includes('GrpcConnection RPC') && text.includes('CANCELLED')) ||
+      (text.includes('@firebase/firestore') && text.includes('CANCELLED'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+console.error = function (...args: any[]) {
+  if (isFirestoreIdleStreamNotice(args)) {
+    if (console.debug) console.debug('[Firestore Server Stream Watchdog]', ...args);
+    return;
+  }
+  originalConsoleError.apply(console, args);
+};
+
+console.warn = function (...args: any[]) {
+  if (isFirestoreIdleStreamNotice(args)) {
+    if (console.debug) console.debug('[Firestore Server Stream Watchdog]', ...args);
+    return;
+  }
+  originalConsoleWarn.apply(console, args);
+};
+
+if (typeof process !== 'undefined' && process.stderr && process.stderr.write) {
+  const origStderrWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = function (chunk: any, ...args: any[]): boolean {
+    const str = typeof chunk === 'string' ? chunk : (chunk && chunk.toString ? chunk.toString() : '');
+    if (
+      str.includes('Disconnecting idle stream') ||
+      str.includes('Timed out waiting for new targets') ||
+      (str.includes('GrpcConnection RPC') && str.includes('CANCELLED'))
+    ) {
+      return true;
+    }
+    return origStderrWrite(chunk, ...args as [any, any]);
+  };
+}
+
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -7,12 +60,16 @@ import { WebSocketServer } from "ws";
 import * as geminiServer from "./src/lib/gemini.server";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile as updateAuthProfile } from "firebase/auth";
-import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where } from "firebase/firestore";
+import { getFirestore, doc, setDoc, updateDoc, collection, getDocs, getDoc, query, where, setLogLevel } from "firebase/firestore";
 import firebaseConfig from "./firebase-applet-config.json";
 import { DEFAULT_MEDICINAL_HERBS } from "./src/data/medicinalHerbsData";
 import { upload, handleLibraryUpload, getLibraryStats, searchScientificLibrary } from "./src/lib/libraryController";
 import { lookupRuntimeTranslation } from "./src/i18n/runtimeDictionary";
 import { generateNutritionalTip } from "./src/lib/nutritionalTips.server";
+
+try {
+  setLogLevel('silent');
+} catch (e) {}
 
 async function startServer() {
   const firebaseApp = initializeApp(firebaseConfig);

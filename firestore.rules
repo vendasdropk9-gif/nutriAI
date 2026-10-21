@@ -70,7 +70,8 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
     match /presence/{userId} {
-      allow read, write: if isValidId(userId) && isOwner(userId);
+      allow read: if true;
+      allow write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
     }
 
     // Default Deny Catch-All

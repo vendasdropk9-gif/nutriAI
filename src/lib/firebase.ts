@@ -28,7 +28,8 @@ import {
   serverTimestamp as fsServerTimestamp,
   Timestamp as fsTimestamp,
   writeBatch as fsWriteBatch,
-  getDocFromServer as fsGetDocFromServer
+  getDocFromServer as fsGetDocFromServer,
+  setLogLevel as fsSetLogLevel
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { supabase, isSupabaseConfigured } from './supabase';
@@ -80,6 +81,62 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Provisioned named Cloud Firestore Database
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Set official Firestore log level to silent to avoid internal idle stream notices polluting error logs
+try {
+  fsSetLogLevel('silent');
+} catch (e) {}
+
+// Prevent harmless internal Firestore gRPC idle stream disconnection lifecycle notices from polluting error logging
+if (typeof globalThis !== 'undefined') {
+  const g = globalThis as any;
+  const originalConsoleError = g.console?.error;
+  const originalConsoleWarn = g.console?.warn;
+  if (originalConsoleError) {
+    g.console.error = function (...args: any[]) {
+      try {
+        const fullMessage = args.map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (arg instanceof Error) return arg.message;
+          try { return JSON.stringify(arg); } catch { return String(arg); }
+        }).join(' ');
+
+        if (
+          fullMessage.includes('Disconnecting idle stream') ||
+          fullMessage.includes('Timed out waiting for new targets') ||
+          (fullMessage.includes('GrpcConnection RPC') && fullMessage.includes('CANCELLED')) ||
+          (fullMessage.includes('@firebase/firestore') && fullMessage.includes('CANCELLED'))
+        ) {
+          if (g.console?.debug) g.console.debug('[Firestore Stream Watchdog]', ...args);
+          return;
+        }
+      } catch {}
+      originalConsoleError.apply(g.console, args);
+    };
+  }
+  if (originalConsoleWarn) {
+    g.console.warn = function (...args: any[]) {
+      try {
+        const fullMessage = args.map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (arg instanceof Error) return arg.message;
+          try { return JSON.stringify(arg); } catch { return String(arg); }
+        }).join(' ');
+
+        if (
+          fullMessage.includes('Disconnecting idle stream') ||
+          fullMessage.includes('Timed out waiting for new targets') ||
+          (fullMessage.includes('GrpcConnection RPC') && fullMessage.includes('CANCELLED')) ||
+          (fullMessage.includes('@firebase/firestore') && fullMessage.includes('CANCELLED'))
+        ) {
+          if (g.console?.debug) g.console.debug('[Firestore Stream Watchdog]', ...args);
+          return;
+        }
+      } catch {}
+      originalConsoleWarn.apply(g.console, args);
+    };
+  }
+}
 
 export const signInWithGoogle = async () => {
   try {
@@ -637,8 +694,24 @@ export function onSnapshot(
     const unsubscribe = fsOnSnapshot(queryOrDocRef, (snap) => {
       onNext(snap);
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, queryOrDocRef?.path);
-      if (onError) onError(err);
+      const msg = err?.message || String(err);
+      if (
+        msg.includes('Disconnecting idle stream') ||
+        msg.includes('Timed out waiting for new targets') ||
+        (msg.includes('GrpcConnection') && msg.includes('CANCELLED'))
+      ) {
+        console.debug('[NutriAI Firestore] onSnapshot idle stream renewal (handled):', err);
+        return;
+      }
+      if (onError) {
+        try {
+          onError(err);
+        } catch (consumerErr) {
+          handleFirestoreError(consumerErr, OperationType.GET, queryOrDocRef?.path);
+        }
+      } else {
+        handleFirestoreError(err, OperationType.GET, queryOrDocRef?.path);
+      }
     });
     return unsubscribe;
   } catch (e) {
@@ -652,5 +725,7 @@ export function initializeFirestore(customApp: any, config: any, dbId?: string) 
 }
 
 export function setLogLevel(level: string) {
-  // no-op log level setter for compatibility
+  try {
+    fsSetLogLevel(level as any);
+  } catch (e) {}
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, collection, onSnapshot, query, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../types';
 
@@ -14,7 +13,7 @@ export const useMealReminders = (profile: UserProfile | null) => {
     const fridgePath = `users/${user.uid}/fridgeItems`;
     const q = query(collection(db, fridgePath));
     const unsubscribeFridge = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => doc.data());
+      const items = snapshot.docs.map((doc: any) => doc.data());
       
       // Check meal plan
       const mealPlan = profile.mealPlan || {};
@@ -60,9 +59,15 @@ export const useMealReminders = (profile: UserProfile | null) => {
           }
         }
       });
+    }, (error) => {
+      console.debug('[useMealReminders] Fridge listener notice:', error);
     });
 
-    return () => unsubscribeFridge();
+    return () => {
+      if (typeof unsubscribeFridge === 'function') {
+        try { unsubscribeFridge(); } catch (e) {}
+      }
+    };
   }, [user, profile]);
 
   return null;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { db, auth } from '../lib/firebase';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 interface TestResult {

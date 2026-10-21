@@ -18,7 +18,7 @@ import avatarMalePlank from '../assets/images/avatar_male_plank_1790882008420.jp
 import avatarFemalePlank from '../assets/images/avatar_female_plank_1790882021034.jpg';
 import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
 import { resolveExerciseWithKinematics } from '../lib/animationManager';
-import avatarGlobalStore from '../lib/avatarGlobalState';
+import avatarGlobalStore, { useAvatarGlobalState } from '../lib/avatarGlobalState';
 import { PostureAnalyzer } from './PostureAnalyzer';
 
 // Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
@@ -32,9 +32,6 @@ interface PersonalTrainerProps {
   onAwardPoints?: (amount: number, reason: string) => void;
   onUpdateProfile?: (profile: UserProfile) => void;
 }
-
-// ... (in the component body)
-  const [isPostureActive, setIsPostureActive] = useState(false);
 
 const DEFAULT_WEEKLY_PLAN: WeeklyWorkoutPlan = {
   id: "weekly-plan-default",
@@ -259,6 +256,9 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [isSpeakingTips, setIsSpeakingTips] = useState(false);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [isVocalGuidanceEnabled, setIsVocalGuidanceEnabled] = useState(true);
+  const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
+  const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
   
   // Weather integration
   const [weatherInfo, setWeatherInfo] = useState<{ temp: number, condition: string } | null>(null);
@@ -312,6 +312,8 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   
   // Exercise Reference Card Modal State
   const [isExerciseCardModalOpen, setIsExerciseCardModalOpen] = useState(false);
+  // Posture Analyzer Camera Modal / View State
+  const [isPostureActive, setIsPostureActive] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -477,7 +479,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   };
 
   const playMotivationalMessage = async (text: string) => {
-    if (isPlaying) return;
+    if (!isVocalGuidanceEnabled || isPlaying) return;
     setIsPlaying(true);
     try {
       await speak(text, {
@@ -1038,6 +1040,16 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                  />
                </Suspense>
 
+              {/* Live Posture Analysis Overlay with MediaPipe */}
+              {isPostureActive && (
+                <div className="absolute inset-0 z-15 bg-black/85 backdrop-blur-xs flex items-center justify-center rounded-[32px] md:rounded-[40px] overflow-hidden">
+                  <PostureAnalyzer
+                    exerciseId={currentExercise?.id || activeDetailedExercise?.id || 'squat'}
+                    isActive={isPostureActive}
+                  />
+                </div>
+              )}
+
               {/* Top Left: Active Target Muscle Badge & Demonstração Inteligente Button */}
               <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20 flex flex-wrap items-center gap-2 pointer-events-auto">
                 {currentExercise?.primaryMuscles?.[0] && (
@@ -1237,14 +1249,44 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                         <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-slate-800 dark:text-slate-100">{currentExercise?.name}</h3>
                     </div>
                     
-                    {activeMode === 'training' && (
-                      <div className="text-right">
-                         <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tempo</p>
-                         <p className="text-2xl md:text-3xl font-mono font-bold text-emerald-500">
-                            {timeLeft}s
-                         </p>
-                      </div>
-                    )}
+                    {activeMode === 'training' && (() => {
+                      const totalDuration = currentExercise?.duration || 45;
+                      const progressPercent = Math.max(0, Math.min(100, ((totalDuration - timeLeft) / totalDuration) * 100));
+                      const radius = 26;
+                      const circumference = 2 * Math.PI * radius;
+                      const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+                      return (
+                        <div className="relative flex items-center justify-center p-2">
+                          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 70 70">
+                            <circle
+                              cx="35"
+                              cy="35"
+                              r={radius}
+                              stroke="currentColor"
+                              strokeWidth="5"
+                              className="text-slate-200 dark:text-slate-700 fill-none"
+                            />
+                            <circle
+                              cx="35"
+                              cy="35"
+                              r={radius}
+                              stroke="currentColor"
+                              strokeWidth="5"
+                              strokeDasharray={circumference}
+                              strokeDashoffset={strokeDashoffset}
+                              strokeLinecap="round"
+                              className="text-emerald-500 fill-none transition-all duration-1000 ease-linear"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Tempo</span>
+                            <span className="text-base font-mono font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                              {timeLeft}s
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                  </div>
 
                  {activeMode === 'tutorial' ? (
