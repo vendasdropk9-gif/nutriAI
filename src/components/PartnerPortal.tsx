@@ -74,8 +74,9 @@ const getMockAddress = (lat: number, lng: number) => {
 type Step = 'onboarding' | 'business' | 'location' | 'service' | 'products' | 'hours' | 'plans' | 'payment' | 'pending' | 'dashboard';
 
 export type MonetizationModel = 'monthly' | 'annual' | 'commission';
-export type DashboardTab = 'panel' | 'orders' | 'stock' | 'sales' | 'monetization' | 'settings' | 'cameras';
+export type DashboardTab = 'panel' | 'orders' | 'stock' | 'sales' | 'monetization' | 'settings' | 'cameras' | 'ads';
 import { CameraDashboard } from './CameraDashboard';
+import { AdsManager } from './AdsManager';
 
 
 interface PartnerForm {
@@ -98,7 +99,7 @@ interface PartnerForm {
   payments: string[];
 }
 
-export function PartnerPortal() {
+export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: number, reason: string) => void }) {
   const [step, setStep] = useState<Step>('onboarding');
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('panel');
 
@@ -403,6 +404,7 @@ export function PartnerPortal() {
                 { icon: TrendingUp, label: 'Vendas', value: 'sales' },
                 { icon: DollarSign, label: 'Monetização & Repasses', value: 'monetization' },
                 { icon: Camera, label: 'Câmeras', value: 'cameras' },
+                { icon: Sparkles, label: 'Anúncios AI', value: 'ads' },
                 { icon: Settings, label: 'Configurações', value: 'settings' }
               ].map((item, i) => (
                 <button 
@@ -1532,6 +1534,7 @@ export function PartnerPortal() {
             </div>
           )}
           {dashboardTab === 'cameras' && <CameraDashboard />}
+          {dashboardTab === 'ads' && <AdsManager onAwardPoints={onAwardPoints} />}
         </main>
       </div>
     );

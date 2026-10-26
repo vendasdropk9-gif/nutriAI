@@ -24,6 +24,7 @@ import {
   DEFAULT_CHALLENGE_TIMES, 
   syncSchedulesToServiceWorker, 
   triggerNativeTestNotification, 
+  triggerUpcomingMealNotification,
   requestNotificationPermission, 
   getNotificationPermission 
 } from '../lib/pushScheduler';
@@ -93,6 +94,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     return profile?.challengeReviewTime || safeGet('nutri-challenge-time-evening') || DEFAULT_CHALLENGE_TIMES.eveningReview;
   });
   const [isTestingPush, setIsTestingPush] = useState(false);
+  const [isTestingPreMeal, setIsTestingPreMeal] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState<boolean>(() => {
     if (profile?.highContrast !== undefined) return Boolean(profile.highContrast);
     return safeGet('nutri-high-contrast') === 'true';
@@ -369,6 +371,27 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       console.warn('Falha no teste de push nativo:', e);
     } finally {
       setTimeout(() => setIsTestingPush(false), 1200);
+    }
+  };
+
+  const handleTestUpcomingMealNotification = async () => {
+    setIsTestingPreMeal(true);
+    playSfx('notification');
+    vibrate([40, 60, 100]);
+    showInAppToast('Disparando Alerta de Pré-Refeição...', 'Notificação push de refeição prestes a começar enviada.', 'bell');
+
+    try {
+      await triggerUpcomingMealNotification(
+        'Almoço',
+        mealTimes.lunch || '12:30',
+        'Salmão Grelhado com Legumes e Quinoa',
+        15
+      );
+      setNotificationPermission(getNotificationPermission());
+    } catch (e) {
+      console.warn('Falha no teste de refeição prestes a começar:', e);
+    } finally {
+      setTimeout(() => setIsTestingPreMeal(false), 1200);
     }
   };
 
@@ -1418,6 +1441,17 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                   >
                     <Volume2 className="w-3.5 h-3.5" />
                     <span>{isTestingPush ? 'Enviando...' : 'Testar Push'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestUpcomingMealNotification}
+                    disabled={isTestingPreMeal}
+                    className="px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl font-bold text-xs transition-all border border-amber-200 dark:border-amber-800/60 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50 w-full sm:w-auto text-center"
+                    title="Testar alerta nativo de refeição prestes a começar (15 minutos antes)"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{isTestingPreMeal ? 'Enviando...' : 'Testar Pré-Refeição'}</span>
                   </button>
 
                   <button

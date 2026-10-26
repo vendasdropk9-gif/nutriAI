@@ -35,6 +35,8 @@ export interface ScheduledMealPayload {
   id: string;
   label: string;
   time: string;
+  prepTime?: string;
+  leadMinutes?: number;
   recipeName?: string;
   defaultTip: string;
 }
@@ -95,6 +97,23 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 }
 
 /**
+ * Calcula o horário de alerta antecipado para quando a refeição estiver prestes a começar
+ */
+export function calculatePreMealTime(timeStr: string, leadMinutes: number = 15): string {
+  try {
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return timeStr;
+    let totalMins = h * 60 + m - leadMinutes;
+    if (totalMins < 0) totalMins += 24 * 60;
+    const newH = Math.floor(totalMins / 60) % 24;
+    const newM = totalMins % 60;
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  } catch {
+    return timeStr;
+  }
+}
+
+/**
  * Constrói o payload completo de agendamento com base nas preferências do perfil do usuário
  */
 export function buildSchedulePayload(profile: UserProfile | null): NotificationSchedulePayload {
@@ -120,6 +139,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'breakfast',
       label: 'Café da Manhã',
       time: times.breakfast,
+      prepTime: calculatePreMealTime(times.breakfast, 15),
+      leadMinutes: 15,
       recipeName: todayMeals?.breakfast?.name,
       defaultTip: 'Comece o dia com energia, fibras e boas fontes de proteína!'
     },
@@ -127,6 +148,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'morningSnack',
       label: 'Lanche da Manhã',
       time: times.morningSnack,
+      prepTime: calculatePreMealTime(times.morningSnack, 15),
+      leadMinutes: 15,
       recipeName: (todayMeals as any)?.snack?.name,
       defaultTip: 'Momento para uma fruta fresca, castanhas ou um iogurte natural.'
     },
@@ -134,6 +157,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'lunch',
       label: 'Almoço',
       time: times.lunch,
+      prepTime: calculatePreMealTime(times.lunch, 15),
+      leadMinutes: 15,
       recipeName: todayMeals?.lunch?.name,
       defaultTip: 'Prato colorido com vegetais, carboidratos complexos e proteínas magras.'
     },
@@ -141,6 +166,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'afternoonSnack',
       label: 'Lanche da Tarde',
       time: times.afternoonSnack,
+      prepTime: calculatePreMealTime(times.afternoonSnack, 15),
+      leadMinutes: 15,
       recipeName: (todayMeals as any)?.snack?.name,
       defaultTip: 'Evite picos de fome antes do jantar com um lanche equilibrado.'
     },
@@ -148,6 +175,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'dinner',
       label: 'Jantar',
       time: times.dinner,
+      prepTime: calculatePreMealTime(times.dinner, 15),
+      leadMinutes: 15,
       recipeName: todayMeals?.dinner?.name,
       defaultTip: 'Refeição leve e aconchegante para preparar uma noite de descanso.'
     },
@@ -155,6 +184,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
       id: 'supper',
       label: 'Ceia',
       time: times.supper,
+      prepTime: calculatePreMealTime(times.supper, 15),
+      leadMinutes: 15,
       defaultTip: 'Um chá calmante de camomila ou melissa para otimizar a regeneração.'
     }
   ];
@@ -192,6 +223,8 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
 
   return {
     mealAlertsEnabled,
+    mealPrepAlertsEnabled: true,
+    prepLeadTimeMinutes: 15,
     challengeAlertsEnabled,
     meals,
     challenges
@@ -290,6 +323,78 @@ export async function triggerNativeTestNotification(
       }
     } catch (swErr) {
       console.warn('[PushScheduler] Fallback de notificação fora do Service Worker:', swErr);
+    }
+  }
+
+  // Fallback padrão se Service Worker indisponível
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/pwa-192x192.png'
+      });
+      return true;
+    } catch (e) {
+      console.warn('[PushScheduler] Fallback Notification falhou:', e);
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Dispara notificação push nativa quando uma refeição planejada estiver prestes a começar
+ */
+export async function triggerUpcomingMealNotification(
+  mealLabel: string = 'Almoço',
+  timeStr: string = '12:30',
+  recipeName?: string,
+  leadMinutes: number = 15
+): Promise<boolean> {
+  // Solicita permissão se ainda não foi decidida
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return false;
+  } else if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+    return false;
+  }
+
+  playSfx('notification');
+  vibrate([100, 60, 150]);
+
+  const title = `🥗 Refeição prestes a começar: ${mealLabel}!`;
+  const body = recipeName
+    ? `Faltam cerca de ${leadMinutes} min para seu ${mealLabel}. Prepare-se para saborear "${recipeName}" às ${timeStr}!`
+    : `Seu ${mealLabel.toLowerCase()} está agendado para às ${timeStr}. Faltam cerca de ${leadMinutes} minutos!`;
+
+  // Tenta via Service Worker Registration (Push nativo em background)
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration && registration.showNotification) {
+        await registration.showNotification(title, {
+          body,
+          icon: '/pwa-192x192.png',
+          badge: '/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: `upcoming-meal-${Date.now()}`,
+          data: { url: '/?tab=plan', type: 'meal_upcoming' },
+          actions: [
+            { action: 'open_plan', title: 'Ver Cardápio 🥗' },
+            { action: 'dismiss', title: 'Fechar' }
+          ]
+        } as any);
+
+        if (registration.active) {
+          registration.active.postMessage({
+            type: 'TEST_PUSH_NOTIFICATION',
+            payload: { title, body }
+          });
+        }
+        return true;
+      }
+    } catch (swErr) {
+      console.warn('[PushScheduler] SW fallback:', swErr);
     }
   }
 

@@ -1,10 +1,54 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pose, Results, drawConnectors, drawLandmarks } from '@mediapipe/pose';
+import { Pose, Results } from '@mediapipe/pose';
 import { Camera } from '@mediapipe/camera_utils';
 import { speak } from '../lib/speech';
 import { PostureSettings } from './PostureSettings';
 import { PostureTips } from './PostureTips';
 import { Settings } from 'lucide-react';
+import { avatarGlobalStore } from '../lib/avatarGlobalState';
+
+function drawConnectors(
+  ctx: CanvasRenderingContext2D,
+  landmarks: any[],
+  connections: number[][],
+  options: { color: string; lineWidth: number }
+) {
+  ctx.save();
+  ctx.strokeStyle = options.color;
+  ctx.lineWidth = options.lineWidth;
+  for (const [start, end] of connections) {
+    const p1 = landmarks[start];
+    const p2 = landmarks[end];
+    if (p1 && p2 && (p1.visibility ?? 1) > 0.3 && (p2.visibility ?? 1) > 0.3) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x * ctx.canvas.width, p1.y * ctx.canvas.height);
+      ctx.lineTo(p2.x * ctx.canvas.width, p2.y * ctx.canvas.height);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawLandmarks(
+  ctx: CanvasRenderingContext2D,
+  landmarks: any[],
+  options: { color: string; lineWidth: number; radius: number }
+) {
+  ctx.save();
+  ctx.fillStyle = options.color;
+  for (const lm of landmarks) {
+    if (lm && (lm.visibility ?? 1) > 0.3) {
+      ctx.beginPath();
+      ctx.arc(lm.x * ctx.canvas.width, lm.y * ctx.canvas.height, options.radius, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+const analyzePosture = (results: Results, _exerciseId: string) => {
+  if (!results.poseLandmarks) return;
+};
 
 interface PostureAnalyzerProps {
   exerciseId: string;

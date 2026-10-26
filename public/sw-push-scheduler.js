@@ -365,14 +365,15 @@ async function registerNativeTimestampTriggers() {
           }
         }
 
-        // Lembrete de Preparo Antecipado (Meal Prep)
+        // Lembrete de Refeição Prestes a Começar / Preparo Antecipado
         if (localSchedules.mealPrepAlertsEnabled && meal.prepTime) {
           const prepTime = getNextTimestampForTime(meal.prepTime);
           if (prepTime && prepTime > Date.now()) {
-            const prepTitle = `👩‍🍳 Preparo de Refeição: ${meal.label}`;
+            const leadMins = localSchedules.prepLeadTimeMinutes || 15;
+            const prepTitle = `🥗 Refeição prestes a começar: ${meal.label}!`;
             const prepBody = meal.recipeName
-              ? `Hora de começar o preparo de "${meal.recipeName}" para comer pontualmente às ${meal.time}!`
-              : `Reserve alguns minutos para preparar seu ${meal.label.toLowerCase()} saudável.`;
+              ? `Faltam cerca de ${leadMins} minutos para o seu ${meal.label.toLowerCase()} (${meal.time})! Prato sugerido: "${meal.recipeName}".`
+              : `Faltam cerca de ${leadMins} minutos para o seu ${meal.label.toLowerCase()} (${meal.time}). Prepare-se para se alimentar no horário!`;
 
             await self.registration.showNotification(prepTitle, {
               body: prepBody,
@@ -380,9 +381,9 @@ async function registerNativeTimestampTriggers() {
               badge: '/icon-192.png',
               tag: `trigger-prep-${meal.id}-${todayStr}`,
               showTrigger: new TimestampTrigger(prepTime),
-              data: { url: '/?tab=plan&action=prep', type: 'meal_prep', mealId: meal.id },
+              data: { url: '/?tab=plan&action=upcoming', type: 'meal_about_to_start', mealId: meal.id },
               actions: [
-                { action: 'open_recipe', title: 'Ver Receita 📖' },
+                { action: 'open_recipe', title: 'Ver Refeição 🥗' },
                 { action: 'dismiss', title: 'Mais tarde' }
               ]
             });
@@ -461,23 +462,24 @@ async function checkScheduledAlarms() {
         }
       }
 
-      // Notificação de Preparo Antecipado (Meal Prep)
+      // Notificação de Refeição Prestes a Começar (15 min antes)
       if (localSchedules.mealPrepAlertsEnabled && meal.prepTime && meal.prepTime === currentTime) {
         const prepKey = `${todayStr}-mealprep-${meal.id}`;
         if (!notifiedAlarmsSet.has(prepKey)) {
           notifiedAlarmsSet.add(prepKey);
-          const prepTitle = `👩‍🍳 Preparar ${meal.label}`;
+          const leadMins = localSchedules.prepLeadTimeMinutes || 15;
+          const prepTitle = `🥗 Refeição prestes a começar: ${meal.label}!`;
           const prepBody = meal.recipeName
-            ? `Hora de começar o preparo de "${meal.recipeName}" para sua refeição das ${meal.time}!`
-            : `Faltam ${localSchedules.prepLeadTimeMinutes || 30} minutos para o seu ${meal.label.toLowerCase()}. Separe os ingredientes!`;
+            ? `Faltam cerca de ${leadMins} minutos para o seu ${meal.label.toLowerCase()}! Prato sugerido: "${meal.recipeName}" às ${meal.time}.`
+            : `Faltam cerca de ${leadMins} minutos para o seu ${meal.label.toLowerCase()} (${meal.time}). Prepare-se para se alimentar com calma!`;
 
           await triggerNativeNotification(prepTitle, {
             body: prepBody,
             tag: `mealprep-${meal.id}-${todayStr}`,
-            data: { type: 'meal_prep', mealId: meal.id, url: '/?tab=plan&action=prep' },
+            data: { type: 'meal_about_to_start', mealId: meal.id, url: '/?tab=plan&action=upcoming' },
             actions: [
-              { action: 'open_recipe', title: 'Ver Ingredientes 🥑' },
-              { action: 'dismiss', title: 'Já preparei' }
+              { action: 'open_recipe', title: 'Ver Refeição 🥑' },
+              { action: 'dismiss', title: 'Entendi' }
             ]
           });
         }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Variants } from 'motion/react';
 
 export const DEFAULT_TAB_ORDER: string[] = [
   'assistant360',
@@ -54,7 +54,7 @@ export interface LayoutAnimationProviderProps {
   mode?: 'slide' | 'fade-up';
 }
 
-const slideVariants = {
+const slideVariants: Variants = {
   initial: (dir: number) => ({
     opacity: 0,
     x: dir >= 0 ? 42 : -42,
@@ -65,7 +65,7 @@ const slideVariants = {
     x: 0,
     filter: 'blur(0px)',
     transition: {
-      x: { type: 'spring', stiffness: 320, damping: 30, mass: 0.7 },
+      x: { type: 'spring' as const, stiffness: 320, damping: 30, mass: 0.7 },
       opacity: { duration: 0.24, ease: [0.16, 1, 0.3, 1] },
       filter: { duration: 0.2 },
     },
@@ -82,17 +82,17 @@ const slideVariants = {
   }),
 };
 
-const fadeUpVariants = {
+const fadeUpVariants: Variants = {
   initial: { opacity: 0, y: 30 },
   animate: { 
     opacity: 1, 
     y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.35, ease: 'easeOut' }
   },
   exit: { 
     opacity: 0, 
     y: -20,
-    transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.2, ease: 'easeIn' }
   }
 };
 

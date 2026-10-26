@@ -525,6 +525,49 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["photoURL", "productName", "nutrients", "date", "userId", "createdAt"]
+    },
+    "PriceAlert": {
+      "title": "Price Alert",
+      "description": "User price alert for a specific ingredient",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "ingredientName": { "type": "string" },
+        "targetPrice": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "ingredientName", "targetPrice", "active", "createdAt"]
+    },
+    "Mail": {
+      "title": "Email Message",
+      "description": "Email to be sent by Firebase extension",
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "message": {
+          "type": "object",
+          "properties": {
+            "subject": { "type": "string" },
+            "text": { "type": "string" },
+            "html": { "type": "string" }
+          }
+        }
+      },
+      "required": ["to", "message"]
+    },
+    "Advertisement": {
+      "title": "Ad Advertisement",
+      "description": "Ad campaign details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "type": { "type": "string", "enum": ["photo", "video"] },
+        "url": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "type", "url", "createdAt"]
     }
   },
   "firestore": {
@@ -655,6 +698,18 @@
     "/users/{userId}/buttonStates/{buttonId}": {
       "schema": "ButtonState",
       "description": "User specific button enabled/disabled state synced across sessions and devices"
+    },
+    "/users/{userId}/priceAlerts/{alertId}": {
+      "schema": "PriceAlert",
+      "description": "User price alerts for specific ingredients"
+    },
+    "/mail/{mailId}": {
+      "schema": "Mail",
+      "description": "Outgoing email notifications for price alerts"
+    },
+    "/users/{userId}/advertisements/{adId}": {
+      "schema": "Advertisement",
+      "description": "User generated advertisements"
     }
   }
 }

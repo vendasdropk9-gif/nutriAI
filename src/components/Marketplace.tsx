@@ -38,6 +38,9 @@ import { DailyTips } from './DailyTips';
 import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 import { useTranslation } from '../contexts/LanguageContext';
+import { db, auth } from '../lib/firebase';
+import { doc, getDoc, updateDoc, setDoc, query, collection, where, getDocs, addDoc } from 'firebase/firestore';
+import { PriceAlert } from '../types';
 
 const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
 const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
@@ -121,6 +124,63 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     return BANNERS;
   });
 
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      if (!auth.currentUser) return;
+      const q = query(collection(db, 'users', auth.currentUser.uid, 'priceAlerts'), where('active', '==', true));
+      const snap = await getDocs(q);
+      const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() } as PriceAlert));
+      setPriceAlerts(alerts);
+      
+      // Check for price alerts triggered
+      alerts.forEach(alert => {
+        const product = PRODUCTS.find(p => p.name === alert.ingredientName);
+        if (product && product.price <= alert.targetPrice) {
+          triggerAlertEmail(alert, product);
+        }
+      });
+    };
+    loadAlerts();
+  }, []);
+
+  const triggerAlertEmail = async (alert: PriceAlert, product: Product) => {
+    if (!auth.currentUser?.email || !auth.currentUser?.uid) return;
+    
+    // Send Email
+    await addDoc(collection(db, 'mail'), {
+      to: auth.currentUser.email,
+      message: {
+        subject: `Alerta de Preço: ${alert.ingredientName}`,
+        text: `Olá! O preço do ingrediente ${alert.ingredientName} caiu para R$ ${product.price.toFixed(2)}, atingindo seu alerta de R$ ${alert.targetPrice.toFixed(2)}.`,
+        html: `<p>Olá!</p><p>O preço do ingrediente <b>${alert.ingredientName}</b> caiu para <b>R$ ${product.price.toFixed(2)}</b>, atingindo seu alerta de R$ ${alert.targetPrice.toFixed(2)}.</p>`
+      }
+    });
+
+    // Save Notification Log
+    await addDoc(collection(db, 'users', auth.currentUser.uid, 'notifications'), {
+      title: 'Alerta de Preço',
+      message: `O preço de ${alert.ingredientName} caiu para R$ ${product.price.toFixed(2)}!`,
+      type: 'info',
+      date: new Date().toISOString(),
+      read: false
+    });
+
+    // Notify UI
+    if (addNotification) {
+        addNotification({
+          title: 'Alerta de Preço',
+          message: `O preço de ${alert.ingredientName} caiu para R$ ${product.price.toFixed(2)}!`,
+          type: 'info'
+        });
+    }
+
+    // Mark as inactive
+    await updateDoc(doc(db, 'users', auth.currentUser.uid, 'priceAlerts', alert.id), { active: false });
+    setPriceAlerts(prev => prev.filter(a => a.id !== alert.id));
+  };
+
   useEffect(() => {
     const handlePromoAdded = (e: any) => {
       if (e.detail) {
@@ -172,6 +232,26 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     }).filter(item => item.quantity > 0);
     setCart(newCart);
     onUpdateCart(newCart);
+  };
+
+  const handleSetPriceAlert = async (product: Product, targetPrice: number) => {
+    if (!auth.currentUser) return;
+    const newAlert: Omit<PriceAlert, 'id'> = {
+      userId: auth.currentUser.uid,
+      ingredientName: product.name,
+      targetPrice,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    const docRef = await addDoc(collection(db, 'users', auth.currentUser.uid, 'priceAlerts'), newAlert);
+    setPriceAlerts(prev => [...prev, { id: docRef.id, ...newAlert }]);
+    if (addNotification) {
+      addNotification({
+        title: 'Alerta de Preço Definido',
+        message: `Alerta para ${product.name} definido em R$ ${targetPrice.toFixed(2)}`,
+        type: 'success'
+      });
+    }
   };
 
   const submitReview = () => {
@@ -785,6 +865,16 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar ao Sacolão
+                </button>
+                <button
+                  onClick={() => {
+                     const price = parseFloat(prompt('Defina o preço de alerta para ' + product.name + ':') || '0');
+                     if (price > 0) handleSetPriceAlert(product, price);
+                  }}
+                  className="w-full py-2 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-xl font-bold transition-all hover:bg-amber-200 dark:hover:bg-amber-800 flex items-center justify-center gap-2 text-[10px] mt-2 cursor-pointer"
+                >
+                  <TrendingDown className="w-3 h-3" />
+                  Alertar Preço
                 </button>
               </div>
             </motion.div>

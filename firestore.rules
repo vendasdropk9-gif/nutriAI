@@ -74,6 +74,17 @@ service cloud.firestore {
       allow write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
     }
 
+    // --- Price Alerts ---
+    match /users/{userId}/priceAlerts/{alertId} {
+      allow read, write: if isValidId(userId) && isOwner(userId);
+    }
+    
+    // --- Mail (Only for extension, can only write) ---
+    match /mail/{mailId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if false;
+    }
+
     // Default Deny Catch-All
     match /{document=**} {
       allow read, write: if false;

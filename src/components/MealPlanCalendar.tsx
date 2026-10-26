@@ -15,6 +15,29 @@ import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 
 
+import { playSfx, vibrate } from '../lib/sensory';
+import { safeGet, safeSet } from '../lib/storage';
+import { auth, db } from '../lib/firebase';
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
+
+export const DAYS_OF_WEEK = [
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+  'Domingo'
+];
+
+export const MEALS = [
+  { id: 'breakfast', label: 'breakfast' },
+  { id: 'lunch', label: 'lunch' },
+  { id: 'snack', label: 'snack' },
+  { id: 'dinner', label: 'dinner' }
+];
+
 export function MealPlanView({
   mealPlan,
   savedRecipes,
@@ -25,12 +48,24 @@ export function MealPlanView({
 }: {
   mealPlan: MealPlan;
   savedRecipes: Recipe[];
-  onUpdatePlan: (newPlan: MealPlan) => void;
+  onUpdatePlan: (day: string, mealType: string, recipeId: string | null, recipe?: Recipe) => void;
   onLogIntake: (log: IntakeLog) => void;
   profile?: UserProfile | null;
   onGeneratingChange?: (generating: boolean) => void;
 }) {
   const { t } = useTranslation();
+
+  const [selectedDay, setSelectedDay] = useState<string>('Segunda-feira');
+  const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [addingTo, setAddingTo] = useState<{ day: string; meal: string } | null>(null);
+  const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
+  const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
+  const [isExportingCard, setIsExportingCard] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   // States for 'Sync to Shopping List' checking against PantryScanner
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);

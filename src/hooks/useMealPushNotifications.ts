@@ -138,10 +138,43 @@ export function useMealPushNotifications(
 
       const scheduleData = buildSchedulePayload(profile);
 
-      // 1. Checar Alertas de Refeições
+      // 1. Checar Alertas de Refeições (Prestes a Começar e Horário Exato)
       if (scheduleData.mealAlertsEnabled && Array.isArray(scheduleData.meals)) {
         for (const meal of scheduleData.meals) {
-          if (meal.time === currentTime) {
+          const [mHour, mMin] = meal.time.split(':').map(Number);
+          const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+          const mealTotalMinutes = mHour * 60 + mMin;
+          const diffMins = mealTotalMinutes - currentTotalMinutes;
+
+          // A) Notificação quando a refeição planejada estiver prestes a começar (15 minutos antes)
+          if (diffMins > 0 && diffMins <= 15) {
+            const preKey = `${todayStr}-meal-about-to-start-${meal.id}`;
+            if (!notifiedKeys.current.has(preKey)) {
+              notifiedKeys.current.add(preKey);
+
+              const title = `🥗 Refeição prestes a começar: ${meal.label}!`;
+              const message = meal.recipeName
+                ? `Faltam cerca de ${diffMins} min para seu ${meal.label}. Prepare-se para saborear "${meal.recipeName}" às ${meal.time}!`
+                : `Seu ${meal.label.toLowerCase()} está agendado para às ${meal.time} (em ${diffMins} minutos). Prepare-se para sua refeição planejada!`;
+
+              playSfx('notification');
+              vibrate([100, 50, 100]);
+
+              addNotification({
+                title,
+                message,
+                type: 'info'
+              });
+
+              sendNativePushNotification(title, message, {
+                tag: `meal-about-to-start-${meal.id}-${todayStr}`,
+                data: { url: '/?tab=plan' }
+              });
+            }
+          }
+
+          // B) Notificação no horário exato da refeição
+          if (meal.time === currentTime || diffMins === 0) {
             const key = `${todayStr}-meal-${meal.id}`;
             if (!notifiedKeys.current.has(key)) {
               notifiedKeys.current.add(key);

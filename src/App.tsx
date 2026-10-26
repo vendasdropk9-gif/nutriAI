@@ -1008,7 +1008,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                   />
                 )}
                 {activeTab === 'partner' && (
-                  <PartnerPortal />
+                  <PartnerPortal onAwardPoints={awardPoints} />
                 )}
                 {activeTab === 'delivery' && (
                   <DeliveryPartnerPortal onBack={() => setActiveTab('market')} addNotification={addNotification} />

@@ -722,6 +722,7 @@ export interface PantryItem {
   brand?: string;
   storageLocation: 'despensa' | 'geladeira' | 'freezer';
   addedAt: string;
+  needsRestock?: boolean;
 }
 
 export interface PantryRecipeSuggestion {
@@ -861,4 +862,20 @@ export interface UserPresence {
   role?: 'buyer' | 'seller' | 'admin' | 'courier';
 }
 
+export interface PriceAlert {
+  id: string;
+  userId: string;
+  ingredientName: string;
+  targetPrice: number;
+  active: boolean;
+  createdAt: string;
+}
 
+export interface Mail {
+  to: string;
+  message: {
+    subject: string;
+    text: string;
+    html: string;
+  };
+}

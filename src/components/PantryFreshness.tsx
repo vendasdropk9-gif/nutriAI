@@ -1243,7 +1243,7 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
                     isExpired
                       ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/60'
                       : isUrgent
-                      ? 'bg-rose-50/70 dark:bg-rose-950/25 border-rose-300 dark:border-rose-800/80 shadow-sm'
+                      ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800/80 shadow-md shadow-rose-500/10 ring-1 ring-rose-400/50 animate-pulse'
                       : isLowStock
                       ? 'bg-amber-50/40 dark:bg-amber-950/15 border-amber-200 dark:border-amber-900/40'
                       : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800 shadow-xs'
@@ -1281,7 +1281,11 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
                           Vencido ({Math.abs(item.daysRemaining)}d atrás)
                         </span>
                       ) : isUrgent ? (
-                        <span className="px-2.5 py-1 rounded-xl bg-rose-500 text-white text-xs font-bold flex items-center gap-1 animate-pulse shadow-sm shadow-rose-500/20">
+                        <span className="px-2.5 py-1 rounded-xl bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-sm shadow-rose-500/20">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                          </span>
                           <Clock className="w-3.5 h-3.5" />
                           {item.daysRemaining === 0 ? 'Vence Hoje!' : item.daysRemaining === 1 ? 'Vence Amanhã!' : `Vence em ${item.daysRemaining} dias`}
                         </span>

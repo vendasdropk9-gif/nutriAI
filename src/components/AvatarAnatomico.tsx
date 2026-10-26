@@ -1814,7 +1814,7 @@ export function recalibrateJointSkinWeights(
 
     const skinnedMesh = child as THREE.SkinnedMesh;
     const geometry = skinnedMesh.geometry;
-    if (!geometry || !geometry.attributes.skinIndex || !geometry.attributes.skinWeight) return;
+    if (!geometry || !geometry.attributes?.skinIndex || !geometry.attributes?.skinWeight) return;
 
     const skeleton = skinnedMesh.skeleton;
     if (!skeleton || !skeleton.bones || skeleton.bones.length === 0) return;
@@ -1876,9 +1876,9 @@ export function recalibrateJointSkinWeights(
 
     if (jointPairs.length === 0) return;
 
-    const skinIndexAttr = geometry.attributes.skinIndex;
-    const skinWeightAttr = geometry.attributes.skinWeight;
-    const positionAttr = geometry.attributes.position;
+    const skinIndexAttr = geometry.attributes?.skinIndex;
+    const skinWeightAttr = geometry.attributes?.skinWeight;
+    const positionAttr = geometry.attributes?.position;
     const vertexCount = positionAttr ? positionAttr.count : skinWeightAttr.count;
 
     let modified = false;
@@ -2078,13 +2078,13 @@ function initSkinnedMeshJointCache(
 
   const skeleton = skinnedMesh.skeleton;
   const geometry = skinnedMesh.geometry;
-  if (!skeleton || !skeleton.bones || !geometry || !geometry.attributes.skinIndex || !geometry.attributes.skinWeight) {
+  if (!skeleton || !skeleton.bones || !geometry || !geometry.attributes?.skinIndex || !geometry.attributes?.skinWeight) {
     return { bindings: [], initialized: true };
   }
 
   const bones = skeleton.bones;
-  const skinIndexAttr = geometry.attributes.skinIndex;
-  const skinWeightAttr = geometry.attributes.skinWeight;
+  const skinIndexAttr = geometry.attributes?.skinIndex;
+  const skinWeightAttr = geometry.attributes?.skinWeight;
   const count = skinWeightAttr.count;
 
   const findBone = (patterns: string[]): { bone: THREE.Bone; index: number } | null => {
@@ -2229,8 +2229,8 @@ export function interpolateDynamicJointWeights(
     if (!cache.bindings || cache.bindings.length === 0) return;
 
     const geometry = skinnedMesh.geometry;
-    if (!geometry || !geometry.attributes.skinWeight) return;
-    const skinWeightAttr = geometry.attributes.skinWeight;
+    if (!geometry || !geometry.attributes?.skinWeight) return;
+    const skinWeightAttr = geometry.attributes?.skinWeight;
 
     let meshNeedsUpdate = false;
 
@@ -2370,10 +2370,10 @@ class AvatarModelPoolManager {
               if (attr.data && 'usage' in attr.data) attr.data.usage = THREE.StaticDrawUsage;
             }
           };
-          setUsage(mesh.geometry.attributes.position);
-          setUsage(mesh.geometry.attributes.normal);
-          setUsage(mesh.geometry.attributes.skinWeight);
-          setUsage(mesh.geometry.attributes.skinIndex);
+          setUsage(mesh.geometry.attributes?.position);
+          setUsage(mesh.geometry.attributes?.normal);
+          setUsage(mesh.geometry.attributes?.skinWeight);
+          setUsage(mesh.geometry.attributes?.skinIndex);
         }
       }
     });
@@ -2523,6 +2523,14 @@ function SingleGLTFModelInstance({
       transitionRadiusScale: 2.0,
     });
 
+    clone.traverse((child: any) => {
+      if (child.isMesh && child.geometry?.morphAttributes?.position) {
+        if (!child.morphTargetInfluences || child.morphTargetInfluences.length === 0) {
+          child.updateMorphTargets();
+        }
+      }
+    });
+
     avatarModelPool.set(gender, modelUrl, {
       gender,
       url: modelUrl,
@@ -2623,6 +2631,13 @@ function SingleGLTFModelInstance({
           });
           shaderMaterialsRef.current.push(shaderMat);
           mesh.material = shaderMat;
+        } else {
+          // Clean matte white material for non-highlighted body parts
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: '#f8fafc',
+            roughness: 0.85,
+            metalness: 0.05,
+          });
         }
       }
     });

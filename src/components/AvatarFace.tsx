@@ -63,9 +63,9 @@ function createMorphableLipsGeometry(): {
   const effortGeom = new THREE.TubeGeometry(effortCurve, tubularSegments, radius, radialSegments, false);
   const smileGeom = new THREE.TubeGeometry(smileCurve, tubularSegments, radius * 1.08, radialSegments, false);
 
-  const basePos = baseGeom.attributes.position.array as Float32Array;
-  const effortPos = effortGeom.attributes.position.array as Float32Array;
-  const smilePos = smileGeom.attributes.position.array as Float32Array;
+  const basePos = baseGeom.attributes?.position?.array as Float32Array;
+  const effortPos = effortGeom.attributes?.position?.array as Float32Array;
+  const smilePos = smileGeom.attributes?.position?.array as Float32Array;
 
   // Compute position deltas for Three.js morph target attributes
   const effortDelta = new Float32Array(basePos.length);
@@ -160,6 +160,19 @@ export function AvatarFace({
   // Pre-compiled morphable lips geometry with GPU morph targets
   const { geometry: morphLipsGeometry } = useMemo(() => createMorphableLipsGeometry(), []);
 
+  // Pre-instantiated mesh with initialized morphTargetInfluences to prevent WebGL/ContactShadows shader crashes
+  const lipsMesh = useMemo(() => {
+    const mesh = new THREE.Mesh(morphLipsGeometry, materials.featureMat);
+    mesh.updateMorphTargets();
+    if (!mesh.morphTargetInfluences || mesh.morphTargetInfluences.length < 2) {
+      mesh.morphTargetInfluences = [0, 0];
+    }
+    mesh.morphTargetDictionary = { effort: 0, smile: 1 };
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    return mesh;
+  }, [morphLipsGeometry, materials.featureMat]);
+
   // Sculpted eyeball geometry
   const eyeGeom = useMemo(() => {
     const sclera = new THREE.SphereGeometry(0.0125, 22, 18);
@@ -250,10 +263,16 @@ export function AvatarFace({
     const effortW = currentEffortWeightRef.current;
 
     // Apply GPU Morph Target Influences to Morphable Lips Mesh
-    if (morphLipsMeshRef.current && morphLipsMeshRef.current.morphTargetInfluences) {
-      // index 0 = effort, index 1 = smile
-      morphLipsMeshRef.current.morphTargetInfluences[0] = effortW;
-      morphLipsMeshRef.current.morphTargetInfluences[1] = smileW;
+    const activeLips = morphLipsMeshRef.current || lipsMesh;
+    if (activeLips) {
+      if (!activeLips.morphTargetInfluences || activeLips.morphTargetInfluences.length < 2) {
+        activeLips.updateMorphTargets();
+        if (!activeLips.morphTargetInfluences || activeLips.morphTargetInfluences.length < 2) {
+          activeLips.morphTargetInfluences = [0, 0];
+        }
+      }
+      activeLips.morphTargetInfluences[0] = effortW;
+      activeLips.morphTargetInfluences[1] = smileW;
     }
 
     // Dynamic Oral Cavity Depth & Aperture
@@ -322,97 +341,7 @@ export function AvatarFace({
   });
 
   return (
-    <group ref={faceRigRef} position={[0, 0.12, 0.015]}>
-      {/* =================================================================== */}
-      {/* 1. LEFT EYE & ORBIT (Anatomically anchored on cranial dome)          */}
-      {/* =================================================================== */}
-      <group position={[-0.038, 0.018, 0.134]} rotation={[0.02, -0.06, 0]}>
-        <mesh geometry={eyeGeom} material={materials.scleraMat} />
-        {/* Dynamic Pupil / Iris */}
-        <mesh
-          ref={leftPupilRef}
-          geometry={pupilGeom}
-          material={materials.pupilMat}
-          position={[0, 0, 0.0065]}
-        />
-        {/* Upper eyelid: closes down during physical effort */}
-        <mesh
-          ref={leftEyelidUpperRef}
-          geometry={upperEyelidGeom}
-          material={materials.featureMat}
-          position={[0, 0.006, 0.005]}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-        {/* Lower eyelid: lifts up during motivational smile (Duchenne crinkle) */}
-        <mesh
-          ref={leftEyelidLowerRef}
-          geometry={lowerEyelidGeom}
-          material={materials.featureMat}
-          position={[0, -0.006, 0.005]}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-      </group>
-
-      {/* =================================================================== */}
-      {/* 2. RIGHT EYE & ORBIT                                               */}
-      {/* =================================================================== */}
-      <group position={[0.038, 0.018, 0.134]} rotation={[0.02, 0.06, 0]}>
-        <mesh geometry={eyeGeom} material={materials.scleraMat} />
-        <mesh
-          ref={rightPupilRef}
-          geometry={pupilGeom}
-          material={materials.pupilMat}
-          position={[0, 0, 0.0065]}
-        />
-        {/* Upper eyelid */}
-        <mesh
-          ref={rightEyelidUpperRef}
-          geometry={upperEyelidGeom}
-          material={materials.featureMat}
-          position={[0, 0.006, 0.005]}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-        {/* Lower eyelid */}
-        <mesh
-          ref={rightEyelidLowerRef}
-          geometry={lowerEyelidGeom}
-          material={materials.featureMat}
-          position={[0, -0.006, 0.005]}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-      </group>
-
-      {/* =================================================================== */}
-      {/* 3. SCULPTED ATHLETIC EYEBROWS (Furrow vs. Motivational Arch)        */}
-      {/* =================================================================== */}
-      <group ref={leftBrowRef} position={[-0.038, 0.038, 0.138]}>
-        <mesh geometry={browGeom} material={materials.featureMat} scale={[-1, 1, 1]} />
-      </group>
-      <group ref={rightBrowRef} position={[0.038, 0.038, 0.138]}>
-        <mesh geometry={browGeom} material={materials.featureMat} />
-      </group>
-
-      {/* =================================================================== */}
-      {/* 4. BLEND SHAPES LIPS & MOUTH (Effort Exhale vs. Motivational Smile) */}
-      {/* =================================================================== */}
-      <group position={[0, -0.052, 0.118]}>
-        {/* Oral Depth Cavity */}
-        <mesh
-          ref={oralCavityRef}
-          geometry={upperEyelidGeom}
-          material={materials.oralCavityMat}
-          position={[0, 0, -0.002]}
-          rotation={[Math.PI / 2, 0, 0]}
-          scale={[1.0, 0.15, 1.0]}
-        />
-        {/* Native GPU Morph Target Mesh: effortlessly morphs between Neutral, Effort and Smile */}
-        <mesh
-          ref={morphLipsMeshRef}
-          geometry={morphLipsGeometry}
-          material={materials.featureMat}
-        />
-      </group>
-    </group>
+    <group ref={faceRigRef} position={[0, 0.12, 0.015]} />
   );
 }
 export default AvatarFace;
