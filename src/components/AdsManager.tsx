@@ -76,22 +76,25 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
         </div>
 
         {selectedFile && (
+          <div className="w-full h-48 rounded-xl overflow-hidden mb-4 border border-slate-200 dark:border-slate-700 bg-slate-100 flex items-center justify-center">
+            <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="w-full h-full object-contain" />
+          </div>
+        )}
+        {selectedFile && (
           <div className="flex gap-4">
             <button 
               onClick={() => generateAd('photo')}
               disabled={isGenerating}
-              className="flex-1 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="flex-1 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
-              Gerar Anúncio (Foto - Nano Banana)
+              {isGenerating ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</> : <><ImageIcon className="w-5 h-5" /> Gerar (Foto - Nano Banana)</>}
             </button>
             <button 
               onClick={() => generateAd('video')}
               disabled={isGenerating}
-              className="flex-1 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="flex-1 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Video className="w-5 h-5" />}
-              Gerar Anúncio (Vídeo - Google Veo)
+              {isGenerating ? <><Loader2 className="w-5 h-5 animate-spin" /> Processando...</> : <><Video className="w-5 h-5" /> Gerar (Vídeo - Google Veo)</>}
             </button>
           </div>
         )}

@@ -2383,18 +2383,51 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
             </div>
 
             {scanHistory.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setScanHistory([]);
-                  localStorage.removeItem('nutri_pantry_scan_history');
-                  playSfx('tap');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer border border-rose-200 dark:border-rose-900/40"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Limpar Histórico</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = ['Data/Hora', 'Nome', 'Quantidade', 'Categoria', 'Local', 'Tipo de Scan'];
+                    const csvRows = [headers.join(',')];
+                    for (const item of scanHistory) {
+                      const row = [
+                        new Date(item.scannedAt).toLocaleString('pt-BR'),
+                        `"${item.name}"`,
+                        `"${item.quantity}"`,
+                        `"${item.category}"`,
+                        `"${item.storageLocation}"`,
+                        item.scanType
+                      ];
+                      csvRows.push(row.join(','));
+                    }
+                    const csvString = csvRows.join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `historico_scans_${new Date().toISOString().slice(0, 10)}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    playSfx('success');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer border border-emerald-200 dark:border-emerald-900/40"
+                >
+                  <FolderInput className="w-3.5 h-3.5" />
+                  <span>Exportar CSV</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanHistory([]);
+                    localStorage.removeItem('nutri_pantry_scan_history');
+                    playSfx('tap');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer border border-rose-200 dark:border-rose-900/40"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Limpar Histórico</span>
+                </button>
+              </div>
             )}
           </div>
 
