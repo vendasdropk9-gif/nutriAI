@@ -815,6 +815,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                     }} 
                     onLogIntake={handleLogIntake}
                     onUpdateProfile={updateProfile}
+                    activeTab={activeTab}
                   />
                 )}
                 {activeTab === 'quickdishes' && (

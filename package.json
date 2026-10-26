@@ -11,7 +11,9 @@
     "lint:i18n": "eslint --config eslint.rules.config.js 'src/**/*.{ts,tsx}'",
     "test:locales": "tsx scripts/validateLocales.ts",
     "test:i18n": "tsx src/scripts/validate-i18n.ts",
-    "audit:i18n": "tsx src/scripts/audit-i18n.ts"
+    "audit:i18n": "tsx src/scripts/audit-i18n.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@google/genai": "latest",
@@ -55,6 +57,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/express": "^4.17.21",
     "@types/intro.js": "^5.1.5",
     "@types/leaflet": "^1.9.16",
@@ -70,8 +73,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^10.12.0",
     "eslint-plugin-i18next": "^6.1.5",
+    "jsdom": "^30.1.3",
     "typescript": "^5.7.3",
-    "vite": "^6.1.0"
+    "vite": "^6.1.0",
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "react": "^18.3.1",

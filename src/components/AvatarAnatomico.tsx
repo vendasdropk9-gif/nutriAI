@@ -49,8 +49,6 @@ import {
   AvatarCameraViewType,
   MuscleHighlightMode,
 } from '../lib/avatarGlobalState';
-import { AvatarFace } from './AvatarFace';
-
 import { playSfx, vibrate } from '../lib/sensory';
 
 // Helper function to validate muscle raycast intersections
@@ -2979,11 +2977,20 @@ function AnatomicalAvatarModel({
     foot: createSculptedFootGeometry(true),
   }), [isFemale]);
 
-  // White matte mannequin material for skeletal, pelvic and non-muscular landmarks (joints, collarbones, hands, feet)
+  // White matte mannequin material for skeletal, pelvic and non-muscular landmarks (joints, collarbones, feet)
   const inactiveMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#f8fafc',
     roughness: 0.82,
     metalness: 0.0,
+  }), []);
+
+  // Stylized glowing orange-red mechanical gloves matching the robot brand avatar
+  const mechanicalGloveMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#ff4500',
+    emissive: '#ff4500',
+    emissiveIntensity: 0.95,
+    roughness: 0.3,
+    metalness: 0.5,
   }), []);
 
   // Biomechanical Motion Engine with smooth continuous interpolation
@@ -3327,13 +3334,6 @@ function AnatomicalAvatarModel({
             playbackSpeed={playbackSpeed}
             highlightOverride={highlightOverride}
           />
-          <AvatarFace
-            effort={isPlaying ? 0.35 : 0.05}
-            motivationalSmile={motivationalSmile}
-            positiveFeedback={positiveFeedback}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-          />
           <AnatomicalMuscleNode
             geometry={geo.neck}
             position={[0, -0.04, 0.005]}
@@ -3558,8 +3558,8 @@ function AnatomicalAvatarModel({
               playbackSpeed={playbackSpeed}
               highlightOverride={highlightOverride}
             />
-            {/* Left Hand Grip */}
-            <mesh geometry={geo.hand} material={inactiveMat} position={[0, -0.28, 0]} castShadow />
+            {/* Left Hand Grip - Stylized glowing orange-red mechanical glove */}
+            <mesh geometry={geo.hand} material={mechanicalGloveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
               <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />
@@ -3639,8 +3639,8 @@ function AnatomicalAvatarModel({
               playbackSpeed={playbackSpeed}
               highlightOverride={highlightOverride}
             />
-            {/* Right Hand Grip */}
-            <mesh geometry={geo.hand} material={inactiveMat} position={[0, -0.28, 0]} castShadow />
+            {/* Right Hand Grip - Stylized glowing orange-red mechanical glove */}
+            <mesh geometry={geo.hand} material={mechanicalGloveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
               <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />

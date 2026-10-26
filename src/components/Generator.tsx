@@ -216,16 +216,31 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
 
         if (final) {
           setInterimTranscript('');
-          setIngredients(prev => {
-            const trimmed = prev.trim();
-            if (!trimmed) return final.trim();
-            if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
-              return `${trimmed} ${final.trim()}`;
-            }
-            return `${trimmed}, ${final.trim()}`;
-          });
-          playSfx('success');
-          vibrate([40, 40]);
+          const transcript = final.trim().toLowerCase();
+          const triggers = ['encontre', 'pesquise', 'find', 'buscar', 'procure'];
+          const isSearchCommand = triggers.some(t => transcript.startsWith(t));
+
+          if (isSearchCommand) {
+            // Very simple parsing: split by common separators or just assume the whole thing is the query
+            // for the existing generation pipeline.
+            setIngredients(final.trim());
+            playSfx('success');
+            vibrate([40, 40]);
+            
+            // Trigger generation
+            handleGenerate();
+          } else {
+            setIngredients(prev => {
+              const trimmed = prev.trim();
+              if (!trimmed) return final.trim();
+              if (trimmed.endsWith(',') || trimmed.endsWith(';') || trimmed.endsWith('.')) {
+                return `${trimmed} ${final.trim()}`;
+              }
+              return `${trimmed}, ${final.trim()}`;
+            });
+            playSfx('success');
+            vibrate([40, 40]);
+          }
         }
       };
 

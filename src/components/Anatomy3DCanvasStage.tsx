@@ -179,36 +179,39 @@ function AnatomicalMuscleMesh({
 
   const mat = useMemo(() => {
     if (colorOverride) {
+      const isGlowing = colorOverride.startsWith('#ff') || colorOverride.includes('orange');
       return new THREE.MeshStandardMaterial({
         color: colorOverride,
-        roughness: 0.82,
-        metalness: 0.0,
+        emissive: isGlowing ? colorOverride : '#000000',
+        emissiveIntensity: isGlowing ? 0.95 : 0.0,
+        roughness: isGlowing ? 0.3 : 0.82,
+        metalness: isGlowing ? 0.5 : 0.0,
       });
     }
 
     if (isTarget) {
       return new THREE.MeshStandardMaterial({
-        color: '#ef4444',
-        emissive: '#ef4444',
-        emissiveIntensity: 1.5,
-        roughness: 0.28,
+        color: '#ff3b30',
+        emissive: '#ff3b30',
+        emissiveIntensity: 1.4,
+        roughness: 0.22,
         metalness: 0.05,
       });
     }
 
     if (isSecondary) {
       return new THREE.MeshStandardMaterial({
-        color: '#f97316',
-        emissive: '#f97316',
-        emissiveIntensity: 0.9,
-        roughness: 0.28,
+        color: '#ff9500',
+        emissive: '#ff9500',
+        emissiveIntensity: 1.0,
+        roughness: 0.25,
         metalness: 0.05,
       });
     }
 
     return new THREE.MeshStandardMaterial({
       color: '#f8fafc',
-      roughness: 0.82,
+      roughness: 0.85,
       metalness: 0.0,
     });
   }, [isTarget, isSecondary, colorOverride]);
@@ -518,12 +521,28 @@ function AnimatedMannequin3D({
           selectedMuscleKey={selectedMuscleKey}
         />
 
+        {/* Acromioclavicular Shoulder Sockets */}
+        <AnatomicalMuscleMesh
+          geometry={geo.deltoid}
+          position={[-0.21, 0.41, 0.01]}
+          scale={[0.8, 0.8, 0.85]}
+          muscleGroupKey="side_delts"
+          selectedMuscleKey={selectedMuscleKey}
+        />
+        <AnatomicalMuscleMesh
+          geometry={geo.deltoid}
+          position={[0.21, 0.41, 0.01]}
+          scale={[0.8, 0.8, 0.85]}
+          muscleGroupKey="side_delts"
+          selectedMuscleKey={selectedMuscleKey}
+        />
+
         {/* Left Arm & Deltoid */}
-        <group ref={leftShoulderGroup} position={[-0.30, 0.43, 0]}>
+        <group ref={leftShoulderGroup} position={[-0.25, 0.42, 0]}>
           <AnatomicalMuscleMesh
             geometry={geo.deltoid}
-            position={[0, 0.02, 0]}
-            scale={[1.2, 1.35, 1.1]}
+            position={[-0.03, 0.01, 0]}
+            scale={[1.15, 1.3, 1.05]}
             muscleGroupKey="side_delts"
             selectedMuscleKey={selectedMuscleKey}
             isPlaying={isPlaying}
@@ -550,8 +569,9 @@ function AnimatedMannequin3D({
             <AnatomicalMuscleMesh
               geometry={geo.hand}
               position={[0, -0.28, 0]}
-              muscleGroupKey="none"
+              muscleGroupKey="hands"
               selectedMuscleKey={selectedMuscleKey}
+              colorOverride="#ff4500"
             />
             {exercise.equipment === 'dumbbells' && <HandDumbbell position={[0, -0.28, 0]} />}
             {exercise.equipment === 'barbell' && <HandBarbell position={[0, -0.28, 0]} isLeft={true} />}
@@ -560,11 +580,11 @@ function AnimatedMannequin3D({
         </group>
 
         {/* Right Arm & Deltoid */}
-        <group ref={rightShoulderGroup} position={[0.30, 0.43, 0]}>
+        <group ref={rightShoulderGroup} position={[0.25, 0.42, 0]}>
           <AnatomicalMuscleMesh
             geometry={geo.deltoid}
-            position={[0, 0.02, 0]}
-            scale={[1.2, 1.35, 1.1]}
+            position={[0.03, 0.01, 0]}
+            scale={[1.15, 1.3, 1.05]}
             muscleGroupKey="side_delts"
             selectedMuscleKey={selectedMuscleKey}
             isPlaying={isPlaying}
@@ -591,8 +611,9 @@ function AnimatedMannequin3D({
             <AnatomicalMuscleMesh
               geometry={geo.hand}
               position={[0, -0.28, 0]}
-              muscleGroupKey="none"
+              muscleGroupKey="hands"
               selectedMuscleKey={selectedMuscleKey}
+              colorOverride="#ff4500"
             />
             {exercise.equipment === 'dumbbells' && <HandDumbbell position={[0, -0.28, 0]} />}
             {exercise.equipment === 'barbell' && <HandBarbell position={[0, -0.28, 0]} isLeft={false} />}

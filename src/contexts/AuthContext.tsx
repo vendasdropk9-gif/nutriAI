@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { 
+  User, 
+  onAuthStateChanged, 
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface AuthContextType {
@@ -7,6 +13,8 @@ interface AuthContextType {
   loading: boolean;
   loginLocally: (name: string, email: string) => void;
   logoutLocally: () => void;
+  signInWithEmail: (email: string, pass: string) => Promise<any>;
+  signUpWithEmail: (email: string, pass: string) => Promise<any>;
   isLocal: boolean;
 }
 
@@ -15,6 +23,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   loginLocally: () => {},
   logoutLocally: () => {},
+  signInWithEmail: async () => {},
+  signUpWithEmail: async () => {},
   isLocal: false
 });
 
@@ -155,8 +165,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {}
   };
 
+  const signInWithEmail = async (email: string, pass: string) => {
+    clearLocalSession();
+    setIsLocal(false);
+    return signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const signUpWithEmail = async (email: string, pass: string) => {
+    clearLocalSession();
+    setIsLocal(false);
+    return createUserWithEmailAndPassword(auth, email, pass);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, loginLocally, logoutLocally, isLocal }}>
+    <AuthContext.Provider value={{ user, loading, loginLocally, logoutLocally, signInWithEmail, signUpWithEmail, isLocal }}>
       {children}
     </AuthContext.Provider>
   );

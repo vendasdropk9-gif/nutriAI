@@ -601,6 +601,20 @@ async function startServer() {
     }
   });
 
+  // GET ElevenLabs Voices
+  app.get("/api/elevenlabs/voices", async (req, res) => {
+    try {
+      const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+        headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY || "" },
+      });
+      const data = await response.json();
+      return res.json(data);
+    } catch (err: any) {
+      console.error("Erro ao obter vozes ElevenLabs:", err);
+      return res.status(500).json({ error: "Erro ao obter vozes." });
+    }
+  });
+
   // ========== TELEMETRY STORE FOR GEMINI & AI INTEGRATION METRICS ==========
   interface AiLogEntry {
     id: string;
@@ -1157,12 +1171,26 @@ async function startServer() {
     }
 
     try {
-      const audio = await geminiServer.textToSpeech(text, String(reqLang), {
-        model,
-        voiceName: voiceName || 'Aoede',
-        emotion,
-        style
-      });
+      let audioData;
+      if (isElevenLabs) {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceName}`, {
+          method: "POST",
+          headers: { 
+            "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text })
+        });
+        const buffer = await response.arrayBuffer();
+        audioData = Buffer.from(buffer).toString('base64');
+      } else {
+        audioData = await geminiServer.textToSpeech(text, String(reqLang), {
+          model,
+          voiceName: voiceName || 'Aoede',
+          emotion,
+          style
+        });
+      }
       const durationMs = Date.now() - startTime;
 
       recordAiTelemetry({

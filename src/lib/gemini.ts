@@ -149,6 +149,7 @@ export const textToSpeech = async (text: string, language?: string, options?: Tt
         language: currentLang,
         model: options?.model,
         voiceName: options?.voiceName,
+        isElevenLabs: options?.isElevenLabs,
         emotion: options?.emotion,
         style: options?.style
       }),

@@ -6,7 +6,7 @@ import {
   Download, ExternalLink, Sparkles, Search, BookOpen, Clock, 
   Flame, Dumbbell, Leaf, Zap, Utensils, Check, TrendingDown, 
   Folder, ShoppingCart, CheckCircle2, AlertCircle, ArrowRight, 
-  RefreshCw, CheckSquare, Square, ChevronDown, ChevronUp
+  RefreshCw, CheckSquare, Square, ChevronDown, ChevronUp, Mic, MicOff
 } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
@@ -66,6 +66,60 @@ export function MealPlanView({
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
   const [isExportingCard, setIsExportingCard] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
+
+  // Web Speech API
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.abort();
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) return alert('Speech recognition not supported');
+      
+      const rec = new SpeechRecognitionAPI();
+      rec.lang = 'pt-BR';
+      rec.onresult = (e: any) => {
+        const command = e.results[0][0].transcript.toLowerCase();
+        handleVoiceCommand(command);
+        setIsListening(false);
+      };
+      recognitionRef.current = rec;
+      rec.start();
+      setIsListening(true);
+    }
+  };
+
+  const handleVoiceCommand = (command: string) => {
+    // Basic parser for: "add [recipe] to [meal] on [day]"
+    const addMatch = command.match(/adicionar\s+(.+)\s+ao\s+(café da manhã|almoço|lanche|jantar)\s+na\s+(segunda|terça|quarta|quinta|sexta|sábado|domingo)/i);
+    if (addMatch) {
+        const recipeName = addMatch[1];
+        const meal = addMatch[2];
+        const day = addMatch[3];
+        const dayMap: Record<string, string> = { 'segunda': 'Segunda-feira', 'terça': 'Terça-feira', 'quarta': 'Quarta-feira', 'quinta': 'Quinta-feira', 'sexta': 'Sexta-feira', 'sábado': 'Sábado', 'domingo': 'Domingo' };
+        const mealMap: Record<string, string> = { 'café da manhã': 'breakfast', 'almoço': 'lunch', 'lanche': 'snack', 'jantar': 'dinner' };
+        
+        const targetDay = dayMap[day];
+        const targetMeal = mealMap[meal];
+        const recipe = savedRecipes.find(r => r.name.toLowerCase().includes(recipeName.toLowerCase()));
+
+        if (targetDay && targetMeal && recipe) {
+            onUpdatePlan(targetDay, targetMeal, recipe.id, recipe);
+            playSfx('success');
+            vibrate(30);
+        }
+    }
+  };
+
 
   // States for 'Sync to Shopping List' checking against PantryScanner
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -723,6 +777,9 @@ export function MealPlanView({
               <p className="text-slate-500 dark:text-slate-400 text-sm">{t('mealplan_plan_hint', 'Planeje suas 3 principais refeições.')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
+              <button onClick={toggleListening} className={`p-3 rounded-full ${isListening ? 'bg-red-500' : 'bg-emerald-500'} text-white`}>
+                {isListening ? <MicOff /> : <Mic />}
+              </button>
               <button
                 onClick={handleOpenSyncModal}
                 className="bg-teal-50 dark:bg-teal-900/40 hover:bg-teal-100 dark:hover:bg-teal-800/60 text-teal-700 dark:text-teal-300 font-semibold px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm border border-teal-500/20 shadow-sm cursor-pointer"

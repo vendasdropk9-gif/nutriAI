@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, Clock, Utensils } from 'lucide-react';
 import { Recipe } from '../types';
+import { PrintRecipe } from './PrintRecipe';
 
 interface FavoriteRecipesListProps {
   recipes: Recipe[];
@@ -30,12 +31,16 @@ export function FavoriteRecipesList({ recipes, onRemoveFavorite }: FavoriteRecip
               <Utensils className="w-3 h-3" /> {recipe.nutrition.calories} kcal
             </div>
           </div>
-          <button 
-            onClick={() => onRemoveFavorite(recipe.id)}
-            className="text-red-500 hover:text-red-600 p-2"
-          >
-            <Heart className="w-5 h-5 fill-current" />
-          </button>
+          <div className="flex items-center gap-1">
+            <PrintRecipe recipe={recipe} variant="icon" title={`Imprimir ${recipe.name}`} />
+            <button 
+              onClick={() => onRemoveFavorite(recipe.id)}
+              className="text-red-500 hover:text-red-600 p-2 cursor-pointer"
+              title="Remover dos favoritos"
+            >
+              <Heart className="w-5 h-5 fill-current" />
+            </button>
+          </div>
         </div>
       ))}
     </div>

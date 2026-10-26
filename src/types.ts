@@ -169,6 +169,7 @@ export interface UserProfile {
   notificationPreferences?: NotificationPreferences;
   healthIntegrations?: HealthIntegrationConfig;
   backupDestination?: 'google_drive' | 'dropbox' | 'onedrive';
+  elevenLabsVoiceId?: string;
   chronotype?: 'morning' | 'night' | 'intermediate';
   circadianNotificationConfig?: CircadianNotificationConfig;
 }

@@ -185,19 +185,19 @@ export const CURATED_AVATARS: AvatarCatalogItem[] = [
   {
     id: 'cyberfit-biomechanic',
     name: 'CyberFit Biomechanic',
-    subtitle: 'Scanner Biomecânico & Fibra de Carbono',
+    subtitle: 'Robô Humanóide 3D & Biomecânica',
     category: 'biomecanico',
     categoryLabel: 'Biomecânico',
     gender: 'unisex',
     bodyType: 'Mesomorfo',
-    description: 'Modelo anatômico futurista com nós de rastreamento de tensão muscular em tempo real e malha de fibra de carbono ultra-leve.',
-    highlights: ['Varredura Holográfica', 'Nós de Tensão LED', 'Fibra de Carbono 3K', 'LOD Adaptativo'],
-    photoURL: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=400&h=400',
+    description: 'Robô humanóide sleek em concha plástica branca glossy com costuras sutis de painéis, luvas mecânicas glowing orange-red e estúdio cinematográfico.',
+    highlights: ['Concha Glossy Matte-White', 'Luvas Glowing Orange-Red', 'Iluminação Three-Point Octane', 'Precisão Biomecânica 3D'],
+    photoURL: '/assets/robot_avatar_portrait.jpg',
     modelConfig: {
-      skinTone: 'Grafite Metálico',
-      skinColor: '#334155',
-      accentColor: '#00f2fe', // Electric Cyan
-      secondaryAccentColor: '#4facfe',
+      skinTone: 'Branco Glossy Cyber',
+      skinColor: '#f8fafc',
+      accentColor: '#ff5500', // Vibrant Glowing Orange-Red
+      secondaryAccentColor: '#ff3b30',
       apparelColor: '#090d16',
       headStyle: 'cyber',
       proportions: {

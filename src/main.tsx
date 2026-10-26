@@ -7,6 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initDatabaseIntegrityMonitor } from './lib/databaseIntegrityMonitor';
+// import { analytics, logEvent, setAnalyticsCollectionEnabled } from './lib/firebase';
 
 // Auto-run database integrity monitoring for Firestore & Supabase in dev/runtime with error safety
 try {
@@ -14,6 +15,29 @@ try {
 } catch (e) {
   console.warn('Database integrity monitor initialization skipped:', e);
 }
+
+// Initialize Firebase Analytics with strict data privacy compliance
+// try {
+//   if (analytics) {
+//     const privacyConsent = localStorage.getItem('nutri-privacy-consent') !== 'false';
+//     setAnalyticsCollectionEnabled(analytics, privacyConsent);
+//     
+//     logEvent('app_initialized', {
+//       timestamp: new Date().toISOString(),
+//       platform: 'web_spa'
+//     });
+// 
+//     window.addEventListener('app:tab-changed', (e: any) => {
+//       const tabId = e?.detail?.tabId || 'unknown';
+//       logEvent('feature_tab_view', {
+//         tab_name: tabId,
+//         timestamp: new Date().toISOString()
+//       });
+//     });
+//   }
+// } catch (e) {
+//   console.warn('Firebase Analytics initialization skipped:', e);
+// }
 
 const rootEl = document.getElementById('root');
 

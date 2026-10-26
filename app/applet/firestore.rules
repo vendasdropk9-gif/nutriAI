@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // --- Connection Test ---
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // --- User Documents & All Subcollections (Strictly Secured to Owner UID) ---
+    match /users/{userId} {
+      allow read, write: if isValidId(userId) && isOwner(userId);
+      
+      match /{allSubcollections=**} {
+        allow read, write: if isValidId(userId) && isOwner(userId);
+      }
+    }
+
+    // --- User Profiles (Strictly Secured to Owner UID) ---
+    match /profiles/{profileId} {
+      allow read, write: if isValidId(profileId) && isOwner(profileId);
+    }
+
+    // --- Global / Public Reference Collections (Read-only for signed-in users) ---
+    match /medicinalHerbs/{herbId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
+    }
+    match /recipes/{recipeId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
+    }
+    match /academies/{academyId} {
+      allow read: if isSignedIn();
+      allow write: if false; 
+    }
+
+    // --- Application Interaction Collections (Owner-restricted write/delete, signed-in read) ---
+    match /recipeReviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+    
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+    
+    match /buttonStates/{buttonId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /presence/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isValidId(userId) && isOwner(userId);
+    }
+
+    // --- Price Alerts ---
+    match /users/{userId}/priceAlerts/{alertId} {
+      allow read, write: if isValidId(userId) && isOwner(userId);
+    }
+    
+    // --- Mail (Only for extension, create-only) ---
+    match /mail/{mailId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if false;
+    }
+
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

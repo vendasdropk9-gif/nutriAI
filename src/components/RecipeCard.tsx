@@ -17,6 +17,7 @@ import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 import { PrintPreviewModal } from './PrintPreviewModal';
+import { PrintRecipe } from './PrintRecipe';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -1268,16 +1269,15 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             </button>
 
             {/* Print Recipe Button in Reading Mode */}
-            <button
-              type="button"
-              onClick={handlePrintRecipe}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
+            <PrintRecipe
+              recipe={recipe}
+              variant="custom"
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeContrast.buttonSecondary}`}
               title="Imprimir receita para cozinha (formato limpo de folha)"
               id={`btn-print-reading-${recipe.id}`}
-            >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir</span>
-            </button>
+              label="Imprimir"
+              servingsMultiplier={multiplier}
+            />
 
             {/* Exit Reading Mode Button */}
             <button
@@ -1998,27 +1998,11 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           )}
 
           {!isSchedulingOpen && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePrintRecipe}
-              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 cursor-pointer shadow-sm shadow-emerald-500/10"
-              title="Imprimir receita para cozinha em formato limpo A4 ou salvar como PDF"
+            <PrintRecipe
+              recipe={recipe}
+              servingsMultiplier={multiplier}
               id={`btn-print-recipe-${recipe.id}`}
-              disabled={isPrinting}
-            >
-              {isPrinting ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                >
-                  <div className="w-4 h-4 border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent rounded-full" />
-                </motion.div>
-              ) : (
-                <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              )}
-              <span>{isPrinting ? 'Preparando...' : 'Imprimir Receita'}</span>
-            </motion.button>
+            />
           )}
 
           {!isSchedulingOpen && (
@@ -3317,14 +3301,14 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         )}
                       </button>
 
-                      <button
-                        onClick={handlePrintRecipe}
+                      <PrintRecipe
+                        recipe={recipe}
+                        variant="custom"
                         className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 border border-slate-700 active:scale-95 cursor-pointer"
                         title="Imprimir receita em folha limpa para cozinhar"
-                      >
-                        <Printer className="w-4 h-4 text-emerald-400" />
-                        <span>Imprimir</span>
-                      </button>
+                        label="Imprimir"
+                        servingsMultiplier={multiplier}
+                      />
 
                       <button
                         onClick={handleExportCard}

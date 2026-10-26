@@ -1,18 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { 
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
-  Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart, Footprints
+  Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart, Footprints,
+  Mic, MicOff, HelpCircle
 } from 'lucide-react';
 import { UserProfile, IntakeLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
+import { speak, stopSpeech } from '../lib/speech';
 import { DashboardQuickTips } from './DashboardQuickTips';
 import { ConnectedHealthWidget } from './ConnectedHealthWidget';
 import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
 import { WeeklyNutritionChart } from './WeeklyNutritionChart';
+import { DailyNutritionProgressCard } from './DailyNutritionProgressCard';
+import { GlucoseSmartSnacksCard } from './GlucoseSmartSnacksCard';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
+import { VoiceShortcutsModal } from './VoiceShortcutsModal';
 
 
 interface Assistant360Props {
@@ -20,9 +26,10 @@ interface Assistant360Props {
   onNavigate: (tabId: string) => void;
   onLogIntake?: (log: IntakeLog) => void;
   onUpdateProfile?: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
+  activeTab?: string;
 }
 
-export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile }: Assistant360Props) {
+export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile, activeTab = 'assistant360' }: Assistant360Props) {
   const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
 
@@ -49,6 +56,176 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   }, [proactiveTips.length]);
 
   const isPremium = (profile as any)?.isPremium ?? false;
+
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [lastTranscript, setLastTranscript] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = language || 'pt-BR';
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        const lower = transcript.toLowerCase().trim();
+        setLastTranscript(transcript);
+
+        // Natural Language Macro Update
+        if (lower.includes('adicionar') && (lower.includes('grama') || lower.includes('gramas')) && (lower.includes('proteína') || lower.includes('carbo') || lower.includes('gordura'))) {
+          const amountMatch = lower.match(/(\d+)/);
+          if (amountMatch) {
+            const amount = parseInt(amountMatch[1], 10);
+            let macroType = '';
+            if (lower.includes('proteína')) macroType = 'protein';
+            else if (lower.includes('carbo')) macroType = 'carbs';
+            else if (lower.includes('gordura')) macroType = 'fat';
+
+            if (macroType && onUpdateProfile) {
+              onUpdateProfile(prev => {
+                if (!prev) return prev;
+                const today = new Date().toISOString().split('T')[0];
+                const updatedLogs = [...(prev.intakeLogs || [])];
+                const lastLogIdx = updatedLogs.findLastIndex(l => l.date.startsWith(today));
+                
+                if (lastLogIdx !== -1) {
+                  updatedLogs[lastLogIdx] = {
+                    ...updatedLogs[lastLogIdx],
+                    actual: {
+                      ...updatedLogs[lastLogIdx].actual,
+                      [macroType]: (updatedLogs[lastLogIdx].actual?.[macroType] || 0) + amount
+                    }
+                  };
+                } else {
+                  updatedLogs.push({
+                    id: crypto.randomUUID(),
+                    date: new Date().toISOString(),
+                    mealType: 'snack',
+                    recipeName: 'Adição manual por voz',
+                    actual: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, [macroType]: amount }
+                  });
+                }
+                return { ...prev, intakeLogs: updatedLogs };
+              });
+              speak(`${amount} gramas de ${macroType === 'protein' ? 'proteína' : macroType === 'carbs' ? 'carboidratos' : 'gordura'} adicionados.`, { voice: 'Aoede', lang: language });
+            }
+          }
+        } else if (lower.includes('receita') || lower.includes('recipe') || lower.includes('prato') || lower.includes('cozinha')) {
+          speak(language?.startsWith('pt') ? "Navegando para Receitas." : "Navigating to Recipes.", { voice: 'Aoede', lang: language });
+          onNavigate('quickdishes');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('início') || lower.includes('home') || lower.includes('geral') || lower.includes('painel')) {
+          speak(language?.startsWith('pt') ? "Voltando ao início." : "Returning home.", { voice: 'Aoede', lang: language });
+          onNavigate('assistant360');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('perfil') || lower.includes('profile') || lower.includes('conta')) {
+          speak(language?.startsWith('pt') ? "Abrindo seu perfil." : "Opening your profile.", { voice: 'Aoede', lang: language });
+          onNavigate('profile');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('metas') || lower.includes('plano') || lower.includes('meta')) {
+          speak(language?.startsWith('pt') ? "Abrindo suas metas." : "Opening your plan.", { voice: 'Aoede', lang: language });
+          onNavigate('plan');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('treino') || lower.includes('exercício') || lower.includes('fitness')) {
+          speak(language?.startsWith('pt') ? "Iniciando modo de treino." : "Starting workout studio.", { voice: 'Aoede', lang: language });
+          onNavigate('trainer');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('glicose') || lower.includes('açúcar')) {
+          speak(language?.startsWith('pt') ? "Abrindo monitor de glicose." : "Opening glucose tracker.", { voice: 'Aoede', lang: language });
+          onNavigate('glucose');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('água') || lower.includes('hidratação')) {
+          speak(language?.startsWith('pt') ? "Abrindo painel de hidratação." : "Opening hydration panel.", { voice: 'Aoede', lang: language });
+          onNavigate('habits');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('coach') || lower.includes('malu') || lower.includes('chat')) {
+          speak(language?.startsWith('pt') ? "Abrindo chat com Malu." : "Opening chat with Malu.", { voice: 'Aoede', lang: language });
+          onNavigate('coach');
+          setIsVoiceActive(false);
+          recognition.stop();
+        } else if (lower.includes('próximo') || lower.includes('next')) {
+          window.dispatchEvent(new CustomEvent('recipe-next-step'));
+          speak(language?.startsWith('pt') ? "Próximo passo." : "Next step.", { voice: 'Aoede', lang: language });
+        } else if (lower.includes('anterior') || lower.includes('voltar') || lower.includes('back')) {
+          window.dispatchEvent(new CustomEvent('recipe-prev-step'));
+          speak(language?.startsWith('pt') ? "Passo anterior." : "Previous step.", { voice: 'Aoede', lang: language });
+        } else if (lower.includes('repetir') || lower.includes('repeat')) {
+          window.dispatchEvent(new CustomEvent('recipe-repeat-step'));
+        } else if (lower.includes('parar') || lower.includes('stop')) {
+          stopSpeech();
+          setIsVoiceActive(false);
+          recognition.stop();
+        }
+      };
+
+      recognition.onerror = () => { setIsVoiceActive(false); };
+      recognition.onend = () => { setIsVoiceActive(false); };
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+    };
+  }, [language, onNavigate]);
+
+  const toggleVoiceRecognition = () => {
+    if (isVoiceActive) {
+      recognitionRef.current?.stop();
+      setIsVoiceActive(false);
+      speak(language?.startsWith('pt') ? "Comando de voz desativado." : "Voice command deactivated.", { voice: 'Aoede', lang: language });
+    } else {
+      setLastTranscript('');
+      try {
+        recognitionRef.current?.start();
+        setIsVoiceActive(true);
+        speak(language?.startsWith('pt') ? "Ouvindo... Diga para onde quer ir ou navegue pelas instruções da receita." : "Listening... Say where you want to go or navigate recipe instructions.", { voice: 'Aoede', lang: language });
+      } catch (e) {
+        console.warn("Failed to start speech recognition:", e);
+      }
+    }
+  };
+
+  const speakDailySummary = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const plan = profile?.masterPlan;
+    const meals = profile?.mealPlan?.[today]?.meals;
+    
+    let summary = language?.startsWith('pt') ? "Olá! Aqui está o seu resumo diário." : "Hello! Here is your daily summary.";
+    
+    if (plan) {
+      summary += language?.startsWith('pt') 
+        ? ` Sua meta é de ${plan.dailyCalories} calorias, com ${plan.macros.protein} gramas de proteína, ${plan.macros.carbs} de carboidratos e ${plan.macros.fat} de gorduras.`
+        : ` Your goal is ${plan.dailyCalories} calories, with ${plan.macros.protein} grams of protein, ${plan.macros.carbs} of carbs, and ${plan.macros.fat} of fat.`;
+    }
+    
+    if (meals) {
+      const mealNames = Object.entries(meals)
+        .filter(([_, recipe]) => !!recipe)
+        .map(([type, recipe]) => `${type === 'breakfast' ? (language?.startsWith('pt') ? 'café da manhã' : 'breakfast') : type}: ${recipe!.name}`)
+        .join(', ');
+      summary += language?.startsWith('pt') 
+        ? ` Suas refeições planejadas são: ${mealNames}.`
+        : ` Your scheduled meals are: ${mealNames}.`;
+    }
+    
+    speak(summary, { voice: 'Aoede', lang: language });
+  };
 
   // Compute daily metrics safely
   const today = new Date().toISOString().split('T')[0];
@@ -83,6 +260,18 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   // Mood
   const moodLogs = profile?.emotionalLogs?.filter(m => m.date.startsWith(today)) || [];
   const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : t('great', 'Ótimo');
+
+  // Macro calculation for charts
+  const currentProtein = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.protein || l.planned?.protein || 0), 0));
+  const currentCarbs = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.carbs || l.planned?.carbs || 0), 0));
+  const currentFat = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.fat || l.planned?.fat || 0), 0));
+
+  const weight = profile?.weight || 70;
+  const targetCalories = profile?.masterPlan?.dailyCalories || 2000;
+  const targetProtein = Math.round(profile?.masterPlan?.macros?.protein || (weight * 1.7));
+  const targetCarbs = Math.round(profile?.masterPlan?.macros?.carbs || ((targetCalories * 0.45) / 4));
+  const targetFat = Math.round(profile?.masterPlan?.macros?.fat || ((targetCalories * 0.25) / 9));
+
 
   const features = [
     { id: 'quickdishes', labelKey: 'feature_quickdishes', descKey: 'desc_quickdishes', defaultLabel: 'Pratos Rápidos IA', defaultDesc: '3 opções em 1 toque', icon: <Flame className="w-5 h-5 text-orange-500" /> },
@@ -182,6 +371,80 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           >
             <MessageCircle className="w-4 h-4" />
             <span>{t('btn_talk_malu', 'Talk to NutriAI')}</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* 1.5. Web Speech API Hands-Free Voice Control Card */}
+      <div className="w-full card-premium p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/30 mx-auto">
+        <div className="flex items-center gap-4">
+          <div className={`p-3.5 rounded-2xl flex items-center justify-center transition-all ${
+            isVoiceActive 
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 animate-pulse' 
+              : 'bg-emerald-500/20 text-emerald-500'
+          }`}>
+            {isVoiceActive ? <Mic className="w-6 h-6 animate-bounce" /> : <MicOff className="w-6 h-6" />}
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+              <Sparkles className="w-3 h-3" />
+              <span>{t('hands_free_voice_nav', 'Navegação Hands-Free por Voz (Malu / Aoede)')}</span>
+            </div>
+            <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              {isVoiceActive ? t('listening_commands', 'Ouvindo comandos (Início, Receitas, Metas, Próximo)...') : t('voice_control_prompt', 'Fale com a Malu para navegar sem as mãos')}
+            </h4>
+            {lastTranscript && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                "{lastTranscript}"
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              playSfx('tap');
+              vibrate(15);
+              speakDailySummary();
+            }}
+            className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 border border-slate-700 shadow transition cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span>{t('voice_summary_btn', 'Resumo')}</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              playSfx('tap');
+              vibrate(15);
+              setIsShortcutsOpen(true);
+            }}
+            className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 border border-slate-700 shadow transition cursor-pointer"
+          >
+            <HelpCircle className="w-4 h-4 text-emerald-400" />
+            <span>{t('voice_shortcuts_btn', 'Atalhos')}</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              playSfx('tap');
+              vibrate(20);
+              toggleVoiceRecognition();
+            }}
+            className={`px-6 py-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer ${
+              isVoiceActive
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
+                : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
+            }`}
+          >
+            {isVoiceActive ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            <span>{isVoiceActive ? t('stop_listening', 'Parar Voz') : t('start_voice', 'Ativar Voz')}</span>
           </motion.button>
         </div>
       </div>
@@ -398,6 +661,73 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
 
         </div>
 
+        {/* PROGRESSO NUTRICIONAL DIÁRIO DE MACRONUTRIENTES COM ANÉIS CIRCULARES */}
+        <DailyNutritionProgressCard
+          profile={profile}
+          onNavigate={onNavigate}
+        />
+
+        {/* RECHARTS MACRONUTRIENT PROGRESS CHART */}
+        <div className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md relative overflow-hidden">
+          <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-6">
+            {t('macro_chart_title', 'Progresso de Macronutrientes (Intake vs Meta)')}
+          </h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Proteína', actual: currentProtein, goal: targetProtein, fill: '#10B981' },
+                  { name: 'Carbos', actual: currentCarbs, goal: targetCarbs, fill: '#F59E0B' },
+                  { name: 'Gorduras', actual: currentFat, goal: targetFat, fill: '#38BDF8' },
+                ]}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="actual" name="Consumido (g)" fill="#8884d8" />
+                <Bar dataKey="goal" name="Meta (g)" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+
+        {/* RECHARTS MACRONUTRIENT PROGRESS CHART */}
+        <div className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md relative overflow-hidden">
+          <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-6">
+            {t('macro_chart_title', 'Progresso de Macronutrientes (Intake vs Meta)')}
+          </h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Proteína', actual: currentProtein, goal: targetProtein, fill: '#10B981' },
+                  { name: 'Carbos', actual: currentCarbs, goal: targetCarbs, fill: '#F59E0B' },
+                  { name: 'Gorduras', actual: currentFat, goal: targetFat, fill: '#38BDF8' },
+                ]}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="actual" name="Consumido (g)" fill="#8884d8" />
+                <Bar dataKey="goal" name="Meta (g)" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* SUGESTÕES DE LANCHES RÁPIDOS BASEADOS EM GLICEMIA E HORÁRIO */}
+        <GlucoseSmartSnacksCard
+          profile={profile}
+          onNavigate={onNavigate}
+        />
+
         {/* WIDGET DE SAÚDE CONECTADA (Google Fit / Apple Health) */}
         <ConnectedHealthWidget
           profile={profile}
@@ -502,6 +832,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         favoriteRecipes={(profile?.favorites || []) as any} 
         savedRecipes={profile?.savedRecipes || []}
         onRemoveFavorite={handleRemoveFavorite} 
+      />
+
+      {/* VOICE SHORTCUTS MODAL */}
+      <VoiceShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+        activeTab={activeTab}
       />
 
     </div>

@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, Utensils, ChefHat, ArrowRight, ArrowLeft,
   Check, X, Zap, Lightbulb, HeartPulse,
-  Refrigerator, Activity, BookOpen, Volume2, ShieldCheck,
+  Refrigerator, Activity, BookOpen, Volume2, VolumeX, ShieldCheck,
   Scan, Camera, Droplets, Dumbbell, ShoppingCart, HelpCircle,
   Clock, Flame, Apple, Brain, Smile, Package, ExternalLink,
-  RotateCcw, TrendingDown, CheckCircle, MapPin, Scale
+  RotateCcw, TrendingDown, CheckCircle, MapPin, Scale,
+  Mic, MicOff
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
+import { speak, stopSpeech } from '../lib/speech';
 import { startIntroJsTour } from '../lib/introTour';
 
 interface WelcomeTourProps {
@@ -417,8 +419,85 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
   const [arrowPosition, setArrowPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [popoverPositionStyle, setPopoverPositionStyle] = useState<React.CSSProperties>({});
   
+  // Web Speech API states
+  const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
+  const [isVoiceActive, setIsVoiceActive] = useState<boolean>(false);
+  const recognitionRef = useRef<any>(null);
+
   const step = TOUR_STEPS[currentStepIndex] || TOUR_STEPS[0];
   const isLastStep = currentStepIndex === TOUR_STEPS.length - 1;
+
+  // Speak step title and description when step changes or opened
+  useEffect(() => {
+    if (isOpen && isAudioEnabled && step) {
+      const textToSpeak = `${step.title}. ${step.description}`;
+      speak(textToSpeak, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    return () => {
+      if (!isOpen) {
+        stopSpeech();
+      }
+    };
+  }, [isOpen, currentStepIndex, isAudioEnabled]);
+
+  // Speech Recognition setup for voice commands ("próximo", "anterior", "fechar", "repetir")
+  useEffect(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'pt-BR';
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        const lower = transcript.toLowerCase().trim();
+
+        if (lower.includes('próximo') || lower.includes('next') || lower.includes('avançar')) {
+          speak('Próximo passo.', { voice: 'Aoede', lang: 'pt-BR' });
+          handleNext();
+        } else if (lower.includes('anterior') || lower.includes('voltar') || lower.includes('back')) {
+          speak('Passo anterior.', { voice: 'Aoede', lang: 'pt-BR' });
+          handlePrev();
+        } else if (lower.includes('fechar') || lower.includes('sair') || lower.includes('close')) {
+          speak('Fechando guia.', { voice: 'Aoede', lang: 'pt-BR' });
+          handleClose(true);
+        } else if (lower.includes('repetir') || lower.includes('repeat')) {
+          speak(`${step.title}. ${step.description}`, { voice: 'Aoede', lang: 'pt-BR' });
+        }
+      };
+
+      recognition.onerror = () => { setIsVoiceActive(false); };
+      recognition.onend = () => { setIsVoiceActive(false); };
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+    };
+  }, [currentStepIndex, step]);
+
+  const toggleVoiceListening = () => {
+    if (isVoiceActive) {
+      recognitionRef.current?.stop();
+      setIsVoiceActive(false);
+      speak('Comando de voz do tour desativado.', { voice: 'Aoede', lang: 'pt-BR' });
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsVoiceActive(true);
+        speak('Ouvindo comandos. Diga próximo, anterior, repetir ou fechar.', { voice: 'Aoede', lang: 'pt-BR' });
+      } catch (e) {
+        console.warn("Failed to start tour speech recognition:", e);
+      }
+    }
+  };
+
 
   // Auto show tour for new users using Intro.js interactive tooltips
   useEffect(() => {
@@ -871,6 +950,48 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Speech Narration Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAudioEnabled(!isAudioEnabled);
+                      if (isAudioEnabled) {
+                        stopSpeech();
+                      } else {
+                        speak(`${step.title}. ${step.description}`, { voice: 'Aoede', lang: 'pt-BR' });
+                      }
+                      playSfx('tap');
+                      vibrate(5);
+                    }}
+                    className={`p-1.5 rounded-full transition-colors cursor-pointer flex items-center justify-center ${
+                      isAudioEnabled 
+                        ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' 
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                    title={isAudioEnabled ? "Áudio da Malu Ativado (Clique para mutar)" : "Áudio da Malu Desativado (Clique para ativar)"}
+                  >
+                    {isAudioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </button>
+
+                  {/* Voice Commands Listening Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleVoiceListening();
+                      playSfx('tap');
+                      vibrate(10);
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      isVoiceActive
+                        ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/40'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                    title="Comandos de voz: Próximo, Anterior, Repetir, Fechar"
+                  >
+                    {isVoiceActive ? <Mic className="w-3.5 h-3.5 animate-bounce" /> : <MicOff className="w-3.5 h-3.5 text-emerald-500" />}
+                    <span className="hidden sm:inline">{isVoiceActive ? 'Ouvindo...' : 'Voz'}</span>
+                  </button>
+
                   <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                     {currentStepIndex + 1} de {TOUR_STEPS.length}
                   </span>

@@ -152,7 +152,14 @@ export function NutriAiExerciseDetailCard({
       {/* 1. HEADER: NutriAi - Detalhes do Exercício                           */}
       {/* ==================================================================== */}
       <div className="relative z-10 flex items-center justify-between pb-3 pt-1 px-1">
-        <div className="w-8" /> {/* Spacer for centering */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full ring-2 ring-orange-500/70 overflow-hidden shadow-[0_0_12px_rgba(249,115,22,0.5)] bg-slate-900 flex-shrink-0">
+            <img src="/assets/robot_avatar_portrait.jpg" alt="Avatar NutriAi 3D" className="w-full h-full object-cover" />
+          </div>
+          <span className="hidden sm:inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/40 text-orange-400">
+            SYS.3D//V2
+          </span>
+        </div>
         <h2 className="text-center font-sans font-bold text-lg sm:text-xl text-white tracking-tight drop-shadow-[0_2px_12px_rgba(56,189,248,0.5)]">
           NutriAi - Detalhes do Exercício
         </h2>

@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string */
 import { openDB, IDBPDatabase } from 'idb';
 import { db } from './firebase';
 import { collection, addDoc, setDoc, doc } from 'firebase/firestore';

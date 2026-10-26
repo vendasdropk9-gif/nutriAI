@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { 
@@ -26,13 +26,15 @@ import {
   Scale,
   Database,
   Sliders,
-  Printer
+  Printer,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { QuickDish, QuickDishGoal, UserProfile, Recipe, IntakeLog } from '../types';
 import { printRecipe } from '../lib/recipePrinter';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, setDoc } from '../lib/firebase';
-import { speak } from '../lib/speech';
+import { speak, stopSpeech } from '../lib/speech';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -93,12 +95,70 @@ export function QuickDishes({
   const [addedToCartToast, setAddedToCartToast] = useState<string | null>(null);
   const [previousDishesHistory, setPreviousDishesHistory] = useState<string[]>([]);
   const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
+  
+  // Voice control states
+  const [isVoiceActive, setIsVoiceActive] = useState<boolean>(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
+  const recognitionRef = useRef<any>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
 
   // Firestore Global Button States (Always Enabled Now)
   const isRegisterMealEnabled = true;
   const isFavoriteEnabled = true;
   const isShoppingListEnabled = true;
   const isGenerateMoreEnabled = true;
+
+  // Voice Command Processing
+  useEffect(() => {
+    if (activeRecipeCardId && isVoiceActive) {
+      const activeDish = dishes.find(d => d.id === activeRecipeCardId);
+      if (!activeDish) return;
+
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognitionAPI) {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'pt-BR';
+
+        recognition.onresult = (event: any) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+          }
+          const lower = transcript.toLowerCase().trim();
+
+          if (lower.includes('próximo') || lower.includes('avançar')) {
+            const nextIdx = Math.min(currentStepIndex + 1, activeDish.instructions.length - 1);
+            setCurrentStepIndex(nextIdx);
+            speak(`Passo ${nextIdx + 1}. ${activeDish.instructions[nextIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+          } else if (lower.includes('anterior') || lower.includes('voltar')) {
+            const prevIdx = Math.max(currentStepIndex - 1, 0);
+            setCurrentStepIndex(prevIdx);
+            speak(`Passo ${prevIdx + 1}. ${activeDish.instructions[prevIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+          } else if (lower.includes('repetir') || lower.includes('ler')) {
+            speak(activeDish.instructions[currentStepIndex], { voice: 'Aoede', lang: 'pt-BR' });
+          } else if (lower.includes('fechar') || lower.includes('sair')) {
+            stopSpeech();
+            setActiveRecipeCardId(null);
+            setIsVoiceActive(false);
+          }
+        };
+
+        recognition.onerror = () => { setIsVoiceActive(false); };
+        recognition.onend = () => { setIsVoiceActive(false); };
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+    } else if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, [activeRecipeCardId, isVoiceActive, currentStepIndex]);
 
   // Sync custom items to shopping list
   const [customShoppingItems, setCustomShoppingItems] = useLocalStorage<{ name: string; checked: boolean }[]>(
@@ -419,13 +479,26 @@ export function QuickDishes({
         </div>
 
         {isOpenAsModal && onCloseModal && (
-          <button
-            onClick={onCloseModal}
-            className="self-start md:self-center p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Fechar painel"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsVoiceActive(!isVoiceActive)}
+              className={`p-2.5 rounded-full transition-all ${
+                isVoiceActive 
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+              title={isVoiceActive ? "Desativar comando de voz" : "Ativar comando de voz"}
+            >
+              {isVoiceActive ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onCloseModal}
+              className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+              title="Fechar painel"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -588,19 +661,25 @@ export function QuickDishes({
                 >
                   {/* Photo Header */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                    <img 
-                      src={dish.image || DEFAULT_FALLBACK_IMAGE} 
-                      alt={dish.name}
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (target.src !== DEFAULT_FALLBACK_IMAGE) {
-                          target.src = DEFAULT_FALLBACK_IMAGE;
-                        }
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <motion.div
+                      whileHover={{ scale: 1.08 }}
+                      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                      className="w-full h-full"
+                    >
+                      <img 
+                        src={dish.image || DEFAULT_FALLBACK_IMAGE} 
+                        alt={dish.name}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src !== DEFAULT_FALLBACK_IMAGE) {
+                            target.src = DEFAULT_FALLBACK_IMAGE;
+                          }
+                        }}
+                        className="w-full h-full object-cover"
+                      />
+                    </motion.div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
 
                     {/* Option Tag Badge */}

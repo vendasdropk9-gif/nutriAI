@@ -10,7 +10,7 @@ import {
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
   User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
-  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store
+  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store, Mic, MicOff
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -40,6 +40,7 @@ interface ProfileProps {
 }
 
 const PRESET_AVATARS = [
+  { id: 'robot-humanoid', label: 'Robô Humanóide 3D', url: '/assets/robot_avatar_portrait.jpg' },
   { id: 'chef', label: 'Chef Saudável', url: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=300&h=300' },
   { id: 'fitness-woman', label: 'Atleta Fitness', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300' },
   { id: 'fitness-man', label: 'Treino & Força', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300&h=300' },
@@ -51,6 +52,7 @@ const PRESET_AVATARS = [
 ];
 
 export const AVATAR_OPTIONS = [
+  { id: 'cyberfit-biomechanic', name: 'Robô Humanóide 3D', gender: 'Unissex', category: 'Futurista 3D', description: 'Robô Humanóide Glossy com Luvas Glowing Orange-Red' },
   { id: 'athletic-01', name: 'Athena Fit Pro', gender: 'Feminino', category: 'Atlético', description: 'Alta Performance & Definição Atlética' },
   { id: 'fitness-02', name: 'Titan Iron', gender: 'Masculino', category: 'Hipertrofia', description: 'Hipertrofia & Força Máxima' },
   { id: 'athletic-02', name: 'Valkyrie Prime', gender: 'Feminino', category: 'Cross-Training', description: 'Força Funcional & HIIT' },
@@ -202,9 +204,177 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
   const [isSaved, setIsSaved] = useState(false);
 
+  // Web Speech API State
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  // Clean up speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const speak = (text: string) => {
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = synth.getVoices();
+    const aoede = voices.find(v => v.name.includes('Aoede'));
+    if (aoede) utterance.voice = aoede;
+    utterance.lang = 'pt-BR';
+    synth.speak(utterance);
+  };
+
+  const toggleListening = async () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+      setInterimTranscript('');
+      playSfx('tap');
+      vibrate(20);
+      return;
+    }
+
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert('Seu navegador atual não possui suporte nativo ao microfone via Web Speech.');
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognitionAPI();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'pt-BR';
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setInterimTranscript('');
+        playSfx('pop');
+        vibrate(30);
+      };
+
+      rec.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const trans = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += trans;
+          } else {
+            interim += trans;
+          }
+        }
+
+        if (interim) {
+          setInterimTranscript(interim);
+        }
+
+        if (final) {
+          setInterimTranscript('');
+          const transcript = final.trim().toLowerCase();
+          handleVoiceCommand(transcript);
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        console.warn('Speech recognition error in Profile:', event.error);
+        setIsListening(false);
+        setInterimTranscript('');
+        playSfx('scratch');
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+        setInterimTranscript('');
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.warn('Failed to start speech recognition:', err);
+      setIsListening(false);
+      setInterimTranscript('');
+    }
+  };
+
+  const handleVoiceCommand = (command: string) => {
+    let updated = { ...formData };
+    let changed = false;
+
+    if (command.includes('objetivo') || command.includes('meta')) {
+      const match = command.match(/(objetivo|meta)\s+(?:para|como|seja)\s+(.+)/);
+      if (match) {
+        updated.goals = match[2];
+        changed = true;
+      }
+    } else if (command.includes('alergia')) {
+      const match = command.match(/alergia\s+(?:a|ao)\s+(.+)/);
+      if (match) {
+        updated.allergies = updated.allergies ? `${updated.allergies}, ${match[1]}` : match[1];
+        changed = true;
+      }
+    } else if (command.includes('restrição')) {
+      const match = command.match(/restrição\s+(.+)/);
+      if (match) {
+        updated.restrictions = updated.restrictions ? `${updated.restrictions}, ${match[1]}` : match[1];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      setFormData(updated);
+      playSfx('success');
+      vibrate([40, 40]);
+      speak('Perfil atualizado com sucesso.');
+      // Persist
+      const processedProfile: UserProfile = {
+        ...(profile || {}),
+        name: updated.name.trim() || 'Usuário NutriAI',
+        goals: updated.goals || undefined,
+        allergies: updated.allergies.split(',').map((s) => s.trim()).filter(Boolean),
+        restrictions: updated.restrictions.split(',').map((s) => s.trim()).filter(Boolean),
+      };
+      onSaveProfile(processedProfile);
+    } else {
+      playSfx('error');
+      speak('Não entendi o comando. Tente dizer: definir objetivo como, adicionar alergia a, ou restrição.');
+    }
+  };
+
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricType, setBiometricType] = useState<'face' | 'fingerprint' | 'both' | null>(null);
   const [testScanProgress, setTestScanProgress] = useState(0);
+
+  // ElevenLabs Voice Selection
+  const [voices, setVoices] = useState<{ voice_id: string; name: string }[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState(profile?.elevenLabsVoiceId || '');
+
+  useEffect(() => {
+    fetch('/api/elevenlabs/voices')
+      .then(res => res.json())
+      .then(data => {
+        if (data.voices) {
+          setVoices(data.voices);
+        }
+      })
+      .catch(err => console.error("Erro ao carregar vozes:", err));
+  }, []);
+
 
   useEffect(() => {
     try {
@@ -732,6 +902,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       challengeReminderTime: challengeTime,
       challengeReviewTime: challengeReviewTime,
       backupDestination: backupDestination as 'google_drive' | 'dropbox' | 'onedrive' || undefined,
+      elevenLabsVoiceId: selectedVoice || undefined,
       masterPlan: {
         dailyCalories: formData.dailyCalories ? Number(formData.dailyCalories) : (profile?.masterPlan?.dailyCalories || 0),
         macros: {
@@ -785,6 +956,29 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         {/* Photo & Identity Hero Section */}
         <div className="mb-10 pb-8 border-b border-slate-100 dark:border-slate-700/80 w-full">
           <div className="flex flex-col items-center text-center gap-6 w-full">
+            {/* Voice Control Button */}
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer ${
+                isListening
+                  ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-300'
+                  : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 shadow-emerald-500/5 dark:bg-emerald-500/10 dark:text-emerald-400'
+              }`}
+            >
+              {isListening ? (
+                <>
+                  <MicOff className="w-3.5 h-3.5 animate-bounce" />
+                  <span>Ouvindo...</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Comando por Voz</span>
+                </>
+              )}
+            </button>
+
             {/* Avatar with Actions */}
             <div className="relative group shrink-0 mx-auto">
               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-emerald-500/30 dark:ring-emerald-400/20 overflow-hidden shadow-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center relative">
@@ -1405,6 +1599,26 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
 
             {/* 1. Meal Reminders Card */}
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
+              {/* ElevenLabs Voice Selection */}
+              <div className="space-y-2">
+                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                  Seleção de Voz da Assistente Malu (ElevenLabs)
+                </label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => {
+                    setSelectedVoice(e.target.value);
+                    localStorage.setItem('nutriai_elevenlabs_voice', e.target.value);
+                  }}
+                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all cursor-pointer"
+                >
+                  <option value="">Padrão (Aoede)</option>
+                  {voices.map(voice => (
+                    <option key={voice.voice_id} value={voice.voice_id}>{voice.name}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400">Nota: O padrão é a voz Aoede (Recomendada para consistência).</p>
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`p-3.5 rounded-2xl transition-colors ${

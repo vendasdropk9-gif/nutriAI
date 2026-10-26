@@ -82,6 +82,37 @@ export const googleProvider = new GoogleAuthProvider();
 // Provisioned named Cloud Firestore Database
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
+// Provisioned Firebase Storage Service
+import { getStorage, ref as storageRef, uploadBytes as fbUploadBytes, getDownloadURL as fbGetDownloadURL } from 'firebase/storage';
+export const storage = getStorage(app, firebaseConfig.storageBucket);
+export { storageRef, fbUploadBytes as uploadBytes, fbGetDownloadURL as getDownloadURL };
+
+// import 'firebase/analytics';
+// import { getAnalytics, logEvent, setAnalyticsCollectionEnabled, isSupported } from 'firebase/analytics';
+// 
+// export let analytics: any = null;
+// if (typeof window !== 'undefined') {
+//   isSupported().then((supported) => {
+//     if (supported) {
+//       try {
+//         analytics = getAnalytics(app);
+//       } catch (e) {
+//         console.warn('Analytics initialization skipped:', e);
+//       }
+//     }
+//   }).catch(() => {});
+// }
+// 
+// export const safeLogEvent = (eventName: string, eventParams?: Record<string, any>) => {
+//   try {
+//     if (analytics) {
+//       logEvent(analytics, eventName, eventParams);
+//     }
+//   } catch (e) {}
+// };
+// 
+// export { safeLogEvent as logEvent, setAnalyticsCollectionEnabled };
+
 // Set official Firestore log level to silent to avoid internal idle stream notices polluting error logs
 try {
   fsSetLogLevel('silent');

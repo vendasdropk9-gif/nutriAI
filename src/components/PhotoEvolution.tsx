@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, Image as ImageIcon, Plus, Trash2, Calendar, ShieldCheck, ChevronRight, CheckCircle2, Loader2, Sparkles, AlertCircle, X } from 'lucide-react';
+import { Camera, Image as ImageIcon, Plus, Trash2, Calendar, ShieldCheck, ChevronRight, CheckCircle2, Loader2, Sparkles, AlertCircle, X, Layers } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { playSfx, vibrate } from '../lib/sensory';
 import { analyzeImage } from '../lib/gemini';
 import { UserProfile } from '../types';
+import { PhotoComparisonGallery } from './PhotoComparisonGallery';
 
 interface PhotoEntry {
   id: string;
@@ -22,6 +23,7 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
   const [entries, setEntries] = useLocalStorage<PhotoEntry[]>('nutri-photo-evolution', []);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -285,6 +287,12 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
                   <Camera className="w-4 h-4" /> Fotografar
                 </button>
                 <button
+                  onClick={() => setShowGallery(true)}
+                  className="flex-1 sm:flex-none px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
+                >
+                  <Layers className="w-4 h-4" /> Comparar
+                </button>
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
@@ -371,6 +379,9 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
             </div>
           )}
         </div>
+      )}
+      {showGallery && (
+        <PhotoComparisonGallery entries={entries} onClose={() => setShowGallery(false)} />
       )}
     </div>
   );

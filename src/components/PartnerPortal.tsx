@@ -6,8 +6,9 @@ import {
   Trash2, Package, TrendingUp, Inbox, Settings, Volume2, 
   Sparkles, Smartphone, LayoutDashboard, Utensils, Search, Edit, Check,
   Award, DollarSign, Percent, ShieldCheck, HelpCircle, Info, Camera, Tag, Layers, RefreshCw, AlertTriangle, Megaphone, Zap, X,
-  Users, Radio, Eye, Activity
+  Users, Radio, Eye, Activity, Loader2, AlertCircle
 } from 'lucide-react';
+import { auth, storage, storageRef, uploadBytes, getDownloadURL } from '../lib/firebase';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
@@ -129,6 +130,11 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
   const [editingProduct, setEditingProduct] = useState<{ id: string; name: string; price: string; unit: string; description: string; image: string; category: string } | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isPromoChecked, setIsPromoChecked] = useState(false);
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [productUploadError, setProductUploadError] = useState<string | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapCoords, setMapCoords] = useState<[number, number]>([-23.5505, -46.6333]);
   const [expirationAlerts, setExpirationAlerts] = useState([
@@ -241,8 +247,82 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
     setForm({ ...form, products: form.products.filter(p => p.id !== id) });
   };
 
+  const handleProductImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset previous error
+    setProductUploadError(null);
+
+    // 1. Validation - Allowed MIME types (JPEG, PNG, WebP, GIF)
+    const validMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg'];
+    if (!validMimeTypes.includes(file.type)) {
+      setProductUploadError('Formato inválido. Por favor selecione uma imagem JPEG, PNG, WebP ou GIF.');
+      try { playSfx('error'); } catch {}
+      vibrate(50);
+      return;
+    }
+
+    // 2. Validation - Max file size (5 MB)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      setProductUploadError(`O arquivo selecionado possui ${sizeMB} MB e excede o limite máximo permitido de 5 MB.`);
+      try { playSfx('error'); } catch {}
+      vibrate(50);
+      return;
+    }
+
+    // 3. Real-time thumbnail preview
+    setProductImageFile(file);
+    const localPreviewUrl = URL.createObjectURL(file);
+    setProductImagePreview(localPreviewUrl);
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, image: localPreviewUrl });
+    }
+
+    // 4. Upload to Firebase Storage with progress tracking
+    setIsUploadingImage(true);
+    setUploadProgress(25);
+
+    try {
+      const currentUserId = auth.currentUser?.uid || 'guest-direct-user';
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniquePath = `products/${currentUserId}/${Date.now()}_${cleanFileName}`;
+      const fileRef = storageRef(storage, uniquePath);
+
+      setUploadProgress(50);
+      await uploadBytes(fileRef, file, {
+        contentType: file.type,
+        customMetadata: {
+          uploadedBy: currentUserId,
+          originalName: file.name
+        }
+      });
+
+      setUploadProgress(85);
+      const storageDownloadUrl = await getDownloadURL(fileRef);
+      setUploadProgress(100);
+
+      if (editingProduct) {
+        setEditingProduct(prev => prev ? { ...prev, image: storageDownloadUrl } : null);
+      }
+      setProductImagePreview(storageDownloadUrl);
+      try { playSfx('success'); } catch {}
+    } catch (uploadErr) {
+      console.warn('[PartnerPortal] Falha no upload ao Firebase Storage, mantendo preview local:', uploadErr);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const startEditProduct = (prod: any) => {
     setEditingProduct(prod);
+    setProductImageFile(null);
+    setProductImagePreview(prod?.image || null);
+    setProductUploadError(null);
+    setIsUploadingImage(false);
+    setUploadProgress(0);
     setIsPromoChecked(false);
     setIsProductModalOpen(true);
   };
@@ -257,6 +337,11 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
       image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200',
       category: 'Frutas'
     });
+    setProductImageFile(null);
+    setProductImagePreview('https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1200');
+    setProductUploadError(null);
+    setIsUploadingImage(false);
+    setUploadProgress(0);
     setIsPromoChecked(false);
     setIsProductModalOpen(true);
   };
@@ -2337,23 +2422,112 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
 
                       <div className="space-y-6">
                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Imagem (URL)</label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Foto do Produto</label>
+                              <span className="text-[10px] text-slate-400 font-medium">JPEG, PNG, WebP (Máx. 5 MB)</span>
+                            </div>
+
+                            {/* Friendly Error Alert */}
+                            {productUploadError && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300"
+                              >
+                                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="font-semibold">{productUploadError}</p>
+                                </div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setProductUploadError(null)} 
+                                  className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </motion.div>
+                            )}
+
+                            {/* Image Preview & Upload Zone */}
                             <div className="relative group overflow-hidden rounded-2xl aspect-video bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center p-4">
-                               {editingProduct.image ? (
-                                 <img src={editingProduct.image} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                               {(productImagePreview || editingProduct.image) ? (
+                                 <div className="relative w-full h-full">
+                                   <img 
+                                     src={productImagePreview || editingProduct.image} 
+                                     alt="Prévia do produto" 
+                                     className="w-full h-full object-cover rounded-xl" 
+                                     referrerPolicy="no-referrer" 
+                                   />
+                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl">
+                                     <label className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold shadow-md cursor-pointer hover:bg-slate-100 flex items-center gap-1.5">
+                                       <Upload className="w-3.5 h-3.5" />
+                                       Trocar Foto
+                                       <input 
+                                         type="file" 
+                                         accept="image/jpeg,image/png,image/webp,image/gif"
+                                         className="hidden" 
+                                         onChange={handleProductImageSelect}
+                                       />
+                                     </label>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         setProductImageFile(null);
+                                         setProductImagePreview(null);
+                                         setEditingProduct({ ...editingProduct, image: '' });
+                                       }}
+                                       className="p-1.5 bg-rose-500 text-white rounded-lg shadow-md hover:bg-rose-600 transition-colors"
+                                       title="Remover foto"
+                                     >
+                                       <Trash2 className="w-3.5 h-3.5" />
+                                     </button>
+                                   </div>
+                                 </div>
                                ) : (
-                                 <>
-                                   <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                   <span className="text-[10px] text-slate-500">Colar link de imagem ou fazer upload</span>
-                                 </>
+                                 <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-4">
+                                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                     <Upload className="w-6 h-6" />
+                                   </div>
+                                   <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Clique para selecionar ou arraste uma foto</span>
+                                   <span className="text-[10px] text-slate-400 mt-1">Formatos aceitos: JPG, PNG, WebP (até 5 MB)</span>
+                                   <input 
+                                     type="file"
+                                     accept="image/jpeg,image/png,image/webp,image/gif"
+                                     className="hidden"
+                                     onChange={handleProductImageSelect}
+                                   />
+                                 </label>
                                )}
-                               <input 
-                                 className="absolute inset-0 opacity-0 cursor-pointer"
-                                 onChange={e => {
-                                   const val = e.target.value;
-                                   if (val) setEditingProduct({...editingProduct, image: val});
-                                 }}
-                               />
+
+                               {/* Uploading Overlay with Spinner & Progress */}
+                               {isUploadingImage && (
+                                 <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-white z-20">
+                                   <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mb-3" />
+                                   <p className="text-xs font-bold">Enviando foto para o Firebase Storage...</p>
+                                   <div className="w-48 bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
+                                     <div 
+                                       className="bg-emerald-400 h-full rounded-full transition-all duration-300"
+                                       style={{ width: `${uploadProgress}%` }}
+                                     />
+                                   </div>
+                                   <span className="text-[10px] text-slate-300 mt-1">{uploadProgress}%</span>
+                                 </div>
+                               )}
+                            </div>
+
+                            {/* Direct URL input fallback */}
+                            <div className="pt-1">
+                              <input 
+                                type="text"
+                                value={editingProduct.image}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setEditingProduct({...editingProduct, image: val});
+                                  setProductImagePreview(val);
+                                }}
+                                placeholder="Ou cole a URL direta da imagem (ex: https://...)"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
                             </div>
                          </div>
                          <div className="space-y-2">

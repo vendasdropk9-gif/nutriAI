@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Product photos uploaded by vendors/partners in the Marketplace
+    match /products/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && (request.auth.uid == userId || userId == 'guest-direct-user')
+                   && request.resource.size <= 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg)');
+    }
+
+    // Advertisement assets (photos/videos) generated in Marketplace seller area
+    match /advertisements/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && (request.auth.uid == userId || userId == 'guest-direct-user')
+                   && request.resource.size <= 15 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+    }
+
+    // General user uploads with size limit and image content type validation
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && (request.auth.uid == userId || userId == 'guest-direct-user')
+                   && request.resource.size <= 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
