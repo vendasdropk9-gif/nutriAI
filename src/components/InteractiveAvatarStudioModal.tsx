@@ -247,7 +247,7 @@ export function InteractiveAvatarStudioModal({
         audioExplanation: pose.maluTip,
         highlightColorPrimary: activeGlowPreset.primary,
         highlightColorSecondary: activeGlowPreset.secondary
-      };
+      } as unknown as DetailedExercise;
     }
 
     const ex = getExerciseById(selectedExerciseId) || EXERCISE_DATABASE[0];
@@ -304,7 +304,7 @@ export function InteractiveAvatarStudioModal({
 
   // Screenshot / Snapshot feature
   const handleCaptureSnapshot = () => {
-    playSfx('camera');
+    playSfx('crystal');
     vibrate(25);
     try {
       const canvases = document.querySelectorAll('canvas');

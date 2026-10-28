@@ -280,5 +280,18 @@
   "bell_pepper": "Bell Pepper",
   "calorie_limit": "Calorie Limit",
   "smart_swaps": "Smart Swaps",
-  "calorie_optimizer": "Calorie Limit Optimizer"
+  "calorie_optimizer": "Calorie Limit Optimizer",
+  "stretching_animation": "Stretching Animation",
+  "stop_stretching": "Stop Stretching",
+  "anatomical_markers": "Anatomical Markers",
+  "clear_markers": "Clear All",
+  "marker_tip": "Tip: Click anywhere on the avatar to add a marker.",
+  "pain": "Pain here",
+  "hypertrophy_goal": "Hypertrophy goal",
+  "xray_view": "X-Ray View",
+  "disable_xray": "Disable X-Ray",
+  "mirror_mode": "Mirror Mode",
+  "disable_mirror": "Disable Mirror Mode",
+  "simulate_exercise": "Simulate Exercise",
+  "stop_simulation": "Stop Simulation"
 }

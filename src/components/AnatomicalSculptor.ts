@@ -471,8 +471,8 @@ export function createSculptedPectoralGeometry(isLeft: boolean, isFemale: boolea
   const maxThickness = isFemale ? 0.045 : 0.058;
 
   return createSmoothParametricSurface(
-    38,
-    38,
+    48,
+    48,
     (u, v, target) => {
       // u: 0 (sternal midline) -> 1 (lateral axilla / deltopectoral groove)
       // v: 0 (inferior inframammary fold) -> 1 (superior clavicular origin)
@@ -546,8 +546,8 @@ export function createSculptedAbdominalWallGeometry(isFemale: boolean, lodScale 
   const depth = isFemale ? 0.032 : 0.044;
 
   return createSmoothParametricSurface(
-    36,
-    38,
+    44,
+    46,
     (u, v, target) => {
       // u: 0 (left) to 1 (right), center at 0.5
       // v: 0 (pubic crest / lower abs) to 1 (xiphoid process / upper abs)
@@ -647,8 +647,8 @@ export function createSculptedDeltoidGeometry(
   const radiusZ = isFemale ? 0.080 : 0.096;
 
   return createSmoothParametricSurface(
-    38,
-    38,
+    44,
+    44,
     (u, v, target) => {
       // u: wraps around the muscle head
       // v: 0 at humeral insertion (deltoid tuberosity) -> 1 at origin (acromion / clavicle / scapular spine)
@@ -851,8 +851,8 @@ export function createSculptedQuadricepsGeometry(isLeft: boolean, isFemale: bool
   const midRadius = isFemale ? 0.084 : 0.098;
 
   return createSmoothParametricSurface(
-    40,
-    44,
+    48,
+    52,
     (u, v, target) => {
       const theta = u * Math.PI * 2;
       const y = (v - 0.5) * length;
@@ -951,8 +951,8 @@ export function createSculptedCalfGeometry(isLeft: boolean, isFemale: boolean, l
   const ankleRadius = isFemale ? 0.034 : 0.040;
 
   return createSmoothParametricSurface(
-    36,
-    40,
+    44,
+    48,
     (u, v, target) => {
       const theta = u * Math.PI * 2;
       const y = (v - 0.5) * length;

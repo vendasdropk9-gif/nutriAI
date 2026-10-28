@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, TrendingUp, Sparkles, Gift, Utensils } from 'lucide-react';
+import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, TrendingUp, Sparkles, Gift, Utensils, Settings, Plus, Check, RotateCcw, Zap } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { UserProfile, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenges } from '../lib/gemini';
 import { ScratchCard } from './ScratchCard';
@@ -48,11 +49,148 @@ const WEEKLY_TREATS: WeeklyTreat[] = [
   }
 ];
 
+export interface DailyConfigurableGoal {
+  id: string;
+  title: string;
+  category: 'water' | 'protein' | 'steps' | 'workout';
+  icon: string;
+  unit: string;
+  target: number;
+  current: number;
+  stepIncrement: number;
+  completed: boolean;
+  color: string;
+}
+
 export function GamificationCenter({ profile, onUpdateProfile }: GamificationCenterProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showScratchCard, setShowScratchCard] = useState(false);
   const [revealedTreat, setRevealedTreat] = useState<WeeklyTreat | null>(null);
   const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
+  const [celebratedGoalTitle, setCelebratedGoalTitle] = useState<string | null>(null);
+
+  // Configurable Daily Goals State
+  const [dailyGoals, setDailyGoals] = useState<DailyConfigurableGoal[]>([
+    {
+      id: 'water_goal',
+      title: 'Meta de Hidratação Diária',
+      category: 'water',
+      icon: '💧',
+      unit: 'ml',
+      target: profile?.waterGoal || 2500,
+      current: 2000,
+      stepIncrement: 250,
+      completed: false,
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      id: 'protein_goal',
+      title: 'Meta de Proteína Diária',
+      category: 'protein',
+      icon: '🥩',
+      unit: 'g',
+      target: profile?.masterPlan?.macros?.protein || 130,
+      current: 110,
+      stepIncrement: 20,
+      completed: false,
+      color: 'from-rose-500 to-red-500',
+    },
+    {
+      id: 'steps_goal',
+      title: 'Meta de Passos Diários',
+      category: 'steps',
+      icon: '🏃',
+      unit: 'passos',
+      target: 10000,
+      current: 9000,
+      stepIncrement: 1000,
+      completed: false,
+      color: 'from-emerald-500 to-teal-500',
+    },
+    {
+      id: 'workout_goal',
+      title: 'Meta de Treino Diário',
+      category: 'workout',
+      icon: '🧘',
+      unit: 'min',
+      target: 45,
+      current: 30,
+      stepIncrement: 15,
+      completed: false,
+      color: 'from-amber-500 to-orange-500',
+    },
+  ]);
+
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [tempTargetValue, setTempTargetValue] = useState<string>('');
+
+  // Triggers canvas-confetti burst + ConfettiCelebration overlay automatically when 100% of a goal is reached
+  const triggerConfettiBurst = (goalTitle?: string) => {
+    setShowConfetti(true);
+    playSfx('confetti');
+    vibrate([100, 50, 100, 50, 150]);
+    if (goalTitle) {
+      setCelebratedGoalTitle(goalTitle);
+      setTimeout(() => setCelebratedGoalTitle(null), 6000);
+    }
+    try {
+      confetti({
+        particleCount: 160,
+        spread: 100,
+        origin: { y: 0.55 },
+        colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#38bdf8'],
+      });
+    } catch {
+      // Fallback
+    }
+  };
+
+  const handleIncrementGoal = (goalId: string, amount: number) => {
+    playSfx('tap');
+    vibrate(10);
+    setDailyGoals(prev => prev.map(goal => {
+      if (goal.id !== goalId) return goal;
+      const newCurrent = Math.max(0, goal.current + amount);
+      const isNowCompleted = newCurrent >= goal.target;
+
+      // Trigger particle confetti automatically upon reaching 100% of the configured daily goal!
+      if (isNowCompleted && !goal.completed) {
+        triggerConfettiBurst(goal.title);
+      }
+
+      return {
+        ...goal,
+        current: newCurrent,
+        completed: isNowCompleted,
+      };
+    }));
+  };
+
+  const handleSaveConfiguredTarget = (goalId: string) => {
+    const numTarget = parseInt(tempTargetValue, 10);
+    if (isNaN(numTarget) || numTarget <= 0) {
+      setEditingGoalId(null);
+      return;
+    }
+    playSfx('tap');
+    vibrate(10);
+    setDailyGoals(prev => prev.map(goal => {
+      if (goal.id !== goalId) return goal;
+      const isNowCompleted = goal.current >= numTarget;
+
+      // Trigger particle confetti automatically upon setting target to <= current (100% complete)
+      if (isNowCompleted && !goal.completed) {
+        triggerConfettiBurst(goal.title);
+      }
+
+      return {
+        ...goal,
+        target: numTarget,
+        completed: isNowCompleted,
+      };
+    }));
+    setEditingGoalId(null);
+  };
   
   useEffect(() => {
     if (!profile?.weeklyChallenges) return;
@@ -186,6 +324,185 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             <span className="text-sm font-bold text-slate-400">XP</span>
           </div>
         </motion.div>
+      </div>
+
+      {/* Configurable Daily Goals with Particle Confetti Animation Trigger */}
+      <div className="space-y-4">
+        {celebratedGoalTitle && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500 text-white shadow-xl flex items-center justify-between border border-amber-300/40"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md">
+                <Trophy className="w-6 h-6 text-yellow-200 animate-bounce" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-white">🎉 PARABÉNS! META 100% CONCLUÍDA!</h4>
+                <p className="text-xs text-amber-100 font-medium">
+                  Você atingiu 100% da sua <strong>{celebratedGoalTitle}</strong>! Confetes liberados!
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => triggerConfettiBurst(celebratedGoalTitle)}
+              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer"
+              title="Soltar mais confetes!"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
+              <span>+ Confetes</span>
+            </button>
+          </motion.div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Metas Diárias Configuráveis
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20">
+                  🎉 100% = Confetes
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ajuste e registre suas metas diárias. Ao atingir 100%, os confetes de celebração são acionados automaticamente!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {dailyGoals.map((goal) => {
+            const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+            const isEditing = editingGoalId === goal.id;
+
+            return (
+              <div
+                key={goal.id}
+                className={`p-5 rounded-[28px] clay-card border transition-all duration-300 relative overflow-hidden ${
+                  goal.completed
+                    ? 'bg-gradient-to-br from-emerald-500/10 via-amber-500/5 to-slate-900/5 border-emerald-500/30 shadow-md'
+                    : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/80'
+                }`}
+              >
+                {goal.completed && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>100% Concluído</span>
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl p-2 rounded-2xl bg-slate-100 dark:bg-slate-700/60 shadow-inner">
+                      {goal.icon}
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                        {goal.title}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
+                          Meta: {goal.target} {goal.unit}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSfx('tap');
+                            setEditingGoalId(isEditing ? null : goal.id);
+                            setTempTargetValue(goal.target.toString());
+                          }}
+                          className="p-1 text-slate-400 hover:text-amber-500 transition-colors rounded-lg cursor-pointer"
+                          title="Configurar Meta Diária"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Inline Target Configuration */}
+                {isEditing && (
+                  <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block">
+                      Ajustar Valor da Meta ({goal.unit}):
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={tempTargetValue}
+                        onChange={(e) => setTempTargetValue(e.target.value)}
+                        className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl text-xs font-mono font-bold border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-white"
+                        placeholder={`Ex: ${goal.target}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveConfiguredTarget(goal.id)}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Salvar</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress Bar & Percentage */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+                    <span>{goal.current} / {goal.target} {goal.unit}</span>
+                    <span className={pct >= 100 ? 'text-emerald-500 font-extrabold' : 'text-amber-500'}>
+                      {pct}%
+                    </span>
+                  </div>
+
+                  <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        pct >= 100
+                          ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 shadow-[0_0_10px_rgba(16,185,129,0.6)]'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Progress Increment Controls */}
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/50">
+                  <span className="text-[10px] text-slate-400 font-medium">Registrar Progresso:</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleIncrementGoal(goal.id, goal.stepIncrement)}
+                      className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1 border border-slate-200 dark:border-slate-600 active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>+{goal.stepIncrement} {goal.unit}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleIncrementGoal(goal.id, goal.target)}
+                      className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all flex items-center gap-1 border border-amber-500/30 active:scale-95 cursor-pointer"
+                      title="Completar 100% imediatamente e soltar confetes!"
+                    >
+                      <Zap className="w-3 h-3 text-amber-500" />
+                      <span>100%</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Weekly Challenges */}

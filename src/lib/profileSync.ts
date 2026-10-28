@@ -135,6 +135,7 @@ export function useProfileSync(
               cart: Array.isArray(data.cart) ? data.cart : [],
               favorites: Array.isArray(data.favorites) ? data.favorites : [],
               savedRecipes: Array.isArray(data.savedRecipes) ? data.savedRecipes : [],
+              anatomicalMarkers: Array.isArray(data.anatomicalMarkers) ? data.anatomicalMarkers : [],
               intakeLogs: (intakeLogs && intakeLogs.length > 0 ? intakeLogs : data.intakeLogs || []) as IntakeLog[],
               progressLogs: (progressLogs && progressLogs.length > 0 ? progressLogs : data.progressLogs || []) as ProgressLog[],
               hydrationLogs: (hydrationLogs && hydrationLogs.length > 0 ? hydrationLogs : data.hydrationLogs || []) as HydrationLog[],
@@ -181,6 +182,7 @@ export function useProfileSync(
               restrictions: localProfile?.restrictions || [],
               allergies: localProfile?.allergies || [],
               equipment: localProfile?.equipment || [],
+              anatomicalMarkers: [],
               points: 100,
               streak: 1
             };
@@ -198,6 +200,7 @@ export function useProfileSync(
               restrictions: initialData.restrictions || [],
               allergies: initialData.allergies || [],
               equipment: initialData.equipment || [],
+              anatomicalMarkers: [],
               plan: 'Free',
               isPremium: false,
               subscriptionStatus: 'active',
@@ -249,13 +252,14 @@ export function useProfileSync(
     };
   }, [user]);
 
-  // Sync profile changes back to Firestore
+  // Sync profile changes back to Firestore AND Supabase
   const syncToFirestore = useCallback(async (newProfile: UserProfile) => {
     if (!user) return;
     const userId = user.uid || (user as any).id || 'current-user';
 
     setIsSyncing(true);
     try {
+      // 1. Sync to Firestore
       const userDocRef = doc(db, 'users', userId);
       const names = (newProfile.name || '').split(' ');
       
@@ -303,6 +307,7 @@ export function useProfileSync(
         restrictions: newProfile.restrictions || [],
         allergies: newProfile.allergies || [],
         equipment: newProfile.equipment || [],
+        anatomicalMarkers: newProfile.anatomicalMarkers || [],
         points: newProfile.points || 0,
         streak: newProfile.streak || 0,
         badges: newProfile.badges || [],
@@ -313,7 +318,31 @@ export function useProfileSync(
 
       await setDoc(userDocRef, payload, { merge: true });
 
-      // Save subcollections to Firestore subcollections
+      // 2. Sync to Supabase (if configured)
+      const { supabase, isSupabaseConfigured } = await import('./supabase');
+      if (isSupabaseConfigured) {
+        try {
+          const { error: supabaseError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: user.uid,
+              email: newProfile.email || user.email,
+              name: newProfile.name,
+              firstName: newProfile.firstName || names[0],
+              lastName: newProfile.lastName || names.slice(1).join(' '),
+              anatomical_markers: newProfile.anatomicalMarkers || [],
+              updated_at: new Date().toISOString()
+            });
+          
+          if (supabaseError) {
+            console.warn('Supabase profile sync error:', supabaseError.message);
+          }
+        } catch (subErr) {
+          console.warn('Supabase sync failed (non-critical):', subErr);
+        }
+      }
+
+      // 3. Save subcollections to Firestore subcollections
       const saveSubcollection = async (subName: string, items: any[]) => {
         if (!items || items.length === 0) return;
         for (const item of items) {

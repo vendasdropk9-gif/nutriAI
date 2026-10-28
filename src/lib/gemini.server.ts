@@ -2,7 +2,7 @@ import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
 import { analyzeShoppingListBudget } from "./priceMonitor";
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile, CookingAdviceResult, PantryItem, PantryRecipeSuggestion } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
 const safeBtoa = (str: string): string => {
@@ -7063,14 +7063,16 @@ export const analyzeWeeklyMealPlanForShopping = async (
 
   if (mealPlan && typeof mealPlan === 'object') {
     Object.entries(mealPlan).forEach(([dayKey, dayObj]) => {
-      if (dayObj && dayObj.meals) {
-        Object.entries(dayObj.meals).forEach(([mealType, recipe]) => {
-          if (recipe && recipe.name && recipe.ingredients && Array.isArray(recipe.ingredients)) {
+      const d = dayObj as any;
+      if (d && d.meals) {
+        Object.entries(d.meals).forEach(([mealType, recipe]) => {
+          const r = recipe as any;
+          if (r && r.name && r.ingredients && Array.isArray(r.ingredients)) {
             extractedMeals.push({
               day: dayKey,
               mealType,
-              recipeName: recipe.name,
-              ingredients: recipe.ingredients
+              recipeName: r.name,
+              ingredients: r.ingredients
             });
           }
         });

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video } from 'lucide-react';
+import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video, Bookmark } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline, saveRecipeOffline, getOfflineRecipes } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';

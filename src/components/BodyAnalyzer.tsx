@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse, Zap, Cpu, Gauge, Layers, Eye } from 'lucide-react';
+import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse, Zap, Cpu, Gauge, Layers, Eye, Sliders, Flame } from 'lucide-react';
 import { analyzeBodyImage, getGeneralBodyTips } from '../lib/gemini';
-import { UserProfile } from '../types';
+import { UserProfile, AnatomicalMarker } from '../types';
 import { BodySensorsMonitor } from './BodySensorsMonitor';
 import { VoicePlayButton } from './VoicePlayButton';
 import { AvatarAnatomico } from './AvatarAnatomico';
+import { AnatomicalPresetController } from './AnatomicalPresetController';
+import { ContractionSpeedController } from './ContractionSpeedController';
 import { getOptimalAvatarLOD, isMobileOrLowPowerDevice } from './AnatomicalSculptor';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -30,15 +32,51 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
   const [avatarPerformanceMode, setAvatarPerformanceMode] = useState<'auto' | 'high' | 'eco_mobile'>('auto');
   const [avatarCameraView, setAvatarCameraView] = useState<'front' | 'side' | 'detail' | 'back'>('front');
   const [avatarMuscleFocus, setAvatarMuscleFocus] = useState<string>('shoulders');
+  const [muscleDefinition, setMuscleDefinition] = useState<number>(1.0);
+  const [skinTexture, setSkinTexture] = useState<number>(0.5);
+  const [isContractionAnimating, setIsContractionAnimating] = useState<boolean>(true);
+  const [contractionSpeed, setContractionSpeed] = useState<number>(1.0);
+  const [contractionPhase, setContractionPhase] = useState<number>(50);
+  const [realtimeFps, setRealtimeFps] = useState<number>(60);
+  const [recommendedLODMode, setRecommendedLODMode] = useState<'high' | 'eco_mobile'>('high');
+  const [isAutoLODEnabled, setIsAutoLODEnabled] = useState<boolean>(true);
+  const [isAutoLODDowngraded, setIsAutoLODDowngraded] = useState<boolean>(false);
+  const [muscleFatigue, setMuscleFatigue] = useState<number>(0.85);
+  const [isFailureModeActive, setIsFailureModeActive] = useState<boolean>(true);
+  const [isXRayMode, setIsXRayMode] = useState<boolean>(false);
+  const [isMirrorMode, setIsMirrorMode] = useState<boolean>(false);
+  const [isStretching, setIsStretching] = useState<boolean>(false);
+  const [anatomicalPreset, setAnatomicalPreset] = useState<'atleta' | 'equilibrado' | 'resistencia'>('equilibrado');
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isMarkerModalOpen, setIsMarkerModalOpen] = useState(false);
+  const [markerNote, setMarkerNote] = useState('');
+  const [markerType, setMarkerType] = useState<'note' | 'pain' | 'goal'>('note');
+  const [pendingMarkerPosition, setPendingMarkerPosition] = useState<{ x: number, y: number, z: number } | null>(null);
+  const [pendingMuscleTag, setPendingMuscleTag] = useState<string | undefined>(undefined);
+  const [contractionRhythm, setContractionRhythm] = useState<'isometric' | 'moderate' | 'intense' | 'explosive'>('moderate');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Real-time WebGL muscle contraction telemetry sync effect
+  useEffect(() => {
+    if (!isContractionAnimating) {
+      setContractionPhase(30);
+      return;
+    }
+    const speed = contractionSpeed;
+    const interval = setInterval(() => {
+      const now = Date.now() / 1000;
+      const phase = Math.round(((Math.sin(now * 2.8 * speed) + 1) / 2) * 100);
+      setContractionPhase(phase);
+    }, 50);
+    return () => clearInterval(interval);
+  }, [isContractionAnimating, contractionSpeed]);
 
   useEffect(() => {
     return () => {
@@ -185,6 +223,78 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleSimulateExercise = () => {
+    setIsContractionAnimating(!isContractionAnimating);
+    playSfx('tap');
+    vibrate(20);
+  };
+
+  const applyPreset = (preset: 'atleta' | 'equilibrado' | 'resistencia') => {
+    setAnatomicalPreset(preset);
+    const config = preset === 'atleta' ? { def: 1.8, skin: 0.2 } : preset === 'equilibrado' ? { def: 1.2, skin: 0.5 } : { def: 0.8, skin: 0.8 };
+    setMuscleDefinition(config.def);
+    setSkinTexture(config.skin);
+    playSfx('tap');
+    vibrate(10);
+  };
+
+  const handleToggleStretching = () => {
+    setIsStretching(!isStretching);
+    if (!isStretching) setIsContractionAnimating(false);
+    playSfx('tap');
+    vibrate(15);
+  };
+
+  const handleAddMarker = (position: { x: number; y: number; z: number }, muscleTag?: string) => {
+    setPendingMarkerPosition(position);
+    setPendingMuscleTag(muscleTag);
+    setMarkerNote(muscleTag ? `${muscleTag}` : '');
+    setMarkerType('note');
+    setIsMarkerModalOpen(true);
+    playSfx('tap');
+    vibrate(10);
+  };
+
+  const saveAnatomicalMarker = () => {
+    if (!onUpdateProfile || !profile || !pendingMarkerPosition) return;
+    
+    const newMarker: AnatomicalMarker = {
+      id: Math.random().toString(36).substr(2, 9),
+      label: markerNote || pendingMuscleTag || t('note'),
+      position: pendingMarkerPosition,
+      type: markerType,
+      createdAt: new Date().toISOString(),
+    };
+    
+    const currentMarkers = profile.anatomicalMarkers || [];
+    onUpdateProfile({
+      anatomicalMarkers: [...currentMarkers, newMarker],
+    });
+    
+    setIsMarkerModalOpen(false);
+    setPendingMarkerPosition(null);
+    setPendingMuscleTag(undefined);
+    setMarkerNote('');
+    
+    playSfx('success');
+    vibrate(25);
+  };
+
+  const removeMarker = (markerId: string) => {
+    if (!onUpdateProfile || !profile) return;
+    const currentMarkers = profile.anatomicalMarkers || [];
+    onUpdateProfile({
+      anatomicalMarkers: currentMarkers.filter(m => m.id !== markerId)
+    });
+    playSfx('tap');
+  };
+
+  const clearMarkers = () => {
+    if (!onUpdateProfile) return;
+    onUpdateProfile({ anatomicalMarkers: [] });
+    playSfx('tap');
   };
 
   return (
@@ -536,59 +646,110 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-emerald-400" />
-                  <span className="font-sans font-bold text-sm text-slate-100">
-                    Otimização de Renderização & Malha
+                  <span className="font-sans font-bold text-sm text-slate-100 flex items-center gap-2">
+                    Monitor de Performance & Auto-LOD Adaptativo
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                      realtimeFps >= 52
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : realtimeFps >= 32
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse'
+                    }`}>
+                      {realtimeFps} FPS {realtimeFps >= 52 ? '• Fluido' : realtimeFps >= 32 ? '• Moderado' : '• Baixa Fluidez'}
+                    </span>
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
                   {avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice())
-                    ? 'Modo Eco Mobile ativado: ~17.200 triângulos (economia de 75% da GPU).'
+                    ? 'Modo Eco Mobile ativado: ~17.200 triângulos (economia de 75% de GPU).'
                     : 'Modo Alta Fidelidade ativado: ~68.500 triângulos (densidade máxima de vértices).'}
                 </p>
               </div>
 
-              {/* Mode Toggle Switcher */}
-              <div className="flex items-center p-1 bg-slate-950 rounded-2xl border border-slate-800 shrink-0">
+              {/* Mode Toggle Switcher & Auto-LOD Toggle */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     playSfx('tap');
                     vibrate(10);
-                    setAvatarPerformanceMode('eco_mobile');
+                    setIsAutoLODEnabled(!isAutoLODEnabled);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice())
-                      ? 'bg-emerald-500 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                    isAutoLODEnabled
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
                   }`}
-                  title="Otimizado para celulares e economia de bateria"
+                  title="Ajusta automaticamente a densidade de polígonos com base na contagem de FPS em tempo real"
                 >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Eco Mobile (17k)</span>
+                  <Gauge className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Auto-LOD FPS ({isAutoLODEnabled ? 'ON' : 'OFF'})</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    playSfx('tap');
-                    vibrate(10);
-                    setAvatarPerformanceMode('high');
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    avatarPerformanceMode === 'high' || (avatarPerformanceMode === 'auto' && !isMobileOrLowPowerDevice())
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Resolução nativa máxima"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Alta Res (68k)</span>
-                </button>
+                <div className="flex items-center p-1 bg-slate-950 rounded-2xl border border-slate-800 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(10);
+                      setAvatarPerformanceMode('eco_mobile');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice())
+                        ? 'bg-emerald-500 text-white shadow-md'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Otimizado para celulares e economia de bateria (17.200 triângulos)"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Eco (17k)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(10);
+                      setAvatarPerformanceMode('high');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      avatarPerformanceMode === 'high' || (avatarPerformanceMode === 'auto' && !isMobileOrLowPowerDevice())
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Resolução nativa máxima (68.500 triângulos)"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>HQ (68k)</span>
+                  </button>
+                </div>
               </div>
             </div>
 
+            {/* Low FPS Auto-LOD Notification Banner */}
+            {isAutoLODDowngraded && isAutoLODEnabled && (
+              <div className="p-3 bg-amber-950/80 border border-amber-500/40 rounded-2xl flex items-center gap-3 text-xs text-amber-200 animate-in fade-in duration-300">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="leading-snug">
+                  <strong className="font-bold text-amber-300">Auto-LOD Adaptativo Ativado:</strong> Detectamos FPS reduzido em seu dispositivo ({realtimeFps} FPS). A malha foi otimizada para <strong>Eco Mobile (~17.200 triângulos)</strong> para manter 60 FPS de fluidez contínua.
+                </p>
+              </div>
+            )}
+
             {/* Live Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-1">
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Taxa de Quadros (FPS)</span>
+                <span className={`text-lg font-bold font-mono ${
+                  realtimeFps >= 52 ? 'text-emerald-400' : realtimeFps >= 32 ? 'text-amber-400' : 'text-rose-400'
+                }`}>
+                  {realtimeFps} FPS
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  {realtimeFps >= 52 ? 'Monitoramento 60Hz' : 'Ajuste de malha ativo'}
+                </span>
+              </div>
+
               <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
                 <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Polígonos (Triângulos)</span>
                 <span className="text-lg font-bold text-emerald-400 font-mono">
@@ -618,29 +779,463 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 <span className="text-lg font-bold text-amber-400 font-sans">Corpo / Zoom</span>
                 <span className="text-[10px] text-slate-500 block">Grupos & Contração Real-time</span>
               </div>
-
-              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Shaders & Luz</span>
-                <span className="text-lg font-bold text-purple-400 font-sans">PBR Suave</span>
-                <span className="text-[10px] text-slate-500 block">Normais analíticas</span>
-              </div>
             </div>
           </div>
 
           {/* 3D Anatomical Avatar Interactive Stage */}
-          <div className="w-full h-[520px] sm:h-[580px] md:h-[640px] relative rounded-[32px] overflow-hidden bg-slate-950 border border-emerald-500/20 shadow-2xl">
-            <AvatarAnatomico
-              profile={profile}
-              cameraView={avatarCameraView}
-              performanceMode={avatarPerformanceMode}
-              onPerformanceModeChange={(m) => setAvatarPerformanceMode(m)}
-              primaryMuscles={MUSCLE_FOCUS_OPTIONS.find(m => m.id === avatarMuscleFocus)?.muscles}
-              enableOrbitControls={true}
-              showReferenceControls={true}
-              showOverlayBadges={true}
-              showPerformanceBadge={true}
-              className="w-full h-full"
-            />
+          <div className="space-y-4">
+            <div className="w-full h-[520px] sm:h-[580px] md:h-[640px] relative rounded-[32px] overflow-hidden bg-slate-950 border border-emerald-500/20 shadow-2xl">
+              <AvatarAnatomico
+                profile={profile}
+                cameraView={avatarCameraView}
+                performanceMode={avatarPerformanceMode}
+                onPerformanceModeChange={(m) => setAvatarPerformanceMode(m)}
+                primaryMuscles={MUSCLE_FOCUS_OPTIONS.find(m => m.id === avatarMuscleFocus)?.muscles}
+                enableOrbitControls={true}
+                showReferenceControls={true}
+                showOverlayBadges={true}
+                showPerformanceBadge={true}
+                muscleDefinition={muscleDefinition}
+                skinTexture={skinTexture}
+                fatigueLevel={isFailureModeActive ? muscleFatigue : 0.0}
+                xRayMode={isXRayMode}
+                isMirrorMode={isMirrorMode}
+                isStretching={isStretching}
+                markers={profile?.anatomicalMarkers || []}
+                onAddMarker={handleAddMarker}
+                isPlaying={isContractionAnimating || isStretching}
+                playbackSpeed={isContractionAnimating ? contractionSpeed : 0}
+                exercisePace={isContractionAnimating ? contractionSpeed : 0}
+                onFpsUpdate={(fps, recMode, isDowngraded) => {
+                  setRealtimeFps(fps);
+                  setRecommendedLODMode(recMode);
+                  setIsAutoLODDowngraded(isDowngraded);
+                  if (isAutoLODEnabled && isDowngraded && avatarPerformanceMode !== 'eco_mobile') {
+                    setAvatarPerformanceMode('eco_mobile');
+                  }
+                }}
+                className="w-full h-full"
+              />
+            </div>
+            
+            {/* Control Panel: Presets & Simulation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AnatomicalPresetController 
+                currentPreset={anatomicalPreset} 
+                onApplyPreset={applyPreset} 
+              />
+              <ContractionSpeedController
+                speed={contractionSpeed}
+                onSpeedChange={setContractionSpeed}
+              />
+            </div>
+            <button
+                onClick={() => setIsXRayMode(!isXRayMode)}
+                className={`w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border transition-all ${
+                  isXRayMode 
+                  ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300' 
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <Eye className="w-5 h-5" />
+                {isXRayMode ? t('disable_xray') : t('xray_view')}
+            </button>
+            
+            <button
+                onClick={() => setIsMirrorMode(!isMirrorMode)}
+                className={`w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border transition-all ${
+                  isMirrorMode 
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <RefreshCw className="w-5 h-5" />
+                {isMirrorMode ? t('disable_mirror') : t('mirror_mode')}
+            </button>
+            
+            <button
+                onClick={handleToggleStretching}
+                className={`w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border transition-all ${
+                  isStretching 
+                  ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' 
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                <Zap className="w-5 h-5" />
+                {isStretching ? t('stop_stretching') : t('stretching_animation')}
+            </button>
+            
+            <button
+                onClick={handleSimulateExercise}
+                className={`w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 border transition-all ${
+                  isContractionAnimating 
+                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' 
+                  : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                }`}
+              >
+                <Activity className="w-5 h-5" />
+                {isContractionAnimating ? t('stop_simulation') : t('simulate_exercise')}
+            </button>
+
+            {profile?.anatomicalMarkers && profile.anatomicalMarkers.length > 0 && (
+              <div className="pt-4 border-t border-slate-800 mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('anatomical_markers')} ({profile.anatomicalMarkers.length})</h5>
+                  <button onClick={clearMarkers} className="text-[10px] text-rose-400 hover:text-rose-300 font-bold uppercase transition-colors">{t('clear_markers')}</button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile.anatomicalMarkers.map((m) => (
+                    <div key={m.id} className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-[10px] text-slate-300">
+                      {m.label}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[9px] text-slate-500 mt-2 italic">{t('marker_tip')}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Muscle Failure & Fatigue Simulation Engine Card (Falha Concentrica do Avatar) */}
+          <div className="clay-card p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white rounded-[28px] space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                  <Flame className="w-5 h-5 animate-pulse text-rose-400" />
+                </div>
+                <div>
+                  <h4 className="font-sans font-bold text-sm text-slate-100 flex items-center gap-2">
+                    Simulação de Treino até a Falha Concêntrica
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold">
+                      Muscular Failure Engine
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Simula tremores biomecânicos de fasciculação, ponto de travamento (sticking point) e surgimento de veias turgidas por hiperemia.
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle Failure Mode Switch */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(12);
+                  setIsFailureModeActive(!isFailureModeActive);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border shadow-md active:scale-95 ${
+                  isFailureModeActive
+                    ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white border-rose-400 font-extrabold shadow-rose-900/30'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Flame className={`w-4 h-4 ${isFailureModeActive ? 'fill-white' : ''}`} />
+                <span>{isFailureModeActive ? 'Falha Muscular Ativa' : 'Ativar Modo Falha'}</span>
+              </button>
+            </div>
+
+            {/* Fatigue Slider & Preset Buttons */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-rose-400" />
+                  <span>Nível de Fadiga Muscular & Tensão (RPE)</span>
+                </label>
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  {Math.round(muscleFatigue * 100)}% {muscleFatigue >= 0.8 ? '🔥 Falha Total (RPE 10)' : muscleFatigue >= 0.4 ? '⚡ Carga Elevada (RPE 8)' : '🟢 Normal (RPE 6)'}
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min="0.0"
+                max="1.0"
+                step="0.05"
+                value={muscleFatigue}
+                onChange={(e) => {
+                  setMuscleFatigue(parseFloat(e.target.value));
+                  if (!isFailureModeActive) setIsFailureModeActive(true);
+                  playSfx('tap');
+                }}
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all"
+              />
+
+              {/* Preset RPE Buttons */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {[
+                  { rpe: 'RPE 6 (0%)', val: 0.0, label: '🟢 Execução Fluida', color: 'border-slate-800 hover:border-slate-700' },
+                  { rpe: 'RPE 8 (50%)', val: 0.5, label: '🟡 Tensão Elevada', color: 'border-slate-800 hover:border-amber-500/50' },
+                  { rpe: 'RPE 10 (100%)', val: 1.0, label: '🔴 Falha Concêntrica + Tremor', color: 'border-rose-500/50 bg-rose-500/10 text-rose-300' },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(10);
+                      setMuscleFatigue(preset.val);
+                      setIsFailureModeActive(true);
+                    }}
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      muscleFatigue === preset.val && isFailureModeActive
+                        ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500/40'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="block font-sans">{preset.rpe}</span>
+                    <span className="text-[10px] font-mono text-slate-400 block mt-0.5">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Live Failure Telemetry Box */}
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800/80 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Fasciculação (Tremor)</span>
+                <span className={`text-sm font-bold font-mono ${isFailureModeActive && muscleFatigue > 0.1 ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`}>
+                  {isFailureModeActive && muscleFatigue > 0.1 ? `${Math.round(38 + muscleFatigue * 16)} Hz` : 'Inativo'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Jitter micro-biomecânico</span>
+              </div>
+
+              <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Ponto de Travamento</span>
+                <span className={`text-sm font-bold font-mono ${isFailureModeActive && muscleFatigue > 0.4 ? 'text-amber-400' : 'text-slate-500'}`}>
+                  {isFailureModeActive && muscleFatigue > 0.4 ? `Desaceleração ${Math.round(1 + muscleFatigue * 3.5)}x` : 'Velocidade Normal'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Sticking Point concêntrico</span>
+              </div>
+
+              <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Vascularidade</span>
+                <span className={`text-sm font-bold font-mono ${isFailureModeActive && muscleFatigue > 0.2 ? 'text-cyan-400' : 'text-slate-500'}`}>
+                  {isFailureModeActive && muscleFatigue > 0.2 ? 'Surgimento Turgido' : 'Padrão'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Hiperemia metabólica</span>
+              </div>
+
+              <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Sinergistas</span>
+                <span className={`text-sm font-bold font-mono ${isFailureModeActive && muscleFatigue > 0.5 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {isFailureModeActive && muscleFatigue > 0.5 ? `Recrutamento +${Math.round(muscleFatigue * 45)}%` : 'Base'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Compensação muscular</span>
+              </div>
+            </div>
+          </div>
+
+          {/* WebGL Dynamic Muscle Contraction Animation System Card */}
+          <div className="clay-card p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white rounded-[28px] space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <Activity className="w-5 h-5 animate-pulse text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-sans font-bold text-sm text-slate-100 flex items-center gap-2">
+                    Sistema de Animação de Contração Muscular WebGL
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">
+                      WebGL Flex Shader
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Contrações hiper-realistas em tempo real nos grupos musculares selecionados, respondendo aos sliders de definição e pele.
+                  </p>
+                </div>
+              </div>
+
+              {/* Contraction Play / Pause Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(12);
+                  setIsContractionAnimating(!isContractionAnimating);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border shadow-md active:scale-95 ${
+                  isContractionAnimating
+                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400 font-extrabold'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Zap className={`w-4 h-4 ${isContractionAnimating ? 'fill-slate-950' : ''}`} />
+                <span>{isContractionAnimating ? 'Animação Ativa' : 'Pausar Animação'}</span>
+              </button>
+            </div>
+
+            {/* Rhythm Selector Buttons */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-amber-400" />
+                  <span>Cadência e Ritmo de Flexão (GLSL Pace)</span>
+                </label>
+                <span className="font-mono text-[11px] text-amber-300 font-bold">
+                  {contractionRhythm === 'isometric' && '0.4x • Isométrico (Tensão Estática)'}
+                  {contractionRhythm === 'moderate' && '1.0x • Moderado (Hipertrofia 2s/2s)'}
+                  {contractionRhythm === 'intense' && '1.6x • Intenso (Potência Cíclica)'}
+                  {contractionRhythm === 'explosive' && '2.4x • Explosivo (Alta Cadência)'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: 'isometric', label: '⚡ Isométrico', speed: '0.4x' },
+                  { id: 'moderate', label: '💪 Moderado', speed: '1.0x' },
+                  { id: 'intense', label: '🔥 Intenso', speed: '1.6x' },
+                  { id: 'explosive', label: '🚀 Explosivo', speed: '2.4x' },
+                ].map((rhythm) => (
+                  <button
+                    key={rhythm.id}
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(8);
+                      setContractionRhythm(rhythm.id as any);
+                    }}
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      contractionRhythm === rhythm.id
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40 shadow-sm'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <span className="block font-sans">{rhythm.label}</span>
+                    <span className="text-[10px] font-mono text-slate-500 block mt-0.5">{rhythm.speed}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Live Telemetry Meter (Concentric Contraction Flexing Bar) */}
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-300 flex items-center gap-2">
+                  <HeartPulse className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span>Telemetria Muscular em Tempo Real ({MUSCLE_FOCUS_OPTIONS.find(m => m.id === avatarMuscleFocus)?.label})</span>
+                </span>
+                <span className="font-mono font-bold text-amber-400 text-xs">
+                  {contractionPhase}% Pico de Contração Muscular
+                </span>
+              </div>
+
+              {/* Dynamic Progress Bar */}
+              <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
+                  style={{ width: `${Math.max(5, contractionPhase)}%` }}
+                />
+              </div>
+
+              <div className="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
+                <span>0% Excentricidade (Repouso)</span>
+                <span className="text-amber-300 font-bold">50% Tensão Muscular</span>
+                <span className="text-rose-400 font-bold">100% Pico Conêntrico (Flexão)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-time WebGL Shader Control Sliders (Definição Muscular & Textura da Pele) */}
+          <div className="clay-card p-5 sm:p-6 bg-slate-900 border border-slate-800 text-white rounded-[28px] space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-sans font-bold text-sm text-slate-100 flex items-center gap-2">
+                    Controles de Shaders WebGL em Tempo Real
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                      GLSL Uniforms
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Ajuste a intensidade da definição muscular e a textura da pele do avatar 3D com atualização instantânea na GPU.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(10);
+                  setMuscleDefinition(1.0);
+                  setSkinTexture(0.5);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700/60"
+                title="Restaurar padrão inicial dos shaders (100% definição / 50% textura)"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Restaurar Padrão</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Slider 1: Muscle Definition Intensity */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-emerald-500/40 transition-colors">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <Dumbbell className="w-4 h-4 text-emerald-400" />
+                    <span>Intensidade da Definição Muscular</span>
+                  </label>
+                  <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {Math.round(muscleDefinition * 100)}%
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="0.0"
+                  max="2.0"
+                  step="0.05"
+                  value={muscleDefinition}
+                  onChange={(e) => {
+                    setMuscleDefinition(parseFloat(e.target.value));
+                    playSfx('tap');
+                  }}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                />
+
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>0% (Suave)</span>
+                  <span className="text-emerald-400 font-bold">100% (Anatômico Natural)</span>
+                  <span>200% (Ultra Hipertrofia)</span>
+                </div>
+              </div>
+
+              {/* Slider 2: Skin Texture & Micro-roughness */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-indigo-500/40 transition-colors">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                    <span>Textura da Pele (Microrrugosidade)</span>
+                  </label>
+                  <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    {Math.round(skinTexture * 100)}%
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="0.0"
+                  max="1.0"
+                  step="0.05"
+                  value={skinTexture}
+                  onChange={(e) => {
+                    setSkinTexture(parseFloat(e.target.value));
+                    playSfx('tap');
+                  }}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all"
+                />
+
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>0% (Acetinado / Liso)</span>
+                  <span className="text-indigo-300 font-bold">50% (Porosidade Natural)</span>
+                  <span>100% (Atleta Especular)</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Interactive Muscle Group Focus Selector & Angles */}
@@ -704,6 +1299,128 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Anatomical Markers List */}
+          {profile?.anatomicalMarkers && profile.anatomicalMarkers.length > 0 && (
+            <div className="clay-card p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] space-y-4 shadow-sm animate-in fade-in duration-500">
+              <div className="flex items-center justify-between">
+                <h4 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-rose-500" />
+                  {t('anatomical_markers')}
+                </h4>
+                <button
+                  onClick={clearMarkers}
+                  className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                >
+                  {t('clear_markers')}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {profile.anatomicalMarkers.map((marker) => (
+                  <div 
+                    key={marker.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        marker.type === 'pain' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
+                        marker.type === 'goal' ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' :
+                        'bg-blue-400 shadow-[0_0_8px_#60a5fa]'
+                      }`} />
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{marker.label}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {new Date(marker.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeMarker(marker.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Anatomical Marker Modal */}
+      {isMarkerModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setIsMarkerModalOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-6 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
+            
+            <div className="flex items-center justify-between">
+              <h3 className="font-serif text-xl font-bold text-slate-800 dark:text-white">{t('add_anatomical_marker')}</h3>
+              <button 
+                onClick={() => setIsMarkerModalOpen(false)}
+                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {t('marker_type')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'note', label: t('note'), color: 'bg-blue-500', active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+                    { id: 'pain', label: t('pain'), color: 'bg-red-500', active: 'border-red-500 bg-red-50 dark:bg-red-900/20' },
+                    { id: 'goal', label: t('hypertrophy_goal'), color: 'bg-amber-400', active: 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' },
+                  ].map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setMarkerType(type.id as any)}
+                      className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all ${
+                        markerType === type.id 
+                          ? type.active
+                          : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full ${type.color} shadow-sm`} />
+                      <span className="text-[10px] font-bold text-center leading-tight">{type.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {t('marker_note')}
+                </label>
+                <textarea
+                  value={markerNote}
+                  onChange={(e) => setMarkerNote(e.target.value)}
+                  placeholder={t('marker_note_placeholder')}
+                  className="w-full h-24 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none resize-none dark:text-white"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsMarkerModalOpen(false)}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={saveAnatomicalMarker}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
+              >
+                {t('save')}
+              </button>
             </div>
           </div>
         </div>

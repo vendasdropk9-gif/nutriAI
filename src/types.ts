@@ -78,6 +78,9 @@ export interface UserProfile {
   name: string;
   firstName?: string;
   lastName?: string;
+  level?: number;
+  points?: number;
+  streak?: number;
   email?: string;
   phone?: string;
   birthDate?: string;
@@ -133,9 +136,7 @@ export interface UserProfile {
   waterReminderIntervalMinutes?: number;
   waterReminderStartHour?: number;
   waterReminderEndHour?: number;
-  points?: number;
   pointsHistory?: PointsEntry[];
-  streak?: number;
   lastActiveDate?: string;
   badges?: string[];
   prediction?: GoalPrediction;
@@ -174,6 +175,15 @@ export interface UserProfile {
   circadianNotificationConfig?: CircadianNotificationConfig;
   sleepGoalHours?: number;
   sleepReminderEnabled?: boolean;
+  anatomicalMarkers?: AnatomicalMarker[];
+}
+
+export interface AnatomicalMarker {
+  id: string;
+  label: string;
+  position: { x: number; y: number; z: number };
+  type: 'pain' | 'goal' | 'note';
+  createdAt: string;
 }
 
 export interface CircadianNotificationConfig {
@@ -908,11 +918,15 @@ export interface ContextualPantrySubstitution {
 }
 
 export interface ContextualRecipeAdvice {
-  recipeTitle: string;
-  summaryAdvice: string;
-  techniques: ContextualRecipeTechnique[];
-  pantrySubstitutions: ContextualPantrySubstitution[];
-  suggestedFollowUps: string[];
+  recipeTitle?: string;
+  summaryAdvice?: string;
+  techniques?: ContextualRecipeTechnique[];
+  pantrySubstitutions?: ContextualPantrySubstitution[];
+  suggestedFollowUps?: string[];
+  advice?: string;
+  substitutions?: string[];
+  tips?: string[];
+  [key: string]: any;
 }
 
 export interface SmartShoppingItem {

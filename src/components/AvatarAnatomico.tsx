@@ -37,7 +37,8 @@ import {
   Activity,
   Eye,
   ShieldAlert,
-  ChevronRight
+  ChevronRight,
+  Layers,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import {
@@ -288,6 +289,28 @@ export interface AvatarAnatomicoProps {
   onPerformanceModeChange?: (mode: 'high' | 'eco_mobile') => void;
   /** Whether to show a toggle badge for Eco Mobile / High Fidelity mode */
   showPerformanceBadge?: boolean;
+  /** Muscle definition intensity slider (0.0 to 2.0, default 1.0) applied to WebGL bump scale and fiber heightfield */
+  muscleDefinition?: number;
+  /** Skin texture micro-roughness slider (0.0 to 1.0, default 0.5) applied to WebGL specular sheen and surface grain */
+  skinTexture?: number;
+  /** Uniform alias for skinTexture */
+  uSkinTexture?: number;
+  /** Uniform alias for muscleDefinition */
+  uMuscleDefinition?: number;
+  /** Muscle failure / fatigue level slider (0.0 to 1.0, default 0.0) triggering kinematic joint tremors, sticking point grinding, and hyperemic vein surge */
+  fatigueLevel?: number;
+  /** Alias for fatigueLevel */
+  uFatigueLevel?: number;
+  /** Callback for real-time FPS monitoring and automatic LOD mesh adaptation */
+  onFpsUpdate?: (fps: number, recommendedMode: 'high' | 'eco_mobile', isAutoDowngraded: boolean) => void;
+  /** Whether stretching animation is active */
+  isStretching?: boolean;
+  /** List of anatomical markers to display */
+  markers?: any[]; // Using any[] to avoid circular dependency if needed, or import from types
+  /** Callback when a new marker is added via click */
+  onAddMarker?: (position: { x: number; y: number; z: number }, muscleTag?: string) => void;
+  /** X-Ray visualization mode (transparency + blue tint) */
+  xRayMode?: boolean;
 }
 
 interface AvatarAnatomicoState {
@@ -307,6 +330,7 @@ interface AvatarAnatomicoState {
   performanceMode: 'auto' | 'high' | 'eco_mobile';
   isZoomedLOD: boolean;
   cameraDistance: number;
+  currentFps: number;
 }
 
 // ============================================================================
@@ -457,6 +481,78 @@ function DynamicLODCameraMonitor({
     if (lastState.current.isZoomed !== isZoomed || Math.abs(lastState.current.dist - dist) > 0.2) {
       lastState.current = { isZoomed, dist };
       onLODUpdate(isZoomed, dist);
+    }
+  });
+
+  return null;
+}
+
+// ============================================================================
+// REAL-TIME FPS MONITOR & AUTOMATIC MESH COMPLEXITY (LOD) ADJUSTER
+// Measures frame delta times and dynamically scales LOD mesh density when FPS drops below 30
+// ============================================================================
+function RealtimeFPSMonitor({
+  performanceMode,
+  onFpsUpdate,
+  onAutoAdaptLOD,
+}: {
+  performanceMode?: 'auto' | 'high' | 'eco_mobile';
+  onFpsUpdate?: (fps: number, recommendedMode: 'high' | 'eco_mobile', isAutoDowngraded: boolean) => void;
+  onAutoAdaptLOD?: (newMode: 'eco_mobile' | 'high') => void;
+}) {
+  const frameTimes = useRef<number[]>([]);
+  const lastReportTime = useRef<number>(performance.now());
+  const lowFpsCount = useRef<number>(0);
+  const highFpsCount = useRef<number>(0);
+  const isAutoDowngraded = useRef<boolean>(false);
+
+  useFrame((state, delta) => {
+    const now = performance.now();
+    const instantFps = delta > 0 ? 1 / delta : 60;
+    frameTimes.current.push(instantFps);
+    if (frameTimes.current.length > 60) {
+      frameTimes.current.shift();
+    }
+
+    if (now - lastReportTime.current >= 400) {
+      const sum = frameTimes.current.reduce((acc, val) => acc + val, 0);
+      const avgFps = Math.round(frameTimes.current.length > 0 ? sum / frameTimes.current.length : 60);
+      lastReportTime.current = now;
+
+      const isAuto = performanceMode === 'auto' || !performanceMode;
+      let recommendedMode: 'high' | 'eco_mobile' = 'high';
+
+      if (avgFps < 32) {
+        lowFpsCount.current += 1;
+        highFpsCount.current = 0;
+        recommendedMode = 'eco_mobile';
+
+        // Downgrade automatically if low FPS (< 32 FPS) persists for >= 3 evaluations (~1.2s) in Auto mode
+        if (lowFpsCount.current >= 3 && isAuto && !isAutoDowngraded.current) {
+          isAutoDowngraded.current = true;
+          if (onAutoAdaptLOD) {
+            onAutoAdaptLOD('eco_mobile');
+          }
+        }
+      } else if (avgFps >= 52) {
+        highFpsCount.current += 1;
+        lowFpsCount.current = 0;
+        recommendedMode = 'high';
+
+        if (highFpsCount.current >= 6 && isAuto && isAutoDowngraded.current) {
+          isAutoDowngraded.current = false;
+          if (onAutoAdaptLOD) {
+            onAutoAdaptLOD('high');
+          }
+        }
+      } else {
+        lowFpsCount.current = 0;
+        highFpsCount.current = 0;
+      }
+
+      if (onFpsUpdate) {
+        onFpsUpdate(avgFps, recommendedMode, isAutoDowngraded.current);
+      }
     }
   });
 
@@ -632,6 +728,13 @@ const muscleHighlightVertexShader = `
   uniform float uContraction;
   uniform float uIsPrimary;
   uniform float uExercisePace;
+  uniform float uMuscleDefinition;
+  uniform float uStretching;
+  // Procedural displacement map (procedural noise)
+  float getDisplacementMap(vec2 uv) {
+    float n = sin(uv.x * 50.0) * cos(uv.y * 50.0);
+    return n * 0.02; // Strength
+  }
 
   void main() {
     vUv = uv;
@@ -639,11 +742,27 @@ const muscleHighlightVertexShader = `
 
     // Hypertrophic volume expansion displacement along vertex normal during contraction & pace pulse
     vec3 displaced = position;
+    
+    // Procedural Displacement map application
+    float dispStrength = getDisplacementMap(vUv); 
+    
     float effectivePace = max(0.1, uExercisePace);
     float pulseSpeed = (uIsPrimary > 0.5 ? 4.2 : 2.6) * effectivePace;
     float microPulse = sin(uTime * pulseSpeed) * (uIsPrimary > 0.5 ? 0.0035 : 0.0018) * min(effectivePace, 2.0);
-    float swell = (uIsPrimary > 0.5 ? 0.022 : 0.010) * uContraction + microPulse;
-    displaced += normal * swell;
+    float defMultiplier = max(0.1, uMuscleDefinition);
+    float swell = ((uIsPrimary > 0.5 ? 0.022 : 0.010) * uContraction + microPulse) * defMultiplier;
+    
+    // Stretching sequence (5s cycle)
+    float stretchingCycle = sin(uTime * 1.2566) * 0.5 + 0.5; // 2 * PI / 5s = 1.2566
+    float stretchScale = uStretching * stretchingCycle;
+    
+    // Thorax expansion (simulated by expanding normals and scaling slightly)
+    float thoraxZone = smoothstep(0.3, 0.5, vUv.y) * (1.0 - smoothstep(0.7, 0.9, vUv.y));
+    float muscleStretch = stretchScale * 0.012; // Base volumetric deformation for any selected muscle
+    float stretchExpansion = (stretchScale * 0.035 * thoraxZone) + muscleStretch;
+
+    displaced += normal * (swell + dispStrength + stretchExpansion);
+
 
     vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
     vWorldPosition = worldPos.xyz;
@@ -672,13 +791,19 @@ const muscleHighlightFragmentShader = `
   uniform float uIntensity;              // Base glow multiplier
   uniform float uContraction;            // 0.0 to 1.0 (synchronized with kinematic cycle)
   uniform float uSweatIntensity;         // Sweat intensity: 0.0 (dry) to 1.0 (very sweaty)
+  uniform float uMuscleDefinition;       // Muscle definition intensity multiplier (0.0 to 2.0, default 1.0)
+  uniform float uSkinTexture;            // Skin texture micro-roughness multiplier (0.0 to 1.0, default 0.5)
+  uniform float uFatigueLevel;           // Fatigue level (0.0 to 1.0)
+  uniform float uLODFactor;              // LOD factor for detail scaling (1.0 = high, 0.5 = low)
+  uniform float uXRayMode;               // X-Ray mode: 0.0 (off) to 1.0 (on)
 
   // =========================================================================
   // NORMAL MAPPING: Procedural Micro-Anatomical Muscle Fiber Heightfield
   // Evaluates longitudinal fascicles, transverse sarcomere striations, and dynamic tension
   // =========================================================================
-  float getMuscleFiberHeight(vec3 worldPos, vec2 uv, float time, float contraction, float isPrimary, float pace) {
-    float freq = isPrimary > 0.5 ? 46.0 : 34.0;
+  float getMuscleFiberHeight(vec3 worldPos, vec2 uv, float time, float contraction, float isPrimary, float pace, float muscleDef) {
+    float def = max(0.1, muscleDef);
+    float freq = (isPrimary > 0.5 ? 46.0 : 34.0) * (0.75 + 0.5 * def);
     
     // Longitudinal fascicle muscle fiber cords
     float fiber1 = sin(worldPos.y * freq + worldPos.x * 14.0 + worldPos.z * 10.0);
@@ -687,35 +812,50 @@ const muscleHighlightFragmentShader = `
     float fiber2 = sin(worldPos.y * (freq * 2.15) - worldPos.x * 7.5) * 0.45;
     
     // Transverse micro-striations (sarcomere bands) flexing dynamically under tension
-    float striations = sin(worldPos.y * 115.0 + sin(worldPos.x * 28.0) * 1.3) * 0.28;
+    float striations = sin(worldPos.y * (115.0 * def) + sin(worldPos.x * 28.0) * 1.3) * 0.28 * def;
     
     // Dynamic metabolic tension wave traveling along fibers aligned with pace tempo
     float tension = sin(worldPos.y * 22.0 - time * (4.2 * max(0.2, pace))) * 0.22;
     
     // Hypertrophic swelling scales bump relief during peak contraction
     float contractionRelief = 0.80 + contraction * 0.60;
-    return (fiber1 * 0.52 + fiber2 * 0.34 + striations * 0.24 + tension * 0.18) * contractionRelief;
+    return (fiber1 * 0.52 + fiber2 * 0.34 + striations * 0.24 + tension * 0.18) * contractionRelief * def;
   }
 
   // Subcutaneous Vascular Network (hyperemic veins)
-  float getVascularity(vec3 worldPos, float contraction, float isPrimary) {
+  float getVascularity(vec3 worldPos, float contraction, float isPrimary, float muscleDef) {
     if (isPrimary < 0.5) return 0.0;
+    float def = max(0.1, muscleDef);
     float vein1 = sin(worldPos.y * 22.0 + sin(worldPos.x * 28.0 + worldPos.z * 16.0) * 2.5);
-    float veinWidth1 = smoothstep(0.93, 0.98, vein1);
+    float veinWidth1 = smoothstep(0.97 - 0.05 * def, 0.99, vein1);
     
     float vein2 = cos(worldPos.y * 36.0 - cos(worldPos.z * 24.0) * 1.8);
-    float veinWidth2 = smoothstep(0.95, 0.99, vein2) * 0.65;
+    float veinWidth2 = smoothstep(0.98 - 0.04 * def, 0.99, vein2) * 0.65;
     
-    return (veinWidth1 + veinWidth2) * (0.5 + 0.5 * contraction);
+    return (veinWidth1 + veinWidth2) * (0.5 + 0.5 * contraction) * min(2.0, def);
+  }
+
+  // Procedural skin pore texture (noise-based) scaled by texture intensity and LOD
+  float getPoreTexture(vec2 uv, float texIntensity, float lod) {
+    if (texIntensity < 0.01) return 0.0;
+    // Scale pore frequency by LOD
+    float frequency = 1200.0 * lod;
+    float n = sin(uv.x * frequency) * sin(uv.y * frequency);
+    n = fract(n * 43758.5453123);
+    return smoothstep(0.85, 1.0, n) * texIntensity;
   }
 
   // Mikkelsen / Screen-Space Cotangent Frame Normal Perturbation
   // Computes precise view-space perturbed surface normal N' from procedural heightfield
-  vec3 getPerturbedNormal(vec3 eyePos, vec3 surfNorm, float height, float bumpStrength) {
+  vec3 getPerturbedNormal(vec3 eyePos, vec3 surfNorm, float height, float bumpStrength, vec2 uv, float texIntensity, float lod) {
     vec3 dpdx = dFdx(eyePos);
     vec3 dpdy = dFdy(eyePos);
-    float dhdx = dFdx(height);
-    float dhdy = dFdy(height);
+    
+    // Add pore height to muscle fiber height for normal perturbation
+    float totalHeight = height + getPoreTexture(uv, texIntensity, lod) * 0.005;
+    
+    float dhdx = dFdx(totalHeight);
+    float dhdy = dFdy(totalHeight);
 
     vec3 r1 = cross(dpdy, surfNorm);
     vec3 r2 = cross(surfNorm, dpdx);
@@ -732,21 +872,28 @@ const muscleHighlightFragmentShader = `
     vec3 viewDir = normalize(vViewPosition);
     vec3 eyePos = -vViewPosition;
 
+    float effectiveDef = max(0.05, uMuscleDefinition);
+    float effectiveTex = clamp(uSkinTexture, 0.0, 1.0);
+    
+    // Hyperemia color shift based on fatigue
+    vec3 fatigueColorShift = vec3(0.2, -0.1, -0.1) * uFatigueLevel;
+
     // Calculate procedural normal mapping height and perturbed surface normal N'
-    float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace);
-    float bumpScale = (uIsPrimary > 0.5 ? 0.036 : 0.024) * (1.0 + uContraction * 0.45);
-    vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale);
+    float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace, effectiveDef);
+    float bumpScale = (uIsPrimary > 0.5 ? 0.036 : 0.024) * effectiveDef * (1.0 + uContraction * 0.45);
+    
+    // Pass UV and texture intensity for pore calculation
+    vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale, vUv, effectiveTex, uLODFactor);
 
     // =========================================================================
     // MULTI-SOURCE NORMAL-MAPPED LIGHTING CALCULATIONS
     // =========================================================================
-    // Studio lighting directions in view space
     vec3 L_key = normalize(vec3(0.55, 0.90, 0.85));   // Key light (top-front-right)
     vec3 L_fill = normalize(vec3(-0.65, 0.20, 0.50)); // Fill light (cool lateral left)
     
     // Normal-mapped Diffuse with Half-Lambert soft tissue translucency
     float NdotL_key = dot(normal, L_key);
-    float diffKey = pow(NdotL_key * 0.5 + 0.5, 1.35);
+    float diffKey = pow(NdotL_key * 0.5 + 0.5, 1.35 + (1.0 - effectiveTex) * 0.4);
     float diffFill = max(0.0, dot(normal, L_fill)) * 0.42;
     
     // Subsurface organic scattering approximation (light wrapping through muscular volume)
@@ -755,33 +902,34 @@ const muscleHighlightFragmentShader = `
     // High-gloss specular gleam reflecting off individual normal-mapped fiber striations
     vec3 H_key = normalize(L_key + viewDir);
     float NdotH = max(0.0, dot(normal, H_key));
-    float specSharp = pow(NdotH, 44.0);        // Glistening wetness on fascicle crests
-    float specBroad = pow(NdotH, 12.0) * 0.35; // Organic fascia sheen
-    float specularGleam = specSharp * 1.15 + specBroad;
+    
+    // Enhanced Specular: Base specular + pore-based roughness variation
+    float specPowerSharp = 30.0 + effectiveTex * 100.0;
+    float specSharp = pow(NdotH, specPowerSharp);
+    // Add specular micro-variation based on pore density
+    float poreRoughness = getPoreTexture(vUv, effectiveTex) * 0.5;
+    float specularGleam = specSharp * (1.0 - poreRoughness) * (0.8 + 0.7 * effectiveTex);
+    specularGleam += pow(NdotH, 10.0) * (0.2 + 0.3 * effectiveTex);
 
     // Normal-mapped View Angle Fresnel
     float NdotV = max(0.0, dot(normal, viewDir));
-    float fresnel = pow(1.0 - NdotV, 2.3);
+    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 1.0); // Skin skin-type dependent Fresnel
 
     // Inter-fascicular Cavity Shadowing / Crevice Ambient Occlusion
-    // Depresses ambient light in the valleys between muscle fibers for rich 3D depth
-    float cavity = smoothstep(-1.1, 0.7, fiberHeight);
+    float cavity = smoothstep(-1.1 / max(0.2, effectiveDef), 0.7, fiberHeight);
+
 
     // =========================================================================
     // CAMERA VIEW-SPECIFIC PROJECTION MODULATION
     // =========================================================================
     float viewFactor = 1.0;
     if (uCameraView < 0.5) {
-      // Frente: accentuate frontal planar projection and muscular definition
       viewFactor = 0.92 + 0.38 * max(0.0, normal.z);
     } else if (uCameraView < 1.5) {
-      // Lateral: accentuate lateral profile depth and silhouette curvature
       viewFactor = 0.92 + 0.52 * abs(normal.x);
     } else if (uCameraView < 2.5) {
-      // Detalhe: ultra-high focal emission and magnified fiber striations
       viewFactor = 1.35 + 0.45 * (1.0 - NdotV) + fiberHeight * 0.12;
     } else {
-      // Back: dorsal muscular projection
       viewFactor = 0.92 + 0.38 * max(0.0, -normal.z);
     }
 
@@ -792,16 +940,13 @@ const muscleHighlightFragmentShader = `
     float pulseFrequency = (uIsPrimary > 0.5 ? 4.2 : 2.6) * effectivePace;
 
     float rawWave = sin(uTime * pulseFrequency);
-    float periodicWave = rawWave * 0.5 + 0.5; // Normalized 0.0 to 1.0
+    float periodicWave = rawWave * 0.5 + 0.5;
 
-    // Non-linear power shaping: Primary has energetic sharp crest; Secondary smooth swells
     float pulseShape = pow(periodicWave, uIsPrimary > 0.5 ? 2.2 : 1.4);
 
-    // Pace intensity factor: faster tempo heighten luminous amplitude
     float paceIntensityFactor = clamp(0.65 + effectivePace * 0.45, 0.45, 2.25);
     float pulseAmplitude = (uIsPrimary > 0.5 ? 0.42 : 0.24) * paceIntensityFactor;
 
-    // Overall pulse factor combining base glow, periodic pace wave, and peak contraction burst
     float pulse = 0.88 + pulseShape * pulseAmplitude + uContraction * (0.38 * paceIntensityFactor);
 
     // =========================================================================
@@ -809,60 +954,55 @@ const muscleHighlightFragmentShader = `
     // =========================================================================
     vec3 targetHighlight = mix(uHighlightColorSecondary, uHighlightColorPrimary, step(0.5, uIsPrimary));
 
-    // Deep ruby-crimson in crevices, fiery vermilion-orange on illuminated fiber crests
     vec3 deepCreviceColor = mix(vec3(0.42, 0.02, 0.07), uColorCore, 0.65);
     vec3 illuminatedRidgeColor = mix(uColorGlow, uColorWarm, 0.50);
     illuminatedRidgeColor = mix(illuminatedRidgeColor, targetHighlight, 0.65);
 
-    // Base tissue tone blending crevice depth with surface illumination
     vec3 baseCore = mix(deepCreviceColor, targetHighlight, cavity * 0.75);
     vec3 baseTone = mix(baseCore, illuminatedRidgeColor, (diffKey + diffFill + sss * 0.5) * 0.55);
 
-    // Active color blending normal-mapped diffuse, organic subsurface scattering, and pulse glow
     vec3 activeColor = baseTone * (0.75 + 0.35 * diffKey);
     activeColor += illuminatedRidgeColor * (sss * 0.60 * pulse);
 
-    // Heighten edge and fiber crest luminescence during peak pulse beats
     activeColor += illuminatedRidgeColor * (fresnel * (0.55 + pulseShape * 0.35) * pulse);
     activeColor += targetHighlight * (NdotV * (0.28 + pulseShape * 0.28) * pulse);
 
-    // Normal-mapped Specular Glistening: fibers glisten with intense athletic sheen at pulse apex
     float pulseSpecularBoost = 1.0 + pulseShape * 0.85 * paceIntensityFactor + uContraction * 0.50;
-    float sweatSpecularBoost = 1.0 + uSweatIntensity * 1.5; // Boost specularity with sweat
+    float sweatSpecularBoost = 1.0 + uSweatIntensity * 1.5;
     vec3 specularColor = mix(vec3(1.0, 0.88, 0.75), vec3(1.0, 0.95, 0.90), step(0.5, uIsPrimary));
     activeColor += specularColor * (specularGleam * 0.55 * pulseSpecularBoost * sweatSpecularBoost);
 
-    // Dynamic crest flash at the apex of the pulse wave
     if (uIsPrimary > 0.5) {
-      activeColor += uHighlightColorPrimary * (pulseShape * 0.28 * paceIntensityFactor);
+      activeColor += uHighlightColorPrimary * (pulseShape * 0.28 * paceIntensityFactor * effectiveDef);
     } else {
-      activeColor += uHighlightColorSecondary * (pulseShape * 0.18 * paceIntensityFactor);
+      activeColor += uHighlightColorSecondary * (pulseShape * 0.18 * paceIntensityFactor * effectiveDef);
     }
 
-    // Hyperemic vascularity accent line glow on active muscle belly
-    float vascularLine = getVascularity(vWorldPosition, uContraction, uIsPrimary);
+    float vascularLine = getVascularity(vWorldPosition, uContraction, uIsPrimary, effectiveDef);
     if (vascularLine > 0.01) {
       vec3 veinGlowColor = mix(uHighlightColorPrimary, vec3(0.0, 0.95, 1.0), 0.35);
       activeColor += veinGlowColor * (vascularLine * 0.55 * (0.8 + pulseShape * 0.5));
     }
 
-    // Detail camera view enhancement
     if (uCameraView > 1.5 && uCameraView < 2.5) {
       activeColor *= 1.25;
     }
 
-    // Secondary synergist softens slightly
     if (uIsPrimary < 0.5) {
       activeColor = mix(activeColor, uHighlightColorSecondary, 0.22);
     }
 
-    // Signature Electric Cyan / Blue backlight halo on the muscle silhouette matching reference image
-    // Catching normal-mapped silhouette edges for anatomical atlas precision
     vec3 cyanHalo = vec3(0.0, 0.92, 1.0);
     float rimFactor = pow(1.0 - NdotV, 3.4);
     activeColor += cyanHalo * (rimFactor * 0.50);
 
-    gl_FragColor = vec4(activeColor * uIntensity * viewFactor, 1.0);
+    // X-Ray Mode: Apply transparency and blue tint
+    float alpha = 1.0 - uXRayMode * 0.7;
+    if (uXRayMode > 0.5) {
+        activeColor = mix(activeColor, vec3(0.1, 0.4, 0.6), 0.5);
+    }
+
+    gl_FragColor = vec4(activeColor * uIntensity * viewFactor, alpha);
   }
 `;
 
@@ -873,6 +1013,10 @@ export interface MuscleHighlightShaderOptions {
   contraction?: number;
   exercisePace?: number;
   uExercisePace?: number;
+  muscleDefinition?: number;
+  skinTexture?: number;
+  uMuscleDefinition?: number;
+  uSkinTexture?: number;
   uHighlightColorPrimary?: string | THREE.Color;
   uHighlightColorSecondary?: string | THREE.Color;
   highlightColorPrimary?: string | THREE.Color;
@@ -880,6 +1024,10 @@ export interface MuscleHighlightShaderOptions {
   colorCore?: string | THREE.Color;
   colorGlow?: string | THREE.Color;
   colorWarm?: string | THREE.Color;
+  fatigueLevel?: number;
+  lodFactor?: number;
+  xRayMode?: boolean;
+  stretching?: boolean;
 }
 
 export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
@@ -897,6 +1045,8 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         : 0.0;
 
     const exercisePaceVal = options?.uExercisePace ?? options?.exercisePace ?? 1.0;
+    const muscleDefVal = options?.uMuscleDefinition ?? options?.muscleDefinition ?? 1.0;
+    const skinTexVal = options?.uSkinTexture ?? options?.skinTexture ?? 0.5;
 
     const rawPrimaryColor = options?.uHighlightColorPrimary ?? options?.highlightColorPrimary;
     const highlightColorPrimaryVal = rawPrimaryColor
@@ -934,6 +1084,8 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
       uniforms: {
         uTime: { value: 0 },
         uExercisePace: { value: exercisePaceVal },
+        uMuscleDefinition: { value: muscleDefVal },
+        uSkinTexture: { value: skinTexVal },
         uHighlightColorPrimary: { value: highlightColorPrimaryVal },
         uHighlightColorSecondary: { value: highlightColorSecondaryVal },
         uColorCore: { value: coreColor },
@@ -944,10 +1096,15 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         uIntensity: { value: options?.intensity ?? (isPrimary ? 1.65 : 1.15) },
         uContraction: { value: options?.contraction ?? 0.0 },
         uSweatIntensity: { value: 0.0 },
+        uFatigueLevel: { value: options?.fatigueLevel ?? 0.0 },
+        uLODFactor: { value: options?.lodFactor ?? 1.0 },
+        uXRayMode: { value: options?.xRayMode ? 1.0 : 0.0 },
+        uStretching: { value: options?.stretching ? 1.0 : 0.0 },
       },
       vertexShader: muscleHighlightVertexShader,
       fragmentShader: muscleHighlightFragmentShader,
       side: THREE.FrontSide,
+      transparent: options?.xRayMode || false,
     });
   }
 
@@ -962,6 +1119,18 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
       this.uniforms.uColorCore.value.set('#e11d48');
       this.uniforms.uColorGlow.value.set('#f97316');
       this.uniforms.uColorWarm.value.set('#ea580c');
+    }
+  }
+
+  public setMuscleDefinition(def: number) {
+    if (this.uniforms.uMuscleDefinition) {
+      this.uniforms.uMuscleDefinition.value = def;
+    }
+  }
+
+  public setSkinTexture(tex: number) {
+    if (this.uniforms.uSkinTexture) {
+      this.uniforms.uSkinTexture.value = tex;
     }
   }
 
@@ -1028,11 +1197,29 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
     this.uniforms.uCameraView.value = val;
   }
 
-  public updateTimeAndContraction(time: number, contraction: number, exercisePace?: number) {
+  public setStretching(active: boolean) {
+    if (this.uniforms.uStretching) {
+      this.uniforms.uStretching.value = active ? 1.0 : 0.0;
+    }
+  }
+
+  public updateTimeAndContraction(
+    time: number,
+    contraction: number,
+    exercisePace?: number,
+    muscleDefinition?: number,
+    skinTexture?: number
+  ) {
     this.uniforms.uTime.value = time;
     this.uniforms.uContraction.value = contraction;
     if (exercisePace !== undefined) {
       this.uniforms.uExercisePace.value = exercisePace;
+    }
+    if (muscleDefinition !== undefined && this.uniforms.uMuscleDefinition) {
+      this.uniforms.uMuscleDefinition.value = muscleDefinition;
+    }
+    if (skinTexture !== undefined && this.uniforms.uSkinTexture) {
+      this.uniforms.uSkinTexture.value = skinTexture;
     }
   }
 }
@@ -1611,6 +1798,11 @@ interface MuscleHighlightContextValue {
   uHighlightColorSecondary?: string;
   highlightColorPrimary?: string;
   highlightColorSecondary?: string;
+  muscleDefinition?: number;
+  skinTexture?: number;
+  fatigueLevel?: number;
+  xRayMode?: boolean;
+  stretching?: boolean;
 }
 
 const MuscleHighlightContext = React.createContext<MuscleHighlightContextValue>({
@@ -1626,6 +1818,11 @@ const MuscleHighlightContext = React.createContext<MuscleHighlightContextValue>(
   uHighlightColorSecondary: '#ff6a00',
   highlightColorPrimary: '#ff0033',
   highlightColorSecondary: '#ff6a00',
+  muscleDefinition: 1.0,
+  skinTexture: 0.5,
+  fatigueLevel: 0.0,
+  xRayMode: false,
+  stretching: false,
 });
 
 // ============================================================================
@@ -1651,6 +1848,11 @@ export interface AnatomicalMuscleNodeProps {
   exercisePace?: number;
   highlightOverride?: string | null;
   cameraView?: 'front' | 'side' | 'detail' | 'back';
+  muscleDefinition?: number;
+  skinTexture?: number;
+  xRayMode?: boolean;
+  stretching?: boolean;
+  onClick?: (event: any) => void;
 }
 
 function AnatomicalMuscleNode({
@@ -1672,9 +1874,15 @@ function AnatomicalMuscleNode({
   exercisePace: propExercisePace,
   highlightOverride: propHighlightOverride,
   cameraView: propCameraView,
+  muscleDefinition: propMuscleDefinition,
+  skinTexture: propSkinTexture,
+  xRayMode: propXRayMode,
+  onClick,
 }: AnatomicalMuscleNodeProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const context = React.useContext(MuscleHighlightContext);
+  const xRayMode = propXRayMode ?? context.xRayMode ?? false;
+  const stretching = context.stretching ?? false;
 
   const primaryMuscles = propPrimary || context.primaryMuscles;
   const secondaryMuscles = propSecondary || context.secondaryMuscles;
@@ -1750,27 +1958,32 @@ function AnatomicalMuscleNode({
 
   const isHighlighted = isPrimary || isSecondary;
 
-  // High-Definition Athletic Material for target muscles (balanced glow, rich 3D shading & normal definition)
+  // Material selection based on highlight state
   const solidMuscleMat = useMemo(() => {
     if (isHighlighted) {
-      const targetColor = isPrimary ? rawHighlightPrimary : rawHighlightSecondary;
-      return new THREE.MeshStandardMaterial({
-        color: targetColor,
-        emissive: targetColor,
-        emissiveIntensity: isPrimary ? 0.48 : 0.32,
-        roughness: 0.28,
-        metalness: 0.06,
-        side: THREE.DoubleSide,
+      return new MuscleHighlightShaderMaterial({
+        isPrimary,
+        cameraView: cameraViewFloat,
+        exercisePace: currentPace,
+        uHighlightColorPrimary: rawHighlightPrimary,
+        uHighlightColorSecondary: rawHighlightSecondary,
+        fatigueLevel: context.fatigueLevel ?? 0.0,
+        lodFactor: 1.0, // Procedural is usually detailed
+        xRayMode: xRayMode,
+        stretching: stretching,
       });
     }
-    // Sleek athletic studio mannequin finish (reveals cuts, striations and grooves with specular highlights)
+    
+    // Sleek athletic studio mannequin finish for non-highlighted parts
     return new THREE.MeshStandardMaterial({
       color: '#f1f5f9',
       roughness: 0.38,
       metalness: 0.04,
       side: THREE.DoubleSide,
+      transparent: xRayMode,
+      opacity: xRayMode ? 0.3 : 1.0,
     });
-  }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary]);
+  }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary, xRayMode, stretching, cameraViewFloat, currentPace, context.fatigueLevel]);
 
   useEffect(() => {
     return () => {
@@ -1778,27 +1991,42 @@ function AnatomicalMuscleNode({
     };
   }, [solidMuscleMat]);
 
-  // Update dynamic solid color pulse and concentric expansion
+  // Update dynamic solid color pulse, concentric expansion & muscle failure fasciculation
   useFrame((state) => {
     if (!meshRef.current) return;
-    const time = state.clock.getElapsedTime() * (isPlaying ? playbackSpeed : 0);
-    const cycle = (Math.sin(time * 2.2) + 1) / 2;
+    const effectiveDef = propMuscleDefinition ?? context.muscleDefinition ?? 1.0;
+    const effectiveTex = propSkinTexture ?? context.skinTexture ?? 0.5;
+    const effectiveFatigue = context.fatigueLevel ?? 0.0;
+    const time = state.clock.getElapsedTime();
+    const playbackTime = time * (isPlaying ? playbackSpeed : 0);
+    const cycle = (Math.sin(playbackTime * 2.8 * currentPace) + 1) / 2;
 
-    if (isHighlighted && solidMuscleMat) {
-      const pulse = Math.sin(time * 3 * currentPace) * 0.12 + (isPrimary ? 0.46 : 0.32);
-      solidMuscleMat.emissiveIntensity = pulse;
+    // Muscle failure fasciculation micro-tremor jitter
+    const failureTremor = effectiveFatigue > 0.05
+      ? Math.sin(time * 44.0) * (0.015 * effectiveFatigue) * (isPrimary ? 1.0 : 0.6)
+      : 0.0;
+
+    if (isHighlighted && solidMuscleMat instanceof MuscleHighlightShaderMaterial) {
+      solidMuscleMat.updateTimeAndContraction(time, cycle, currentPace, effectiveDef, effectiveTex);
+      solidMuscleMat.uniforms.uFatigueLevel.value = effectiveFatigue;
+      solidMuscleMat.uniforms.uXRayMode.value = xRayMode ? 1.0 : 0.0;
+      solidMuscleMat.uniforms.uStretching.value = stretching ? 1.0 : 0.0;
+      solidMuscleMat.transparent = xRayMode;
+    } else if (solidMuscleMat instanceof THREE.MeshStandardMaterial) {
+      solidMuscleMat.transparent = xRayMode;
+      solidMuscleMat.opacity = xRayMode ? 0.3 : 1.0;
     }
 
-    // Dynamic hypertrophic swelling during concentric peak contraction
+    // Dynamic hypertrophic swelling & failure muscle expansion (physical mesh scaling)
     if (isPrimary && isPlaying) {
-      const contractionSwell = 1.0 + cycle * 0.08; // 8% volume expansion
+      const contractionSwell = 1.0 + cycle * (0.12 * Math.max(0.1, effectiveDef)) + failureTremor + (0.04 * effectiveFatigue);
       meshRef.current.scale.set(
         scale[0] * contractionSwell,
-        scale[1] * (1.0 + cycle * 0.02),
+        scale[1] * (1.0 + cycle * (0.04 * Math.max(0.1, effectiveDef))),
         scale[2] * contractionSwell
       );
     } else if (isSecondary && isPlaying) {
-      const synergistSwell = 1.0 + cycle * 0.03; // 3% synergist tension
+      const synergistSwell = 1.0 + cycle * (0.05 * Math.max(0.1, effectiveDef)) + (0.03 * effectiveFatigue);
       meshRef.current.scale.set(
         scale[0] * synergistSwell,
         scale[1] * synergistSwell,
@@ -1826,6 +2054,10 @@ function AnatomicalMuscleNode({
       castShadow
       receiveShadow
       userData={{ muscleTag }}
+      onClick={(e) => {
+        if (onClick) onClick(e);
+        // Allow bubbling for marker addition in parent group
+      }}
     />
   );
 }
@@ -2540,6 +2772,10 @@ function SingleGLTFModelInstance({
   pulsingMuscle,
   onMuscleHover,
   onMuscleClick,
+  isStretching = false,
+  fatigueLevel = 0.0,
+  isZoomedLOD = false,
+  xRayMode = false,
 }: {
   modelUrl: string;
   gender: 'male' | 'female';
@@ -2558,6 +2794,10 @@ function SingleGLTFModelInstance({
   pulsingMuscle?: string | null;
   onMuscleHover?: (muscle: string | null) => void;
   onMuscleClick?: (muscle: string) => void;
+   isStretching?: boolean;
+  fatigueLevel?: number;
+  isZoomedLOD?: boolean;
+  xRayMode?: boolean;
 }) {
   // useGLTF with 'true' enables DRACOLoader automatically via @react-three/drei
   const gltf = useGLTF(modelUrl, true);
@@ -2683,6 +2923,9 @@ function SingleGLTFModelInstance({
             exercisePace: currentPace,
             uHighlightColorPrimary: effPrimary,
             uHighlightColorSecondary: effSecondary,
+            fatigueLevel: fatigueLevel,
+            lodFactor: isZoomedLOD ? 1.0 : 0.5,
+            stretching: isStretching,
           });
           shaderMaterialsRef.current.push(shaderMat);
           mesh.material = shaderMat;
@@ -2701,7 +2944,7 @@ function SingleGLTFModelInstance({
       shaderMaterialsRef.current.forEach((m) => m.dispose());
       shaderMaterialsRef.current = [];
     };
-  }, [clonedScene, activeMuscles, secondaryMuscles, highlightMode, hoveredMuscle, pulsingMuscle, cameraViewFloat, effPrimary, effSecondary, currentPace]);
+  }, [clonedScene, activeMuscles, secondaryMuscles, highlightMode, hoveredMuscle, pulsingMuscle, cameraViewFloat, effPrimary, effSecondary, currentPace, isStretching, fatigueLevel, isZoomedLOD]);
 
   // Frame loop: update animations and pulse on the instance
   useFrame((state, delta) => {
@@ -2719,6 +2962,10 @@ function SingleGLTFModelInstance({
       mat.updateTimeAndContraction(time, cycle, currentPace);
       mat.uniforms.uSweatIntensity.value = Math.min(1.0, sweatTimeRef.current * 0.05);
       mat.uniforms.uCameraView.value = cameraViewFloat;
+      mat.uniforms.uFatigueLevel.value = fatigueLevel;
+      mat.uniforms.uLODFactor.value = isZoomedLOD ? 1.0 : 0.5;
+      mat.uniforms.uStretching.value = isStretching ? 1.0 : 0.0;
+      mat.uniforms.uXRayMode.value = xRayMode ? 1.0 : 0.0;
       if (effPrimary) mat.setHighlightColorPrimary(effPrimary);
       if (effSecondary) mat.setHighlightColorSecondary(effSecondary);
     });
@@ -2755,7 +3002,7 @@ function SingleGLTFModelInstance({
       }}
       onClick={(e: any) => {
         if (!isVisible) return;
-        e.stopPropagation();
+        // Don't stop propagation here so markers can be added by the parent group
         if (e.object?.name && onMuscleClick) {
           onMuscleClick(e.object.name);
         }
@@ -2790,6 +3037,11 @@ export function PooledGLTFAnatomicalModel({
   pulsingMuscle = null,
   onMuscleHover,
   onMuscleClick,
+  fatigueLevel = 0.0,
+  isZoomedLOD = false,
+  isStretching = false,
+  markers = [],
+  onAddMarker,
 }: {
   maleModelUrl?: string;
   femaleModelUrl?: string;
@@ -2811,6 +3063,11 @@ export function PooledGLTFAnatomicalModel({
   pulsingMuscle?: string | null;
   onMuscleHover?: (muscle: string | null) => void;
   onMuscleClick?: (muscle: string) => void;
+  isStretching?: boolean;
+  markers?: any[];
+  onAddMarker?: (pos: { x: number; y: number; z: number }, tag?: string) => void;
+  fatigueLevel?: number;
+  isZoomedLOD?: boolean;
 }) {
   const resolvedMaleUrl = maleModelUrl || modelUrl;
   const resolvedFemaleUrl = femaleModelUrl || modelUrl;
@@ -2831,7 +3088,23 @@ export function PooledGLTFAnatomicalModel({
   const isSameUrl = Boolean(resolvedMaleUrl && resolvedFemaleUrl && resolvedMaleUrl === resolvedFemaleUrl);
 
   return (
-    <group>
+    <group
+      onClick={(e) => {
+        // Stop propagation at the top level of the avatar to prevent triggering other UI elements
+        e.stopPropagation();
+        if (onAddMarker) {
+          // Convert world intersection point to local coordinates relative to this group
+          const localPoint = (e.currentTarget as any).worldToLocal(e.point.clone());
+          const tag = (e.object as any).userData?.muscleTag || (e.object as any).name;
+          onAddMarker({ x: localPoint.x, y: localPoint.y, z: localPoint.z }, tag);
+        }
+      }}
+    >
+      {/* Markers rendered for GLTF Pooled model */}
+      {markers.map((m: any) => (
+        <AnatomicalMarkerPoint key={m.id} marker={m} />
+      ))}
+      <group>
       {isSameUrl && resolvedMaleUrl ? (
         <SingleGLTFModelInstance
           modelUrl={resolvedMaleUrl}
@@ -2851,6 +3124,9 @@ export function PooledGLTFAnatomicalModel({
           pulsingMuscle={pulsingMuscle}
           onMuscleHover={onMuscleHover}
           onMuscleClick={onMuscleClick}
+          isStretching={isStretching}
+          fatigueLevel={fatigueLevel}
+          isZoomedLOD={isZoomedLOD}
         />
       ) : (
         <>
@@ -2873,6 +3149,9 @@ export function PooledGLTFAnatomicalModel({
               pulsingMuscle={pulsingMuscle}
               onMuscleHover={onMuscleHover}
               onMuscleClick={onMuscleClick}
+              isStretching={isStretching}
+              fatigueLevel={fatigueLevel}
+              isZoomedLOD={isZoomedLOD}
             />
           )}
           {resolvedFemaleUrl && (
@@ -2894,11 +3173,15 @@ export function PooledGLTFAnatomicalModel({
               pulsingMuscle={pulsingMuscle}
               onMuscleHover={onMuscleHover}
               onMuscleClick={onMuscleClick}
+              isStretching={isStretching}
+              fatigueLevel={fatigueLevel}
+              isZoomedLOD={isZoomedLOD}
             />
           )}
         </>
       )}
     </group>
+  </group>
   );
 }
 
@@ -2910,6 +3193,31 @@ export function GLTFAnatomicalModel(props: any) {
       activeGender={props.gender || 'male'}
       modelUrl={props.modelUrl}
     />
+  );
+}
+
+function AnatomicalMarkerPoint({ marker }: { marker: any }) {
+  return (
+    <group position={[marker.position.x, marker.position.y, marker.position.z]}>
+      <mesh castShadow>
+        <sphereGeometry args={[0.018, 16, 16]} />
+        <meshStandardMaterial 
+          color={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'} 
+          emissive={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'}
+          emissiveIntensity={1.2}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Pulse effect */}
+      <mesh scale={[1.5, 1.5, 1.5]}>
+        <sphereGeometry args={[0.018, 16, 16]} />
+        <meshBasicMaterial 
+          color={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'}
+          transparent
+          opacity={0.3}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -2936,6 +3244,14 @@ function AnatomicalAvatarModel({
   positiveFeedback = false,
   motivationalSmile = 0.0,
   lodScale = 1.0,
+  muscleDefinition = 1.0,
+  skinTexture = 0.5,
+  fatigueLevel = 0.0,
+  uFatigueLevel = 0.0,
+  isStretching = false,
+  markers = [],
+  onAddMarker,
+  xRayMode = false,
 }: {
   exercise: DetailedExercise;
   gender: 'male' | 'female';
@@ -2955,6 +3271,14 @@ function AnatomicalAvatarModel({
   positiveFeedback?: boolean;
   motivationalSmile?: number;
   lodScale?: number;
+  muscleDefinition?: number;
+  skinTexture?: number;
+  fatigueLevel?: number;
+  uFatigueLevel?: number;
+  isStretching?: boolean;
+  markers?: any[];
+  onAddMarker?: (pos: { x: number; y: number; z: number }, tag?: string) => void;
+  xRayMode?: boolean;
 }) {
   const rootGroup = useRef<THREE.Group>(null);
   const spineGroup = useRef<THREE.Group>(null);
@@ -3156,7 +3480,17 @@ function AnatomicalAvatarModel({
     // Kinematic Joint Animations by Exercise ID
     const exId = exercise.id;
 
-    if (exId === 'pose-flex-biceps') {
+    if (isStretching) {
+      const stretchCycle = (Math.sin(time * 1.2566) + 1) / 2; // 5s cycle
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0, 0, 0.4 + stretchCycle * 0.9);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0, 0, -0.4 - stretchCycle * 0.9);
+      if (leftLeg.current) leftLeg.current.rotation.set(-0.15 - stretchCycle * 0.4, 0, -0.1);
+      if (rightLeg.current) rightLeg.current.rotation.set(-0.15 - stretchCycle * 0.4, 0, 0.1);
+      if (spineGroup.current) {
+        spineGroup.current.scale.set(1.0, 1.0 + stretchCycle * 0.04, 1.0 + stretchCycle * 0.04);
+        spineGroup.current.position.y = 0.52 + stretchCycle * 0.02;
+      }
+    } else if (exId === 'pose-flex-biceps') {
       // Double Front Bicep Flex Bodybuilding Pose
       const flexTension = Math.sin(time * 3) * 0.04 + 1.0;
       if (leftShoulder.current) leftShoulder.current.rotation.set(0.12, 0, -1.48);
@@ -3456,9 +3790,30 @@ function AnatomicalAvatarModel({
         uHighlightColorSecondary: effHighlightSecondary,
         highlightColorPrimary: effHighlightPrimary,
         highlightColorSecondary: effHighlightSecondary,
+        muscleDefinition,
+        skinTexture,
+        fatigueLevel: fatigueLevel ?? uFatigueLevel ?? 0.0,
+        xRayMode: xRayMode ?? false,
+        stretching: isStretching,
       }}
     >
-      <group ref={rootGroup}>
+      <group 
+        ref={rootGroup}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onAddMarker && rootGroup.current) {
+            // Convert world point to local point relative to the root group
+            const localPoint = rootGroup.current.worldToLocal(e.point.clone());
+            const muscleTag = (e.object as any).userData?.muscleTag;
+            onAddMarker({ x: localPoint.x, y: localPoint.y, z: localPoint.z }, muscleTag);
+          }
+        }}
+      >
+        {/* Render Saved Anatomical Markers */}
+        {markers.map((marker: any) => (
+          <AnatomicalMarkerPoint key={marker.id} marker={marker} />
+        ))}
+
       {/* Torso Spine Anchor */}
       <group ref={spineGroup} position={[0, 0.52, 0]}>
         
@@ -4189,6 +4544,7 @@ export class AvatarAnatomico
       performanceMode: props.performanceMode || 'auto',
       isZoomedLOD: props.cameraView === 'detail',
       cameraDistance: 3.4,
+      currentFps: 60,
     };
 
     AvatarAnatomico.instance = this;
@@ -5034,6 +5390,23 @@ export class AvatarAnatomico
                   }
                 }}
               />
+              <RealtimeFPSMonitor
+                performanceMode={this.props.performanceMode || this.state.performanceMode}
+                onFpsUpdate={(fps, recMode, isDowngraded) => {
+                  if (this.state.currentFps !== fps) {
+                    this.setState({ currentFps: fps });
+                  }
+                  if (this.props.onFpsUpdate) {
+                    this.props.onFpsUpdate(fps, recMode, isDowngraded);
+                  }
+                }}
+                onAutoAdaptLOD={(newMode) => {
+                  this.setState({ performanceMode: newMode });
+                  if (this.props.onPerformanceModeChange) {
+                    this.props.onPerformanceModeChange(newMode);
+                  }
+                }}
+              />
 
               {enableOrbitControls && (
                 <OrbitControls
@@ -5126,6 +5499,9 @@ export class AvatarAnatomico
                   pulsingMuscle={pulsingMuscle}
                   onMuscleHover={onMuscleHover}
                   onMuscleClick={onMuscleClick}
+                  isStretching={this.props.isStretching}
+                  markers={this.props.markers}
+                  onAddMarker={this.props.onAddMarker}
                 />
               ) : (
                 <AnatomicalAvatarModel
@@ -5147,6 +5523,12 @@ export class AvatarAnatomico
                   positiveFeedback={this.props.positiveFeedback}
                   motivationalSmile={this.props.motivationalSmile}
                   lodScale={this.state.isZoomedLOD ? lodStats.lodScale : lodStats.lodScale * 0.65}
+                  muscleDefinition={this.props.muscleDefinition ?? this.props.uMuscleDefinition ?? 1.0}
+                  skinTexture={this.props.skinTexture ?? this.props.uSkinTexture ?? 0.5}
+                  fatigueLevel={this.props.fatigueLevel ?? this.props.uFatigueLevel ?? 0.0}
+                  isStretching={this.props.isStretching}
+                  markers={this.props.markers}
+                  onAddMarker={this.props.onAddMarker}
                 />
               )}
             </Canvas>

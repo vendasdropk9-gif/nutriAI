@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule } from "../types";
 import { generateFallbackComparison } from "../data/foodNutritionDatabase";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {

@@ -50,6 +50,8 @@ export interface DetailedExercise {
   restSeconds: number;
   /** Optional GLTF animation asset path or identifier for 3D avatar biomechanical animation */
   animationAsset?: string;
+  description?: string;
+  executionTips?: string[];
 }
 
 export const EXERCISE_DATABASE: DetailedExercise[] = [

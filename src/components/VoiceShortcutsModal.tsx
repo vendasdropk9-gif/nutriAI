@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Search, X, Sparkles, Navigation, Play, ArrowRight, Home, User, Target, Dumbbell, Activity, Droplets, MessageCircle, Filter, Eye } from 'lucide-react';
+import { Mic, Search, X, Sparkles, Navigation, Play, ArrowRight, Home, User, Target, Dumbbell, Activity, Droplets, MessageCircle, Filter, Eye, Utensils } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { playSfx, vibrate } from '../lib/sensory';
 
