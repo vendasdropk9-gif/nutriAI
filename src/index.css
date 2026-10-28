@@ -679,6 +679,21 @@ html[dir="rtl"] input[type="tel"] {
     margin: 12mm 15mm;
   }
 
+  /* Hide navigation, sidebars, headers, floating bars, toasts, buttons, and UI chrome */
+  header,
+  nav,
+  aside,
+  footer,
+  [role="navigation"],
+  .no-print,
+  button:not(.allow-print),
+  .fixed:not(#nutri-print-section):not(.print-recipe-portal),
+  .sticky,
+  .toast,
+  .floating-fab {
+    display: none !important;
+  }
+
   body.printing-recipe-active > *:not(#nutri-print-section) {
     display: none !important;
   }

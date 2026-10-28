@@ -16,9 +16,10 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { PantryScanner } from './PantryScanner';
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
+import { ExpirationTracker } from './ExpirationTracker';
 import { RecipeStepTimer } from './RecipeStepTimer';
 
-interface FridgeItem {
+export interface FridgeItem {
   id: string;
   name: string;
   quantity: string;
@@ -67,7 +68,7 @@ interface SmartFridgeProps { onGenerateRecipeWithIngredient?: (ingredient: strin
 export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor'>('fridge');
+  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor' | 'expiration'>('fridge');
   
   // Fridge items state
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
@@ -671,10 +672,33 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
           <ChefHat className="w-4 h-4 text-emerald-500" />
           {t('chef_ai_questions', 'Dúvidas do Chef IA')}
         </button>
+        <button
+          id="subtab-expiration-tracker-btn"
+          onClick={() => { setActiveSubTab('expiration'); playSfx('tap'); }}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
+            activeSubTab === 'expiration' 
+              ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 text-emerald-500" />
+          {t('expiration_tracker', 'Rastreador de Validade')}
+        </button>
       </div>
 
       {/* Main Content Areas */}
       <AnimatePresence mode="wait">
+        {/* VIEW 0: EXPIRATION TRACKER */}
+        {activeSubTab === 'expiration' && (
+          <motion.div
+            key="expiration-tab"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+          >
+            <ExpirationTracker items={fridgeItems} />
+          </motion.div>
+        )}
         {/* VIEW 1: MY FRIDGE */}
         {activeSubTab === 'fridge' && (
           <motion.div

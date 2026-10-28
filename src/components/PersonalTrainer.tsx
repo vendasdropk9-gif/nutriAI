@@ -26,6 +26,7 @@ const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
 const SmartExerciseDemonstration = lazy(() => import('./SmartExerciseDemonstration'));
 const ExerciseDetailsModal = lazy(() => import('./ExerciseDetailsModal'));
 const WorkoutCalendarComponent = lazy(() => import('./WorkoutCalendar').then(m => ({ default: m.WorkoutCalendarComponent })));
+const InteractiveAvatarStudioModal = lazy(() => import('./InteractiveAvatarStudioModal'));
 
 interface PersonalTrainerProps {
   profile: UserProfile | null;
@@ -314,6 +315,14 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [isExerciseCardModalOpen, setIsExerciseCardModalOpen] = useState(false);
   // Posture Analyzer Camera Modal / View State
   const [isPostureActive, setIsPostureActive] = useState(false);
+  // Interactive 3D Avatar Studio Modal State
+  const [isAvatarStudioOpen, setIsAvatarStudioOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenStudio = () => setIsAvatarStudioOpen(true);
+    window.addEventListener('app:openInteractiveAvatarStudio', handleOpenStudio);
+    return () => window.removeEventListener('app:openInteractiveAvatarStudio', handleOpenStudio);
+  }, []);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1061,6 +1070,21 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   </div>
                 )}
 
+                {/* Estúdio Interativo do Avatar 3D */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(12);
+                    setIsAvatarStudioOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95"
+                  title="Abrir Estúdio Interativo do Avatar 3D (Poses, Giro 360°, Músculos)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Estúdio do Avatar 3D</span>
+                </button>
+
                 {/* Detalhes do Exercício NutriAi (Card de Referência) */}
                 <button
                   type="button"
@@ -1543,6 +1567,12 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
           onClose={() => setIsExerciseCardModalOpen(false)}
           exercise={activeDetailedExercise}
           profile={profile}
+        />
+        <InteractiveAvatarStudioModal
+          isOpen={isAvatarStudioOpen}
+          onClose={() => setIsAvatarStudioOpen(false)}
+          profile={profile}
+          initialExerciseId={activeDetailedExercise?.id || 'seated-lateral-raises'}
         />
       </Suspense>
     </div>

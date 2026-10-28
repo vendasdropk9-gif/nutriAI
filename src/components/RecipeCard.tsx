@@ -4,7 +4,7 @@ import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
 import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video } from 'lucide-react';
-import { isRecipeSavedOffline, toggleRecipeOffline } from '../lib/offlineRecipes';
+import { isRecipeSavedOffline, toggleRecipeOffline, saveRecipeOffline, getOfflineRecipes } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech, speakWithWebSpeech } from '../lib/speech';
@@ -18,6 +18,10 @@ import { prefetchRecipeImages } from '../lib/recipeImagePrefetcher';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 import { PrintPreviewModal } from './PrintPreviewModal';
 import { PrintRecipe } from './PrintRecipe';
+import { OfflineRecipesModal } from './OfflineRecipesModal';
+import { ContextualRecipeAssistantModal } from './ContextualRecipeAssistantModal';
+import { RecipeCollectionsModal } from './RecipeCollectionsModal';
+import { Collection } from '../types';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -112,12 +116,39 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoReadEnabled, setIsAutoReadEnabled] = useState<boolean>(true);
   const [showAiAdvisor, setShowAiAdvisor] = useState(false);
+  const [showContextualAssistant, setShowContextualAssistant] = useState(false);
   const [servings, setServings] = useState<number>(2);
-  const [tags, setTags] = useState<string[]>(recipe.tags || []);
-  const [tagInput, setTagInput] = useState('');
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoOpName, setVideoOpName] = useState<string | null>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [showCollectionsModal, setShowCollectionsModal] = useState(false);
+  
+  const [tags, setTags] = useState<string[]>(recipe.tags || []);
+  const [tagInput, setTagInput] = useState('');
+
+  const updateTagsInDb = async (newTags: string[]) => {
+    try {
+      await setDoc(doc(db, 'recipes', recipe.id), { tags: newTags }, { merge: true });
+    } catch (e) {
+      console.error("Error updating tags:", e);
+    }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      const newTags = [...tags, tagInput.trim()];
+      setTags(newTags);
+      setTagInput('');
+      updateTagsInDb(newTags);
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = tags.filter(t => t !== tagToRemove);
+    setTags(newTags);
+    updateTagsInDb(newTags);
+  };
 
   function scaleIngredient(ingredient: string, multiplier: number): string {
     if (multiplier === 1) return ingredient;
@@ -394,10 +425,45 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     }
   };
 
-  // Offline Recipe Storage State
+  // Offline Recipe Storage State & Auto-Caching
   const [isSavedOffline, setIsSavedOffline] = useState<boolean>(() => {
     return isRecipeSavedOffline(recipe.id, recipe.name);
   });
+  const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  });
+  const [isOfflineModeActive, setIsOfflineModeActive] = useState<boolean>(false);
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState<boolean>(false);
+
+  // Automatically cache recipe details (instructions and ingredients) when viewed
+  useEffect(() => {
+    if (recipe && recipe.id && recipe.name && recipe.ingredients && recipe.instructions) {
+      saveRecipeOffline(recipe);
+      setIsSavedOffline(true);
+    }
+  }, [recipe]);
+
+  useEffect(() => {
+    const handleOnlineStatus = () => setIsNetworkOnline(true);
+    const handleOfflineStatus = () => {
+      setIsNetworkOnline(false);
+      setIsOfflineModeActive(true);
+    };
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOfflineStatus);
+
+    // Load collections
+    const savedCollections = localStorage.getItem('nutriai_recipe_collections');
+    if (savedCollections) {
+      setCollections(JSON.parse(savedCollections));
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOfflineStatus);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOfflineSync = () => {
@@ -419,6 +485,25 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     if (nowSaved) {
       playSfx('crystal');
     }
+  };
+
+  const handleToggleRecipeInCollection = (collectionId: string, recipeId: string) => {
+    playSfx('tap');
+    vibrate(15);
+    setCollections(prev => {
+      const updated = prev.map(col => {
+        if (col.id === collectionId) {
+          const exists = col.recipeIds.includes(recipeId);
+          return {
+            ...col,
+            recipeIds: exists ? col.recipeIds.filter(id => id !== recipeId) : [...col.recipeIds, recipeId]
+          };
+        }
+        return col;
+      });
+      localStorage.setItem('nutriai_recipe_collections', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handlePrintRecipe = (e?: React.MouseEvent) => {
@@ -1870,6 +1955,78 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
       )}
 
       <div className="bg-white/30 dark:bg-slate-800/30 p-8 md:p-12 border-b border-white/60 dark:border-slate-700/50">
+        {/* Dedicated Offline Mode Card Banner */}
+        <div className="w-full mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-teal-950/80 border border-emerald-500/30 shadow-lg backdrop-blur-md space-y-3 text-white">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                <WifiOff className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-serif text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    Modo Offline Dedicado
+                  </h4>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                    {isNetworkOnline ? '✓ Salvo Localmente' : '📶 Sem Conexão'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Instruções ({recipe.instructions?.length || 0} passos) e ingredientes ({recipe.ingredients?.length || 0} itens) armazenados em cache no seu dispositivo.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOfflineModeActive(!isOfflineModeActive);
+                  playSfx('tap');
+                  vibrate(15);
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-sm ${
+                  isOfflineModeActive
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-extrabold shadow-emerald-500/20'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                }`}
+                title="Alternar modo offline dedicado no prato"
+              >
+                {isOfflineModeActive ? 'Modo Offline Ativo' : 'Simular Offline'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOfflineModalOpen(true);
+                  playSfx('crystal');
+                  vibrate(15);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Central Offline</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Guarantee Badges */}
+          <div className="pt-2.5 border-t border-emerald-500/15 flex flex-wrap items-center gap-4 text-[11px] text-emerald-300/90 font-medium">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Ingredientes em Cache Nativo
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Passo a Passo Preservado Sem Rede
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Cronômetro de Etapas Funcionando
+            </span>
+          </div>
+        </div>
+
         {parsePrepTime(recipe.prepTime) < 15 && (
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-extrabold shadow-xs animate-pulse mb-3">
             <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -1882,6 +2039,28 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         <p className="font-sans text-slate-500 dark:text-slate-400 text-lg max-w-2xl">
           {recipe.description}
         </p>
+
+        {/* Tag Selector UI */}
+        <div className="mt-6 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {tags.map(tag => (
+              <span key={tag} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 rounded-full text-xs font-bold flex items-center gap-1">
+                {tag}
+                <button onClick={() => handleRemoveTag(tag)} className="hover:text-emerald-900 dark:hover:text-emerald-100">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleAddTag}
+            placeholder="Adicionar tag e pressionar Enter..."
+            className="w-full sm:w-64 px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm"
+          />
+        </div>
         
         <div className="flex flex-wrap gap-4 mt-8">
           <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full border border-white/60 dark:border-slate-600/50 shadow-sm text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -1998,6 +2177,19 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           )}
 
           {!isSchedulingOpen && (
+            <button
+              onClick={() => setShowContextualAssistant(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer border border-emerald-400/30"
+              title="Explicações de técnicas culinárias e substituições por itens da sua despensa com IA Gemini"
+              id={`btn-contextual-assistant-${recipe.id}`}
+            >
+              <ChefHat className="w-4 h-4 text-emerald-200" />
+              <span>Assistente Culinário Contextual</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
             <PrintRecipe
               recipe={recipe}
               servingsMultiplier={multiplier}
@@ -2038,6 +2230,25 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               <Share2 className="w-4 h-4 text-indigo-500" />
               Compartilhar Receita
             </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={() => setShowCollectionsModal(true)}
+              className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/15 border border-purple-500/20 hover:border-purple-500/35 text-purple-600 dark:text-purple-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+            >
+              <Bookmark className="w-4 h-4 text-purple-500" />
+              Salvar em Coleção
+            </button>
+          )}
+
+          {showCollectionsModal && (
+            <RecipeCollectionsModal
+              collections={collections}
+              recipe={recipe}
+              onToggleRecipe={handleToggleRecipeInCollection}
+              onClose={() => setShowCollectionsModal(false)}
+            />
           )}
         </div>
       </div>
@@ -3329,10 +3540,20 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
           )}
         </AnimatePresence>
       )}
+      <ContextualRecipeAssistantModal
+        recipe={recipe}
+        isOpen={showContextualAssistant}
+        onClose={() => setShowContextualAssistant(false)}
+      />
       <PrintPreviewModal 
         isOpen={isPreviewModalOpen} 
         onClose={() => setIsPreviewModalOpen(false)} 
         recipe={recipe} 
+      />
+      <OfflineRecipesModal
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
+        initialRecipeId={recipe.id}
       />
     </div>
   );

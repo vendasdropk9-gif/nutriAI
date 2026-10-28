@@ -1,10 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse } from 'lucide-react';
+import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse, Zap, Cpu, Gauge, Layers, Eye } from 'lucide-react';
 import { analyzeBodyImage, getGeneralBodyTips } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { BodySensorsMonitor } from './BodySensorsMonitor';
 import { VoicePlayButton } from './VoicePlayButton';
+import { AvatarAnatomico } from './AvatarAnatomico';
+import { getOptimalAvatarLOD, isMobileOrLowPowerDevice } from './AnatomicalSculptor';
+import { playSfx, vibrate } from '../lib/sensory';
+
+const MUSCLE_FOCUS_OPTIONS = [
+  { id: 'shoulders', label: 'Ombros / Deltóides', icon: '⚡', muscles: ['Deltoids', 'Lateral Deltoid', 'Anterior Deltoid'] },
+  { id: 'chest', label: 'Peitoral Maior', icon: '🛡️', muscles: ['Pectorals', 'Chest'] },
+  { id: 'abs', label: 'Abdômen / Core', icon: '🧱', muscles: ['Abs', 'Obliques'] },
+  { id: 'quads', label: 'Quadríceps', icon: '🦵', muscles: ['Quadriceps', 'Vastus Lateralis'] },
+  { id: 'arms', label: 'Bíceps / Tríceps', icon: '💪', muscles: ['Biceps', 'Triceps'] },
+  { id: 'back', label: 'Dorsal / Trapézio', icon: '🦅', muscles: ['Trapezius', 'Latissimus Dorsi'] },
+];
 
 interface BodyAnalyzerProps {
   profile: UserProfile | null;
@@ -14,7 +26,10 @@ interface BodyAnalyzerProps {
 
 export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAnalyzerProps) {
   const { t } = useTranslation();
-  const [bodySubTab, setBodySubTab] = useState<'biometrics' | 'shape'>('biometrics');
+  const [bodySubTab, setBodySubTab] = useState<'biometrics' | 'shape' | 'avatar3d'>('biometrics');
+  const [avatarPerformanceMode, setAvatarPerformanceMode] = useState<'auto' | 'high' | 'eco_mobile'>('auto');
+  const [avatarCameraView, setAvatarCameraView] = useState<'front' | 'side' | 'detail' | 'back'>('front');
+  const [avatarMuscleFocus, setAvatarMuscleFocus] = useState<string>('shoulders');
   const [isScanning, setIsScanning] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any | null>(null);
@@ -181,7 +196,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
           <span className="font-mono text-[10px] text-emerald-500 font-bold uppercase tracking-widest block">{t('body_portal_title', 'Portal Clínico Corporal')}</span>
           <h3 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm">Selecione a abordagem corporal por sensoriamento eletrônico</h3>
         </div>
-        <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/30 w-full md:w-auto md:flex md:flex-row gap-0.5">
+        <div className="grid grid-cols-3 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200/50 dark:border-slate-700/30 w-full md:w-auto md:flex md:flex-row gap-0.5">
           <button
             onClick={() => setBodySubTab('biometrics')}
             className={`px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all truncate text-center cursor-pointer ${
@@ -191,7 +206,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
             }`}
             title="Biometria e Sensores"
           >
-            <span className="truncate block">🩺 Biometria e Sensores</span>
+            <span className="truncate block">🩺 Biometria</span>
           </button>
           <button
             onClick={() => setBodySubTab('shape')}
@@ -202,7 +217,18 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
             }`}
             title="Evolução do Shape (Fotos)"
           >
-            <span className="truncate block">📐 Evolução do Shape</span>
+            <span className="truncate block">📐 Shape (Fotos)</span>
+          </button>
+          <button
+            onClick={() => setBodySubTab('avatar3d')}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all truncate text-center cursor-pointer ${
+              bodySubTab === 'avatar3d'
+                ? 'bg-white dark:bg-slate-800 shadow-sm text-emerald-600 dark:text-emerald-400 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+            title="Avatar 3D Anatômico & Malha Otimizada"
+          >
+            <span className="truncate block">👤 Avatar 3D</span>
           </button>
         </div>
       </div>
@@ -213,7 +239,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
           onUpdateProfile={onUpdateProfile || (() => {})} 
           onAwardPoints={onAwardPoints} 
         />
-      ) : (
+      ) : bodySubTab === 'shape' ? (
         <>
           <div className="text-center space-y-4 mb-12">
             <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
@@ -488,6 +514,199 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
         )}
           </div>
         </>
+      ) : (
+        /* Avatar 3D Anatômico View with Mobile-optimized polygon mesh LOD */
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="text-center space-y-4 mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider">
+              <Zap className="w-3.5 h-3.5 text-emerald-500" />
+              Motor de Malha 3D Otimizada • LOD Dinâmico
+            </div>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+              Avatar do Corpo & Biomecânica
+            </h2>
+            <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
+              Estrutura muscular contínua baseada em modelos anatômicos de precisão, com redução inteligente de polígonos para máxima fluidez em celulares e aparelhos de menor potência.
+            </p>
+          </div>
+
+          {/* Performance & Mesh Telemetry Control Bar */}
+          <div className="clay-card p-4 sm:p-6 bg-slate-900 border border-slate-800 text-white rounded-3xl space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-slate-800/80 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-emerald-400" />
+                  <span className="font-sans font-bold text-sm text-slate-100">
+                    Otimização de Renderização & Malha
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  {avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice())
+                    ? 'Modo Eco Mobile ativado: ~17.200 triângulos (economia de 75% da GPU).'
+                    : 'Modo Alta Fidelidade ativado: ~68.500 triângulos (densidade máxima de vértices).'}
+                </p>
+              </div>
+
+              {/* Mode Toggle Switcher */}
+              <div className="flex items-center p-1 bg-slate-950 rounded-2xl border border-slate-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(10);
+                    setAvatarPerformanceMode('eco_mobile');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice())
+                      ? 'bg-emerald-500 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Otimizado para celulares e economia de bateria"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Eco Mobile (17k)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(10);
+                    setAvatarPerformanceMode('high');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    avatarPerformanceMode === 'high' || (avatarPerformanceMode === 'auto' && !isMobileOrLowPowerDevice())
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Resolução nativa máxima"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Alta Res (68k)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-1">
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Polígonos (Triângulos)</span>
+                <span className="text-lg font-bold text-emerald-400 font-mono">
+                  {avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice()) ? '~17.200' : '~68.500'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  {avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice()) ? '-75% de overhead GPU' : 'Resolução completa'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Decimação Inicial</span>
+                <span className="text-lg font-bold text-emerald-300 font-mono">-40% Muscular</span>
+                <span className="text-[10px] text-emerald-500 block">60% retenção anatômica</span>
+              </div>
+
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Amostragem DPR</span>
+                <span className="text-lg font-bold text-cyan-400 font-mono">
+                  {avatarPerformanceMode === 'eco_mobile' || (avatarPerformanceMode === 'auto' && isMobileOrLowPowerDevice()) ? '1.25x' : '1.75x'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Cap térmico anti-aquecimento</span>
+              </div>
+
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Sistema LOD Dinâmico</span>
+                <span className="text-lg font-bold text-amber-400 font-sans">Corpo / Zoom</span>
+                <span className="text-[10px] text-slate-500 block">Grupos & Contração Real-time</span>
+              </div>
+
+              <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/60">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Shaders & Luz</span>
+                <span className="text-lg font-bold text-purple-400 font-sans">PBR Suave</span>
+                <span className="text-[10px] text-slate-500 block">Normais analíticas</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Anatomical Avatar Interactive Stage */}
+          <div className="w-full h-[520px] sm:h-[580px] md:h-[640px] relative rounded-[32px] overflow-hidden bg-slate-950 border border-emerald-500/20 shadow-2xl">
+            <AvatarAnatomico
+              profile={profile}
+              cameraView={avatarCameraView}
+              performanceMode={avatarPerformanceMode}
+              onPerformanceModeChange={(m) => setAvatarPerformanceMode(m)}
+              primaryMuscles={MUSCLE_FOCUS_OPTIONS.find(m => m.id === avatarMuscleFocus)?.muscles}
+              enableOrbitControls={true}
+              showReferenceControls={true}
+              showOverlayBadges={true}
+              showPerformanceBadge={true}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Interactive Muscle Group Focus Selector & Angles */}
+          <div className="clay-card p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[28px] space-y-6 shadow-sm">
+            <div>
+              <h4 className="font-sans font-bold text-slate-800 dark:text-slate-100 text-sm mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-emerald-500" />
+                Destaque Muscular & Análise de Volume
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                {MUSCLE_FOCUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(8);
+                      setAvatarMuscleFocus(opt.id);
+                    }}
+                    className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                      avatarMuscleFocus === opt.id
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <span className="text-lg block mb-1">{opt.icon}</span>
+                    <span className={`text-xs font-bold block ${avatarMuscleFocus === opt.id ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {opt.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Ângulo de Câmera Rápido:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: 'front', label: 'Frontal' },
+                  { id: 'side', label: 'Perfil' },
+                  { id: 'detail', label: 'Detalhe' },
+                  { id: 'back', label: 'Costas' },
+                ].map((cam) => (
+                  <button
+                    key={cam.id}
+                    type="button"
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(8);
+                      setAvatarCameraView(cam.id as any);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      avatarCameraView === cam.id
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {cam.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

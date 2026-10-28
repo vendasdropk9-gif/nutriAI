@@ -171,7 +171,7 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
     setActiveTab('history');
   };
 
-  // Form Manual Submission
+    // Form Manual Submission
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (systolic <= 0 || diastolic <= 0 || bpm <= 0) return;
@@ -191,6 +191,20 @@ export function BloodPressureTracker({ profile, onUpdateProfile, onAwardPoints }
     
     onUpdateProfile({ bloodPressureLogs: updatedLogs });
     
+    // Emergency Crisis Check (Hypertensive Crisis: Systolic >= 160 or Diastolic >= 100)
+    if (systolic >= 160 || diastolic >= 100) {
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          id: `emergency-bp-${Date.now()}`,
+          title: "🚨 ALERTA DE EMERGÊNCIA: Pressão Arterial Crítica",
+          message: `Leitura registrada de ${systolic}/${diastolic} mmHg indica possível Crise Hipertensiva. Procure atendimento médico imediatamente!`,
+          type: 'error'
+        }
+      }));
+      playSfx('notification');
+      vibrate([100, 100, 100, 100]);
+    }
+
     if (onAwardPoints) {
       onAwardPoints(10, "Registro de Pressão Arterial");
     }

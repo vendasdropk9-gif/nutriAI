@@ -235,8 +235,9 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       // Synthesize through centralized Gemini 3.8 TTS engine
       // Check for custom ElevenLabs voice in localStorage
       let voiceToUse = options?.voice;
+      let storedVoice: string | null = null;
       try {
-        const storedVoice = localStorage.getItem('nutriai_elevenlabs_voice');
+        storedVoice = localStorage.getItem('nutriai_elevenlabs_voice');
         if (storedVoice) {
           voiceToUse = storedVoice;
         }
@@ -245,7 +246,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       audioUrl = await textToSpeech(textToSpeak, activeLang, {
         model: options?.model || 'gemini-3.8-flash-tts',
         voiceName: voiceToUse || 'Aoede',
-        isElevenLabs: !!storedVoice, // Add this flag
+        isElevenLabs: !!storedVoice,
         emotion: options?.emotion,
         style: options?.style
       });

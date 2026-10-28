@@ -6,7 +6,7 @@ import {
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
   Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart, Footprints,
-  Mic, MicOff, HelpCircle
+  Mic, MicOff, HelpCircle, Calendar, X, CheckCircle2, Loader2, ChefHat
 } from 'lucide-react';
 import { UserProfile, IntakeLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -19,6 +19,7 @@ import { DailyNutritionProgressCard } from './DailyNutritionProgressCard';
 import { GlucoseSmartSnacksCard } from './GlucoseSmartSnacksCard';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { VoiceShortcutsModal } from './VoiceShortcutsModal';
+import { NutritionalProgressRechartsRing } from './NutritionalProgressRechartsRing';
 
 
 interface Assistant360Props {
@@ -62,6 +63,90 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
 
+  // Next-Day Meal Plan State (Gemini API + Pantry & Restrictions)
+  const [isGeneratingNextDayPlan, setIsGeneratingNextDayPlan] = useState(false);
+  const [nextDayPlan, setNextDayPlan] = useState<any | null>(null);
+  const [isNextDayPlanModalOpen, setIsNextDayPlanModalOpen] = useState(false);
+  const [isNextDayPlanSaved, setIsNextDayPlanSaved] = useState(false);
+
+  const handleGenerateNextDayMealPlan = async () => {
+    setIsGeneratingNextDayPlan(true);
+    playSfx('tap');
+    vibrate(20);
+
+    try {
+      const pantryItems = (profile as any)?.pantryItems || (profile as any)?.fridgeItems || [
+        'Ovos', 'Aveia', 'Banana', 'Azeite de oliva', 'Peito de frango', 'Batata doce', 'Arroz integral', 'Espinafre', 'Maçã', 'Queijo branco'
+      ];
+
+      const res = await fetch('/api/generate-next-day-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile, pantryItems })
+      });
+
+      const data = await res.json();
+      if (data.success && data.plan) {
+        setNextDayPlan(data.plan);
+        setIsNextDayPlanModalOpen(true);
+        setIsNextDayPlanSaved(false);
+        playSfx('success');
+        vibrate([30, 50]);
+        speak(
+          language?.startsWith('pt')
+            ? "Plano alimentar para amanhã gerado com sucesso pela Gemini API, considerando suas restrições e os ingredientes da sua despensa!"
+            : "Next day meal plan generated successfully by Gemini API considering your profile restrictions and pantry items!",
+          { voice: 'Aoede', lang: language }
+        );
+      } else {
+        alert("Não foi possível gerar o plano no momento. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("Erro ao solicitar plano do dia seguinte:", err);
+      alert("Erro ao conectar com a Gemini API para gerar o plano.");
+    } finally {
+      setIsGeneratingNextDayPlan(false);
+    }
+  };
+
+  const handleSaveNextDayPlan = () => {
+    if (!nextDayPlan || !onUpdateProfile) return;
+    playSfx('success');
+    vibrate(40);
+
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    onUpdateProfile(prev => {
+      if (!prev) return prev;
+      const existingMealPlan = prev.mealPlan || {};
+      const newPlanForTomorrow = {
+        date: tomorrow,
+        summary: nextDayPlan.summary,
+        meals: {
+          breakfast: nextDayPlan.meals.find((m: any) => m.type === 'breakfast'),
+          lunch: nextDayPlan.meals.find((m: any) => m.type === 'lunch'),
+          snack: nextDayPlan.meals.find((m: any) => m.type === 'snack'),
+          dinner: nextDayPlan.meals.find((m: any) => m.type === 'dinner'),
+        }
+      };
+
+      return {
+        ...prev,
+        mealPlan: {
+          ...existingMealPlan,
+          [tomorrow]: newPlanForTomorrow
+        }
+      };
+    });
+
+    setIsNextDayPlanSaved(true);
+    speak(
+      language?.startsWith('pt')
+        ? "Plano para amanhã salvo no seu perfil com sucesso!"
+        : "Tomorrow's meal plan saved to your profile!",
+      { voice: 'Aoede', lang: language }
+    );
+  };
+
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
@@ -93,23 +178,32 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
                 if (!prev) return prev;
                 const today = new Date().toISOString().split('T')[0];
                 const updatedLogs = [...(prev.intakeLogs || [])];
-                const lastLogIdx = updatedLogs.findLastIndex(l => l.date.startsWith(today));
+                let lastLogIdx = -1;
+                for (let i = updatedLogs.length - 1; i >= 0; i--) {
+                  if (updatedLogs[i].date?.startsWith(today)) {
+                    lastLogIdx = i;
+                    break;
+                  }
+                }
                 
                 if (lastLogIdx !== -1) {
                   updatedLogs[lastLogIdx] = {
                     ...updatedLogs[lastLogIdx],
                     actual: {
                       ...updatedLogs[lastLogIdx].actual,
-                      [macroType]: (updatedLogs[lastLogIdx].actual?.[macroType] || 0) + amount
+                      [macroType]: (updatedLogs[lastLogIdx].actual?.[macroType as 'protein' | 'carbs' | 'fat'] || 0) + amount
                     }
                   };
                 } else {
                   updatedLogs.push({
                     id: crypto.randomUUID(),
                     date: new Date().toISOString(),
+                    mealId: 'voice_macro',
                     mealType: 'snack',
                     recipeName: 'Adição manual por voz',
-                    actual: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, [macroType]: amount }
+                    planned: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+                    actual: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, [macroType]: amount },
+                    adjusted: false
                   });
                 }
                 return { ...prev, intakeLogs: updatedLogs };
@@ -490,6 +584,51 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         </div>
       </div>
 
+      {/* 2.5. Featured Spotlight: PLANO ALIMENTAR DE AMANHÃ (GEMINI API + DESPANSA & RESTRIÇÕES) */}
+      <div className="relative w-full overflow-hidden rounded-[32px] bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-cyan-500/15 p-6 sm:p-7 border border-teal-500/30 hover:border-teal-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 backdrop-blur-md mx-auto">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-gradient-to-br from-teal-500/20 to-emerald-500/10 blur-2xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-teal-500/30 shrink-0">
+              <ChefHat className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[11px] font-bold tracking-wide uppercase">
+                <Sparkles className="w-3 h-3" />
+                <span>{t('gemini_api_pantry_badge', 'Gemini API • Despensa & Restrições')}</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {t('next_day_meal_plan_title', '📋 Plano Alimentar de Amanhã')}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
+                {t('next_day_meal_plan_desc', 'Gere com a Gemini API um menu completo para o dia seguinte que respeita suas restrições e aproveita os ingredientes da sua despensa.')}
+              </p>
+            </div>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            disabled={isGeneratingNextDayPlan}
+            onClick={handleGenerateNextDayMealPlan}
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-500 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 shrink-0 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {isGeneratingNextDayPlan ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Gerando Menu de Amanhã...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>GERAR PLANO PARA AMANHÃ</span>
+              </>
+            )}
+          </motion.button>
+        </div>
+      </div>
+
       {/* 3. Proactive AI Banner */}
       <motion.div 
         key={activeTip}
@@ -667,6 +806,12 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           onNavigate={onNavigate}
         />
 
+        {/* RING CHART RECHARTS */}
+        <div className="card-premium p-6 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md">
+           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-2">Meta Nutricional</h3>
+           <NutritionalProgressRechartsRing profile={profile} />
+        </div>
+
         {/* RECHARTS MACRONUTRIENT PROGRESS CHART */}
         <div className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md relative overflow-hidden">
           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-6">
@@ -835,6 +980,162 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       />
 
       {/* VOICE SHORTCUTS MODAL */}
+      <VoiceShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+        activeTab={activeTab}
+      />
+
+      {/* NEXT-DAY MEAL PLAN GENERATED BY GEMINI API MODAL */}
+      <AnimatePresence>
+        {isNextDayPlanModalOpen && nextDayPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#131920] rounded-[32px] border border-teal-500/40 shadow-2xl p-6 sm:p-8 space-y-6 text-white"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setIsNextDayPlanModalOpen(false);
+                  playSfx('tap');
+                }}
+                className="absolute top-5 right-5 z-20 p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-500/15 border border-teal-500/30 text-xs font-bold text-teal-400">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Gemini API • Plano para {nextDayPlan.date}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
+                  <span>📋 {t('next_day_menu_title', 'Seu Menu Completo para Amanhã')}</span>
+                </h2>
+                <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  "{nextDayPlan.summary}"
+                </p>
+              </div>
+
+              {/* Macro & Pantry Summary Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Calorias</span>
+                  <span className="text-lg font-black text-orange-400">{nextDayPlan.totalCalories} kcal</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Proteínas</span>
+                  <span className="text-lg font-black text-emerald-400">{nextDayPlan.totalProtein}g</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Carboidratos</span>
+                  <span className="text-lg font-black text-amber-400">{nextDayPlan.totalCarbs}g</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-800/60">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Gorduras</span>
+                  <span className="text-lg font-black text-cyan-400">{nextDayPlan.totalFat}g</span>
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center p-2 rounded-xl bg-teal-500/10 border border-teal-500/30">
+                  <span className="text-[10px] uppercase font-bold text-teal-400">Despensa Utilizada</span>
+                  <span className="text-lg font-black text-teal-300">{nextDayPlan.pantryUsedCount || nextDayPlan.meals?.reduce((acc: number, m: any) => acc + (m.pantryMatches?.length || 0), 0)} itens</span>
+                </div>
+              </div>
+
+              {/* Meals Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {nextDayPlan.meals?.map((meal: any, idx: number) => (
+                  <div key={idx} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 flex flex-col justify-between hover:border-teal-500/30 transition-colors">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-bold uppercase">
+                          {meal.label || meal.type}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                          ⏱️ {meal.prepTime}
+                        </span>
+                      </div>
+                      <h4 className="text-base font-bold text-white leading-snug">{meal.name}</h4>
+
+                      {/* Macros pill */}
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 bg-slate-800/60 p-2 rounded-xl">
+                        <span className="text-orange-400 font-bold">{meal.calories} kcal</span>
+                        <span>•</span>
+                        <span className="text-emerald-400">{meal.protein}g prot</span>
+                        <span>•</span>
+                        <span className="text-amber-400">{meal.carbs}g carb</span>
+                        <span>•</span>
+                        <span className="text-cyan-400">{meal.fat}g gord</span>
+                      </div>
+
+                      {/* Pantry matches tags */}
+                      {meal.pantryMatches && meal.pantryMatches.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider w-full">Da sua despensa:</span>
+                          {meal.pantryMatches.map((match: string, mIdx: number) => (
+                            <span key={mIdx} className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-teal-400" />
+                              {match}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Ingredients */}
+                      <div className="space-y-1 pt-1">
+                        <span className="text-xs font-bold text-slate-400">Ingredientes:</span>
+                        <ul className="text-xs text-slate-300 list-disc list-inside space-y-0.5">
+                          {meal.ingredients?.map((ing: string, iIdx: number) => (
+                            <li key={iIdx}>{ing}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Simple Instructions */}
+                    {meal.instructions && meal.instructions.length > 0 && (
+                      <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-400">
+                        <span className="font-bold text-slate-300">Preparo: </span>
+                        <span>{meal.instructions.join(' ')}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                <button
+                  onClick={() => setIsNextDayPlanModalOpen(false)}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                >
+                  Fechar
+                </button>
+
+                <button
+                  onClick={handleSaveNextDayPlan}
+                  disabled={isNextDayPlanSaved}
+                  className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                    isNextDayPlanSaved
+                      ? 'bg-emerald-600 text-white shadow-emerald-600/30 cursor-default'
+                      : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white shadow-teal-500/30'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isNextDayPlanSaved ? 'Plano Salvo para Amanhã!' : 'Aplicar & Salvar no Meu Plano'}</span>
+                </button>
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Voice Shortcuts & Help Modal */}
       <VoiceShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}

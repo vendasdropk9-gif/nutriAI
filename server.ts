@@ -601,6 +601,38 @@ async function startServer() {
     }
   });
 
+  // POST Generate Next-Day Meal Plan (Gemini API with Pantry & Profile Restrictions)
+  app.post("/api/generate-next-day-plan", express.json(), async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const { profile, pantryItems } = req.body || {};
+      const plan = await geminiServer.generateNextDayPlan(profile, pantryItems || []);
+      const durationMs = Date.now() - startTime;
+
+      recordAiTelemetry({
+        functionName: "generateNextDayPlan",
+        durationMs,
+        success: true,
+        type: "gemini"
+      });
+
+      return res.json({ success: true, plan });
+    } catch (err: any) {
+      const durationMs = Date.now() - startTime;
+      console.error("Erro ao gerar plano para o dia seguinte com Gemini:", err);
+
+      recordAiTelemetry({
+        functionName: "generateNextDayPlan",
+        durationMs,
+        success: false,
+        error: err?.message || "Erro no Gemini API",
+        type: "gemini"
+      });
+
+      return res.status(500).json({ error: "Erro ao gerar plano alimentar com a Gemini API." });
+    }
+  });
+
   // GET ElevenLabs Voices
   app.get("/api/elevenlabs/voices", async (req, res) => {
     try {

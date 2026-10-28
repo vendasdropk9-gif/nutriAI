@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { QuickDish, QuickDishGoal, UserProfile, Recipe, IntakeLog } from '../types';
 import { printRecipe } from '../lib/recipePrinter';
+import { PrintRecipe } from './PrintRecipe';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, setDoc } from '../lib/firebase';
 import { speak, stopSpeech } from '../lib/speech';
@@ -60,6 +61,7 @@ import { getClientFallbackQuickDishes, DEFAULT_FALLBACK_IMAGE } from '../lib/qui
 import { prefetchDishes } from '../lib/recipeImagePrefetcher';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import confetti from 'canvas-confetti';
 
 interface QuickDishesProps {
   profile: UserProfile | null;
@@ -100,6 +102,7 @@ export function QuickDishes({
   const [isVoiceActive, setIsVoiceActive] = useState<boolean>(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
   const recognitionRef = useRef<any>(null);
+  const isVoiceActiveRef = useRef<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
 
   // Firestore Global Button States (Always Enabled Now)
@@ -108,12 +111,16 @@ export function QuickDishes({
   const isShoppingListEnabled = true;
   const isGenerateMoreEnabled = true;
 
-  // Voice Command Processing
   useEffect(() => {
-    if (activeRecipeCardId && isVoiceActive) {
-      const activeDish = dishes.find(d => d.id === activeRecipeCardId);
-      if (!activeDish) return;
+    isVoiceActiveRef.current = isVoiceActive;
+  }, [isVoiceActive]);
 
+  // Active dish reference for voice navigation
+  const activeDishForVoice = dishes.find(d => d.id === activeRecipeCardId) || selectedDishForModal || dishes[0];
+
+  // Voice Command Processing with continuous dictation mode & dietary preference recognition
+  useEffect(() => {
+    if (isVoiceActive) {
       const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognitionAPI) {
         const recognition = new SpeechRecognitionAPI();
@@ -128,37 +135,104 @@ export function QuickDishes({
           }
           const lower = transcript.toLowerCase().trim();
 
-          if (lower.includes('próximo') || lower.includes('avançar')) {
-            const nextIdx = Math.min(currentStepIndex + 1, activeDish.instructions.length - 1);
-            setCurrentStepIndex(nextIdx);
-            speak(`Passo ${nextIdx + 1}. ${activeDish.instructions[nextIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+          // Recognition of "suggest something healthy" / "sugerir algo saudável" and dietary preferences
+          if (
+            lower.includes('saudável') || 
+            lower.includes('saudavel') || 
+            lower.includes('healthy') || 
+            lower.includes('sugerir algo') || 
+            lower.includes('sugira algo') || 
+            lower.includes('suggest something') ||
+            lower.includes('sugere algo') ||
+            lower.includes('opção saudável') ||
+            lower.includes('opção saudavel')
+          ) {
+            const hasRestrictions = profile?.restrictions && profile.restrictions.length > 0;
+            const hasAllergies = profile?.allergies && profile.allergies.length > 0;
+            let restrictionNotice = '';
+            
+            if (hasRestrictions || hasAllergies) {
+              const combinedList = [...(profile?.restrictions || []), ...(profile?.allergies || [])].join(', ');
+              restrictionNotice = ` considerando suas restrições e preferências de perfil: ${combinedList}`;
+            }
+
+            speak(`Gerando sugestões de receitas saudáveis${restrictionNotice}!`, { voice: 'Aoede', lang: 'pt-BR' });
+            handleGenerate(selectedGoal);
+          } else if (lower.includes('emagrecer') || lower.includes('perder peso') || lower.includes('weight loss')) {
+            setSelectedGoal('weight_loss');
+            speak(`Buscando opções para emagrecimento de acordo com suas restrições de perfil!`, { voice: 'Aoede', lang: 'pt-BR' });
+            handleGenerate('weight_loss');
+          } else if (lower.includes('ganhar massa') || lower.includes('hipertrofia') || lower.includes('proteína') || lower.includes('muscle')) {
+            setSelectedGoal('muscle_gain');
+            speak(`Buscando opções ricas em proteína adaptadas ao seu perfil!`, { voice: 'Aoede', lang: 'pt-BR' });
+            handleGenerate('muscle_gain');
+          } else if (lower.includes('lanche') || lower.includes('snack') || lower.includes('fit')) {
+            setSelectedGoal('quick_fit_snack');
+            speak(`Buscando opções de lanches rápidos saudáveis do seu perfil!`, { voice: 'Aoede', lang: 'pt-BR' });
+            handleGenerate('quick_fit_snack');
+          } else if (lower.includes('próximo') || lower.includes('avançar')) {
+            if (activeDishForVoice) {
+              const maxLen = activeDishForVoice.instructions.length;
+              const nextIdx = Math.min(currentStepIndex + 1, maxLen - 1);
+              setCurrentStepIndex(nextIdx);
+              setModalVisibleSteps(prev => Math.max(prev, nextIdx + 1));
+              speak(`Passo ${nextIdx + 1}. ${activeDishForVoice.instructions[nextIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+            }
           } else if (lower.includes('anterior') || lower.includes('voltar')) {
-            const prevIdx = Math.max(currentStepIndex - 1, 0);
-            setCurrentStepIndex(prevIdx);
-            speak(`Passo ${prevIdx + 1}. ${activeDish.instructions[prevIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+            if (activeDishForVoice) {
+              const prevIdx = Math.max(currentStepIndex - 1, 0);
+              setCurrentStepIndex(prevIdx);
+              speak(`Passo ${prevIdx + 1}. ${activeDishForVoice.instructions[prevIdx]}`, { voice: 'Aoede', lang: 'pt-BR' });
+            }
           } else if (lower.includes('repetir') || lower.includes('ler')) {
-            speak(activeDish.instructions[currentStepIndex], { voice: 'Aoede', lang: 'pt-BR' });
-          } else if (lower.includes('fechar') || lower.includes('sair')) {
+            if (activeDishForVoice) {
+              speak(`Passo ${currentStepIndex + 1}. ${activeDishForVoice.instructions[currentStepIndex] || activeDishForVoice.instructions[0]}`, { voice: 'Aoede', lang: 'pt-BR' });
+            }
+          } else if (lower.includes('fechar') || lower.includes('sair') || lower.includes('desativar')) {
             stopSpeech();
-            setActiveRecipeCardId(null);
             setIsVoiceActive(false);
+            speak('Modo de ditado desativado.', { voice: 'Aoede', lang: 'pt-BR' });
           }
         };
 
-        recognition.onerror = () => { setIsVoiceActive(false); };
-        recognition.onend = () => { setIsVoiceActive(false); };
-        recognition.start();
+        recognition.onerror = (err: any) => {
+          console.warn('Speech recognition notice:', err);
+          if (isVoiceActiveRef.current) {
+            setTimeout(() => {
+              try { recognition.start(); } catch (e) {}
+            }, 800);
+          }
+        };
+
+        recognition.onend = () => {
+          // Continuous dictation: auto-restart recognition if dictation mode is still enabled
+          if (isVoiceActiveRef.current) {
+            try {
+              recognition.start();
+            } catch (e) {}
+          }
+        };
+
+        try {
+          recognition.start();
+        } catch (e) {}
+
         recognitionRef.current = recognition;
+      } else {
+        showToastMessage('Reconhecimento de voz não suportado neste navegador.');
+        setIsVoiceActive(false);
       }
     } else if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch (e) {}
       recognitionRef.current = null;
     }
 
     return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
     };
-  }, [activeRecipeCardId, isVoiceActive, currentStepIndex]);
+  }, [isVoiceActive, activeRecipeCardId, selectedDishForModal?.id, currentStepIndex]);
 
   // Sync custom items to shopping list
   const [customShoppingItems, setCustomShoppingItems] = useLocalStorage<{ name: string; checked: boolean }[]>(
@@ -251,6 +325,16 @@ export function QuickDishes({
     if (newStatus) {
       playSfx('success');
       vibrate(40);
+      
+      // Trigger confetti heart explosion
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 50,
+          origin: { y: 0.6 },
+          colors: ['#ef4444', '#f43f5e', '#fb7185', '#fda4af']
+        });
+      } catch (e) {}
       
       // Convert QuickDish to standard Recipe format
       const convertedRecipe: Recipe = {
@@ -371,8 +455,17 @@ export function QuickDishes({
       onAwardPoints(30, `${mealTypeLabel} registrado no banco de dados`);
     }
 
+    // Trigger particle confetti on meal prep completion
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.5 }
+      });
+    } catch (e) {}
+
     // 4. Audio confirmation using Aoede/Malu profile
-    speak(`${dish.name} registrado com sucesso no banco de dados como seu ${mealTypeLabel}!`, { lang: 'pt-BR' });
+    speak(`${dish.name} registrado com sucesso no banco de dados como seu ${mealTypeLabel}!`, { lang: 'pt-BR', voice: 'Aoede' });
     showToastMessage(`🎉 "${dish.name}" registrado no banco de dados como ${mealTypeLabel}! (+30 XP)`);
   };
 
@@ -478,29 +571,74 @@ export function QuickDishes({
           </p>
         </div>
 
-        {isOpenAsModal && onCloseModal && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsVoiceActive(!isVoiceActive)}
-              className={`p-2.5 rounded-full transition-all ${
-                isVoiceActive 
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-              title={isVoiceActive ? "Desativar comando de voz" : "Ativar comando de voz"}
-            >
-              {isVoiceActive ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-            </button>
+        <div className="flex items-center gap-2.5 z-10 shrink-0">
+          {/* Modo de Ditado Toggle Button */}
+          <button
+            id="btn-toggle-dictation-mode"
+            onClick={() => {
+              const next = !isVoiceActive;
+              setIsVoiceActive(next);
+              playSfx('tap');
+              vibrate(20);
+            }}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-md select-none cursor-pointer ${
+              isVoiceActive
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30 ring-2 ring-emerald-400 animate-pulse'
+                : 'bg-white/90 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+            }`}
+            title="Ativar ou desativar a escuta contínua do microfone para comandos de voz durante o preparo"
+          >
+            {isVoiceActive ? <Mic className="w-4 h-4 text-white animate-bounce" /> : <MicOff className="w-4 h-4 text-slate-400" />}
+            <span>{isVoiceActive ? 'Modo de Ditado: Ativo' : 'Modo de Ditado'}</span>
+          </button>
+
+          {isOpenAsModal && onCloseModal && (
             <button
               onClick={onCloseModal}
-              className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+              className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
               title="Fechar painel"
             >
               <X className="w-5 h-5" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Dictation Mode Active Banner */}
+      <AnimatePresence>
+        {isVoiceActive && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3.5 w-3.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+              </span>
+              <div>
+                <p className="font-extrabold text-emerald-700 dark:text-emerald-300">
+                  🎙️ Modo de Ditado Ativo (Escuta Contínua Ativada)
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Diga: <strong className="text-emerald-600 dark:text-emerald-400">"sugira algo saudável"</strong> para buscar receitas do seu perfil, ou <strong className="text-emerald-600 dark:text-emerald-400">"Próximo"</strong>, <strong className="text-emerald-600 dark:text-emerald-400">"Anterior"</strong>, <strong className="text-emerald-600 dark:text-emerald-400">"Repetir"</strong>.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsVoiceActive(false);
+                playSfx('tap');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer"
+            >
+              Desativar Ditado
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 2. Objective Selection Pills / Compact Panel */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -697,17 +835,24 @@ export function QuickDishes({
                     )}
 
                     {/* Favorite Button on Image */}
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.8 }}
+                      whileHover={{ scale: 1.1 }}
                       onClick={() => handleToggleFavorite(dish)}
-                      className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all ${
+                      className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all cursor-pointer ${
                         isFav 
-                          ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30 scale-110' 
+                          ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/40' 
                           : 'bg-black/50 text-white hover:bg-rose-500 hover:text-white border border-white/20'
                       }`}
                       title={isFav ? "Remover dos favoritos" : "Salvar receita nos favoritos"}
                     >
-                      <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
-                    </button>
+                      <motion.div
+                        animate={isFav ? { scale: [1, 1.4, 1], rotate: [0, -15, 15, 0] } : { scale: 1 }}
+                        transition={{ duration: 0.4, type: 'spring', stiffness: 400 }}
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? 'fill-current text-white' : ''}`} />
+                      </motion.div>
+                    </motion.button>
 
                     {/* Bottom overlay: Prep time and Calories */}
                     <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white font-semibold">
@@ -840,19 +985,13 @@ export function QuickDishes({
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => {
-                                playSfx('tap');
-                                printRecipe(dish, {
-                                  category: dish.categoryLabel || dish.category,
-                                  chefTip: dish.portionSuggestion ? `Sugestão de porção: ${dish.portionSuggestion}` : undefined
-                                });
-                              }}
+                            <PrintRecipe
+                              recipe={dish}
+                              variant="icon"
                               className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                               title="Imprimir Receita Limpa"
-                            >
-                              <Printer className="w-4 h-4 text-emerald-500" />
-                            </button>
+                              id={`btn-print-overlay-${dish.id}`}
+                            />
                             <button
                               onClick={() => {
                                 setActiveRecipeCardId(null);
@@ -1036,16 +1175,38 @@ export function QuickDishes({
               exit={{ scale: 0.95, opacity: 0 }}
               className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#131920] rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => {
-                  setSelectedDishForModal(null);
-                  playSfx('tap');
-                }}
-                className="absolute top-5 right-5 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all shadow-md"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Modal Top Actions: Voice Dictation & Close Button */}
+              <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
+                <button
+                  id="btn-toggle-modal-dictation"
+                  onClick={() => {
+                    const next = !isVoiceActive;
+                    setIsVoiceActive(next);
+                    playSfx('tap');
+                    vibrate(15);
+                  }}
+                  className={`px-3.5 py-2 rounded-full font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-lg backdrop-blur-md cursor-pointer select-none ${
+                    isVoiceActive
+                      ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-2 ring-emerald-300 animate-pulse'
+                      : 'bg-black/60 hover:bg-black/80 text-white border border-white/20'
+                  }`}
+                  title={isVoiceActive ? "Desativar Modo de Ditado" : "Ativar Modo de Ditado para ouvir os passos"}
+                >
+                  {isVoiceActive ? <Mic className="w-4 h-4 text-white animate-bounce" /> : <MicOff className="w-4 h-4 text-slate-300" />}
+                  <span>{isVoiceActive ? 'Ditado Ativo' : 'Modo Ditado'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedDishForModal(null);
+                    playSfx('tap');
+                  }}
+                  className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all shadow-md cursor-pointer"
+                  title="Fechar receita"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
               {/* Photo Banner Header */}
               <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-inner">
@@ -1210,9 +1371,23 @@ export function QuickDishes({
                     <button
                       type="button"
                       onClick={() => {
-                        setModalVisibleSteps(prev => Math.min(prev + 1, selectedDishForModal.instructions.length));
+                        const nextStep = modalVisibleSteps + 1;
+                        setModalVisibleSteps(nextStep);
                         playSfx('tap');
                         vibrate(12);
+
+                        // Trigger confetti if final step reached
+                        if (nextStep === selectedDishForModal.instructions.length) {
+                          try {
+                            confetti({
+                              particleCount: 100,
+                              spread: 70,
+                              origin: { y: 0.6 }
+                            });
+                          } catch (e) {}
+                          playSfx('success');
+                          speak("Parabéns! Você concluiu todas as etapas da receita com sucesso!", { lang: 'pt-BR', voice: 'Aoede' });
+                        }
                       }}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
                     >
@@ -1309,21 +1484,14 @@ export function QuickDishes({
                   </button>
 
                   {/* 4. Print Dish */}
-                  <button
-                    onClick={() => {
-                      playSfx('tap');
-                      printRecipe(selectedDishForModal, {
-                        category: selectedDishForModal.categoryLabel || selectedDishForModal.category,
-                        chefTip: selectedDishForModal.portionSuggestion ? `Sugestão de porção: ${selectedDishForModal.portionSuggestion}` : undefined
-                      });
-                    }}
+                  <PrintRecipe
+                    recipe={selectedDishForModal}
+                    variant="custom"
                     className="py-3 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
                     title="Imprimir receita do prato para cozinhar"
                     id={`btn-print-dish-${selectedDishForModal.id}`}
-                  >
-                    <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Imprimir</span>
-                  </button>
+                    label="Imprimir"
+                  />
                 </div>
               </div>
 

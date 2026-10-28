@@ -11,6 +11,7 @@ import { UserProfile, BodyMonitorLog } from '../types';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend 
 } from 'recharts';
+import { AvatarAnatomico } from './AvatarAnatomico';
 
 interface BodySensorsMonitorProps {
   profile: UserProfile | null;
@@ -62,6 +63,7 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
   
   const [latestSavedLog, setLatestSavedLog] = useState<BodyMonitorLog | null>(null);
   const [selectedHighlight, setSelectedHighlight] = useState<'heart' | 'brain' | 'stress' | 'battery'>('heart');
+  const [silhouetteMode, setSilhouetteMode] = useState<'3d' | '2d'>('3d');
 
   // Load existing logs safely
   const logs = useMemo(() => {
@@ -632,86 +634,149 @@ export function BodySensorsMonitor({ profile, onUpdateProfile, onAwardPoints }: 
                 {/* Visual Premium Telemetria Diagnostics Grid */}
                 <div className="grid md:grid-cols-12 gap-8 items-start">
                   
-                  {/* Glowing Interactive Body Silhouette column */}
+                  {/* Glowing Interactive Body Silhouette / 3D Avatar column */}
                   <div className="md:col-span-5 flex flex-col items-center">
-                    <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 text-center">
-                      Indicador de Disfunção Corporal
-                    </h5>
-
-                    {/* SVG Human Vector */}
-                    <div className="relative w-full max-w-[200px] aspect-[1/2] bg-slate-50 dark:bg-slate-950/40 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 transition-all flex items-center justify-center">
-                      
-                      <svg viewBox="0 0 100 200" className="w-full h-full text-slate-300 dark:text-slate-700">
-                        {/* Generalized human outline */}
-                        <path 
-                          d="M50,15 C55,15 58,18 58,23 C58,28 55,31 50,31 C45,31 42,28 42,23 C42,18 45,15 50,15 Z M47,33 L53,33 C58,33 64,36 64,42 L64,75 C64,77 62,79 60,79 C58,79 57,77 57,75 L56,58 L56,110 C56,114 54,118 52,118 C50,118 49,114 49,110 L49,85 L51,85 L51,110 C51,114 50,118 48,118 C46,118 44,114 44,110 L44,58 L43,75 C43,77 42,79 40,79 C38,79 36,77 36,75 L36,42 C36,36 42,33 47,33 Z"
-                          fill="currentColor"
-                          className="transition-colors duration-500"
-                        />
-                        
-                        {/* Glowing focal components relative to interactive selector */}
-                        {/* HEAD: Brain/Anxiety selector */}
-                        <circle 
-                          cx="50" 
-                          cy="23" 
-                          r={selectedHighlight === 'brain' ? '10' : '6'} 
-                          className={`cursor-pointer transition-all ${
-                            selectedHighlight === 'brain'
-                              ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
-                              : 'fill-indigo-500/20 hover:fill-indigo-500/30'
+                    <div className="w-full flex items-center justify-between mb-3 px-1">
+                      <h5 className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+                        Indicador de Disfunção Corporal
+                      </h5>
+                      <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => { playSfx('tap'); setSilhouetteMode('3d'); }}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-all ${
+                            silhouetteMode === '3d'
+                              ? 'bg-emerald-500 text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
                           }`}
-                          onClick={() => setSelectedHighlight('brain')} 
-                        />
-                        
-                        {/* HEART: Pulse BPM selector */}
-                        <circle 
-                          cx="50" 
-                          cy="42" 
-                          r={selectedHighlight === 'heart' ? '9' : '5'} 
-                          className={`cursor-pointer transition-all ${
-                            selectedHighlight === 'heart'
-                              ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/45 stroke-rose-500 animate-pulse' : latestSavedLog.status === 'attention' ? 'fill-amber-500/45 stroke-amber-500 animate-pulse' : 'fill-emerald-500/45 stroke-emerald-500 animate-pulse'
-                              : 'fill-red-500/20 hover:fill-red-500/30'
+                        >
+                          3D
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { playSfx('tap'); setSilhouetteMode('2d'); }}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-all ${
+                            silhouetteMode === '2d'
+                              ? 'bg-emerald-500 text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
                           }`}
-                          onClick={() => setSelectedHighlight('heart')} 
-                        />
-
-                        {/* CORE: Stress selector */}
-                        <circle 
-                          cx="50" 
-                          cy="56" 
-                          r={selectedHighlight === 'stress' ? '9' : '5'} 
-                          className={`cursor-pointer transition-all ${
-                            selectedHighlight === 'stress'
-                              ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
-                              : 'fill-orange-500/20 hover:fill-orange-500/30'
-                          }`}
-                          onClick={() => setSelectedHighlight('stress')} 
-                        />
-
-                        {/* Battery/Muscle: Fatigue selector */}
-                        <circle 
-                          cx="50" 
-                          cy="74" 
-                          r={selectedHighlight === 'battery' ? '9' : '5'} 
-                          className={`cursor-pointer transition-all ${
-                            selectedHighlight === 'battery'
-                              ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
-                              : 'fill-blue-500/20 hover:fill-blue-500/30'
-                          }`}
-                          onClick={() => setSelectedHighlight('battery')} 
-                        />
-                      </svg>
-
-                      {/* Moving glowing laser scanning line strictly on selected highlighter */}
-                      <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_8px_#10b981] animate-bounce pointer-events-none" style={{
-                        top: selectedHighlight === 'brain' ? '15%' : selectedHighlight === 'heart' ? '25%' : selectedHighlight === 'stress' ? '32%' : '41%',
-                        animationDuration: '1.2s'
-                      }} />
+                        >
+                          2D
+                        </button>
+                      </div>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 mt-2 text-center max-w-[150px]">
-                      Selecione um ponto no indicador para analisar as métricas
+                    {silhouetteMode === '3d' ? (
+                      <div className="relative w-full aspect-[4/5] max-w-[240px] bg-gradient-to-b from-slate-950 to-slate-900 rounded-3xl overflow-hidden border border-emerald-500/20 shadow-xl flex items-center justify-center">
+                        <AvatarAnatomico
+                          profile={profile}
+                          cameraView={selectedHighlight === 'brain' ? 'detail' : 'front'}
+                          performanceMode="eco_mobile"
+                          showReferenceControls={false}
+                          showOverlayBadges={false}
+                          showPerformanceBadge={true}
+                          enableOrbitControls={true}
+                          primaryMuscles={
+                            selectedHighlight === 'heart'
+                              ? ['Chest', 'Shoulders']
+                              : selectedHighlight === 'brain'
+                              ? ['Trapezius', 'Neck']
+                              : selectedHighlight === 'stress'
+                              ? ['Abs', 'Obliques']
+                              : ['Quadriceps', 'Calves', 'Biceps']
+                          }
+                          highlightColorPrimary={
+                            latestSavedLog.status === 'high_signals'
+                              ? '#f43f5e'
+                              : latestSavedLog.status === 'attention'
+                              ? '#f59e0b'
+                              : '#10b981'
+                          }
+                          realtimeHeartRate={latestSavedLog.heartRate}
+                          className="w-full h-full"
+                        />
+                        <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 backdrop-blur-md px-2 py-1 rounded-xl border border-white/10 flex items-center justify-between text-[10px] text-slate-300 font-mono">
+                          <span className="flex items-center gap-1 text-emerald-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            Eco LOD
+                          </span>
+                          <span>17.2k Tris</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* SVG Human Vector */
+                      <div className="relative w-full max-w-[200px] aspect-[1/2] bg-slate-50 dark:bg-slate-950/40 rounded-3xl border border-slate-100 dark:border-slate-800 p-4 transition-all flex items-center justify-center">
+                        <svg viewBox="0 0 100 200" className="w-full h-full text-slate-300 dark:text-slate-700">
+                          {/* Generalized human outline */}
+                          <path 
+                            d="M50,15 C55,15 58,18 58,23 C58,28 55,31 50,31 C45,31 42,28 42,23 C42,18 45,15 50,15 Z M47,33 L53,33 C58,33 64,36 64,42 L64,75 C64,77 62,79 60,79 C58,79 57,77 57,75 L56,58 L56,110 C56,114 54,118 52,118 C50,118 49,114 49,110 L49,85 L51,85 L51,110 C51,114 50,118 48,118 C46,118 44,114 44,110 L44,58 L43,75 C43,77 42,79 40,79 C38,79 36,77 36,75 L36,42 C36,36 42,33 47,33 Z"
+                            fill="currentColor"
+                            className="transition-colors duration-500"
+                          />
+                          
+                          {/* HEAD: Brain/Anxiety selector */}
+                          <circle 
+                            cx="50" 
+                            cy="23" 
+                            r={selectedHighlight === 'brain' ? '10' : '6'} 
+                            className={`cursor-pointer transition-all ${
+                              selectedHighlight === 'brain'
+                                ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
+                                : 'fill-indigo-500/20 hover:fill-indigo-500/30'
+                            }`}
+                            onClick={() => setSelectedHighlight('brain')} 
+                          />
+                          
+                          {/* HEART: Pulse BPM selector */}
+                          <circle 
+                            cx="50" 
+                            cy="42" 
+                            r={selectedHighlight === 'heart' ? '9' : '5'} 
+                            className={`cursor-pointer transition-all ${
+                              selectedHighlight === 'heart'
+                                ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/45 stroke-rose-500 animate-pulse' : latestSavedLog.status === 'attention' ? 'fill-amber-500/45 stroke-amber-500 animate-pulse' : 'fill-emerald-500/45 stroke-emerald-500 animate-pulse'
+                                : 'fill-red-500/20 hover:fill-red-500/30'
+                            }`}
+                            onClick={() => setSelectedHighlight('heart')} 
+                          />
+
+                          {/* CORE: Stress selector */}
+                          <circle 
+                            cx="50" 
+                            cy="56" 
+                            r={selectedHighlight === 'stress' ? '9' : '5'} 
+                            className={`cursor-pointer transition-all ${
+                              selectedHighlight === 'stress'
+                                ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
+                                : 'fill-orange-500/20 hover:fill-orange-500/30'
+                            }`}
+                            onClick={() => setSelectedHighlight('stress')} 
+                          />
+
+                          {/* Battery/Muscle: Fatigue selector */}
+                          <circle 
+                            cx="50" 
+                            cy="74" 
+                            r={selectedHighlight === 'battery' ? '9' : '5'} 
+                            className={`cursor-pointer transition-all ${
+                              selectedHighlight === 'battery'
+                                ? latestSavedLog.status === 'high_signals' ? 'fill-rose-500/40 stroke-rose-500' : latestSavedLog.status === 'attention' ? 'fill-amber-500/40 stroke-amber-500' : 'fill-emerald-500/40 stroke-emerald-500'
+                                : 'fill-blue-500/20 hover:fill-blue-500/30'
+                            }`}
+                            onClick={() => setSelectedHighlight('battery')} 
+                          />
+                        </svg>
+
+                        {/* Moving glowing laser scanning line strictly on selected highlighter */}
+                        <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_8px_#10b981] animate-bounce pointer-events-none" style={{
+                          top: selectedHighlight === 'brain' ? '15%' : selectedHighlight === 'heart' ? '25%' : selectedHighlight === 'stress' ? '32%' : '41%',
+                          animationDuration: '1.2s'
+                        }} />
+                      </div>
+                    )}
+
+                    <span className="text-[10px] text-slate-400 mt-2 text-center max-w-[200px]">
+                      Selecione um ponto corporal para inspecionar os biomarcadores
                     </span>
                   </div>
 

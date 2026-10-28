@@ -7,6 +7,7 @@ import { ScratchCard } from './ScratchCard';
 import { FitnessRoulette } from './FitnessRoulette';
 import { ConfettiCelebration } from './ConfettiCelebration';
 import { CommunityChallenges } from './CommunityChallenges';
+import { playSfx, vibrate } from '../lib/sensory';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
@@ -51,6 +52,23 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   const [showConfetti, setShowConfetti] = useState(false);
   const [showScratchCard, setShowScratchCard] = useState(false);
   const [revealedTreat, setRevealedTreat] = useState<WeeklyTreat | null>(null);
+  const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (!profile?.weeklyChallenges) return;
+    
+    const nowCompleted = profile.weeklyChallenges
+      .filter(c => c.completed)
+      .map(c => c.id);
+      
+    if (nowCompleted.some(id => !completedChallenges.includes(id))) {
+      setShowConfetti(true);
+      playSfx('success');
+      vibrate([100, 50, 100]);
+    }
+    
+    setCompletedChallenges(nowCompleted);
+  }, [profile?.weeklyChallenges]);
 
   // Streak logic
   useEffect(() => {

@@ -32,6 +32,14 @@ export function VoiceShortcutsModal({ isOpen, onClose, activeTab = 'assistant360
 
   const commands = [
     {
+      category: language?.startsWith('pt') ? 'Atualização de Macronutrientes por Voz' : 'Voice Macro Updates',
+      icon: <Sparkles className="w-5 h-5 text-emerald-400" />,
+      items: [
+        { id: 'assistant360', phrase: language?.startsWith('pt') ? '"Adicionar 30 gramas de proteína"' : '"Add 30 grams of protein"', desc: language?.startsWith('pt') ? 'Adiciona gramas de proteína, carboidrato ou gordura ao registro diário' : 'Adds protein, carbs or fat grams to daily intake', icon: <Utensils className="w-4 h-4 text-emerald-500" /> },
+        { id: 'assistant360', phrase: language?.startsWith('pt') ? '"Adicionar 50 gramas de carbo"' : '"Add 50 grams of carbs"', desc: language?.startsWith('pt') ? 'Atualiza rapidamente os carboidratos consumidos' : 'Quickly updates consumed carbohydrates', icon: <Utensils className="w-4 h-4 text-amber-500" /> },
+      ]
+    },
+    {
       category: language?.startsWith('pt') ? 'Navegação Geral' : 'General Navigation',
       icon: <Navigation className="w-5 h-5 text-emerald-400" />,
       items: [

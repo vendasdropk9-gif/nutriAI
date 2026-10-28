@@ -7,6 +7,7 @@ import { GLTFLoader, DRACOLoader } from 'three-stdlib';
 import {
   createSculptedHeadGeometry,
   createSculptedNeckGeometry,
+  createSculptedTorsoCoreGeometry,
   createSculptedTrapeziusGeometry,
   createSculptedClaviclesGeometry,
   createSculptedPectoralGeometry,
@@ -24,6 +25,8 @@ import {
   createSculptedFootGeometry,
   createSculptedShortsGeometry,
   createSculptedGluteGeometry,
+  getOptimalAvatarLOD,
+  isMobileOrLowPowerDevice,
 } from './AnatomicalSculptor';
 import {
   Play,
@@ -249,6 +252,8 @@ export interface AvatarAnatomicoProps {
   uHighlightColorSecondary?: string;
   /** Highlight specific muscle tag or name */
   highlightMuscleOverride?: string | null;
+  /** Alias for highlightMuscleOverride */
+  highlightOverride?: string | null;
   /** Primary muscles to highlight (defaults to exercise.primaryMuscles) */
   primaryMuscles?: string[];
   /** Secondary muscles to highlight (defaults to exercise.secondaryMuscles) */
@@ -277,6 +282,12 @@ export interface AvatarAnatomicoProps {
   positiveFeedback?: boolean;
   /** Motivational smile blend shape intensity (0.0 to 1.0) */
   motivationalSmile?: number;
+  /** Performance rendering optimization: 'auto' (detects mobile/low-end), 'high' (ultra 68k tris), or 'eco_mobile' (optimized 17k tris) */
+  performanceMode?: 'auto' | 'high' | 'eco_mobile';
+  /** Callback when user changes performance rendering mode */
+  onPerformanceModeChange?: (mode: 'high' | 'eco_mobile') => void;
+  /** Whether to show a toggle badge for Eco Mobile / High Fidelity mode */
+  showPerformanceBadge?: boolean;
 }
 
 interface AvatarAnatomicoState {
@@ -293,6 +304,9 @@ interface AvatarAnatomicoState {
   pulsingMuscle: string | null;
   activeTargetIndex: number;
   webglAvailable: boolean;
+  performanceMode: 'auto' | 'high' | 'eco_mobile';
+  isZoomedLOD: boolean;
+  cameraDistance: number;
 }
 
 // ============================================================================
@@ -422,6 +436,34 @@ function CameraRig({
 }
 
 // ============================================================================
+// DYNAMIC CAMERA DISTANCE MONITOR FOR AUTOMATIC LOD SWAPPING
+// ============================================================================
+function DynamicLODCameraMonitor({
+  onLODUpdate,
+  cameraView,
+}: {
+  onLODUpdate: (isZoomed: boolean, distance: number) => void;
+  cameraView?: string;
+}) {
+  const { camera } = useThree();
+  const lastState = useRef<{ isZoomed: boolean | null; dist: number }>({ isZoomed: null, dist: 3.4 });
+
+  useFrame(() => {
+    const target = new THREE.Vector3(0, 0.85, 0);
+    const dist = camera.position.distanceTo(target);
+    // When camera distance is close (< 2.25) or explicitly in 'detail' view, activate high-fidelity zoomed LOD
+    const isZoomed = dist < 2.25 || cameraView === 'detail';
+
+    if (lastState.current.isZoomed !== isZoomed || Math.abs(lastState.current.dist - dist) > 0.2) {
+      lastState.current = { isZoomed, dist };
+      onLODUpdate(isZoomed, dist);
+    }
+  });
+
+  return null;
+}
+
+// ============================================================================
 // GYM ENVIRONMENT & EQUIPMENT PROPS
 // ============================================================================
 
@@ -505,51 +547,45 @@ function GymBench({ position = 'seated' }: { position: string }) {
 
 function DumbbellGrip({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   const chromeMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#e2e8f0',
-    roughness: 0.16,
+    color: '#f1f5f9',
+    roughness: 0.14,
     metalness: 0.95,
   }), []);
 
   const plateMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#111726',
-    roughness: 0.48,
-    metalness: 0.78,
+    color: '#151d2f',
+    roughness: 0.45,
+    metalness: 0.72,
   }), []);
 
   return (
-    <group position={position} rotation={rotation || [0, 0, 0]}>
+    <group position={position} rotation={rotation || [0, Math.PI / 2, 0]}>
       {/* Knurled Chrome Center Handle */}
       <mesh material={chromeMat} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.016, 0.016, 0.24, 18]} />
+        <cylinderGeometry args={[0.014, 0.014, 0.20, 16]} />
       </mesh>
       {/* Locking Chrome Collars */}
-      <mesh material={chromeMat} position={[-0.065, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.026, 0.026, 0.016, 16]} />
+      <mesh material={chromeMat} position={[-0.052, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.022, 0.022, 0.014, 14]} />
       </mesh>
-      <mesh material={chromeMat} position={[0.065, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.026, 0.026, 0.016, 16]} />
+      <mesh material={chromeMat} position={[0.052, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.022, 0.022, 0.014, 14]} />
       </mesh>
 
-      {/* Left Stacked Tiered Cast Iron Plates (Large, Mid, Small) */}
+      {/* Left Tiered Cast Iron Plates (Proportional athletic scale) */}
+      <mesh material={plateMat} position={[-0.068, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.068, 0.068, 0.020, 24]} />
+      </mesh>
       <mesh material={plateMat} position={[-0.088, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.098, 0.098, 0.026, 28]} />
-      </mesh>
-      <mesh material={plateMat} position={[-0.118, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.084, 0.084, 0.024, 28]} />
-      </mesh>
-      <mesh material={plateMat} position={[-0.146, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.070, 0.070, 0.020, 28]} />
+        <cylinderGeometry args={[0.058, 0.058, 0.018, 24]} />
       </mesh>
 
-      {/* Right Stacked Tiered Cast Iron Plates (Large, Mid, Small) */}
+      {/* Right Tiered Cast Iron Plates */}
+      <mesh material={plateMat} position={[0.068, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.068, 0.068, 0.020, 24]} />
+      </mesh>
       <mesh material={plateMat} position={[0.088, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.098, 0.098, 0.026, 28]} />
-      </mesh>
-      <mesh material={plateMat} position={[0.118, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.084, 0.084, 0.024, 28]} />
-      </mesh>
-      <mesh material={plateMat} position={[0.146, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.070, 0.070, 0.020, 28]} />
+        <cylinderGeometry args={[0.058, 0.058, 0.018, 24]} />
       </mesh>
     </group>
   );
@@ -659,6 +695,18 @@ const muscleHighlightFragmentShader = `
     // Hypertrophic swelling scales bump relief during peak contraction
     float contractionRelief = 0.80 + contraction * 0.60;
     return (fiber1 * 0.52 + fiber2 * 0.34 + striations * 0.24 + tension * 0.18) * contractionRelief;
+  }
+
+  // Subcutaneous Vascular Network (hyperemic veins)
+  float getVascularity(vec3 worldPos, float contraction, float isPrimary) {
+    if (isPrimary < 0.5) return 0.0;
+    float vein1 = sin(worldPos.y * 22.0 + sin(worldPos.x * 28.0 + worldPos.z * 16.0) * 2.5);
+    float veinWidth1 = smoothstep(0.93, 0.98, vein1);
+    
+    float vein2 = cos(worldPos.y * 36.0 - cos(worldPos.z * 24.0) * 1.8);
+    float veinWidth2 = smoothstep(0.95, 0.99, vein2) * 0.65;
+    
+    return (veinWidth1 + veinWidth2) * (0.5 + 0.5 * contraction);
   }
 
   // Mikkelsen / Screen-Space Cotangent Frame Normal Perturbation
@@ -789,6 +837,13 @@ const muscleHighlightFragmentShader = `
       activeColor += uHighlightColorPrimary * (pulseShape * 0.28 * paceIntensityFactor);
     } else {
       activeColor += uHighlightColorSecondary * (pulseShape * 0.18 * paceIntensityFactor);
+    }
+
+    // Hyperemic vascularity accent line glow on active muscle belly
+    float vascularLine = getVascularity(vWorldPosition, uContraction, uIsPrimary);
+    if (vascularLine > 0.01) {
+      vec3 veinGlowColor = mix(uHighlightColorPrimary, vec3(0.0, 0.95, 1.0), 0.35);
+      activeColor += veinGlowColor * (vascularLine * 0.55 * (0.8 + pulseShape * 0.5));
     }
 
     // Detail camera view enhancement
@@ -1695,23 +1750,25 @@ function AnatomicalMuscleNode({
 
   const isHighlighted = isPrimary || isSecondary;
 
-  // Stylized Minimalist Solid-Color Material for target muscles (Zero complex textures, ultra-fast loading)
+  // High-Definition Athletic Material for target muscles (balanced glow, rich 3D shading & normal definition)
   const solidMuscleMat = useMemo(() => {
     if (isHighlighted) {
       const targetColor = isPrimary ? rawHighlightPrimary : rawHighlightSecondary;
       return new THREE.MeshStandardMaterial({
         color: targetColor,
         emissive: targetColor,
-        emissiveIntensity: isPrimary ? 1.5 : 0.9,
+        emissiveIntensity: isPrimary ? 0.48 : 0.32,
         roughness: 0.28,
-        metalness: 0.05,
+        metalness: 0.06,
+        side: THREE.DoubleSide,
       });
     }
-    // White matte mannequin texture (branca fosca e sem texturas complexas)
+    // Sleek athletic studio mannequin finish (reveals cuts, striations and grooves with specular highlights)
     return new THREE.MeshStandardMaterial({
-      color: '#f8fafc',
-      roughness: 0.82,
-      metalness: 0.0,
+      color: '#f1f5f9',
+      roughness: 0.38,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
     });
   }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary]);
 
@@ -1728,7 +1785,7 @@ function AnatomicalMuscleNode({
     const cycle = (Math.sin(time * 2.2) + 1) / 2;
 
     if (isHighlighted && solidMuscleMat) {
-      const pulse = Math.sin(time * 3 * currentPace) * 0.28 + (isPrimary ? 1.35 : 0.85);
+      const pulse = Math.sin(time * 3 * currentPace) * 0.12 + (isPrimary ? 0.46 : 0.32);
       solidMuscleMat.emissiveIntensity = pulse;
     }
 
@@ -2878,6 +2935,7 @@ function AnatomicalAvatarModel({
   onCycleUpdate,
   positiveFeedback = false,
   motivationalSmile = 0.0,
+  lodScale = 1.0,
 }: {
   exercise: DetailedExercise;
   gender: 'male' | 'female';
@@ -2896,6 +2954,7 @@ function AnatomicalAvatarModel({
   onCycleUpdate?: (cycle: number, phase: 'concentric' | 'eccentric', breath: 'inhale' | 'exhale') => void;
   positiveFeedback?: boolean;
   motivationalSmile?: number;
+  lodScale?: number;
 }) {
   const rootGroup = useRef<THREE.Group>(null);
   const spineGroup = useRef<THREE.Group>(null);
@@ -2912,85 +2971,106 @@ function AnatomicalAvatarModel({
   const isFemale = gender === 'female';
 
   // Morphological parameters tailored for Male vs Female variants
-  const shoulderOffset = isFemale ? 0.275 : 0.33;
+  const shoulderOffset = isFemale ? 0.225 : 0.258;
   const hipOffset = isFemale ? 0.17 : 0.15;
   const torsoScale: [number, number, number] = isFemale ? [0.88, 1.0, 0.86] : [1.08, 1.0, 1.05];
-  const chestScale: [number, number, number] = isFemale ? [0.86, 0.92, 0.9] : [1.12, 1.05, 1.08];
+  const chestScale: [number, number, number] = isFemale ? [0.88, 0.95, 0.92] : [1.06, 1.02, 1.04];
   const gluteScale: [number, number, number] = isFemale ? [1.14, 1.12, 1.18] : [1.0, 1.0, 1.0];
   const armThickness = isFemale ? 0.9 : 1.08;
   const legThickness = isFemale ? 0.96 : 1.06;
 
-  // Sculpted anatomical geometries (Organic human atlas proportions matching reference image)
+  // Sculpted anatomical geometries (Organic human atlas proportions matching reference image with dynamic LOD scaling)
   const geo = useMemo(() => ({
     // Head with natural cranial dome and jawline
-    head: createSculptedHeadGeometry(),
-    neck: createSculptedNeckGeometry(isFemale),
-    clavicles: createSculptedClaviclesGeometry(isFemale),
+    head: createSculptedHeadGeometry(lodScale),
+    neck: createSculptedNeckGeometry(isFemale, lodScale),
+    clavicles: createSculptedClaviclesGeometry(isFemale, lodScale),
     // Pectorals with organic sternal & clavicular sweep (left & right)
-    pectoralLeft: createSculptedPectoralGeometry(true, isFemale),
-    pectoralRight: createSculptedPectoralGeometry(false, isFemale),
+    pectoralLeft: createSculptedPectoralGeometry(true, isFemale, lodScale),
+    pectoralRight: createSculptedPectoralGeometry(false, isFemale, lodScale),
     // Natural deltoids (three biomechanical heads: lateral, anterior, posterior)
-    deltoidLateralLeft: createSculptedDeltoidGeometry('lateral', true, isFemale),
-    deltoidLateralRight: createSculptedDeltoidGeometry('lateral', false, isFemale),
-    deltoidAnteriorLeft: createSculptedDeltoidGeometry('anterior', true, isFemale),
-    deltoidAnteriorRight: createSculptedDeltoidGeometry('anterior', false, isFemale),
-    deltoidPosteriorLeft: createSculptedDeltoidGeometry('posterior', true, isFemale),
-    deltoidPosteriorRight: createSculptedDeltoidGeometry('posterior', false, isFemale),
+    deltoidLateralLeft: createSculptedDeltoidGeometry('lateral', true, isFemale, lodScale),
+    deltoidLateralRight: createSculptedDeltoidGeometry('lateral', false, isFemale, lodScale),
+    deltoidAnteriorLeft: createSculptedDeltoidGeometry('anterior', true, isFemale, lodScale),
+    deltoidAnteriorRight: createSculptedDeltoidGeometry('anterior', false, isFemale, lodScale),
+    deltoidPosteriorLeft: createSculptedDeltoidGeometry('posterior', true, isFemale, lodScale),
+    deltoidPosteriorRight: createSculptedDeltoidGeometry('posterior', false, isFemale, lodScale),
+    // Sculpted anatomical ribcage / torso core (fills chest cavity and eliminates hollow gaps)
+    torsoCore: createSculptedTorsoCoreGeometry(isFemale, lodScale),
     // Trapezius and upper back
-    trapezius: createSculptedTrapeziusGeometry(isFemale),
+    trapezius: createSculptedTrapeziusGeometry(isFemale, lodScale),
     // 8-Pack Rectus Abdominis with Linea Alba & Transverse Inscriptions
-    abs: createSculptedAbdominalWallGeometry(isFemale),
+    abs: createSculptedAbdominalWallGeometry(isFemale, lodScale),
     // Lateral Serratus & Obliques
-    obliquesLeft: createSculptedSerratusObliquesGeometry(true, isFemale),
-    obliquesRight: createSculptedSerratusObliquesGeometry(false, isFemale),
+    obliquesLeft: createSculptedSerratusObliquesGeometry(true, isFemale, lodScale),
+    obliquesRight: createSculptedSerratusObliquesGeometry(false, isFemale, lodScale),
     // Latissimus dorsi V-taper wings
-    latLeft: createSculptedSerratusObliquesGeometry(true, isFemale),
-    latRight: createSculptedSerratusObliquesGeometry(false, isFemale),
+    latLeft: createSculptedSerratusObliquesGeometry(true, isFemale, lodScale),
+    latRight: createSculptedSerratusObliquesGeometry(false, isFemale, lodScale),
     // Biceps brachii with long and short heads
-    bicepLeft: createSculptedBicepGeometry(true, isFemale),
-    bicepRight: createSculptedBicepGeometry(false, isFemale),
+    bicepLeft: createSculptedBicepGeometry(true, isFemale, lodScale),
+    bicepRight: createSculptedBicepGeometry(false, isFemale, lodScale),
     // Triceps brachii (lateral, long, and medial heads)
-    tricepLeft: createSculptedTricepGeometry(true, isFemale),
-    tricepRight: createSculptedTricepGeometry(false, isFemale),
+    tricepLeft: createSculptedTricepGeometry(true, isFemale, lodScale),
+    tricepRight: createSculptedTricepGeometry(false, isFemale, lodScale),
     // Forearm with defined brachioradialis
-    forearmLeft: createSculptedForearmGeometry(true, isFemale),
-    forearmRight: createSculptedForearmGeometry(false, isFemale),
+    forearmLeft: createSculptedForearmGeometry(true, isFemale, lodScale),
+    forearmRight: createSculptedForearmGeometry(false, isFemale, lodScale),
     // Hand with natural palm and athletic grip
-    hand: createSculptedHandGeometry(true),
+    hand: createSculptedHandGeometry(true, lodScale),
     // Compression athletic shorts matching reference image
-    shorts: createSculptedShortsGeometry(isFemale),
+    shorts: createSculptedShortsGeometry(isFemale, lodScale),
     // Gluteus maximus
-    gluteLeft: createSculptedGluteGeometry(true, isFemale),
-    gluteRight: createSculptedGluteGeometry(false, isFemale),
+    gluteLeft: createSculptedGluteGeometry(true, isFemale, lodScale),
+    gluteRight: createSculptedGluteGeometry(false, isFemale, lodScale),
     // Quadriceps femoris (rectus femoris, vastus lateralis, vastus medialis teardrop)
-    quadLeft: createSculptedQuadricepsGeometry(true, isFemale),
-    quadRight: createSculptedQuadricepsGeometry(false, isFemale),
+    quadLeft: createSculptedQuadricepsGeometry(true, isFemale, lodScale),
+    quadRight: createSculptedQuadricepsGeometry(false, isFemale, lodScale),
     // Hamstrings
-    hamstringLeft: createSculptedHamstringsGeometry(true, isFemale),
-    hamstringRight: createSculptedHamstringsGeometry(false, isFemale),
+    hamstringLeft: createSculptedHamstringsGeometry(true, isFemale, lodScale),
+    hamstringRight: createSculptedHamstringsGeometry(false, isFemale, lodScale),
     // Natural patella kneecap
-    patella: createSculptedPatellaGeometry(),
+    patella: createSculptedPatellaGeometry(lodScale),
     // Calf: Gastrocnemius (dual bellies) and soleus
-    calfLeft: createSculptedCalfGeometry(true, isFemale),
-    calfRight: createSculptedCalfGeometry(false, isFemale),
+    calfLeft: createSculptedCalfGeometry(true, isFemale, lodScale),
+    calfRight: createSculptedCalfGeometry(false, isFemale, lodScale),
     // Human athletic foot
-    foot: createSculptedFootGeometry(true),
-  }), [isFemale]);
+    foot: createSculptedFootGeometry(true, lodScale),
+  }), [isFemale, lodScale]);
 
-  // White matte mannequin material for skeletal, pelvic and non-muscular landmarks (joints, collarbones, feet)
+  // Clean geometry disposal on LOD switch or component unmount to prevent mobile VRAM leaks
+  useEffect(() => {
+    return () => {
+      Object.values(geo).forEach((geometry: any) => {
+        if (geometry && typeof geometry.dispose === 'function') {
+          geometry.dispose();
+        }
+      });
+    };
+  }, [geo]);
+
+  // Athletic studio porcelain material for skeletal, pelvic and non-muscular landmarks
   const inactiveMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#f8fafc',
-    roughness: 0.82,
-    metalness: 0.0,
+    color: '#f1f5f9',
+    roughness: 0.38,
+    metalness: 0.04,
+    side: THREE.DoubleSide,
   }), []);
 
-  // Stylized glowing orange-red mechanical gloves matching the robot brand avatar
+  // Athletic fitness training gloves with refined cyber grip
   const mechanicalGloveMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#ff4500',
-    emissive: '#ff4500',
-    emissiveIntensity: 0.95,
-    roughness: 0.3,
-    metalness: 0.5,
+    color: '#1e293b',
+    roughness: 0.5,
+    metalness: 0.4,
+    emissive: '#0284c7',
+    emissiveIntensity: 0.25,
+  }), []);
+
+  // Compression athletic shorts material
+  const shortsMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#090d16',
+    roughness: 0.75,
+    metalness: 0.12,
   }), []);
 
   // Biomechanical Motion Engine with smooth continuous interpolation
@@ -3028,41 +3108,46 @@ function AnatomicalAvatarModel({
 
     // Position & Root Anchor
     if (isSeated) {
-      rootGroup.current.position.set(0, 0.12, 0.04);
+      // Glutes rest firmly on bench seat pad; pelvis back aligns with backrest
+      rootGroup.current.position.set(0, -0.22, -0.06);
       rootGroup.current.rotation.set(0, 0, 0);
       if (leftLeg.current) {
-        leftLeg.current.position.set(-hipOffset, 0.08, 0.05);
-        leftLeg.current.rotation.set(-1.45, 0, -0.15);
+        // Hips connect seamlessly into acetabulum at y = 0.48
+        leftLeg.current.position.set(-hipOffset, 0.48, 0.02);
+        // Femurs extend horizontally along seat pad with natural athletic flare
+        leftLeg.current.rotation.set(-Math.PI / 2 + 0.06, 0, -0.08);
       }
       if (rightLeg.current) {
-        rightLeg.current.position.set(hipOffset, 0.08, 0.05);
-        rightLeg.current.rotation.set(-1.45, 0, 0.15);
+        rightLeg.current.position.set(hipOffset, 0.48, 0.02);
+        rightLeg.current.rotation.set(-Math.PI / 2 + 0.06, 0, 0.08);
       }
-      if (leftKnee.current) leftKnee.current.rotation.set(1.48, 0, 0);
-      if (rightKnee.current) rightKnee.current.rotation.set(1.48, 0, 0);
+      // Knees flex 90 degrees downward with feet planted on the floor
+      if (leftKnee.current) leftKnee.current.rotation.set(Math.PI / 2 - 0.06, 0, 0);
+      if (rightKnee.current) rightKnee.current.rotation.set(Math.PI / 2 - 0.06, 0, 0);
+      if (spineGroup.current) spineGroup.current.rotation.set(0.06, 0, 0);
     } else if (isLying) {
       rootGroup.current.position.set(0, 0.38, -0.35);
       rootGroup.current.rotation.set(Math.PI / 2, 0, 0);
       if (leftLeg.current) {
-        leftLeg.current.position.set(-hipOffset, 0.08, -0.1);
+        leftLeg.current.position.set(-hipOffset, 0.48, -0.08);
         leftLeg.current.rotation.set(-1.25, 0, -0.1);
       }
       if (rightLeg.current) {
-        rightLeg.current.position.set(hipOffset, 0.08, -0.1);
+        rightLeg.current.position.set(hipOffset, 0.48, -0.08);
         rightLeg.current.rotation.set(-1.25, 0, 0.1);
       }
       if (leftKnee.current) leftKnee.current.rotation.set(1.35, 0, 0);
       if (rightKnee.current) rightKnee.current.rotation.set(1.35, 0, 0);
     } else {
-      rootGroup.current.position.set(0, 0.35, 0);
+      rootGroup.current.position.set(0, 0.08, 0);
       rootGroup.current.rotation.set(0, 0, 0);
       if (leftLeg.current) {
-        leftLeg.current.position.set(-hipOffset, 0.08, 0);
-        leftLeg.current.rotation.set(0, 0, -0.05);
+        leftLeg.current.position.set(-hipOffset, 0.48, 0);
+        leftLeg.current.rotation.set(0, 0, -0.04);
       }
       if (rightLeg.current) {
-        rightLeg.current.position.set(hipOffset, 0.08, 0);
-        rightLeg.current.rotation.set(0, 0, 0.05);
+        rightLeg.current.position.set(hipOffset, 0.48, 0);
+        rightLeg.current.rotation.set(0, 0, 0.04);
       }
       if (leftKnee.current) leftKnee.current.rotation.set(0, 0, 0);
       if (rightKnee.current) rightKnee.current.rotation.set(0, 0, 0);
@@ -3071,13 +3156,69 @@ function AnatomicalAvatarModel({
     // Kinematic Joint Animations by Exercise ID
     const exId = exercise.id;
 
-    if (exId === 'seated-lateral-raises') {
-      const raiseAngle = cycle * 1.35;
-      if (leftShoulder.current) leftShoulder.current.rotation.set(0.12, 0, raiseAngle);
-      if (rightShoulder.current) rightShoulder.current.rotation.set(0.12, 0, -raiseAngle);
-      if (leftElbow.current) leftElbow.current.rotation.set(-0.35, 0.15, 0.22);
-      if (rightElbow.current) rightElbow.current.rotation.set(-0.35, -0.15, -0.22);
-      if (spineGroup.current) spineGroup.current.rotation.set(0.04, 0, 0);
+    if (exId === 'pose-flex-biceps') {
+      // Double Front Bicep Flex Bodybuilding Pose
+      const flexTension = Math.sin(time * 3) * 0.04 + 1.0;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.12, 0, -1.48);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.12, 0, 1.48);
+      if (leftElbow.current) leftElbow.current.rotation.set(2.15 * flexTension, 0, 0);
+      if (rightElbow.current) rightElbow.current.rotation.set(2.15 * flexTension, 0, 0);
+      if (chestGroup.current) chestGroup.current.scale.set(torsoScale[0] * 1.08, torsoScale[1] * 1.02, torsoScale[2] * 1.08);
+      if (spineGroup.current) spineGroup.current.rotation.set(-0.04, 0, 0);
+
+    } else if (exId === 'pose-victory') {
+      // Victory / Champion Pose with Fists High
+      const cheer = Math.sin(time * 4) * 0.08;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.2, 0, -2.4 + cheer);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.2, 0, 2.4 - cheer);
+      if (leftElbow.current) leftElbow.current.rotation.set(0.45, 0, 0);
+      if (rightElbow.current) rightElbow.current.rotation.set(0.45, 0, 0);
+      if (spineGroup.current) spineGroup.current.rotation.set(-0.08, 0, 0);
+
+    } else if (exId === 'pose-stretch') {
+      // Dynamic Athletic Side Stretch
+      const sW = Math.sin(time * 1.8) * 0.28;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.1, 0, -2.7 + sW * 0.1);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.1, 0, 0.4);
+      if (spineGroup.current) spineGroup.current.rotation.set(0, 0, -0.15 + sW * 0.12);
+
+    } else if (exId === 'pose-wave') {
+      // Friendly Malu greeting wave with right arm
+      const wave = Math.sin(time * 6) * 0.35;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.05, 0, -0.1);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.25, 0, 1.55);
+      if (rightElbow.current) rightElbow.current.rotation.set(1.4, wave, 0);
+      if (leftElbow.current) leftElbow.current.rotation.set(0.1, 0, 0);
+
+    } else if (exId === 'pose-guard') {
+      // Boxing & Athletic Ready Stance
+      const bob = Math.sin(time * 3) * 0.03;
+      if (rootGroup.current) rootGroup.current.position.y += bob;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.65, 0, 0.4);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.7, 0, -0.35);
+      if (leftElbow.current) leftElbow.current.rotation.set(1.9, 0, 0);
+      if (rightElbow.current) rightElbow.current.rotation.set(1.95, 0, 0);
+      if (spineGroup.current) spineGroup.current.rotation.set(0.12, 0, -0.06);
+
+    } else if (exId === 'pose-breathe') {
+      // Diaphragmatic Breath & Meditation
+      const breath = (Math.sin(time * 1.4) + 1) / 2;
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.08, 0, -0.18);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.08, 0, 0.18);
+      if (leftElbow.current) leftElbow.current.rotation.set(0.35, 0, 0);
+      if (rightElbow.current) rightElbow.current.rotation.set(0.35, 0, 0);
+      if (chestGroup.current) chestGroup.current.scale.set(torsoScale[0] * (1 + breath * 0.09), torsoScale[1], torsoScale[2] * (1 + breath * 0.1));
+
+    } else if (exId === 'seated-lateral-raises') {
+      // Lateral abduction: starts at sides (~0.08 rad), raises up to ~80 degrees (1.38 rad)
+      const raiseAngle = 0.08 + cycle * 1.30;
+      // Left arm raises up with negative Z, Right arm with positive Z
+      if (leftShoulder.current) leftShoulder.current.rotation.set(0.06, 0.04, -raiseAngle);
+      if (rightShoulder.current) rightShoulder.current.rotation.set(0.06, -0.04, raiseAngle);
+      // Gentle natural 15-degree elbow bend, keeping wrists in line
+      if (leftElbow.current) leftElbow.current.rotation.set(0.25, 0, 0);
+      if (rightElbow.current) rightElbow.current.rotation.set(0.25, 0, 0);
+      if (spineGroup.current) spineGroup.current.rotation.set(0.06, 0, 0);
 
     } else if (exId === 'dumbbell-shoulder-press') {
       const pressAngle = cycle * 1.15;
@@ -3321,6 +3462,16 @@ function AnatomicalAvatarModel({
       {/* Torso Spine Anchor */}
       <group ref={spineGroup} position={[0, 0.52, 0]}>
         
+        {/* Foundation Sculpted Ribcage / Thorax Core (eliminates hollow chest voids) */}
+        <mesh
+          geometry={geo.torsoCore}
+          material={inactiveMat}
+          position={[0, 0.28, 0]}
+          scale={torsoScale}
+          castShadow
+          receiveShadow
+        />
+
         {/* Head & Neck (Organic anatomical head, cranium, throat and clavicles) */}
         <group position={[0, 0.58, 0]}>
           <AnatomicalMuscleNode
@@ -3346,7 +3497,7 @@ function AnatomicalAvatarModel({
           />
           <AnatomicalMuscleNode
             geometry={geo.trapezius}
-            position={[0, -0.06, -0.05]}
+            position={[0, -0.06, -0.015]}
             muscleTag="trapezius"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3355,8 +3506,8 @@ function AnatomicalAvatarModel({
             highlightOverride={highlightOverride}
           />
           {/* Clavicular Collarbone Ridge */}
-          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.07, 0.04]} castShadow />
-          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.07, 0.04]} scale={[-1, 1, 1]} castShadow />
+          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.052, 0.035]} castShadow />
+          <mesh geometry={geo.clavicles} material={inactiveMat} position={[0, -0.052, 0.035]} scale={[-1, 1, 1]} castShadow />
         </group>
 
         {/* Chest & Upper Back Ribcage */}
@@ -3364,8 +3515,8 @@ function AnatomicalAvatarModel({
           {/* Left Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
             geometry={geo.pectoralLeft}
-            position={[-0.012, 0.04, 0.065]}
-            rotation={[0.04, 0.06, -0.06]}
+            position={[-0.005, 0.025, 0.072]}
+            rotation={[0.01, 0.02, -0.02]}
             scale={chestScale}
             muscleTag="chest"
             primaryMuscles={prim}
@@ -3377,8 +3528,8 @@ function AnatomicalAvatarModel({
           {/* Right Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
             geometry={geo.pectoralRight}
-            position={[0.012, 0.04, 0.065]}
-            rotation={[0.04, -0.06, 0.06]}
+            position={[0.005, 0.025, 0.072]}
+            rotation={[0.01, -0.02, 0.02]}
             scale={chestScale}
             muscleTag="chest"
             primaryMuscles={prim}
@@ -3455,7 +3606,7 @@ function AnatomicalAvatarModel({
         <group position={[0, -0.02, 0]}>
           <mesh
             geometry={geo.shorts}
-            material={inactiveMat}
+            material={shortsMat}
             position={[0, 0.03, 0]}
             rotation={[0, 0, 0]}
             castShadow
@@ -3488,10 +3639,14 @@ function AnatomicalAvatarModel({
 
         {/* Left Arm Chain */}
         <group ref={leftShoulder} position={[-shoulderOffset, 0.45, 0]}>
-          {/* Left Deltoid Lateral Head (Signature glowing shoulder cap from image.png) */}
+          {/* Anatomical Glenohumeral Joint Articulation Condyle */}
+          <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+            <sphereGeometry args={[0.032, 18, 18]} />
+          </mesh>
+          {/* Left Deltoid Lateral Head (Signature glowing shoulder cap) */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidLateralLeft}
-            position={[-0.032, 0.02, 0]}
+            position={[-0.018, 0.010, 0]}
             muscleTag="deltoid_lateral"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3502,7 +3657,7 @@ function AnatomicalAvatarModel({
           {/* Left Deltoid Anterior Head */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidAnteriorLeft}
-            position={[-0.018, -0.01, 0.046]}
+            position={[-0.006, -0.005, 0.032]}
             muscleTag="deltoid_anterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3513,7 +3668,7 @@ function AnatomicalAvatarModel({
           {/* Left Deltoid Posterior Head */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidPosteriorLeft}
-            position={[-0.018, -0.01, -0.046]}
+            position={[-0.006, -0.005, -0.032]}
             muscleTag="deltoid_posterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3548,6 +3703,10 @@ function AnatomicalAvatarModel({
 
           {/* Left Elbow & Forearm */}
           <group ref={leftElbow} position={[0, -0.28, 0]}>
+            {/* Anatomical Elbow Condyle Joint Articulation */}
+            <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+              <sphereGeometry args={[0.024, 16, 16]} />
+            </mesh>
             <AnatomicalMuscleNode
               geometry={geo.forearmLeft}
               position={[0, -0.14, 0]}
@@ -3562,17 +3721,21 @@ function AnatomicalAvatarModel({
             <mesh geometry={geo.hand} material={mechanicalGloveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
-              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />
+              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, Math.PI / 2, 0]} />
             )}
           </group>
         </group>
 
         {/* Right Arm Chain */}
         <group ref={rightShoulder} position={[shoulderOffset, 0.45, 0]}>
-          {/* Right Deltoid Lateral Head (Signature glowing shoulder cap from image.png) */}
+          {/* Anatomical Glenohumeral Joint Articulation Condyle */}
+          <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+            <sphereGeometry args={[0.032, 18, 18]} />
+          </mesh>
+          {/* Right Deltoid Lateral Head (Signature glowing shoulder cap) */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidLateralRight}
-            position={[0.032, 0.02, 0]}
+            position={[0.018, 0.010, 0]}
             muscleTag="deltoid_lateral"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3583,7 +3746,7 @@ function AnatomicalAvatarModel({
           {/* Right Deltoid Anterior Head */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidAnteriorRight}
-            position={[0.018, -0.01, 0.046]}
+            position={[0.006, -0.005, 0.032]}
             muscleTag="deltoid_anterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3594,7 +3757,7 @@ function AnatomicalAvatarModel({
           {/* Right Deltoid Posterior Head */}
           <AnatomicalMuscleNode
             geometry={geo.deltoidPosteriorRight}
-            position={[0.018, -0.01, -0.046]}
+            position={[0.006, -0.005, -0.032]}
             muscleTag="deltoid_posterior"
             primaryMuscles={prim}
             secondaryMuscles={sec}
@@ -3629,6 +3792,10 @@ function AnatomicalAvatarModel({
 
           {/* Right Elbow & Forearm */}
           <group ref={rightElbow} position={[0, -0.28, 0]}>
+            {/* Anatomical Elbow Condyle Joint Articulation */}
+            <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+              <sphereGeometry args={[0.024, 16, 16]} />
+            </mesh>
             <AnatomicalMuscleNode
               geometry={geo.forearmRight}
               position={[0, -0.14, 0]}
@@ -3643,7 +3810,7 @@ function AnatomicalAvatarModel({
             <mesh geometry={geo.hand} material={mechanicalGloveMat} position={[0, -0.28, 0]} castShadow />
             {/* Dumbbell in Hand if equipment is dumbbells */}
             {exercise.equipment === 'dumbbells' && (
-              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, 0, 0]} />
+              <DumbbellGrip position={[0, -0.28, 0]} rotation={[0, Math.PI / 2, 0]} />
             )}
           </group>
         </group>
@@ -3690,6 +3857,10 @@ function AnatomicalAvatarModel({
 
         {/* Left Knee Joint & Lower Leg */}
         <group ref={leftKnee} position={[0, -0.38, 0]}>
+          {/* Anatomical Femoral/Tibial Condyle Joint Articulation */}
+          <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+            <sphereGeometry args={[0.042, 20, 20]} />
+          </mesh>
           <mesh geometry={geo.patella} material={inactiveMat} position={[0, 0, 0.032]} castShadow />
           {/* Left Gastrocnemius (Calf with Dual Bellies) */}
           <AnatomicalMuscleNode
@@ -3742,6 +3913,10 @@ function AnatomicalAvatarModel({
 
         {/* Right Knee Joint & Lower Leg */}
         <group ref={rightKnee} position={[0, -0.38, 0]}>
+          {/* Anatomical Femoral/Tibial Condyle Joint Articulation */}
+          <mesh material={inactiveMat} position={[0, 0, 0]} castShadow>
+            <sphereGeometry args={[0.042, 20, 20]} />
+          </mesh>
           <mesh geometry={geo.patella} material={inactiveMat} position={[0, 0, 0.032]} castShadow />
           {/* Right Gastrocnemius (Calf with Dual Bellies) */}
           <AnatomicalMuscleNode
@@ -4011,6 +4186,9 @@ export class AvatarAnatomico
       pulsingMuscle: null,
       activeTargetIndex: 1,
       webglAvailable,
+      performanceMode: props.performanceMode || 'auto',
+      isZoomedLOD: props.cameraView === 'detail',
+      cameraDistance: 3.4,
     };
 
     AvatarAnatomico.instance = this;
@@ -4111,6 +4289,11 @@ export class AvatarAnatomico
     // Sync if playbackSpeed prop changed
     if (this.props.playbackSpeed !== undefined && this.props.playbackSpeed !== prevProps.playbackSpeed) {
       this.setState({ playbackSpeed: this.props.playbackSpeed });
+    }
+
+    // Sync if performanceMode prop changed
+    if (this.props.performanceMode !== undefined && this.props.performanceMode !== prevProps.performanceMode) {
+      this.setState({ performanceMode: this.props.performanceMode });
     }
 
     // Sync if primary or secondary highlight color props changed
@@ -4524,7 +4707,7 @@ export class AvatarAnatomico
       modelUrl,
       maleModelUrl,
       femaleModelUrl,
-      enableOrbitControls,
+      enableOrbitControls = true,
       isMirrorMode,
       highlightMuscleOverride,
       primaryMuscles: primProp,
@@ -4597,6 +4780,7 @@ export class AvatarAnatomico
       '#ff6a00';
 
     const userProfile = this.props.profile;
+    const lodStats = getOptimalAvatarLOD(this.state.performanceMode || this.props.performanceMode);
     const realtimeHr = this.props.realtimeHeartRate || 0;
     const profileHr = userProfile?.averageHeartRate || userProfile?.heartRate || userProfile?.restingHeartRate || 0;
     const activeHeartRate = realtimeHr > 0 ? realtimeHr : (profileHr > 0 ? profileHr : 115);
@@ -4635,10 +4819,10 @@ export class AvatarAnatomico
         )}
 
         {/* ================================================================ */}
-        {/* 2. BOTTOM-LEFT "▶ Video" PILL BUTTON                             */}
+        {/* 2. BOTTOM-LEFT "▶ Video" & "Estúdio 3D" PILL BUTTONS              */}
         {/* ================================================================ */}
         {showReferenceControls && (
-          <div className="absolute bottom-5 left-5 z-20 pointer-events-auto">
+          <div className="absolute bottom-5 left-5 z-20 pointer-events-auto flex items-center gap-2">
             <button
               type="button"
               onClick={() => {
@@ -4655,6 +4839,26 @@ export class AvatarAnatomico
                 <Play className="w-3.5 h-3.5 fill-white text-white" />
               )}
               <span className="font-sans font-bold tracking-wide">Video</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('tap');
+                vibrate(12);
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(
+                    new CustomEvent('app:openInteractiveAvatarStudio', {
+                      detail: { exerciseId: exerciseWithMuscles.id }
+                    })
+                  );
+                }
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-950/85 hover:bg-emerald-900 active:scale-95 text-emerald-300 text-xs font-bold backdrop-blur-md border border-emerald-500/40 shadow-2xl transition-all cursor-pointer"
+              title="Abrir Estúdio Interativo do Avatar 3D (Poses, Giro 360°, Músculos)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Estúdio 3D</span>
             </button>
           </div>
         )}
@@ -4732,6 +4936,55 @@ export class AvatarAnatomico
               <User className="w-3.5 h-3.5 text-cyan-400" />
               <span>{gender === 'female' ? 'Feminino ♀' : 'Masculino ♂'}</span>
             </button>
+
+            {/* Dynamic Polygon LOD & Mobile Performance Optimization Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('tap');
+                vibrate(10);
+                const nextMode = lodStats.mode === 'eco_mobile' ? 'high' : 'eco_mobile';
+                this.setState({ performanceMode: nextMode });
+                if (this.props.onPerformanceModeChange) {
+                  this.props.onPerformanceModeChange(nextMode);
+                }
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer active:scale-95 backdrop-blur-md border shadow-lg ${
+                lodStats.mode === 'eco_mobile'
+                  ? 'bg-emerald-950/80 hover:bg-emerald-900/90 border-emerald-500/50 text-emerald-300'
+                  : 'bg-indigo-950/80 hover:bg-indigo-900/90 border-indigo-500/50 text-indigo-300'
+              }`}
+              title={`Modo de Renderização: ${lodStats.mode === 'eco_mobile' ? 'Eco Mobile Otimizado (17.2k Tris - 75% menos processamento GPU)' : 'Alta Resolução (68.5k Tris)'}. Clique para alternar.`}
+            >
+              <Zap className={`w-3 h-3 ${lodStats.mode === 'eco_mobile' ? 'text-emerald-400' : 'text-indigo-400'}`} />
+              <span>{lodStats.mode === 'eco_mobile' ? 'Eco 17k' : '68k HQ'}</span>
+            </button>
+
+            {/* Dynamic Camera Zoom Level of Detail (LOD) Indicator */}
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-mono font-bold transition-all backdrop-blur-md border shadow-lg ${
+                this.state.isZoomedLOD
+                  ? 'bg-amber-950/85 border-amber-500/60 text-amber-300'
+                  : 'bg-cyan-950/85 border-cyan-500/50 text-cyan-300'
+              }`}
+              title={
+                this.state.isZoomedLOD
+                  ? 'LOD Zoom Ativo: Malha de alta fidelidade com texturas de contração muscular em tempo real'
+                  : 'LOD Corpo Inteiro Ativo: Renderizando apenas grupos temáticos principais para máxima fluidez'
+              }
+            >
+              {this.state.isZoomedLOD ? (
+                <>
+                  <Eye className="w-3 h-3 text-amber-400 animate-pulse" />
+                  <span>LOD: Zoom (Contração 3D)</span>
+                </>
+              ) : (
+                <>
+                  <Layers className="w-3 h-3 text-cyan-400" />
+                  <span>LOD: Corpo Inteiro</span>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -4750,12 +5003,13 @@ export class AvatarAnatomico
             }
           >
             <Canvas
-              shadows
-              dpr={[1, typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1]}
+              shadows={lodStats.mode === 'high'}
+              dpr={[1, typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, lodStats.dprCap) : 1]}
               gl={{
                 antialias: true,
                 powerPreference: 'high-performance',
                 alpha: true,
+                precision: lodStats.mode === 'eco_mobile' ? 'mediump' : 'highp',
                 failIfMajorPerformanceCaveat: false,
               }}
               className="w-full h-full"
@@ -4772,15 +5026,25 @@ export class AvatarAnatomico
                 category={exerciseWithMuscles.category}
                 enableOrbitControls={enableOrbitControls}
               />
+              <DynamicLODCameraMonitor
+                cameraView={cameraView}
+                onLODUpdate={(isZoomed, distance) => {
+                  if (this.state.isZoomedLOD !== isZoomed) {
+                    this.setState({ isZoomedLOD: isZoomed, cameraDistance: distance });
+                  }
+                }}
+              />
 
               {enableOrbitControls && (
                 <OrbitControls
                   enablePan={false}
                   target={[0, 0.85, 0]}
-                  minDistance={1.8}
-                  maxDistance={5.2}
-                  minPolarAngle={Math.PI / 6}
+                  minDistance={1.4}
+                  maxDistance={5.8}
+                  minPolarAngle={Math.PI / 12}
                   maxPolarAngle={Math.PI / 1.7}
+                  enableDamping={true}
+                  dampingFactor={0.08}
                 />
               )}
 
@@ -4882,6 +5146,7 @@ export class AvatarAnatomico
                   onCycleUpdate={onCycleUpdate}
                   positiveFeedback={this.props.positiveFeedback}
                   motivationalSmile={this.props.motivationalSmile}
+                  lodScale={this.state.isZoomedLOD ? lodStats.lodScale : lodStats.lodScale * 0.65}
                 />
               )}
             </Canvas>

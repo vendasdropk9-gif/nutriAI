@@ -33,6 +33,8 @@ import { NutritionalReportPDF } from './NutritionalReportPDF';
 import { FamilyProfilesManager } from './FamilyProfilesManager';
 import { WearablesSync } from './WearablesSync';
 import { SavedRecipesSwipeList } from './SavedRecipesSwipeList';
+import { Profile3DAvatar } from './Profile3DAvatar';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -120,6 +122,8 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     return 'client';
   });
   const [backupDestination, setBackupDestination] = useState<string>(profile?.backupDestination || '');
+  const [sleepGoalHours, setSleepGoalHours] = useState<number>(profile?.sleepGoalHours || 8);
+  const [sleepReminderEnabled, setSleepReminderEnabled] = useState<boolean>(!!profile?.sleepReminderEnabled);
 
   useEffect(() => {
     if (profile?.role) {
@@ -343,12 +347,13 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       speak('Perfil atualizado com sucesso.');
       // Persist
       const processedProfile: UserProfile = {
+        equipment: 'dumbbells',
         ...(profile || {}),
         name: updated.name.trim() || 'Usuário NutriAI',
         goals: updated.goals || undefined,
         allergies: updated.allergies.split(',').map((s) => s.trim()).filter(Boolean),
         restrictions: updated.restrictions.split(',').map((s) => s.trim()).filter(Boolean),
-      };
+      } as UserProfile;
       onSaveProfile(processedProfile);
     } else {
       playSfx('error');
@@ -565,6 +570,83 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     }
   };
 
+  const [circadianConfig, setCircadianConfig] = useState<{
+    enabled: boolean;
+    intensityAdjustmentEnabled: boolean;
+    reminderEnabled: boolean;
+    goldenHourStart?: string;
+    goldenHourEnd?: string;
+  }>(() => {
+    return profile?.circadianNotificationConfig || {
+      enabled: true,
+      intensityAdjustmentEnabled: true,
+      reminderEnabled: true,
+      goldenHourStart: '06:00',
+      goldenHourEnd: '08:00'
+    };
+  });
+
+  useEffect(() => {
+    if (profile?.circadianNotificationConfig) {
+      setCircadianConfig({
+        enabled: Boolean(profile.circadianNotificationConfig.enabled),
+        intensityAdjustmentEnabled: Boolean(profile.circadianNotificationConfig.intensityAdjustmentEnabled),
+        reminderEnabled: Boolean(profile.circadianNotificationConfig.reminderEnabled),
+        goldenHourStart: (profile.circadianNotificationConfig as any).goldenHourStart || '06:00',
+        goldenHourEnd: (profile.circadianNotificationConfig as any).goldenHourEnd || '08:00'
+      });
+    }
+  }, [profile?.circadianNotificationConfig]);
+
+  const handleToggleCircadian = (key: 'enabled' | 'intensityAdjustmentEnabled' | 'reminderEnabled') => {
+    const nextVal = !circadianConfig[key];
+    const updated = { ...circadianConfig, [key]: nextVal };
+    setCircadianConfig(updated);
+    playSfx('tap');
+    vibrate(15);
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      circadianNotificationConfig: updated,
+      highContrast: highContrastEnabled,
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+    showInAppToast('Configuração Solar Atualizada', 'Preferências de circADIAN & Golden Hour salvas.', 'bell');
+  };
+
+  const handleCircadianTimeChange = (type: 'goldenHourStart' | 'goldenHourEnd', value: string) => {
+    const updated = { ...circadianConfig, [type]: value };
+    setCircadianConfig(updated);
+    safeSet(`nutri-solar-${type}`, value);
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      circadianNotificationConfig: updated,
+      highContrast: highContrastEnabled,
+      mealRemindersEnabled,
+      mealNotificationTimes: mealTimes,
+      challengeRemindersEnabled,
+      challengeReminderTime: challengeTime,
+      challengeReviewTime
+    };
+    onSaveProfile(updatedProfile);
+  };
+
   const handleToggleHighContrast = () => {
     const nextState = !highContrastEnabled;
     setHighContrastEnabled(nextState);
@@ -589,6 +671,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       allergies: profile?.allergies || [],
       goals: profile?.goals || '',
       equipment: profile?.equipment || [],
+      circadianNotificationConfig: circadianConfig,
       highContrast: nextState,
       mealRemindersEnabled,
       mealNotificationTimes: mealTimes,
@@ -914,6 +997,8 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         nutritionFocus: profile?.masterPlan?.nutritionFocus || '',
         adaptiveNotes: profile?.masterPlan?.adaptiveNotes || '',
       },
+      sleepGoalHours: sleepGoalHours,
+      sleepReminderEnabled: sleepReminderEnabled,
     };
     
     onSaveProfile(processedProfile);
@@ -926,6 +1011,22 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   };
 
   const userInitial = (formData.name || profile?.name || 'U').charAt(0).toUpperCase();
+
+  const circadianChartData = React.useMemo(() => {
+    const hydration = profile?.hydrationLogs || [];
+    const fatigue = profile?.bodyMonitorLogs || [];
+    const map = new Map<string, { date: string, hydration: number, energy: number }>();
+    hydration.forEach(log => {
+      const date = log.date.split('T')[0];
+      map.set(date, { ...map.get(date) || { date, hydration: 0, energy: 0 }, hydration: (map.get(date)?.hydration || 0) + log.amount });
+    });
+    fatigue.forEach(log => {
+      const date = log.date.split('T')[0];
+      const energy = 100 - log.fatigueLevel;
+      map.set(date, { ...map.get(date) || { date, hydration: 0, energy: 0 }, energy: (map.get(date)?.energy || 0) + energy });
+    });
+    return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date)).slice(-7);
+  }, [profile?.hydrationLogs, profile?.bodyMonitorLogs]);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 flex flex-col items-center gap-8">
@@ -1091,6 +1192,25 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* 3D Interactive Avatar with Micro-Animations */}
+        <div className="w-full mb-6">
+          <Profile3DAvatar
+            points={profile?.points || 1250}
+            streak={profile?.streak || 7}
+            level={profile?.level || 4}
+            avatarId={profile?.avatarId || 'cyberfit-biomechanic'}
+            onAwardPoints={(earned) => {
+              if (profile) {
+                const updated = {
+                  ...profile,
+                  points: (profile.points || 1250) + earned
+                };
+                onSaveProfile(updated);
+              }
+            }}
+          />
         </div>
 
         {/* Escolha de AvatarID Preferido (Simulador de Exercícios) */}
@@ -2055,6 +2175,176 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                 <span>
                   O controle de acesso baseado em funções (RBAC) garante isolamento completo de dados e ferramentas entre clientes e comerciantes na nuvem.
                 </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Solar Circadian & Golden Hour Configuration Panel */}
+          <div className="space-y-4 w-full">
+            <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+              Ciclo Circadiano & Golden Hour (Notificações Solares)
+            </label>
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400 shrink-0">
+                    <Sparkles className="w-5 h-5 animate-spin-slow" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
+                        Notificações Solares Circadianas
+                      </h4>
+                      {circadianConfig.enabled ? (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px] uppercase tracking-wider border border-amber-500/30">
+                          Ativo
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                          Inativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                      Gerencie alertas inteligentes baseados na alvorada (Golden Hour) para lembretes de hidratação e exposição à luz natural.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCircadian('enabled')}
+                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                      circadianConfig.enabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}
+                    role="switch"
+                    aria-checked={circadianConfig.enabled}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
+                        circadianConfig.enabled ? 'translate-x-6 text-amber-600' : 'translate-x-0 text-slate-400'
+                      }`}
+                    >
+                      {circadianConfig.enabled && <Check className="w-4 h-4 stroke-[3]" />}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {circadianConfig.enabled && (
+                <div className="space-y-4 pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Golden Hour Start */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        Início da Golden Hour (Alvorada)
+                      </label>
+                      <input
+                        type="time"
+                        value={circadianConfig.goldenHourStart || '06:00'}
+                        onChange={(e) => handleCircadianTimeChange('goldenHourStart', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 font-bold outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    {/* Golden Hour End */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        Fim da Golden Hour
+                      </label>
+                      <input
+                        type="time"
+                        value={circadianConfig.goldenHourEnd || '08:00'}
+                        onChange={(e) => handleCircadianTimeChange('goldenHourEnd', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 font-bold outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">Ajuste Dinâmico de Brilho da Interface</p>
+                      <p className="text-[11px]">Ajusta sutilmente a temperatura visual do app ao nascer do sol.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCircadian('intensityAdjustmentEnabled')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        circadianConfig.intensityAdjustmentEnabled
+                          ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      {circadianConfig.intensityAdjustmentEnabled ? 'Brilho Automático: Ativo' : 'Brilho Automático: Inativo'}
+                    </button>
+                  </div>
+                  
+                  {/* Correlation Graph */}
+                  <div className="mt-6">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                      Correlação: Hidratação vs Energia
+                    </label>
+                    <div className="h-64 w-full bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={circadianChartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="date" tick={{fontSize: 10}} />
+                          <YAxis tick={{fontSize: 10}} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} />
+                          <Line type="monotone" dataKey="hydration" stroke="#10b981" strokeWidth={2} name="Hidratação (ml)" />
+                          <Line type="monotone" dataKey="energy" stroke="#f59e0b" strokeWidth={2} name="Energia (%)" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sleep Goal & Notifications Configuration */}
+          <div className="space-y-4 w-full">
+            <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+              Sono & Recuperação
+            </label>
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-indigo-500/20 text-indigo-500 dark:text-indigo-400">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Meta de Sono Diária</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Configure suas horas de descanso ideais.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="14"
+                    value={sleepGoalHours}
+                    onChange={(e) => setSleepGoalHours(Number(e.target.value))}
+                    className="w-16 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-center"
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">horas</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Lembretes de Sono</span>
+                <button
+                  type="button"
+                  onClick={() => setSleepReminderEnabled(!sleepReminderEnabled)}
+                  className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    sleepReminderEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg transition duration-200 ease-in-out ${sleepReminderEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
               </div>
             </div>
           </div>

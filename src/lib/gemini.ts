@@ -117,6 +117,7 @@ import { safeGet, safeSet } from './storage';
 export interface TtsOptions {
   model?: string;
   voiceName?: string;
+  isElevenLabs?: boolean;
   emotion?: string;
   style?: string;
 }
@@ -1295,6 +1296,23 @@ export const analyzeBudgetAndSubstitutions = async (
   // Dynamic import or fallback handling
   const { analyzeShoppingListBudget } = await import('./priceMonitor');
   return analyzeShoppingListBudget(items, budgetLimit);
+};
+
+export const generateContextualRecipeAdvice = async (
+  recipe: Partial<Recipe>,
+  pantryItems: string[] = [],
+  userQuestion: string = "",
+  profile?: UserProfile | null
+): Promise<ContextualRecipeAdvice | null> => {
+  return callGeminiEndpoint('generateContextualRecipeAdvice', [recipe, pantryItems, userQuestion, profile], 20000);
+};
+
+export const analyzeWeeklyMealPlanForShopping = async (
+  mealPlan: MealPlan,
+  pantryItems: string[] = [],
+  profile?: UserProfile | null
+): Promise<SmartShoppingSchedule | null> => {
+  return callGeminiEndpoint('analyzeWeeklyMealPlanForShopping', [mealPlan, pantryItems, profile], 25000);
 };
 
 

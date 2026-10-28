@@ -25,14 +25,17 @@ import {
   Map as MapIcon,
   Bike,
   Package,
-  X
+  X,
+  Mic,
+  MicOff,
+  Filter
 } from 'lucide-react';
 import { MarketPartner, Product, CartItem, UserProfile, ProductReview } from '../types';
 import { PARTNER_ESTABLISHMENTS, LOCAL_PRODUCTS_CATALOG } from '../data/marketPartnersData';
 import bannerImage1 from '../assets/images/regenerated_image_1781049540812.jpg';
 import productImage1 from '../assets/images/regenerated_image_1779398315958.jpg';
-import { speak } from '../lib/speech';
-import { vibrate } from '../lib/sensory';
+import { speak, stopSpeech } from '../lib/speech';
+import { playSfx, vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
 import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
@@ -44,6 +47,89 @@ import { PriceAlert } from '../types';
 
 const MARKET_PARTNERS: MarketPartner[] = PARTNER_ESTABLISHMENTS;
 const PRODUCTS: Product[] = LOCAL_PRODUCTS_CATALOG;
+
+export type DietaryFilterType = 'all' | 'keto' | 'low-carb' | 'vegan' | 'high-protein' | 'detox' | 'high-fiber' | 'gluten-free';
+
+export interface DietaryCriterion {
+  id: DietaryFilterType;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  speechConfirmation: string;
+  keywords: string[];
+  excluded?: string[];
+}
+
+export const DIETARY_CRITERIA: Record<DietaryFilterType, DietaryCriterion> = {
+  all: {
+    id: 'all',
+    label: 'Todos os Alimentos',
+    shortLabel: 'Todos',
+    icon: '🥗',
+    speechConfirmation: 'Exibindo todos os produtos disponíveis.',
+    keywords: []
+  },
+  keto: {
+    id: 'keto',
+    label: 'Dieta Cetogênica (Keto)',
+    shortLabel: 'Keto / Cetogênica',
+    icon: '🥑',
+    speechConfirmation: 'Filtrando ingredientes perfeitos para dieta cetogênica com baixo carboidrato e gorduras saudáveis.',
+    keywords: ['abacate', 'azeite', 'espinafre', 'couve', 'rucula', 'rúcula', 'alface', 'brocolis', 'brócolis', 'abobrinha', 'berinjela', 'cogumelo', 'ovo', 'frango', 'carne', 'peixe', 'salmao', 'salmão', 'castanha', 'nozes', 'morango', 'limão', 'limao', 'pepino', 'tomate', 'salada', 'folhas'],
+    excluded: ['banana', 'manga', 'batata', 'mandioca', 'milho', 'melancia', 'uva', 'laranja', 'abacaxi']
+  },
+  'low-carb': {
+    id: 'low-carb',
+    label: 'Low Carb (Baixo Carboidrato)',
+    shortLabel: 'Low Carb',
+    icon: '🥦',
+    speechConfirmation: 'Filtrando opções com baixo teor de carboidratos líquidos.',
+    keywords: ['abacate', 'espinafre', 'couve', 'alface', 'rucula', 'rúcula', 'brocolis', 'brócolis', 'abobrinha', 'berinjela', 'tomate', 'morango', 'ovo', 'frango', 'carne', 'salmão', 'salmao', 'peixe', 'cogumelo', 'pepino', 'salada'],
+    excluded: ['batata', 'mandioca', 'milho', 'banana']
+  },
+  vegan: {
+    id: 'vegan',
+    label: 'Vegano (100% Plant-Based)',
+    shortLabel: 'Vegano',
+    icon: '🌱',
+    speechConfirmation: 'Exibindo alimentos frescos de origem 100% vegetal.',
+    keywords: ['fruta', 'verdura', 'legume', 'alface', 'tomate', 'banana', 'manga', 'morango', 'abacate', 'laranja', 'mandioca', 'batata', 'cenoura', 'espinafre', 'brocolis', 'couve', 'cogumelo', 'abobrinha', 'berinjela', 'pepino'],
+    excluded: ['carne', 'frango', 'ovo', 'peixe', 'salmao', 'salmão', 'queijo', 'leite', 'manteiga']
+  },
+  'high-protein': {
+    id: 'high-protein',
+    label: 'Alta Proteína / Hiperproteico',
+    shortLabel: 'Alta Proteína',
+    icon: '🥩',
+    speechConfirmation: 'Filtrando alimentos e kits com alto teor de proteínas.',
+    keywords: ['frango', 'carne', 'ovo', 'ovos', 'peixe', 'salmão', 'salmao', 'cogumelo', 'proteína', 'proteina', 'kit proteína']
+  },
+  detox: {
+    id: 'detox',
+    label: 'Detox & Antioxidante',
+    shortLabel: 'Detox',
+    icon: '🍋',
+    speechConfirmation: 'Filtrando ingredientes desintoxicantes, ricos em fibras e micronutrientes.',
+    keywords: ['limão', 'limao', 'gengibre', 'couve', 'hortelã', 'hortela', 'pepino', 'maçã', 'maca', 'suco', 'abacaxi', 'melancia', 'detox', 'chá', 'cha', 'ervas']
+  },
+  'high-fiber': {
+    id: 'high-fiber',
+    label: 'Rico em Fibras (High Fiber Snacks)',
+    shortLabel: 'High Fiber',
+    icon: '🌾',
+    speechConfirmation: 'Filtrando opções e lanches ricos em fibras naturais para saciedade e saúde intestinal.',
+    keywords: ['banana', 'maçã', 'maca', 'abacaxi', 'mamão', 'mamao', 'morango', 'cenoura', 'abóbora', 'abobora', 'cogumelo', 'couve', 'espinafre', 'brócolis', 'brocolis', 'chia', 'aveia', 'linhaça', 'linhaca', 'castanha', 'nozes', 'fibra', 'fibras', 'lanche', 'lanches', 'snack', 'snacks', 'fruta', 'frutas', 'salada', 'kit', 'cesta']
+  },
+  'gluten-free': {
+    id: 'gluten-free',
+    label: 'Sem Glúten (Gluten-Free Options)',
+    shortLabel: 'Sem Glúten',
+    icon: '🌾❌',
+    speechConfirmation: 'Filtrando opções e produtos naturalmente livres de glúten.',
+    keywords: ['fruta', 'frutas', 'legume', 'legumes', 'verdura', 'verduras', 'morango', 'banana', 'maçã', 'maca', 'abacate', 'cogumelo', 'cenoura', 'abóbora', 'abobora', 'batata', 'mandioca', 'arroz', 'ovo', 'ovos', 'frango', 'carne', 'peixe', 'salmão', 'salmao', 'suco', 'orgânico', 'organico', 'kit', 'cesta', 'snack', 'lanche'],
+    excluded: ['trigo', 'centeio', 'cevada', 'macarrão', 'pão', 'farinha de trigo']
+  }
+};
 
 const BANNERS = [
   { id: 'b1', title: 'Cesta Fresh da Semana', subtitle: 'Direto do produtor', price: 'R$ 19,90', image: bannerImage1, tip: "Essas frutas estão fresquinhas hoje 💚" },
@@ -88,6 +174,216 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
   const [showOrders, setShowOrders] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [dietaryFilter, setDietaryFilter] = useState<DietaryFilterType>('all');
+  const [isVoiceListening, setIsVoiceListening] = useState<boolean>(false);
+  const [voiceTranscript, setVoiceTranscript] = useState<string>('');
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
+  const recognitionRef = React.useRef<any>(null);
+
+  const handleToggleVoiceFilter = () => {
+    playSfx('tap');
+    vibrate(15);
+
+    if (isVoiceListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+        recognitionRef.current = null;
+      }
+      setIsVoiceListening(false);
+      return;
+    }
+
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      setVoiceToast('Reconhecimento de voz não suportado neste navegador.');
+      setTimeout(() => setVoiceToast(null), 3500);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'pt-BR';
+
+      recognition.onstart = () => {
+        setIsVoiceListening(true);
+        setVoiceTranscript('Ouvindo... Diga ex: "show me high fiber snacks" ou "list gluten-free options"');
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        setVoiceTranscript(transcript);
+
+        if (event.results[0]?.isFinal) {
+          processVoiceQuery(transcript);
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn('Voice error in Marketplace', e);
+        setIsVoiceListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition init error', err);
+      setIsVoiceListening(false);
+    }
+  };
+
+  const processVoiceQuery = (rawText: string) => {
+    const text = rawText.toLowerCase().trim();
+    playSfx('success');
+    vibrate([30, 40]);
+
+    // 1. High Fiber / High Fiber Snacks / Rico em Fibras
+    if (
+      text.includes('high fiber') || 
+      text.includes('high-fiber') || 
+      text.includes('fiber snacks') ||
+      text.includes('fiber') ||
+      text.includes('fibra') ||
+      text.includes('fibras') ||
+      text.includes('rico em fibras') ||
+      text.includes('lanches com fibra') ||
+      text.includes('lanches ricos em fibras') ||
+      text.includes('opções ricas em fibras')
+    ) {
+      setDietaryFilter('high-fiber');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🌾 Filtro Ativo: High Fiber Snacks (Rico em Fibras)');
+      speak(DIETARY_CRITERIA['high-fiber'].speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 2. Gluten-Free / Gluten Free Options / Sem Glúten
+    else if (
+      text.includes('gluten free') || 
+      text.includes('gluten-free') || 
+      text.includes('glutenfree') || 
+      text.includes('gluten') || 
+      text.includes('glúten') || 
+      text.includes('sem glúten') || 
+      text.includes('sem gluten') || 
+      text.includes('opções sem glúten') || 
+      text.includes('opcoes sem gluten')
+    ) {
+      setDietaryFilter('gluten-free');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🌾❌ Filtro Ativo: Gluten-Free Options (Sem Glúten)');
+      speak(DIETARY_CRITERIA['gluten-free'].speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 3. Keto / Cetogênica
+    else if (
+      text.includes('keto') || 
+      text.includes('cetogênica') || 
+      text.includes('cetogenica') || 
+      text.includes('cetose') ||
+      text.includes('cetogênicos') ||
+      text.includes('cetogenicos')
+    ) {
+      setDietaryFilter('keto');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🥑 Filtro Ativo: Dieta Cetogênica (Keto)');
+      speak(DIETARY_CRITERIA.keto.speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 4. Low Carb
+    else if (
+      text.includes('low carb') || 
+      text.includes('lowcarb') || 
+      text.includes('baixo carboidrato') || 
+      text.includes('baixo carbo') || 
+      text.includes('pouco carbo')
+    ) {
+      setDietaryFilter('low-carb');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🥦 Filtro Ativo: Low Carb');
+      speak(DIETARY_CRITERIA['low-carb'].speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 5. Vegano
+    else if (
+      text.includes('vegano') || 
+      text.includes('vegan') || 
+      text.includes('plant based') || 
+      text.includes('vegetal') ||
+      text.includes('vegetariano')
+    ) {
+      setDietaryFilter('vegan');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🌱 Filtro Ativo: Vegano (100% Plant-Based)');
+      speak(DIETARY_CRITERIA.vegan.speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 6. Alta Proteína
+    else if (
+      text.includes('proteína') || 
+      text.includes('proteina') || 
+      text.includes('hiperproteico') || 
+      text.includes('proteico') || 
+      text.includes('massa muscular') ||
+      text.includes('high protein')
+    ) {
+      setDietaryFilter('high-protein');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🥩 Filtro Ativo: Alta Proteína');
+      speak(DIETARY_CRITERIA['high-protein'].speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 7. Detox
+    else if (
+      text.includes('detox') || 
+      text.includes('limpeza') || 
+      text.includes('antioxidante') ||
+      text.includes('desintoxicante')
+    ) {
+      setDietaryFilter('detox');
+      setActiveCategory('Tudo');
+      setSearchQuery('');
+      setVoiceToast('🍋 Filtro Ativo: Detox & Antioxidante');
+      speak(DIETARY_CRITERIA.detox.speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 8. Limpar / Ver todos
+    else if (
+      text.includes('limpar') || 
+      text.includes('todos') || 
+      text.includes('tudo') || 
+      text.includes('cancelar') ||
+      text.includes('remover filtro') ||
+      text.includes('clear') ||
+      text.includes('show all')
+    ) {
+      setDietaryFilter('all');
+      setSearchQuery('');
+      setVoiceToast('Filtro removido: Todos os produtos');
+      speak(DIETARY_CRITERIA.all.speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+    // 9. General search fallback (ex: "show me apples", "list snacks", "find spinach")
+    else {
+      const clean = text
+        .replace(/^(show\s+me|list|find|search\s+for|encontrar|buscar|procure|procurar|comprar|quero)\s+/i, '')
+        .replace(/^(options\s+for|snacks\s+for|ingredientes\s+para|alimentos\s+para|produtos\s+de)\s+/i, '')
+        .trim();
+      setSearchQuery(clean);
+      setDietaryFilter('all');
+      setVoiceToast(`Buscando por: "${clean}"`);
+      speak(`Buscando produtos relacionados a ${clean}.`, { voice: 'Aoede', lang: 'pt-BR' });
+    }
+
+    setTimeout(() => {
+      setVoiceToast(null);
+    }, 4500);
+  };
 
   useEffect(() => {
     if (showOrders) {
@@ -307,7 +603,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     return 0;
   });
 
-  // Filtered products based on category, active partner, sale modality, and search
+  // Filtered products based on category, active partner, sale modality, search, and dietary criteria
   const filteredProducts = PRODUCTS.filter(p => {
     const matchesCategory = activeCategory === 'Tudo' || p.category === activeCategory;
     const matchesPartner = selectedPartnerId === 'all' || p.partnerId === selectedPartnerId;
@@ -316,7 +612,17 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.origin && p.origin.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesPartner && matchesSaleType && matchesSearch;
+
+    let matchesDiet = true;
+    if (dietaryFilter !== 'all') {
+      const criteria = DIETARY_CRITERIA[dietaryFilter];
+      const hay = (p.name + ' ' + p.description + ' ' + (p.category || '')).toLowerCase();
+      const hasKeyword = criteria.keywords.some(k => hay.includes(k));
+      const hasExcluded = criteria.excluded ? criteria.excluded.some(ex => hay.includes(ex)) : false;
+      matchesDiet = hasKeyword && !hasExcluded;
+    }
+
+    return matchesCategory && matchesPartner && matchesSaleType && matchesSearch && matchesDiet;
   });
 
   if (isTracking) {
@@ -678,17 +984,64 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
 
       {/* Search & Modality Filters */}
       <div className="space-y-4">
+        {/* Voice Search Toast Feedback */}
+        <AnimatePresence>
+          {voiceToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-lg shadow-emerald-500/20"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 animate-spin-slow" />
+                <span>{voiceToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoiceToast(null)}
+                className="p-1 hover:bg-white/20 rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Search Input */}
-          <div className="relative w-full md:w-80">
+          {/* Search Input with Voice-Activated Filter Button */}
+          <div className="relative w-full md:w-96">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar fruta, legume, produtor..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-slate-800 dark:text-slate-100"
+              placeholder='Buscar ou fale ex: "show me high fiber snacks", "list gluten-free options"...'
+              className="w-full pl-10 pr-24 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-slate-800 dark:text-slate-100 shadow-xs"
             />
+            {/* Voice Command Filter Button */}
+            <button
+              type="button"
+              onClick={handleToggleVoiceFilter}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isVoiceListening
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/40'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+              }`}
+              title='Filtrar por voz: clique e fale "show me high fiber snacks" ou "list gluten-free options"'
+            >
+              {isVoiceListening ? (
+                <>
+                  <Mic className="w-3.5 h-3.5 animate-bounce" />
+                  <span className="text-[11px]">Ouvindo...</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-[11px]">Voz</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Modalidade de Venda Selector: Por Quilo (kg) vs Por Unidade (un) */}
@@ -727,6 +1080,78 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             </button>
           </div>
         </div>
+
+        {/* Dietary Criteria Pills Bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 px-1">
+            <span className="flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-emerald-500" />
+              Critérios Dietéticos (Fale por voz ou selecione):
+            </span>
+            {dietaryFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDietaryFilter('all');
+                  playSfx('tap');
+                }}
+                className="text-xs text-rose-500 hover:underline cursor-pointer font-bold"
+              >
+                Limpar filtro dietético
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            {(Object.keys(DIETARY_CRITERIA) as DietaryFilterType[]).map((dietKey) => {
+              const item = DIETARY_CRITERIA[dietKey];
+              const isSelected = dietaryFilter === dietKey;
+              return (
+                <button
+                  key={dietKey}
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(10);
+                    setDietaryFilter(dietKey);
+                    if (dietKey !== 'all') {
+                      speak(item.speechConfirmation, { voice: 'Aoede', lang: 'pt-BR' });
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/25 scale-102 ring-2 ring-emerald-400/40'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500/40'
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active Dietary Filter Banner Notification */}
+        {dietaryFilter !== 'all' && (
+          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 flex items-center justify-between text-xs sm:text-sm font-semibold">
+            <div className="flex items-center gap-2">
+              <span className="text-base">{DIETARY_CRITERIA[dietaryFilter].icon}</span>
+              <span>
+                Filtro Ativo: <strong>{DIETARY_CRITERIA[dietaryFilter].label}</strong> ({filteredProducts.length} itens encontrados)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDietaryFilter('all');
+                playSfx('tap');
+              }}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-300 cursor-pointer"
+            >
+              Remover
+            </button>
+          </div>
+        )}
 
         {/* Category Tabs */}
         <div className="flex justify-center flex-wrap items-center gap-2 sm:gap-3 pb-2 w-full">

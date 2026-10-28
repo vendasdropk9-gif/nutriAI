@@ -5,7 +5,7 @@ import {
   Upload, Search, Filter, RefreshCw, Layers, ShieldAlert,
   ArrowRight, Utensils, Check, HelpCircle, Package, ArrowDownUp, Scale,
   PackagePlus, FolderInput, ClipboardPaste, ShoppingCart, RefreshCcw, Plus, X,
-  MoveRight, CheckCheck, ListPlus, Mic, MicOff, Volume2
+  MoveRight, CheckCheck, ListPlus, Mic, MicOff, Volume2, Bell
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { analyzeBarcodeProduct, generatePantryExpiringRecipes } from '../lib/gemini';
@@ -262,6 +262,70 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
     return 'fresco';
   };
 
+  const checkAndNotifyExpiringStaples = (items: PantryItem[]) => {
+    if (!items || items.length === 0) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    let notifiedKeys: Record<string, boolean> = {};
+    try {
+      const stored = localStorage.getItem('nutri_pantry_notified_keys');
+      if (stored) notifiedKeys = JSON.parse(stored);
+    } catch (e) {}
+
+    const newNotifiedKeys = { ...notifiedKeys };
+    let newCount = 0;
+
+    items.forEach(it => {
+      const days = calculateDaysRemaining(it.expirationDate);
+      const key = `${it.id}_${it.expirationDate}_${todayStr}`;
+
+      if (days <= 3 && !notifiedKeys[key]) {
+        newNotifiedKeys[key] = true;
+        newCount++;
+
+        const isExpired = days < 0;
+        const title = isExpired 
+          ? "⚠️ Validade Expirada na Despensa" 
+          : days === 0 
+          ? "⏳ Vence Hoje na Despensa!" 
+          : `⏳ Vence em ${days} ${days === 1 ? 'dia' : 'dias'}`;
+
+        const message = isExpired
+          ? `O item "${it.name}" (${it.storageLocation || 'despensa'}) venceu em ${it.expirationDate}. Verifique antes do preparo.`
+          : `O item "${it.name}" (${it.storageLocation || 'despensa'}) vence em breve (${it.expirationDate}). Clique para gerar receita de resgate!`;
+
+        // Proactive Push Notification via CustomEvent for NotificationSystem
+        window.dispatchEvent(new CustomEvent('app:notification', {
+          detail: {
+            id: `pantry-exp-${it.id}-${Date.now()}`,
+            title,
+            message,
+            type: isExpired ? 'warning' : 'info'
+          }
+        }));
+
+        // Native Browser Push Notification
+        if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
+          try {
+            new window.Notification(title, {
+              body: message,
+              icon: '/assets/aistudio/image_22232184.png',
+              tag: `pantry-exp-${it.id}`
+            });
+          } catch (e) {
+            console.warn("Native push notification error:", e);
+          }
+        }
+      }
+    });
+
+    if (newCount > 0) {
+      try {
+        localStorage.setItem('nutri_pantry_notified_keys', JSON.stringify(newNotifiedKeys));
+      } catch (e) {}
+    }
+  };
+
   const loadPantryItems = async () => {
     setLoading(true);
     let items: PantryItem[] = [];
@@ -358,14 +422,17 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
       ];
       setPantryItems(demoItems);
       saveItems(demoItems);
+      checkAndNotifyExpiringStaples(demoItems);
     } else {
       setPantryItems(updated);
+      checkAndNotifyExpiringStaples(updated);
     }
     setLoading(false);
   };
 
   const saveItems = async (items: PantryItem[]) => {
     localStorage.setItem('nutri_pantry_items', JSON.stringify(items));
+    checkAndNotifyExpiringStaples(items);
     try {
       const user = auth.currentUser || (profile?.id ? { uid: profile.id } : null);
       if (user) {
@@ -1435,6 +1502,58 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
       {/* TAB: INVENTORY LIST */}
       {activeTab === 'inventory' && (
         <div className="space-y-4">
+          {/* Proactive Push Notification Info Banner */}
+          <div id="pantry-proactive-notifications-banner" className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-600/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-900/40 border border-emerald-300/40 dark:border-emerald-700/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0">
+                <Bell className="w-5 h-5 animate-bounce" />
+              </div>
+              <div>
+                <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  Notificações Proativas de Validade Ativas
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                    Automático
+                  </span>
+                </h4>
+                <p className="text-zinc-600 dark:text-zinc-400 mt-0.5">
+                  O sistema analisa continuamente o banco de validades e dispara alertas no aplicativo e Web Push quando mantimentos chegam a 3 dias do vencimento.
+                </p>
+              </div>
+            </div>
+            <button
+              id="btn-check-expiring-pantry-now"
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && 'Notification' in window) {
+                  if (window.Notification.permission === 'granted') {
+                    checkAndNotifyExpiringStaples(pantryItems);
+                    window.dispatchEvent(new CustomEvent('app:notification', {
+                      detail: {
+                        id: `test-exp-${Date.now()}`,
+                        title: "🔔 Notificações da Despensa Verificadas",
+                        message: `Checagem proativa executada para ${pantryItems.length} itens da despensa.`,
+                        type: "info"
+                      }
+                    }));
+                    speak("Verificação proativa de validade executada!", { lang: 'pt-BR', voice: 'Aoede' });
+                  } else {
+                    window.Notification.requestPermission().then(perm => {
+                      if (perm === 'granted') {
+                        checkAndNotifyExpiringStaples(pantryItems);
+                      }
+                    });
+                  }
+                } else {
+                  checkAndNotifyExpiringStaples(pantryItems);
+                }
+              }}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold transition shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Verificar Validades Agora</span>
+            </button>
+          </div>
+
           {filteredItems.length === 0 ? (
             <div className="text-center py-12 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 p-8 space-y-3">
               <Package className="w-12 h-12 text-zinc-400 mx-auto" />

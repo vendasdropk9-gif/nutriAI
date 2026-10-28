@@ -498,19 +498,19 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
   return (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 px-3 sm:px-6">
       
-      {/* Header com Tema Unificado */}
+      {/* Header com Tema Unificado Snap-to-Nutrition */}
       <div className="text-center space-y-3 mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-bold uppercase tracking-wider">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-bold uppercase tracking-wider shadow-sm">
           <Sparkles className="w-4 h-4" />
-          Inteligência Nutricional por Foto
+          Snap-to-Nutrition IA • Câmera em Tempo Real
         </div>
 
         <h2 className="font-serif text-3xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-          Análise de Prato
+          Análise de Prato (Snap-to-Nutrition)
         </h2>
         
         <p className="font-sans text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-sm sm:text-base md:text-lg leading-relaxed">
-          Tire ou envie uma foto do seu prato para calcular calorias, macronutrientes e gerar um card de compartilhamento em alta definição.
+          Use a câmera para capturar uma foto de um prato real e deixe a IA estimar a composição nutricional, calorias e macronutrientes em tempo real.
         </p>
       </div>
 
@@ -525,7 +525,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           }`}
         >
           <Camera className="w-4 h-4" />
-          <span>Scanner IA</span>
+          <span>Snap-to-Nutrition</span>
         </button>
 
         <button
@@ -565,16 +565,25 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           {/* State 1: Selection Buttons */}
           {!previewImage && !isCameraActive && (
             <div className="flex flex-col items-center justify-center p-6 sm:p-12 border-2 border-dashed border-emerald-300 dark:border-emerald-700/50 bg-emerald-50/40 dark:bg-slate-900/50 rounded-[24px]">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-6 shadow-sm">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 shadow-sm relative">
                 <Camera className="w-8 h-8 sm:w-10 sm:h-10" />
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-bold mb-3 border border-emerald-500/20">
+                <Zap className="w-3.5 h-3.5" />
+                Snap-to-Nutrition Ativo
               </div>
               
               <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-2">
-                Como deseja registrar sua refeição?
+                Escaneie seu prato em tempo real
               </h3>
               
               <p className="text-slate-600 dark:text-slate-400 font-medium mb-8 text-center max-w-md text-xs sm:text-sm">
-                Aponte a câmera ao vivo para o seu prato ou envie uma foto já salva na sua galeria.
+                Capture o prato com a câmera ao vivo ou selecione uma foto da galeria para estimar calorias, proteínas, carboidratos e gorduras instantaneamente.
               </p>
               
               <input
@@ -591,7 +600,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                   className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-6 py-3.5 sm:px-8 sm:py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/30 active:scale-98 text-sm sm:text-base text-center w-full"
                 >
                   <Camera className="w-5 h-5 shrink-0" />
-                  <span>Câmera ao Vivo</span>
+                  <span>Snap-to-Nutrition (Câmera ao Vivo)</span>
                 </button>
                 
                 <button
@@ -599,7 +608,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                   className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-6 py-3.5 sm:px-8 sm:py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2.5 active:scale-98 text-sm sm:text-base border border-slate-300 dark:border-slate-700 text-center w-full"
                 >
                   <Upload className="w-5 h-5 shrink-0" />
-                  <span>Carregar da Galeria</span>
+                  <span>Carregar Foto da Galeria</span>
                 </button>
               </div>
             </div>
@@ -608,16 +617,23 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
           {/* State 2: Live Camera View */}
           {isCameraActive && !previewImage && (
             <div className="flex flex-col items-center justify-center space-y-6 w-full">
-              <button
-                onClick={() => setIsArModeActive(!isArModeActive)}
-                className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
-                  isArModeActive 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-                }`}
-              >
-                {isArModeActive ? 'Desativar Guia AR' : 'Ativar Guia de Porções AR'}
-              </button>
+              <div className="flex items-center justify-between w-full max-w-xl gap-2 px-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-emerald-400 border border-emerald-500/40 text-xs font-bold uppercase tracking-wider shadow-md">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Snap-to-Nutrition • Visão ao Vivo
+                </div>
+
+                <button
+                  onClick={() => setIsArModeActive(!isArModeActive)}
+                  className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${
+                    isArModeActive 
+                      ? 'bg-emerald-600 text-white shadow-md' 
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                  }`}
+                >
+                  {isArModeActive ? 'Desativar Guia AR' : 'Ativar Guia de Porções AR'}
+                </button>
+              </div>
 
               <div className="relative w-full aspect-[4/3] md:aspect-video rounded-[24px] overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-2xl">
                 
@@ -668,14 +684,17 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                 {!cameraStream && !cameraError && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-3 bg-slate-900">
                     <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
-                    <p className="text-sm font-medium">Iniciando câmera...</p>
+                    <p className="text-sm font-medium">Iniciando câmera Snap-to-Nutrition...</p>
                   </div>
                 )}
 
                 {cameraStream && !cameraError && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-48 h-48 sm:w-64 sm:h-64 border-2 border-dashed border-emerald-400/60 rounded-full flex items-center justify-center animate-pulse">
-                      <Target className="w-8 h-8 text-emerald-400/80" />
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                    <div className="w-52 h-52 sm:w-68 sm:h-68 border-2 border-dashed border-emerald-400/70 rounded-3xl flex items-center justify-center animate-pulse relative">
+                      <Target className="w-10 h-10 text-emerald-400/90" />
+                      <div className="absolute bottom-2 px-3 py-1 bg-slate-950/80 rounded-full text-[10px] font-bold text-emerald-300 backdrop-blur-md border border-emerald-500/30">
+                        Snap-to-Nutrition • Alinhar Prato
+                      </div>
                     </div>
                   </div>
                 )}
@@ -699,11 +718,11 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
               </div>
 
               {cameraStream && !cameraError && (
-                <div className="flex items-center justify-center gap-4 w-full">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
                   <button
                     type="button"
                     onClick={stopCamera}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-3 rounded-full transition-colors text-sm text-center"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-3 rounded-full transition-colors text-sm text-center w-full sm:w-auto"
                   >
                     Cancelar
                   </button>
@@ -711,12 +730,11 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                   <button
                     type="button"
                     onClick={captureCameraPhoto}
-                    className="w-16 h-16 rounded-full bg-white border-4 border-emerald-500/50 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all"
-                    title="Capturar Foto"
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/30 active:scale-95 text-base w-full sm:w-auto"
+                    title="Snap-to-Nutrition (Capturar & Estimar)"
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" />
-                    </div>
+                    <Camera className="w-6 h-6 text-white" />
+                    <span>Snap-to-Nutrition (Capturar & Estimar)</span>
                   </button>
                 </div>
               )}
@@ -936,12 +954,23 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                 compact={false}
               />
 
-              {/* Nutrients Bento Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="bg-orange-50 dark:bg-orange-950/30 p-4 rounded-2xl text-center border border-orange-200/50 dark:border-orange-900/30">
-                  <p className="text-orange-600 dark:text-orange-400 font-bold text-xs uppercase tracking-wider mb-1">Calorias</p>
-                  <p className="text-2xl font-serif font-black text-orange-700 dark:text-orange-300">{analysisResult.nutrition.calories} <span className="text-xs font-sans font-normal">kcal</span></p>
+              {/* Nutrients Bento Grid (Snap-to-Nutrition) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    <Zap className="w-4 h-4 text-emerald-500" />
+                    Snap-to-Nutrition • Estimativa IA em Tempo Real
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                    Visão Computacional
+                  </span>
                 </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="bg-orange-50 dark:bg-orange-950/30 p-4 rounded-2xl text-center border border-orange-200/50 dark:border-orange-900/30">
+                    <p className="text-orange-600 dark:text-orange-400 font-bold text-xs uppercase tracking-wider mb-1">Calorias</p>
+                    <p className="text-2xl font-serif font-black text-orange-700 dark:text-orange-300">{analysisResult.nutrition.calories} <span className="text-xs font-sans font-normal">kcal</span></p>
+                  </div>
                 <div className="bg-red-50 dark:bg-red-950/30 p-4 rounded-2xl text-center border border-red-200/50 dark:border-red-900/30">
                   <p className="text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider mb-1">{t('analyzer_protein', 'Proteína')}</p>
                   <p className="text-2xl font-serif font-black text-red-700 dark:text-red-300">{analysisResult.nutrition.protein} <span className="text-xs font-sans font-normal">g</span></p>
@@ -959,6 +988,7 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                   <p className="text-2xl font-serif font-black text-emerald-700 dark:text-emerald-300">{analysisResult.nutrition.fiber} <span className="text-xs font-sans font-normal">g</span></p>
                 </div>
               </div>
+            </div>
 
               {/* Alimentos e Sugestões */}
               <div className="grid md:grid-cols-2 gap-6">

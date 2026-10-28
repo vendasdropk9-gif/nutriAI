@@ -1044,6 +1044,249 @@ Responda APENAS com um array JSON com os objetos de receita.`;
   ];
 };
 
+export interface NextDayMealPlanResult {
+  date: string;
+  summary: string;
+  pantryUsedCount: number;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  meals: {
+    type: 'breakfast' | 'lunch' | 'snack' | 'dinner';
+    label: string;
+    name: string;
+    prepTime: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    ingredients: string[];
+    pantryMatches: string[];
+    instructions: string[];
+  }[];
+}
+
+export const generateNextDayPlan = async (
+  profile: UserProfile | null,
+  pantryItems: string[] = []
+): Promise<NextDayMealPlanResult> => {
+  const ai = getGenAI();
+  const tomorrow = new Date(Date.now() + 86400000);
+  const tomorrowFormatted = tomorrow.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let profileContext = `
+- Restrições Alimentares: ${safeJoin(profile?.restrictions) || 'Nenhuma'}
+- Alergias: ${safeJoin(profile?.allergies) || 'Nenhuma'}
+- Objetivo: ${profile?.goals || 'Alimentação saudável e equilíbrio'}
+- Meta Calórica Diária: ${profile?.masterPlan?.dailyCalories || 2000} kcal
+- Meta Proteica Diária: ${profile?.masterPlan?.macros?.protein || 120}g
+- Idioma: ${profile?.language || 'pt-BR'}
+`;
+
+  const pantryListText = pantryItems.length > 0 
+    ? pantryItems.join(', ') 
+    : 'Ovos, aveia, banana, azeite, frango, batata doce, arroz integral, maçã, espinafre, queijo';
+
+  const prompt = `Como Malu, nutricionista inteligente do NutriAI, crie um plano alimentar completo para AMANHÃ (${tomorrowFormatted}).
+Leve em consideração RIGOROSAMENTE o perfil do usuário e dê prioridade aos ingredientes disponíveis na DESPANSA/GELADEIRA do usuário.
+
+PERFIL DO USUÁRIO:
+${profileContext}
+
+INGREDIENTES DISPONÍVEIS NA DESPANSA:
+${pantryListText}
+
+DIRETIVAS:
+1. Monte 4 refeições saborosas (Café da Manhã, Almoço, Lanche da Tarde e Jantar).
+2. Tente reaproveitar o máximo de itens da despensa do usuário e indique explicitamente em 'pantryMatches' quais itens da despensa foram usados.
+3. Respeite sem exceção alergias e restrições (ex: sem lactose se intolerante, sem glúten se celíaco, etc.).
+4. Responda estritamente em JSON com o schema especificado.
+`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      date: { type: Type.STRING },
+      summary: { type: Type.STRING },
+      pantryUsedCount: { type: Type.NUMBER },
+      totalCalories: { type: Type.NUMBER },
+      totalProtein: { type: Type.NUMBER },
+      totalCarbs: { type: Type.NUMBER },
+      totalFat: { type: Type.NUMBER },
+      meals: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            type: { type: Type.STRING, enum: ['breakfast', 'lunch', 'snack', 'dinner'] },
+            label: { type: Type.STRING },
+            name: { type: Type.STRING },
+            prepTime: { type: Type.STRING },
+            calories: { type: Type.NUMBER },
+            protein: { type: Type.NUMBER },
+            carbs: { type: Type.NUMBER },
+            fat: { type: Type.NUMBER },
+            ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+            pantryMatches: { type: Type.ARRAY, items: { type: Type.STRING } },
+            instructions: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ['type', 'label', 'name', 'prepTime', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'pantryMatches', 'instructions']
+        }
+      }
+    },
+    required: ['date', 'summary', 'pantryUsedCount', 'totalCalories', 'totalProtein', 'totalCarbs', 'totalFat', 'meals']
+  };
+
+  if (!ai) {
+    return {
+      date: tomorrowFormatted,
+      summary: "Plano otimizado para amanhã utilizando itens essenciais da sua despensa!",
+      pantryUsedCount: 4,
+      totalCalories: profile?.masterPlan?.dailyCalories || 1950,
+      totalProtein: profile?.masterPlan?.macros?.protein || 125,
+      totalCarbs: profile?.masterPlan?.macros?.carbs || 190,
+      totalFat: profile?.masterPlan?.macros?.fat || 55,
+      meals: [
+        {
+          type: 'breakfast',
+          label: 'Café da Manhã',
+          name: 'Panqueca de Aveia e Banana com Ovos',
+          prepTime: '10 min',
+          calories: 380,
+          protein: 22,
+          carbs: 45,
+          fat: 10,
+          ingredients: ['2 ovos', '40g aveia em flocos', '1 banana madura', '1 pitada de canela'],
+          pantryMatches: ['ovos', 'aveia', 'banana'],
+          instructions: ['Amasse a banana com a aveia e os ovos', 'Grelhe na frigideira antiaderente por 3 min de cada lado']
+        },
+        {
+          type: 'lunch',
+          label: 'Almoço',
+          name: 'Grelhado de Frango com Batata Doce e Salada',
+          prepTime: '20 min',
+          calories: 580,
+          protein: 48,
+          carbs: 52,
+          fat: 14,
+          ingredients: ['160g peito de frango', '150g batata doce assada', 'Folhas verdes', '1 colher azeite'],
+          pantryMatches: ['frango', 'batata doce', 'azeite'],
+          instructions: ['Grelhe o frango temperado com ervas', 'Sirva com a batata doce cozida/assada e salada']
+        },
+        {
+          type: 'snack',
+          label: 'Lanche da Tarde',
+          name: 'Iogurte com Maçã e Canela',
+          prepTime: '5 min',
+          calories: 220,
+          protein: 15,
+          carbs: 28,
+          fat: 4,
+          ingredients: ['170g iogurte natural', '1 maçã fatiada', 'Canela'],
+          pantryMatches: ['maçã'],
+          instructions: ['Misture a maçã fatiada ao iogurte e salpique canela']
+        },
+        {
+          type: 'dinner',
+          label: 'Jantar',
+          name: 'Omelete Recheado com Espinafre e Queijo',
+          prepTime: '12 min',
+          calories: 420,
+          protein: 32,
+          carbs: 12,
+          fat: 24,
+          ingredients: ['3 ovos', '1 xícara de espinafre', '30g queijo branco', '1 fio de azeite'],
+          pantryMatches: ['ovos', 'espinafre', 'queijo', 'azeite'],
+          instructions: ['Bata os ovos e despeje na frigideira', 'Adicione o espinafre e o queijo, dobre e sirva']
+        }
+      ]
+    };
+  }
+
+  try {
+    const result = await callWithModelFallback(ai, {
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+        temperature: 0.7
+      },
+      models: GEMINI_FALLBACK_MODELS
+    });
+
+    if (result.text) {
+      return JSON.parse(result.text);
+    }
+  } catch (e: any) {
+    console.warn("Error calling Gemini in generateNextDayPlan:", e);
+  }
+
+  return {
+    date: tomorrowFormatted,
+    summary: "Plano saudável gerado especialmente para amanhã adaptado ao seu perfil e despensa.",
+    pantryUsedCount: 4,
+    totalCalories: profile?.masterPlan?.dailyCalories || 1950,
+    totalProtein: profile?.masterPlan?.macros?.protein || 125,
+    totalCarbs: profile?.masterPlan?.macros?.carbs || 190,
+    totalFat: profile?.masterPlan?.macros?.fat || 55,
+    meals: [
+      {
+        type: 'breakfast',
+        label: 'Café da Manhã',
+        name: 'Ovos Mexidos com Aveia e Fruta',
+        prepTime: '10 min',
+        calories: 380,
+        protein: 22,
+        carbs: 45,
+        fat: 10,
+        ingredients: ['2 ovos', '40g aveia', '1 banana'],
+        pantryMatches: ['ovos', 'aveia', 'banana'],
+        instructions: ['Prepare os ovos mexidos', 'Acompanhe com a aveia e a banana fatiada']
+      },
+      {
+        type: 'lunch',
+        label: 'Almoço',
+        name: 'Grelhado com Legumes e Carboidrato Complexo',
+        prepTime: '20 min',
+        calories: 580,
+        protein: 48,
+        carbs: 52,
+        fat: 14,
+        ingredients: ['150g proteína grelhada', '150g tubérculo ou grão', 'Legumes no vapor'],
+        pantryMatches: ['azeite'],
+        instructions: ['Grelhe a proteína e sirva com os acompanhamentos']
+      },
+      {
+        type: 'snack',
+        label: 'Lanche',
+        name: 'Snack Proteico com Frutas',
+        prepTime: '5 min',
+        calories: 220,
+        protein: 15,
+        carbs: 28,
+        fat: 4,
+        ingredients: ['Fruta fresca', 'Iogurte ou oleaginosa'],
+        pantryMatches: ['maçã'],
+        instructions: ['Consuma gelado e fresco']
+      },
+      {
+        type: 'dinner',
+        label: 'Jantar',
+        name: 'Omelete Funcional ou Sopa Leve',
+        prepTime: '15 min',
+        calories: 420,
+        protein: 32,
+        carbs: 12,
+        fat: 24,
+        ingredients: ['3 ovos ou peixe', 'Vegetais diversos', 'Azeite'],
+        pantryMatches: ['ovos', 'azeite'],
+        instructions: ['Prepare em fogo brando e sirva aquecido']
+      }
+    ]
+  };
+};
+
 const fetchNaturalAudioChunk = (chunkText: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=pt-BR&q=${encodeURIComponent(chunkText)}`;
@@ -6667,9 +6910,336 @@ Responda em formato JSON estrito:
       };
     }
 
-    return fallback;
   } catch (err) {
     console.warn("[analyzeBudgetAndSubstitutions] Usando fallback determinístico local:", err);
+    return fallback;
+  }
+};
+
+export const generateContextualRecipeAdvice = async (
+  recipe: Partial<Recipe>,
+  pantryItems: string[] = [],
+  userQuestion: string = "",
+  profile?: UserProfile | null
+): Promise<ContextualRecipeAdvice> => {
+  const recipeTitle = recipe.name || "Receita Selecionada";
+  const recipeIngredients = recipe.ingredients || [];
+  const recipeInstructions = recipe.instructions || [];
+  const restrictions = profile?.restrictions || [];
+
+  const fallback: ContextualRecipeAdvice = {
+    recipeTitle,
+    summaryAdvice: `Para a receita "${recipeTitle}", explicamos as principais técnicas gastronômicas envolvidas e mapeamos substituições inteligentes com os itens da sua despensa.`,
+    techniques: [
+      {
+        name: "Selagem e Caramelização (Reação de Maillard)",
+        description: "Aqueça bem a panela antes de colocar proteínas ou vegetais. Isso sela os sucos internos e cria uma crosta dourada e muito saborosa.",
+        stepToApply: "Aplica-se nas etapas iniciais de grelhar ou dourar os ingredientes.",
+        proTip: "Não encha a panela; deixe espaço entre os alimentos para não gerar vapor e cozinhar em vez de selar."
+      },
+      {
+        name: "Emulsão e Controle de Temperatura",
+        description: "Adicione caldos ou laticínios aos poucos sob fogo brando ou desligado para manter a textura cremosa e sem talhar.",
+        stepToApply: "Aplica-se ao finalizar molhos e incorporar ingredientes cremosos.",
+        proTip: "Tempere ingredientes frios com um pouco do molho morno antes de adicionar à panela."
+      }
+    ],
+    pantrySubstitutions: pantryItems.length > 0 ? [
+      {
+        originalIngredient: recipeIngredients[0] || "Creme de leite ou manteiga",
+        pantryMatchItem: pantryItems[0] || "Iogurte natural ou azeite",
+        substitutionRatio: "1:1",
+        culinaryImpact: "Conserva a cremosidade mantendo o sabor marcante e mais leve.",
+        nutritionalNote: "Reduz gorduras saturadas e eleva o aporte proteico da refeição."
+      }
+    ] : [
+      {
+        originalIngredient: "Ingrediente refinado",
+        pantryMatchItem: "Versão integral / funcional da despensa",
+        substitutionRatio: "1:1",
+        culinaryImpact: "Sabor idêntico com textura mais rica e saciedade prolongada.",
+        nutritionalNote: "Mais fibras e menor índice glicêmico."
+      }
+    ],
+    suggestedFollowUps: [
+      "Como substituir o ingrediente principal se minha despensa estiver incompleta?",
+      "Qual o melhor ponto de cozimento para esta receita?",
+      "Como armazenar as sobras mantendo o sabor original?"
+    ]
+  };
+
+  try {
+    const ai = getGenAI();
+    if (!ai) return fallback;
+
+    const prompt = `Você é a Chef Malu, assistente culinária contextual e nutricionista do NutriAI.
+Analise a seguinte receita e a lista real de itens que o usuário possui na despensa:
+
+NOME DA RECEITA: "${recipeTitle}"
+INGREDIENTES DA RECEITA: ${recipeIngredients.join(', ')}
+MODO DE PREPARO: ${recipeInstructions.join(' | ')}
+ITENS DISPONÍVEIS NA DESPENSA DO USUÁRIO: ${pantryItems.length > 0 ? pantryItems.join(', ') : 'Nenhum item cadastrado especificamente'}
+RESTRIÇÕES ALIMENTARES: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
+PERGUNTA / DÚVIDA DO USUÁRIO: "${userQuestion || 'Desejo explicações de técnicas culinárias e substituições usando minha despensa'}"
+
+TAREFAS OBRIGATÓRIAS:
+1. Explique de 2 a 3 TÉCNICAS CULINÁRIAS ESPECÍFICAS usadas nesta receita (ex: selagem, saltear, emulsão, repouso, banho-maria, branqueamento, redução).
+2. Analise a lista da despensa do usuário e sugira de 1 a 3 SUBSTITUIÇÕES CONTEXTUAIS inteligentes de ingredientes da receita por itens que ele JÁ POSSUI na despensa. Se a despensa estiver vazia ou não tiver itens diretos, sugira substituições funcionais universais.
+3. Elabore um resumo conciso e acolhedor (summaryAdvice).
+4. Sugira 3 perguntas de acompanhamento relevantes.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            recipeTitle: { type: Type.STRING },
+            summaryAdvice: { type: Type.STRING },
+            techniques: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  stepToApply: { type: Type.STRING },
+                  proTip: { type: Type.STRING }
+                },
+                required: ["name", "description", "proTip"]
+              }
+            },
+            pantrySubstitutions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  originalIngredient: { type: Type.STRING },
+                  pantryMatchItem: { type: Type.STRING },
+                  substitutionRatio: { type: Type.STRING },
+                  culinaryImpact: { type: Type.STRING },
+                  nutritionalNote: { type: Type.STRING }
+                },
+                required: ["originalIngredient", "pantryMatchItem", "substitutionRatio", "culinaryImpact"]
+              }
+            },
+            suggestedFollowUps: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          },
+          required: ["summaryAdvice", "techniques", "pantrySubstitutions", "suggestedFollowUps"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    if (parsed && (parsed.techniques?.length > 0 || parsed.pantrySubstitutions?.length > 0)) {
+      return {
+        recipeTitle: parsed.recipeTitle || recipeTitle,
+        summaryAdvice: parsed.summaryAdvice || fallback.summaryAdvice,
+        techniques: safeArray(parsed.techniques).length > 0 ? parsed.techniques : fallback.techniques,
+        pantrySubstitutions: safeArray(parsed.pantrySubstitutions).length > 0 ? parsed.pantrySubstitutions : fallback.pantrySubstitutions,
+        suggestedFollowUps: safeArray(parsed.suggestedFollowUps).length > 0 ? parsed.suggestedFollowUps : fallback.suggestedFollowUps
+      };
+    }
+
+    return fallback;
+  } catch (err) {
+    console.warn("[generateContextualRecipeAdvice] Erro ao consultar Gemini API, usando fallback:", err);
+    return fallback;
+  }
+};
+
+export const analyzeWeeklyMealPlanForShopping = async (
+  mealPlan: MealPlan,
+  pantryItems: string[] = [],
+  profile?: UserProfile | null
+): Promise<SmartShoppingSchedule> => {
+  // Extract all ingredients and recipes from meal plan
+  const extractedMeals: Array<{ day: string; mealType: string; recipeName: string; ingredients: string[] }> = [];
+
+  if (mealPlan && typeof mealPlan === 'object') {
+    Object.entries(mealPlan).forEach(([dayKey, dayObj]) => {
+      if (dayObj && dayObj.meals) {
+        Object.entries(dayObj.meals).forEach(([mealType, recipe]) => {
+          if (recipe && recipe.name && recipe.ingredients && Array.isArray(recipe.ingredients)) {
+            extractedMeals.push({
+              day: dayKey,
+              mealType,
+              recipeName: recipe.name,
+              ingredients: recipe.ingredients
+            });
+          }
+        });
+      }
+    });
+  }
+
+  const fallback: SmartShoppingSchedule = {
+    recommendedDay: "Quarta-feira",
+    recommendedTimeSlot: "18:00 - 19:30 (Feira de Orgânicos & Hortifrúti Fresco)",
+    estimatedTotalBudget: 145.50,
+    pantryCoveragePercentage: 35,
+    totalMissingItemsCount: 8,
+    aiVoiceSummary: "Analisamos seu plano alimentar semanal. Encontramos 8 ingredientes faltantes na sua despensa, organizados por corredor do mercado para agilizar suas compras.",
+    aisles: [
+      {
+        aisleName: "Hortifrúti e Orgânicos",
+        icon: "🥬",
+        description: "Frutas, verduras e vegetais frescos para saladas e refeições principais.",
+        items: [
+          { id: "item-h-1", name: "Espinafre Baby Fresco", estimatedAmount: "2 maços (200g)", estimatedCost: 7.90, isPantryMissing: true, recipesUsed: ["Omelete de Espinafre", "Wrap Verde Fitness"] },
+          { id: "item-h-2", name: "Tomate Cereja Orgânico", estimatedAmount: "1 caixa (300g)", estimatedCost: 9.50, isPantryMissing: true, recipesUsed: ["Salada Mediterrânea", "Bowl de Frango"] },
+          { id: "item-h-3", name: "Abacate Manteiga", estimatedAmount: "2 unidades", estimatedCost: 8.90, isPantryMissing: true, recipesUsed: ["Guacamole Funcional", "Toast de Abacate"] }
+        ]
+      },
+      {
+        aisleName: "Açougue e Proteínas Magras",
+        icon: "🥩",
+        description: "Proteínas de alto valor biológico com cortes magros.",
+        items: [
+          { id: "item-a-1", name: "Peito de Frango em Filés", estimatedAmount: "1 kg", estimatedCost: 28.90, isPantryMissing: true, recipesUsed: ["Frango Grelhado com Ervas", "Strogonoff Fit"] },
+          { id: "item-a-2", name: "Ovos Caipiras Orgânicos", estimatedAmount: "1 dúzia (12 un)", estimatedCost: 14.90, isPantryMissing: true, recipesUsed: ["Café da Manhã Proteico", "Panqueca de Aveia"] }
+        ]
+      },
+      {
+        aisleName: "Laticínios e Frios",
+        icon: "🥛",
+        description: "Opções sem lactose ou magras para lanches e molhos.",
+        items: [
+          { id: "item-l-1", name: "Iogurte Grego Natural", estimatedAmount: "2 potes (340g)", estimatedCost: 11.80, isPantryMissing: true, recipesUsed: ["Molho de Iogurte", "Bowl de Frutas"] },
+          { id: "item-l-2", name: "Creme de Ricota Light", estimatedAmount: "1 pote (200g)", estimatedCost: 9.20, isPantryMissing: true, recipesUsed: ["Recheio de Crepioca"] }
+        ]
+      },
+      {
+        aisleName: "Padaria, Grãos e Cereais",
+        icon: "🍞",
+        description: "Carboidratos de baixo índice glicêmico e fibras abundantes.",
+        items: [
+          { id: "item-p-1", name: "Quinoa Real em Grãos", estimatedAmount: "1 pacote (250g)", estimatedCost: 16.50, isPantryMissing: true, recipesUsed: ["Bowl Proteico", "Acompanhamento Almoço"] },
+          { id: "item-p-2", name: "Aveia em Flocos Grossos", estimatedAmount: "1 pacote (500g)", estimatedCost: 8.50, isPantryMissing: true, recipesUsed: ["Overnight Oats", "Panqueca Fit"] }
+        ]
+      },
+      {
+        aisleName: "Mercearia e Condimentos",
+        icon: "🥫",
+        description: "Azeites e temperos para realçar o sabor sem excesso de sódio.",
+        items: [
+          { id: "item-m-1", name: "Azeite de Oliva Extra Virgem (0.2%)", estimatedAmount: "1 garrafa (500ml)", estimatedCost: 29.90, isPantryMissing: false, recipesUsed: ["Tempero de Saladas", "Grelhados"] }
+        ]
+      }
+    ]
+  };
+
+  try {
+    const ai = getGenAI();
+    if (!ai) return fallback;
+
+    const prompt = `Você é o planejador de compras 'Smart Shopping Scheduler' do NutriAI.
+Sua missão é analisar o PLANO ALIMENTAR SEMANAL do usuário e cruzá-lo com os ITENS JÁ EXISTENTES NA DESPENSA dele.
+
+MEALS NO PLANO SEMANAL:
+${JSON.stringify(extractedMeals, null, 2)}
+
+ITENS JÁ EXISTENTES NA DESPENSA DO USUÁRIO:
+${pantryItems.length > 0 ? pantryItems.join(', ') : 'Nenhum item cadastrado'}
+
+INSTRUÇÕES:
+1. Agrupe todos os ingredientes das receitas da semana e verifique quais estão FALTANDO na despensa.
+2. Categorize os ingredientes faltantes ESTRITAMENTE POR CORREDOR DO SUPERMERCADO:
+   - "Hortifrúti e Orgânicos" (ícone 🥬)
+   - "Açougue e Proteínas Magras" (ícone 🥩)
+   - "Laticínios e Frios" (ícone 🥛)
+   - "Padaria, Grãos e Cereais" (ícone 🍞)
+   - "Mercearia e Condimentos" (ícone 🥫)
+   - "Bebidas e Suplementos" (ícone 🥤)
+3. Calcule a quantidade estimada (ex: "500g", "1 kg", "2 maços", "1 caixa") e estimativa de preço em R$ (BRL).
+4. Sugira o melhor dia da semana e horário para fazer as compras com hortifrúti mais fresco.
+5. Forneça um resumo amigável em voz (aiVoiceSummary).`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            recommendedDay: { type: Type.STRING },
+            recommendedTimeSlot: { type: Type.STRING },
+            estimatedTotalBudget: { type: Type.NUMBER },
+            pantryCoveragePercentage: { type: Type.NUMBER },
+            totalMissingItemsCount: { type: Type.NUMBER },
+            aiVoiceSummary: { type: Type.STRING },
+            aisles: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  aisleName: { type: Type.STRING },
+                  icon: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  items: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        name: { type: Type.STRING },
+                        estimatedAmount: { type: Type.STRING },
+                        estimatedCost: { type: Type.NUMBER },
+                        isPantryMissing: { type: Type.BOOLEAN },
+                        recipesUsed: {
+                          type: Type.ARRAY,
+                          items: { type: Type.STRING }
+                        }
+                      },
+                      required: ["name", "estimatedAmount", "estimatedCost", "isPantryMissing"]
+                    }
+                  }
+                },
+                required: ["aisleName", "icon", "items"]
+              }
+            }
+          },
+          required: ["recommendedDay", "recommendedTimeSlot", "estimatedTotalBudget", "aisles", "aiVoiceSummary"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    if (parsed && parsed.aisles && Array.isArray(parsed.aisles) && parsed.aisles.length > 0) {
+      let totalCount = 0;
+      const formattedAisles = parsed.aisles.map((a: any) => ({
+        ...a,
+        items: safeArray(a.items).map((item: any, idx: number) => {
+          totalCount++;
+          return {
+            ...item,
+            id: item.id || `shop-item-${idx}-${Date.now()}`,
+            recipesUsed: safeArray(item.recipesUsed),
+            checked: false
+          };
+        })
+      }));
+
+      return {
+        recommendedDay: parsed.recommendedDay || fallback.recommendedDay,
+        recommendedTimeSlot: parsed.recommendedTimeSlot || fallback.recommendedTimeSlot,
+        estimatedTotalBudget: parsed.estimatedTotalBudget || fallback.estimatedTotalBudget,
+        pantryCoveragePercentage: parsed.pantryCoveragePercentage || 40,
+        totalMissingItemsCount: totalCount || fallback.totalMissingItemsCount,
+        aisles: formattedAisles,
+        aiVoiceSummary: parsed.aiVoiceSummary || fallback.aiVoiceSummary
+      };
+    }
+
+    return fallback;
+  } catch (err) {
+    console.warn("[analyzeWeeklyMealPlanForShopping] Erro ao processar com Gemini API, usando fallback:", err);
     return fallback;
   }
 };

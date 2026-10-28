@@ -7,7 +7,7 @@ import { analyzeImage } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { PhotoComparisonGallery } from './PhotoComparisonGallery';
 
-interface PhotoEntry {
+export interface PhotoEntry {
   id: string;
   date: string;
   imageBase64: string;

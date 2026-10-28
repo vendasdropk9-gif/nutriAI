@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, X, Trophy, Star, Flame, CheckCircle2 } from 'lucide-react';
+import { Bell, X, Trophy, Star, Flame, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export interface AppNotification {
@@ -47,41 +47,59 @@ export function NotificationSystem({ notifications, onDismiss }: NotificationSys
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] w-full max-w-sm pointer-events-none flex flex-col gap-3">
       <AnimatePresence>
-        {notifications.map((notif) => (
-          <motion.div
-            key={notif.id}
-            initial={{ opacity: 0, y: -40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="pointer-events-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-4 rounded-3xl shadow-2xl flex gap-4 items-start mx-4"
-          >
-            <div className={`p-3 rounded-2xl ${
-              notif.type === 'achievement' ? 'bg-amber-100 text-amber-600' :
-              notif.type === 'streak' ? 'bg-orange-100 text-orange-600' :
-              notif.type === 'point' || notif.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
-              'bg-blue-100 text-blue-600'
-            }`}>
-              {notif.type === 'achievement' && <Trophy className="w-5 h-5" />}
-              {notif.type === 'streak' && <Flame className="w-5 h-5" />}
-              {notif.type === 'point' && <Star className="w-5 h-5" />}
-              {notif.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
-              {notif.type === 'info' && <Bell className="w-5 h-5" />}
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{t(notif.title, notif.title)}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{t(notif.message, notif.message)}</p>
-            </div>
+        {notifications.map((notif) => {
+          const isEmergency = notif.type === 'warning' || notif.type === 'error';
 
-            <button 
-              onClick={() => onDismiss(notif.id)}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          return (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, y: -40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className={`pointer-events-auto backdrop-blur-xl p-4 rounded-3xl shadow-2xl flex gap-4 items-start mx-4 border ${
+                isEmergency
+                  ? 'bg-rose-950/95 text-white border-rose-500/80 shadow-rose-900/50 ring-2 ring-rose-500/50 animate-pulse'
+                  : 'bg-white/90 dark:bg-slate-900/90 border-white/20 dark:border-slate-700/50'
+              }`}
             >
-              <X className="w-4 h-4 text-slate-400" />
-            </button>
-          </motion.div>
-        ))}
+              <div className={`p-3 rounded-2xl ${
+                notif.type === 'achievement' ? 'bg-amber-100 text-amber-600' :
+                notif.type === 'streak' ? 'bg-orange-100 text-orange-600' :
+                notif.type === 'point' || notif.type === 'success' ? 'bg-emerald-100 text-emerald-600' :
+                isEmergency ? 'bg-rose-500 text-white animate-bounce' :
+                'bg-blue-100 text-blue-600'
+              }`}>
+                {notif.type === 'achievement' && <Trophy className="w-5 h-5" />}
+                {notif.type === 'streak' && <Flame className="w-5 h-5" />}
+                {notif.type === 'point' && <Star className="w-5 h-5" />}
+                {notif.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+                {isEmergency && <AlertTriangle className="w-5 h-5 animate-pulse" />}
+                {notif.type === 'info' && <Bell className="w-5 h-5" />}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h4 className={`text-sm font-black uppercase tracking-tight ${
+                  isEmergency ? 'text-rose-300 font-extrabold' : 'text-slate-900 dark:text-white'
+                }`}>
+                  {t(notif.title, notif.title)}
+                </h4>
+                <p className={`text-xs mt-1 line-clamp-3 font-medium ${
+                  isEmergency ? 'text-rose-100' : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {t(notif.message, notif.message)}
+                </p>
+              </div>
+
+              <button 
+                onClick={() => onDismiss(notif.id)}
+                className="p-1 hover:bg-black/20 rounded-lg transition-colors text-slate-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

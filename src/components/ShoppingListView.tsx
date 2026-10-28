@@ -2,12 +2,14 @@ import React, { useState, useMemo, useRef } from 'react';
 import { MealPlan, SmartBudgetSubstitution } from '../types';
 import { BudgetPriceMonitor } from './BudgetPriceMonitor';
 import { PantryDepletionPredictor } from './PantryDepletionPredictor';
+import { SmartShoppingScheduler } from './SmartShoppingScheduler';
 import { 
   CheckCircle2, 
   Circle, 
   ShoppingBag, 
   Sparkles, 
   TrendingDown, 
+  Calendar, 
   Store, 
   ArrowLeftRight, 
   Percent, 
@@ -429,7 +431,7 @@ function CustomCategoryCostTooltip({ active, payload }: CustomCategoryTooltipPro
 
 export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
   const { t, language } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'list' | 'monitor' | 'pantry_forecast' | 'compare' | 'promos'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'scheduler' | 'monitor' | 'pantry_forecast' | 'compare' | 'promos'>('list');
   const [chartViewMode, setChartViewMode] = useState<'total' | 'status'>('total');
   const [checkedItems, setCheckedItems] = useLocalStorage<Record<string, boolean>>('nutri-shopping-checked', {});
   const [customItems, setCustomItems] = useLocalStorage<{ name: string; checked: boolean }[]>('nutri-shopping-custom-items', []);
@@ -1077,6 +1079,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
       <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-[24px] shadow-inner gap-1">
         {[
           { id: 'list', label: 'Lista Inteligente', icon: <CheckCircle2 className="w-4 h-4" /> },
+          { id: 'scheduler', label: 'Agendador Semanal', icon: <Calendar className="w-4 h-4 text-amber-500" /> },
           { id: 'monitor', label: 'Monitor de Preços & IA', icon: <Sparkles className="w-4 h-4" /> },
           { id: 'pantry_forecast', label: 'Previsão de Despensa', icon: <History className="w-4 h-4" /> },
           { id: 'compare', label: 'Comparar Preços', icon: <ArrowLeftRight className="w-4 h-4" /> },
@@ -1843,6 +1846,15 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
               onAddMultipleItemsToShoppingList={handleAddMultipleItemsFromPantry}
             />
           </div>
+        )}
+
+        {/* TAB SCHEDULER: SMART SHOPPING SCHEDULER */}
+        {activeTab === 'scheduler' && (
+          <SmartShoppingScheduler
+            mealPlan={mealPlan}
+            profile={null}
+            onNavigateToShoppingList={() => setActiveTab('list')}
+          />
         )}
 
         {/* TAB 3: PREVISÃO DE DESPENSA & REPOSIÇÃO INTELIGENTE (IA) */}

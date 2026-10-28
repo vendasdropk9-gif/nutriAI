@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Recipe } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
+import { RecipeTagsChart } from './RecipeTagsChart';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -265,6 +266,12 @@ export function RecipeCollectionsView({
           <Plus className="w-4 h-4" />
           <span>Nova Pasta</span>
         </button>
+      </div>
+
+      {/* Chart Section */}
+      <div className="bg-white/50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-200 dark:border-slate-800">
+        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Distribuição de Tags</h4>
+        <RecipeTagsChart recipes={allRecipes} />
       </div>
 
       {/* Create New Folder Form */}

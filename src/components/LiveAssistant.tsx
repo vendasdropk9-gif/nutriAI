@@ -506,12 +506,25 @@ function classifyLocalIntent(query: string, profile?: UserProfile | null): {
 
   // 23. Plano Alimentar / Cardápio Semanal
   if (
-    q.includes('plano alimentar') || q.includes('cardápio') || q.includes('cardapio') || q.includes('minha dieta') || q.includes('planejamento')
+    q.includes('plano alimentar') || q.includes('cardápio') || q.includes('cardapio') || q.includes('minha dieta') || q.includes('planejamento') ||
+    q.includes('vá para o plano alimentar') || q.includes('ir para o plano alimentar') || q.includes('abrir plano alimentar')
   ) {
     return {
       text: "Abrindo seu Plano Alimentar e Cardápio da semana.",
       action: "NAVIGATE",
       actionData: { tab: "plan" }
+    };
+  }
+
+  // 23b. Despensa Inteligente / Pantry Scanner
+  if (
+    q.includes('despensa') || q.includes('despensa inteligente') || q.includes('abrir despensa inteligente') || q.includes('scanner de despensa') ||
+    q.includes('inventário') || q.includes('inventario') || q.includes('alimentos na despensa')
+  ) {
+    return {
+      text: "Abrindo o Scanner de Despensa Inteligente.",
+      action: "NAVIGATE",
+      actionData: { tab: "pantry" }
     };
   }
 

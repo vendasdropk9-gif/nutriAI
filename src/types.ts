@@ -172,6 +172,8 @@ export interface UserProfile {
   elevenLabsVoiceId?: string;
   chronotype?: 'morning' | 'night' | 'intermediate';
   circadianNotificationConfig?: CircadianNotificationConfig;
+  sleepGoalHours?: number;
+  sleepReminderEnabled?: boolean;
 }
 
 export interface CircadianNotificationConfig {
@@ -863,6 +865,15 @@ export interface UserPresence {
   role?: 'buyer' | 'seller' | 'admin' | 'courier';
 }
 
+export interface Collection {
+  id: string;
+  name: string;
+  icon: string;
+  description?: string;
+  recipeIds: string[];
+  createdAt?: string;
+}
+
 export interface PriceAlert {
   id: string;
   userId: string;
@@ -879,4 +890,54 @@ export interface Mail {
     text: string;
     html: string;
   };
+}
+
+export interface ContextualRecipeTechnique {
+  name: string;
+  description: string;
+  stepToApply: string;
+  proTip: string;
+}
+
+export interface ContextualPantrySubstitution {
+  originalIngredient: string;
+  pantryMatchItem: string;
+  substitutionRatio: string;
+  culinaryImpact: string;
+  nutritionalNote: string;
+}
+
+export interface ContextualRecipeAdvice {
+  recipeTitle: string;
+  summaryAdvice: string;
+  techniques: ContextualRecipeTechnique[];
+  pantrySubstitutions: ContextualPantrySubstitution[];
+  suggestedFollowUps: string[];
+}
+
+export interface SmartShoppingItem {
+  id: string;
+  name: string;
+  estimatedAmount: string;
+  estimatedCost: number;
+  isPantryMissing: boolean;
+  recipesUsed: string[];
+  checked?: boolean;
+}
+
+export interface SmartShoppingAisle {
+  aisleName: string;
+  icon: string;
+  description: string;
+  items: SmartShoppingItem[];
+}
+
+export interface SmartShoppingSchedule {
+  recommendedDay: string;
+  recommendedTimeSlot: string;
+  estimatedTotalBudget: number;
+  pantryCoveragePercentage: number;
+  totalMissingItemsCount: number;
+  aisles: SmartShoppingAisle[];
+  aiVoiceSummary: string;
 }

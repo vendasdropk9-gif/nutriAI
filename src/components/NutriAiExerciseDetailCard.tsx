@@ -26,6 +26,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
 import type { MuscleHighlightMode } from './AvatarAnatomico';
 import { MuscleHighlightsLegend } from './MuscleHighlightsLegend';
+import { InteractiveAvatarStudioModal } from './InteractiveAvatarStudioModal';
 
 // Lazy load the 3D Anatomical Avatar
 const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
@@ -86,6 +87,7 @@ export function NutriAiExerciseDetailCard({
   const [muscleHighlightMode, setMuscleHighlightMode] = useState<MuscleHighlightMode>('all');
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [showPersonalizeModal, setShowPersonalizeModal] = useState<boolean>(false);
+  const [isStudioModalOpen, setIsStudioModalOpen] = useState<boolean>(false);
 
   // Stepper Handlers with sensory feedback
   const handleStep = (
@@ -438,10 +440,31 @@ export function NutriAiExerciseDetailCard({
               highlightMode={muscleHighlightMode}
               isPlaying={isPlaying}
               playbackSpeed={1}
+              enableOrbitControls={true}
               showReferenceControls={false}
               showOverlayBadges={false}
             />
           </Suspense>
+
+          {/* Interactive 3D Avatar Studio Trigger Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx('tap');
+              vibrate(12);
+              setIsStudioModalOpen(true);
+            }}
+            className="absolute bottom-3 right-3 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/90 hover:bg-slate-900 active:scale-95 text-emerald-300 text-[11px] font-bold border border-emerald-500/50 shadow-xl backdrop-blur-md transition-all cursor-pointer"
+            title="Abrir Estúdio Interativo do Avatar 3D (Poses, Giro 360°, Músculos)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Interagir com Avatar</span>
+          </button>
+
+          {/* 360° Drag Orbit Hint Badge */}
+          <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-950/75 border border-slate-700/60 text-[10px] text-slate-300 font-mono pointer-events-none backdrop-blur-sm">
+            <span>🔄 360° Livre (Arraste)</span>
+          </div>
         </div>
 
         {/* ================================================================== */}
@@ -814,6 +837,14 @@ export function NutriAiExerciseDetailCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Interactive 3D Avatar Studio Modal */}
+      <InteractiveAvatarStudioModal
+        isOpen={isStudioModalOpen}
+        onClose={() => setIsStudioModalOpen(false)}
+        profile={profile}
+        initialExerciseId={currentExercise.id}
+      />
     </div>
   );
 }

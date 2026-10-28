@@ -136,8 +136,25 @@ export function GlucoseTracker() {
     setLogs([newLogItem, ...logs]);
     setIsModalOpen(false);
     setNewNotes('');
-    playSfx('success');
-    vibrate([40, 40]);
+
+    // Emergency Crisis Check (Severe Hypoglycemia < 54 mg/dL or Severe Hyperglycemia > 250 mg/dL)
+    if (numericVal < 54 || numericVal > 250) {
+      const isLow = numericVal < 54;
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          id: `emergency-glucose-${Date.now()}`,
+          title: isLow ? "🚨 ALERTA DE EMERGÊNCIA: Hipoglicemia Severa" : "🚨 ALERTA DE EMERGÊNCIA: Hiperglicemia Crítica",
+          message: `Glicemia de ${numericVal} mg/dL detectada. ${isLow ? 'Consuma carboidratos de ação rápida imediatamente!' : 'Verifique cetonas ou consulte seu médico imediatamente!'}`,
+          type: 'error'
+        }
+      }));
+      playSfx('notification');
+      vibrate([100, 100, 100, 100]);
+    } else {
+      playSfx('success');
+      vibrate([40, 40]);
+    }
+
     showToast('Nova medição registrada com sucesso!', 'success');
   };
 
