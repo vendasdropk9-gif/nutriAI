@@ -224,7 +224,7 @@ export interface HealthIntegrationConfig {
     activeCalories: number;
     distanceKm: number;
     avgHeartRate?: number;
-    source: 'google_fit' | 'apple_health' | 'manual';
+    source: 'google_fit' | 'apple_health' | 'manual' | 'device_sensors' | 'simulated';
     lastUpdated: string;
   };
   history?: Array<{
@@ -233,7 +233,7 @@ export interface HealthIntegrationConfig {
     activeCalories: number;
     distanceKm: number;
     adjustedCaloriesAdded: number;
-    source: 'google_fit' | 'apple_health';
+    source: 'google_fit' | 'apple_health' | 'manual' | 'device_sensors' | 'simulated';
   }>;
 }
 

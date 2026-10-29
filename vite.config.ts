@@ -359,8 +359,9 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
         'react': path.resolve(__dirname, 'node_modules/react'),
         'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        'react-is': path.resolve(__dirname, 'node_modules/react-is'),
       },
-      dedupe: ['react', 'react-dom'],
+      dedupe: ['react', 'react-dom', 'react-is'],
     },
     build: {
       target: 'esnext',
@@ -413,7 +414,7 @@ export default defineConfig(({mode}) => {
             }
 
             // 9. React Core e runtime
-            if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) {
+            if (/[\\/]node_modules[\\/](react|react-dom|react-is|scheduler)[\\/]/.test(id)) {
               return 'vendor-react';
             }
           },

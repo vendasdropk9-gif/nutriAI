@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Watch, Activity, Heart, Flame, Moon, RefreshCw, CheckCircle2, 
-  Smartphone, Zap, ShieldCheck, AlertCircle, Sparkles, Sliders 
+  Smartphone, Zap, ShieldCheck, AlertCircle, Sparkles, Sliders, Play, Square, Footprints
 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useHealthDataSync } from '../hooks/useHealthDataSync';
 import { playSfx, vibrate } from '../lib/sensory';
 
 interface WearableDevice {
@@ -26,14 +27,26 @@ const INITIAL_DEVICES: WearableDevice[] = [
 
 export function WearablesSync() {
   const [devices, setDevices] = useLocalStorage<WearableDevice[]>('nutri-wearables-devices', INITIAL_DEVICES);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<Date>(new Date());
   
-  // Real-time telemetry metrics state
-  const [stepCount, setStepCount] = useLocalStorage<number>('nutri-wearable-steps', 8420);
-  const [activeKcal, setActiveKcal] = useLocalStorage<number>('nutri-wearable-kcal', 430);
+  // Device Hardware Sensor & Pedometer Auto Sync Hook
+  const {
+    steps,
+    activeCalories,
+    distanceKm,
+    isSensorActive,
+    isSyncing: isHealthSyncing,
+    lastSyncedAt,
+    sensorType,
+    autoSync,
+    startSensorTracking,
+    stopSensorTracking,
+    syncToUserProfile,
+    setAutoSync
+  } = useHealthDataSync();
+
   const [heartRate, setHeartRate] = useLocalStorage<number>('nutri-wearable-hr', 68);
   const [sleepHours, setSleepHours] = useLocalStorage<number>('nutri-wearable-sleep', 7.5);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
 
   const toggleDevice = (id: string) => {
     playSfx('tap');
@@ -51,28 +64,28 @@ export function WearablesSync() {
     }));
   };
 
-  const handleSyncTelemetry = () => {
-    setIsSyncing(true);
+  const handleSyncTelemetry = async () => {
+    setIsManualSyncing(true);
     playSfx('tap');
     vibrate(20);
 
+    await syncToUserProfile();
+
     setTimeout(() => {
-      // Simulate live incoming sensor updates
-      const bonusSteps = Math.floor(Math.random() * 350) + 150;
-      const bonusKcal = Math.floor(bonusSteps * 0.04);
-      const newHr = 65 + Math.floor(Math.random() * 10);
-
-      setStepCount(prev => prev + bonusSteps);
-      setActiveKcal(prev => prev + bonusKcal);
-      setHeartRate(newHr);
-      setLastSyncTimestamp(new Date());
-
-      setDevices(devices.map(d => d.connected ? { ...d, lastSync: 'Agora mesmo' } : d));
-
-      setIsSyncing(false);
+      setIsManualSyncing(false);
       playSfx('success');
       vibrate([20, 80, 20]);
-    }, 1800);
+    }, 800);
+  };
+
+  const toggleSensorTracking = () => {
+    playSfx('tap');
+    vibrate(15);
+    if (isSensorActive) {
+      stopSensorTracking();
+    } else {
+      startSensorTracking();
+    }
   };
 
   return (
@@ -96,14 +109,43 @@ export function WearablesSync() {
           </div>
         </div>
 
-        <button
-          onClick={handleSyncTelemetry}
-          disabled={isSyncing}
-          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-60 w-full sm:w-auto text-center"
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Sincronizando Dados...' : 'Sincronizar Telemetria'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={toggleSensorTracking}
+            className={`px-4 py-2.5 rounded-full font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+              isSensorActive
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            {isSensorActive ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            <span>{isSensorActive ? 'Sensores Ativos (Passeando)' : 'Ativar Sensores (Passeando)'}</span>
+          </button>
+
+          <button
+            onClick={handleSyncTelemetry}
+            disabled={isManualSyncing || isHealthSyncing}
+            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-60 w-full sm:w-auto text-center"
+          >
+            <RefreshCw className={`w-4 h-4 ${isManualSyncing || isHealthSyncing ? 'animate-spin' : ''}`} />
+            <span>{isManualSyncing || isHealthSyncing ? 'Sincronizando Perfil...' : 'Sincronizar Saúde'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Sensor Status Banner */}
+      <div className="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/50 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <Footprints className="w-4 h-4 text-sky-500 shrink-0" />
+          <span className="font-semibold text-slate-700 dark:text-slate-200">
+            Sensor de Movimento: <strong className="text-sky-600 dark:text-sky-400 capitalize">{sensorType === 'accelerometer' ? 'Acelerômetro Hardware' : sensorType === 'simulated' ? 'Simulação de Passos' : 'Inativo'}</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-3 font-medium text-slate-500 dark:text-slate-400">
+          <span>Distância: <strong className="text-slate-800 dark:text-slate-100">{distanceKm} km</strong></span>
+          <span>•</span>
+          <span>Auto-Sync: <strong className="text-emerald-600 dark:text-emerald-400">{autoSync ? 'Ativado' : 'Desativado'}</strong></span>
+        </div>
       </div>
 
       {/* Real-time Telemetry Dashboard Cards */}
@@ -114,10 +156,10 @@ export function WearablesSync() {
             <Activity className="w-4 h-4" />
           </div>
           <div className="text-2xl font-black text-slate-800 dark:text-slate-100">
-            {stepCount.toLocaleString('pt-BR')}
+            {steps.toLocaleString('pt-BR')}
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400">
-            Meta: 10.000 passos ({Math.min(100, Math.round((stepCount / 10000) * 100))}%)
+            Meta: 10.000 passos ({Math.min(100, Math.round((steps / 10000) * 100))}%)
           </p>
         </div>
 
@@ -127,10 +169,10 @@ export function WearablesSync() {
             <Flame className="w-4 h-4" />
           </div>
           <div className="text-2xl font-black text-slate-800 dark:text-slate-100">
-            {activeKcal} <span className="text-xs font-bold text-slate-400">kcal</span>
+            {activeCalories} <span className="text-xs font-bold text-slate-400">kcal</span>
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400">
-            Calculado via aceleração de pulso
+            Calculado via aceleração do hardware
           </p>
         </div>
 
