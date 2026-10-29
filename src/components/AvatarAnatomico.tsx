@@ -1,7 +1,7 @@
 import React, { Component, createRef, Suspense, useMemo, useRef, useEffect, useState } from 'react';
 import { useSpring } from 'react-spring';
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { ContactShadows, PerspectiveCamera, OrbitControls, useGLTF } from '@react-three/drei';
+import { ContactShadows, PerspectiveCamera, OrbitControls, useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader, DRACOLoader } from 'three-stdlib';
 import {
@@ -39,6 +39,14 @@ import {
   ShieldAlert,
   ChevronRight,
   Layers,
+  Star,
+  AlertTriangle,
+  Droplets,
+  Target,
+  Heart,
+  Flame,
+  Dumbbell,
+  MapPin,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import {
@@ -718,6 +726,20 @@ function BarbellBar({ position }: { position: [number, number, number] }) {
 // CUSTOM SHADER MATERIAL FOR ANATOMICAL MUSCLE HIGHLIGHTING (RED / ORANGE)
 // Dynamic Biomechanical Glow: Frontal planar projection, Lateral profile depth, Detail fiber striations
 // ============================================================================
+// ATHLETIC HUMAN SKIN TONE RESOLVER
+// Resolves natural living skin tone from user profile with physiological warmth
+// ============================================================================
+export function resolveSkinColor(skinTone?: string): string {
+  if (!skinTone) return '#cca080'; // Warm athletic bronze skin tone
+  if (skinTone.startsWith('#')) return skinTone;
+  const s = skinTone.toLowerCase().trim();
+  if (s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('natural')) return '#dfb39a';
+  if (s.includes('moreno dourado') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return '#c68b59';
+  if (s.includes('bronze') || s.includes('atlet') || s.includes('tan')) return '#d4a373';
+  if (s.includes('medio') || s.includes('médio') || s.includes('quente')) return '#b57c58';
+  if (s.includes('escuro') || s.includes('dark') || s.includes('negro') || s.includes('preto')) return '#684534';
+  return '#cca080';
+}
 
 const muscleHighlightVertexShader = `
   varying vec3 vNormal;
@@ -796,6 +818,9 @@ const muscleHighlightFragmentShader = `
   uniform float uFatigueLevel;           // Fatigue level (0.0 to 1.0)
   uniform float uLODFactor;              // LOD factor for detail scaling (1.0 = high, 0.5 = low)
   uniform float uXRayMode;               // X-Ray mode: 0.0 (off) to 1.0 (on)
+  uniform float uIsHighlighted;          // 1.0 = active highlight/pulse, 0.0 = resting athletic human skin & sculpted muscle
+  uniform vec3 uSkinBaseColor;           // Athletic living skin tone
+  uniform vec3 uSkinSubsurfaceColor;     // Subcutaneous warm scattering tone (#9e3824)
 
   // =========================================================================
   // NORMAL MAPPING: Procedural Micro-Anatomical Muscle Fiber Heightfield
@@ -880,7 +905,7 @@ const muscleHighlightFragmentShader = `
 
     // Calculate procedural normal mapping height and perturbed surface normal N'
     float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace, effectiveDef);
-    float bumpScale = (uIsPrimary > 0.5 ? 0.036 : 0.024) * effectiveDef * (1.0 + uContraction * 0.45);
+    float bumpScale = (uIsHighlighted > 0.5 ? (uIsPrimary > 0.5 ? 0.036 : 0.024) : 0.020) * effectiveDef * (1.0 + uContraction * 0.45);
     
     // Pass UV and texture intensity for pore calculation
     vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale, vUv, effectiveTex, uLODFactor);
@@ -897,7 +922,7 @@ const muscleHighlightFragmentShader = `
     float diffFill = max(0.0, dot(normal, L_fill)) * 0.42;
     
     // Subsurface organic scattering approximation (light wrapping through muscular volume)
-    float sss = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.40;
+    float sss = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.45;
     
     // High-gloss specular gleam reflecting off individual normal-mapped fiber striations
     vec3 H_key = normalize(L_key + viewDir);
@@ -907,17 +932,37 @@ const muscleHighlightFragmentShader = `
     float specPowerSharp = 30.0 + effectiveTex * 100.0;
     float specSharp = pow(NdotH, specPowerSharp);
     // Add specular micro-variation based on pore density
-    float poreRoughness = getPoreTexture(vUv, effectiveTex) * 0.5;
+    float poreRoughness = getPoreTexture(vUv, effectiveTex, uLODFactor) * 0.5;
     float specularGleam = specSharp * (1.0 - poreRoughness) * (0.8 + 0.7 * effectiveTex);
     specularGleam += pow(NdotH, 10.0) * (0.2 + 0.3 * effectiveTex);
 
     // Normal-mapped View Angle Fresnel
     float NdotV = max(0.0, dot(normal, viewDir));
-    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 1.0); // Skin skin-type dependent Fresnel
+    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 1.0); // Skin type dependent Fresnel
 
     // Inter-fascicular Cavity Shadowing / Crevice Ambient Occlusion
     float cavity = smoothstep(-1.1 / max(0.2, effectiveDef), 0.7, fiberHeight);
 
+    // =========================================================================
+    // RESTING ATHLETIC HUMAN SKIN & SCULPTED MUSCLE SHADING
+    // =========================================================================
+    vec3 baseSkin = uSkinBaseColor;
+    vec3 subSkin = uSkinSubsurfaceColor;
+
+    // Crevice tone: deep anatomical creases and linea alba shadows
+    vec3 creviceTone = mix(subSkin * 0.65, baseSkin * 0.52, cavity);
+    // Lit skin tone: Half-Lambert diffuse with warm subsurface bleed
+    vec3 litSkinTone = mix(creviceTone, baseSkin, diffKey * 0.82 + diffFill * 0.36);
+    litSkinTone += subSkin * (sss * 0.52);
+    // Velvety epidermal Fresnel rim sheen
+    vec3 skinRimGleam = mix(baseSkin * 1.35, vec3(1.0, 0.92, 0.85), 0.50);
+    litSkinTone += skinRimGleam * (fresnel * 0.30);
+    // Specular hydration / sweat sheen
+    float sweatSheen = 1.0 + uSweatIntensity * 1.6;
+    vec3 skinSpecularColor = vec3(1.0, 0.96, 0.90);
+    litSkinTone += skinSpecularColor * (specularGleam * 0.38 * sweatSheen);
+    // Muscle definition contrast accent: deepen muscle cuts slightly when definition is high
+    litSkinTone = mix(litSkinTone * (0.82 + 0.18 * cavity), litSkinTone, 1.0 / (1.0 + effectiveDef * 0.45));
 
     // =========================================================================
     // CAMERA VIEW-SPECIFIC PROJECTION MODULATION
@@ -950,7 +995,7 @@ const muscleHighlightFragmentShader = `
     float pulse = 0.88 + pulseShape * pulseAmplitude + uContraction * (0.38 * paceIntensityFactor);
 
     // =========================================================================
-    // COLOR COMPOSITION & DEPTH GRADIENTS
+    // ACTIVE HIGHLIGHT SHADING (When muscle is actively flexed or highlighted)
     // =========================================================================
     vec3 targetHighlight = mix(uHighlightColorSecondary, uHighlightColorPrimary, step(0.5, uIsPrimary));
 
@@ -996,18 +1041,23 @@ const muscleHighlightFragmentShader = `
     float rimFactor = pow(1.0 - NdotV, 3.4);
     activeColor += cyanHalo * (rimFactor * 0.50);
 
-    // X-Ray Mode: Apply transparency and blue tint
+    // Smooth blend between resting living athletic skin and active muscle bio-luminescent pulse
+    vec3 finalColor = mix(litSkinTone, activeColor * uIntensity * viewFactor, uIsHighlighted);
+
+    // X-Ray Mode: Apply transparency and cyber cyan internal glow
     float alpha = 1.0 - uXRayMode * 0.7;
     if (uXRayMode > 0.5) {
-        activeColor = mix(activeColor, vec3(0.1, 0.4, 0.6), 0.5);
+      finalColor = mix(finalColor, vec3(0.1, 0.4, 0.6), 0.5);
     }
 
-    gl_FragColor = vec4(activeColor * uIntensity * viewFactor, alpha);
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
 export interface MuscleHighlightShaderOptions {
   isPrimary?: boolean;
+  isHighlighted?: boolean;
+  skinColor?: string | THREE.Color;
   cameraView?: 'front' | 'side' | 'detail' | 'back' | number;
   intensity?: number;
   contraction?: number;
@@ -1033,6 +1083,7 @@ export interface MuscleHighlightShaderOptions {
 export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
   constructor(options?: MuscleHighlightShaderOptions) {
     const isPrimary = options?.isPrimary !== undefined ? options.isPrimary : true;
+    const isHighlighted = options?.isHighlighted !== undefined ? options.isHighlighted : true;
     const cameraViewNum =
       typeof options?.cameraView === 'number'
         ? options.cameraView
@@ -1080,6 +1131,12 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         : options.colorWarm
       : new THREE.Color(isPrimary ? '#ff2200' : '#ea580c');
 
+    const skinColorVal = options?.skinColor
+      ? typeof options.skinColor === 'string'
+        ? new THREE.Color(options.skinColor)
+        : options.skinColor
+      : new THREE.Color('#cca080');
+
     super({
       uniforms: {
         uTime: { value: 0 },
@@ -1100,12 +1157,31 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         uLODFactor: { value: options?.lodFactor ?? 1.0 },
         uXRayMode: { value: options?.xRayMode ? 1.0 : 0.0 },
         uStretching: { value: options?.stretching ? 1.0 : 0.0 },
+        uIsHighlighted: { value: isHighlighted ? 1.0 : 0.0 },
+        uSkinBaseColor: { value: skinColorVal },
+        uSkinSubsurfaceColor: { value: new THREE.Color('#9e3824') },
       },
       vertexShader: muscleHighlightVertexShader,
       fragmentShader: muscleHighlightFragmentShader,
       side: THREE.FrontSide,
       transparent: options?.xRayMode || false,
     });
+  }
+
+  public setIsHighlighted(highlighted: boolean) {
+    if (this.uniforms.uIsHighlighted) {
+      this.uniforms.uIsHighlighted.value = highlighted ? 1.0 : 0.0;
+    }
+  }
+
+  public setSkinColor(color: string | THREE.Color) {
+    if (this.uniforms.uSkinBaseColor) {
+      if (typeof color === 'string') {
+        this.uniforms.uSkinBaseColor.value.set(color);
+      } else {
+        this.uniforms.uSkinBaseColor.value.copy(color);
+      }
+    }
   }
 
   public setIsPrimary(isPrimary: boolean) {
@@ -1803,6 +1879,7 @@ interface MuscleHighlightContextValue {
   fatigueLevel?: number;
   xRayMode?: boolean;
   stretching?: boolean;
+  skinColor?: string;
 }
 
 const MuscleHighlightContext = React.createContext<MuscleHighlightContextValue>({
@@ -1823,6 +1900,7 @@ const MuscleHighlightContext = React.createContext<MuscleHighlightContextValue>(
   fatigueLevel: 0.0,
   xRayMode: false,
   stretching: false,
+  skinColor: '#cca080',
 });
 
 // ============================================================================
@@ -1957,33 +2035,26 @@ function AnatomicalMuscleNode({
   }, [forceHighlight, highlightOverride, muscleTag, primaryMuscles, secondaryMuscles, effectiveHighlightMode]);
 
   const isHighlighted = isPrimary || isSecondary;
+  const skinColor = context.skinColor || '#cca080';
 
   // Material selection based on highlight state
   const solidMuscleMat = useMemo(() => {
-    if (isHighlighted) {
-      return new MuscleHighlightShaderMaterial({
-        isPrimary,
-        cameraView: cameraViewFloat,
-        exercisePace: currentPace,
-        uHighlightColorPrimary: rawHighlightPrimary,
-        uHighlightColorSecondary: rawHighlightSecondary,
-        fatigueLevel: context.fatigueLevel ?? 0.0,
-        lodFactor: 1.0, // Procedural is usually detailed
-        xRayMode: xRayMode,
-        stretching: stretching,
-      });
-    }
-    
-    // Sleek athletic studio mannequin finish for non-highlighted parts
-    return new THREE.MeshStandardMaterial({
-      color: '#f1f5f9',
-      roughness: 0.38,
-      metalness: 0.04,
-      side: THREE.DoubleSide,
-      transparent: xRayMode,
-      opacity: xRayMode ? 0.3 : 1.0,
+    return new MuscleHighlightShaderMaterial({
+      isPrimary,
+      isHighlighted,
+      skinColor,
+      cameraView: cameraViewFloat,
+      exercisePace: currentPace,
+      uHighlightColorPrimary: rawHighlightPrimary,
+      uHighlightColorSecondary: rawHighlightSecondary,
+      muscleDefinition: propMuscleDefinition ?? context.muscleDefinition ?? 1.0,
+      skinTexture: propSkinTexture ?? context.skinTexture ?? 0.5,
+      fatigueLevel: context.fatigueLevel ?? 0.0,
+      lodFactor: 1.0,
+      xRayMode: xRayMode,
+      stretching: stretching,
     });
-  }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary, xRayMode, stretching, cameraViewFloat, currentPace, context.fatigueLevel]);
+  }, [isHighlighted, isPrimary, rawHighlightPrimary, rawHighlightSecondary, xRayMode, stretching, cameraViewFloat, currentPace, context.fatigueLevel, skinColor]);
 
   useEffect(() => {
     return () => {
@@ -2006,16 +2077,13 @@ function AnatomicalMuscleNode({
       ? Math.sin(time * 44.0) * (0.015 * effectiveFatigue) * (isPrimary ? 1.0 : 0.6)
       : 0.0;
 
-    if (isHighlighted && solidMuscleMat instanceof MuscleHighlightShaderMaterial) {
-      solidMuscleMat.updateTimeAndContraction(time, cycle, currentPace, effectiveDef, effectiveTex);
-      solidMuscleMat.uniforms.uFatigueLevel.value = effectiveFatigue;
-      solidMuscleMat.uniforms.uXRayMode.value = xRayMode ? 1.0 : 0.0;
-      solidMuscleMat.uniforms.uStretching.value = stretching ? 1.0 : 0.0;
-      solidMuscleMat.transparent = xRayMode;
-    } else if (solidMuscleMat instanceof THREE.MeshStandardMaterial) {
-      solidMuscleMat.transparent = xRayMode;
-      solidMuscleMat.opacity = xRayMode ? 0.3 : 1.0;
-    }
+    solidMuscleMat.setIsPrimary(isPrimary);
+    solidMuscleMat.setIsHighlighted(isHighlighted);
+    solidMuscleMat.updateTimeAndContraction(time, cycle, currentPace, effectiveDef, effectiveTex);
+    solidMuscleMat.uniforms.uFatigueLevel.value = effectiveFatigue;
+    solidMuscleMat.uniforms.uXRayMode.value = xRayMode ? 1.0 : 0.0;
+    solidMuscleMat.uniforms.uStretching.value = stretching ? 1.0 : 0.0;
+    solidMuscleMat.transparent = xRayMode;
 
     // Dynamic hypertrophic swelling & failure muscle expansion (physical mesh scaling)
     if (isPrimary && isPlaying) {
@@ -3196,27 +3264,144 @@ export function GLTFAnatomicalModel(props: any) {
   );
 }
 
+function getMarkerIconConfig(marker: any) {
+  const icon = marker.icon || (marker.type === 'pain' ? 'alert' : marker.type === 'goal' ? 'star' : 'pin');
+  switch (icon) {
+    case 'star':
+      return {
+        Icon: Star,
+        colorHex: '#fbbf24',
+        borderClass: 'border-amber-300',
+        bgClass: 'bg-amber-500/90 shadow-[0_0_12px_rgba(251,191,36,0.6)]',
+        label: 'Meta',
+      };
+    case 'alert':
+      return {
+        Icon: AlertTriangle,
+        colorHex: '#ef4444',
+        borderClass: 'border-red-300',
+        bgClass: 'bg-red-500/90 shadow-[0_0_12px_rgba(239,68,68,0.6)]',
+        label: 'Alerta',
+      };
+    case 'drop':
+      return {
+        Icon: Droplets,
+        colorHex: '#06b6d4',
+        borderClass: 'border-cyan-300',
+        bgClass: 'bg-cyan-500/90 shadow-[0_0_12px_rgba(6,182,212,0.6)]',
+        label: 'Hidratação',
+      };
+    case 'target':
+      return {
+        Icon: Target,
+        colorHex: '#10b981',
+        borderClass: 'border-emerald-300',
+        bgClass: 'bg-emerald-500/90 shadow-[0_0_12px_rgba(16,185,129,0.6)]',
+        label: 'Alvo',
+      };
+    case 'heart':
+      return {
+        Icon: Heart,
+        colorHex: '#ec4899',
+        borderClass: 'border-pink-300',
+        bgClass: 'bg-pink-500/90 shadow-[0_0_12px_rgba(236,72,153,0.6)]',
+        label: 'Saúde',
+      };
+    case 'flame':
+      return {
+        Icon: Flame,
+        colorHex: '#f97316',
+        borderClass: 'border-orange-300',
+        bgClass: 'bg-orange-500/90 shadow-[0_0_12px_rgba(249,115,22,0.6)]',
+        label: 'Queima',
+      };
+    case 'dumbbell':
+      return {
+        Icon: Dumbbell,
+        colorHex: '#8b5cf6',
+        borderClass: 'border-purple-300',
+        bgClass: 'bg-purple-500/90 shadow-[0_0_12px_rgba(139,92,246,0.6)]',
+        label: 'Força',
+      };
+    case 'sparkles':
+      return {
+        Icon: Sparkles,
+        colorHex: '#eab308',
+        borderClass: 'border-yellow-300',
+        bgClass: 'bg-yellow-500/90 shadow-[0_0_12px_rgba(234,179,8,0.6)]',
+        label: 'Recuperação',
+      };
+    case 'pin':
+    default:
+      return {
+        Icon: MapPin,
+        colorHex: '#3b82f6',
+        borderClass: 'border-blue-300',
+        bgClass: 'bg-blue-500/90 shadow-[0_0_12px_rgba(59,130,246,0.6)]',
+        label: 'Ponto',
+      };
+  }
+}
+
 function AnatomicalMarkerPoint({ marker }: { marker: any }) {
+  const [hovered, setHovered] = useState(false);
+  const config = getMarkerIconConfig(marker);
+  const IconComp = config.Icon;
+
   return (
     <group position={[marker.position.x, marker.position.y, marker.position.z]}>
+      {/* 3D Core Anchor Sphere on Surface */}
       <mesh castShadow>
-        <sphereGeometry args={[0.018, 16, 16]} />
+        <sphereGeometry args={[0.016, 16, 16]} />
         <meshStandardMaterial 
-          color={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'} 
-          emissive={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'}
-          emissiveIntensity={1.2}
+          color={config.colorHex} 
+          emissive={config.colorHex}
+          emissiveIntensity={1.3}
           toneMapped={false}
         />
       </mesh>
-      {/* Pulse effect */}
-      <mesh scale={[1.5, 1.5, 1.5]}>
-        <sphereGeometry args={[0.018, 16, 16]} />
+
+      {/* Outer Pulsing Halo */}
+      <mesh scale={[1.6, 1.6, 1.6]}>
+        <sphereGeometry args={[0.016, 16, 16]} />
         <meshBasicMaterial 
-          color={marker.type === 'pain' ? '#ef4444' : marker.type === 'goal' ? '#eab308' : '#3b82f6'}
+          color={config.colorHex}
           transparent
           opacity={0.3}
         />
       </mesh>
+
+      {/* Floating 3D Icon Overlay projected directly above the avatar mesh point */}
+      <Html
+        position={[0, 0.045, 0]}
+        center
+        distanceFactor={2.4}
+        style={{ pointerEvents: 'auto' }}
+      >
+        <div 
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className="flex flex-col items-center group cursor-pointer select-none transition-transform duration-200 hover:scale-125"
+        >
+          {/* Circular Badge with Selected Icon */}
+          <div 
+            className={`w-7 h-7 rounded-full flex items-center justify-center border-2 backdrop-blur-md transition-all shadow-md ${config.bgClass} ${config.borderClass}`}
+          >
+            <IconComp className="w-3.5 h-3.5 text-white fill-current drop-shadow-sm" />
+          </div>
+
+          {/* Marker Label / Tooltip */}
+          {marker.label && (
+            <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-tight whitespace-nowrap shadow-lg border transition-all duration-200 pointer-events-none ${
+              hovered 
+                ? 'opacity-100 scale-105 bg-slate-900/95 text-white border-white/30 backdrop-blur-md'
+                : 'opacity-90 bg-slate-900/80 text-slate-100 border-white/10 backdrop-blur-sm'
+            }`}>
+              {marker.label}
+            </div>
+          )}
+        </div>
+      </Html>
     </group>
   );
 }
@@ -3226,6 +3411,7 @@ function AnatomicalMarkerPoint({ marker }: { marker: any }) {
 // Zero robotic parts, organic muscle contours, and natural skeletal rig
 // ============================================================================
 function AnatomicalAvatarModel({
+  profile,
   exercise,
   gender = 'male',
   isPlaying = true,
@@ -3253,6 +3439,7 @@ function AnatomicalAvatarModel({
   onAddMarker,
   xRayMode = false,
 }: {
+  profile?: UserProfile | null;
   exercise: DetailedExercise;
   gender: 'male' | 'female';
   isPlaying: boolean;
@@ -3373,13 +3560,17 @@ function AnatomicalAvatarModel({
     };
   }, [geo]);
 
-  // Athletic studio porcelain material for skeletal, pelvic and non-muscular landmarks
+  const skinColor = useMemo(() => resolveSkinColor(profile?.skinTone), [profile?.skinTone]);
+
+  // Athletic studio living skin material for skeletal, cranial, and non-muscular landmarks
   const inactiveMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#f1f5f9',
-    roughness: 0.38,
-    metalness: 0.04,
+    color: skinColor,
+    roughness: Math.max(0.32, 0.48 - (skinTexture ?? 0.5) * 0.12),
+    metalness: 0.03,
     side: THREE.DoubleSide,
-  }), []);
+    transparent: xRayMode ?? false,
+    opacity: (xRayMode ?? false) ? 0.35 : 1.0,
+  }), [skinColor, skinTexture, xRayMode]);
 
   // Athletic fitness training gloves with refined cyber grip
   const mechanicalGloveMat = useMemo(() => new THREE.MeshStandardMaterial({
@@ -3795,6 +3986,7 @@ function AnatomicalAvatarModel({
         fatigueLevel: fatigueLevel ?? uFatigueLevel ?? 0.0,
         xRayMode: xRayMode ?? false,
         stretching: isStretching,
+        skinColor: skinColor,
       }}
     >
       <group 
@@ -3870,7 +4062,7 @@ function AnatomicalAvatarModel({
           {/* Left Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
             geometry={geo.pectoralLeft}
-            position={[-0.005, 0.025, 0.072]}
+            position={[-0.004, 0.020, 0.038]}
             rotation={[0.01, 0.02, -0.02]}
             scale={chestScale}
             muscleTag="chest"
@@ -3883,7 +4075,7 @@ function AnatomicalAvatarModel({
           {/* Right Pectoralis Major (Sculpted Contoured Muscular Plate) */}
           <AnatomicalMuscleNode
             geometry={geo.pectoralRight}
-            position={[0.005, 0.025, 0.072]}
+            position={[0.004, 0.020, 0.038]}
             rotation={[0.01, -0.02, 0.02]}
             scale={chestScale}
             muscleTag="chest"
@@ -5421,46 +5613,46 @@ export class AvatarAnatomico
                 />
               )}
 
-              {/* Studio Lighting: Soft neutral daylight / studio illumination preserving white matte texture */}
-              <ambientLight intensity={0.7} color="#ffffff" />
+              {/* Studio Athletic Lighting: Sculpting warm key, cool fill, and edge rim illumination */}
+              <hemisphereLight args={['#38bdf8', '#0f172a', 0.45]} />
 
-              {/* Key Cool White Light from Front-Right */}
+              {/* Key Warm Sunlight / Studio Spotlight from Front-Right */}
               <directionalLight
-                position={[2.4, 4.0, 3.2]}
-                intensity={1.6}
-                color="#ffffff"
+                position={[2.4, 3.8, 3.0]}
+                intensity={1.45}
+                color="#fff7ed"
                 castShadow
                 shadow-mapSize-width={1024}
                 shadow-mapSize-height={1024}
                 shadow-bias={-0.0001}
               />
 
-              {/* Fill Light Front-Left */}
+              {/* Fill Light Front-Left: Soft cool fill preserving muscle separation shadows */}
               <directionalLight
-                position={[-2.8, 2.5, 2.2]}
-                intensity={0.8}
-                color="#f1f5f9"
+                position={[-2.8, 2.2, 2.0]}
+                intensity={0.65}
+                color="#93c5fd"
               />
 
-              {/* Subtle Neutral Rim Lights to Sculpt the Mannequin Silhouette */}
+              {/* Sculpting Cyber Lateral Rim Lights to Contour Muscle Silhouettes */}
               <directionalLight
-                position={[0, 2.8, -3.4]}
-                intensity={1.2}
-                color="#f8fafc"
+                position={[-3.2, 2.2, -2.6]}
+                intensity={1.25}
+                color="#38bdf8"
               />
               <directionalLight
-                position={[-3.5, 1.8, -2.0]}
-                intensity={0.8}
-                color="#f8fafc"
+                position={[3.2, 2.2, -2.6]}
+                intensity={0.85}
+                color="#f59e0b"
               />
               <directionalLight
-                position={[3.5, 1.8, -2.0]}
-                intensity={0.8}
-                color="#f8fafc"
+                position={[0, 2.8, -3.2]}
+                intensity={0.80}
+                color="#7dd3fc"
               />
 
               {/* Floor Ambient Glow */}
-              <pointLight position={[0, 0.2, 0.8]} intensity={0.25} color="#ffffff" distance={2.5} />
+              <pointLight position={[0, 0.2, 0.8]} intensity={0.20} color="#38bdf8" distance={2.5} />
 
               {/* Studio Floor Platform */}
               <StudioGymPlatform />
@@ -5529,6 +5721,8 @@ export class AvatarAnatomico
                   isStretching={this.props.isStretching}
                   markers={this.props.markers}
                   onAddMarker={this.props.onAddMarker}
+                  profile={this.props.profile}
+                  xRayMode={this.props.xRayMode}
                 />
               )}
             </Canvas>

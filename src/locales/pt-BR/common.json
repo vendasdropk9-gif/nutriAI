@@ -298,5 +298,15 @@
   "marker_note_placeholder": "Ex: Dor lombar, meta de definição...",
   "marker_type": "Tipo de Marcador",
   "marker_note": "Sua Anotação",
-  "note": "Nota"
+  "note": "Nota",
+  "marker_icon": "Símbolo do Marcador",
+  "marker_icon_star": "Meta / Estrela",
+  "marker_icon_alert": "Alerta / Dor",
+  "marker_icon_drop": "Gota / Hidratação",
+  "marker_icon_target": "Alvo / Hipertrofia",
+  "marker_icon_heart": "Coração / Saúde",
+  "marker_icon_flame": "Chama / Queima",
+  "marker_icon_dumbbell": "Haltere / Força",
+  "marker_icon_sparkles": "Brilho / Recuperação",
+  "marker_icon_pin": "Alfinete / Ponto"
 }

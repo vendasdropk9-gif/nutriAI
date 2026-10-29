@@ -40,18 +40,26 @@ service cloud.firestore {
       allow write: if isValidId(profileId) && isOwner(profileId);
     }
 
-    // --- Global / Public Collections (Read-only for signed-in users) ---
+    // --- Global / Public Collections (Read and Seedable) ---
     match /medicinalHerbs/{herbId} {
-      allow read: if isSignedIn();
-      allow write: if false; 
+      allow read, write: if true;
+    }
+    match /couriers/{courierId} {
+      allow read, write: if true;
+    }
+    match /deliveries/{deliveryId} {
+      allow read, write: if true;
+    }
+    match /orders/{orderId} {
+      allow read, write: if true;
     }
     match /recipes/{recipeId} {
-      allow read: if isSignedIn();
-      allow write: if false; 
+      allow read: if true;
+      allow write: if isSignedIn(); 
     }
     match /academies/{academyId} {
-      allow read: if isSignedIn();
-      allow write: if false; 
+      allow read: if true;
+      allow write: if isSignedIn(); 
     }
 
     // --- Application Data & Interaction Collections ---

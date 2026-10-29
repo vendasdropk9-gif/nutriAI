@@ -293,5 +293,20 @@
   "mirror_mode": "Mirror Mode",
   "disable_mirror": "Disable Mirror Mode",
   "simulate_exercise": "Simulate Exercise",
-  "stop_simulation": "Stop Simulation"
+  "stop_simulation": "Stop Simulation",
+  "add_anatomical_marker": "Add Anatomical Marker",
+  "marker_note_placeholder": "Ex: Lower back pain, definition goal...",
+  "marker_type": "Marker Type",
+  "marker_note": "Your Note",
+  "note": "Note",
+  "marker_icon": "Marker Symbol",
+  "marker_icon_star": "Goal / Star",
+  "marker_icon_alert": "Alert / Pain",
+  "marker_icon_drop": "Drop / Hydration",
+  "marker_icon_target": "Target / Hypertrophy",
+  "marker_icon_heart": "Heart / Health",
+  "marker_icon_flame": "Flame / Burn",
+  "marker_icon_dumbbell": "Dumbbell / Strength",
+  "marker_icon_sparkles": "Sparkles / Recovery",
+  "marker_icon_pin": "Pin / General Point"
 }

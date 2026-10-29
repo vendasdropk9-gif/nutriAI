@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse, Zap, Cpu, Gauge, Layers, Eye, Sliders, Flame } from 'lucide-react';
+import { Camera, Image as ImageIcon, Loader2, Sparkles, AlertCircle, RefreshCw, Activity, CheckCircle2, ShieldCheck, Heart, User, Droplet, Dumbbell, Upload, Target, X, HeartPulse, Zap, Cpu, Gauge, Layers, Eye, Sliders, Flame, Star, AlertTriangle, Droplets, MapPin } from 'lucide-react';
 import { analyzeBodyImage, getGeneralBodyTips } from '../lib/gemini';
-import { UserProfile, AnatomicalMarker } from '../types';
+import { UserProfile, AnatomicalMarker, AnatomicalMarkerIcon } from '../types';
 import { BodySensorsMonitor } from './BodySensorsMonitor';
 import { VoicePlayButton } from './VoicePlayButton';
 import { AvatarAnatomico } from './AvatarAnatomico';
@@ -10,6 +10,124 @@ import { AnatomicalPresetController } from './AnatomicalPresetController';
 import { ContractionSpeedController } from './ContractionSpeedController';
 import { getOptimalAvatarLOD, isMobileOrLowPowerDevice } from './AnatomicalSculptor';
 import { playSfx, vibrate } from '../lib/sensory';
+
+export const MARKER_ICON_OPTIONS: Array<{
+  id: AnatomicalMarkerIcon;
+  label: string;
+  shortLabel: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activeBorder: string;
+  activeBg: string;
+  iconBg: string;
+  iconColor: string;
+}> = [
+  {
+    id: 'star',
+    label: 'Meta / Estrela',
+    shortLabel: 'Meta',
+    icon: Star,
+    activeBorder: 'border-amber-400',
+    activeBg: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-500',
+    iconBg: 'bg-amber-400 text-slate-900',
+    iconColor: 'fill-slate-900',
+  },
+  {
+    id: 'alert',
+    label: 'Alerta / Dor',
+    shortLabel: 'Alerta',
+    icon: AlertTriangle,
+    activeBorder: 'border-rose-500',
+    activeBg: 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-500',
+    iconBg: 'bg-rose-500 text-white',
+    iconColor: 'fill-white',
+  },
+  {
+    id: 'drop',
+    label: 'Gota / Hidratação',
+    shortLabel: 'Gota',
+    icon: Droplets,
+    activeBorder: 'border-cyan-400',
+    activeBg: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-500',
+    iconBg: 'bg-cyan-500 text-white',
+    iconColor: 'fill-white',
+  },
+  {
+    id: 'target',
+    label: 'Alvo / Hipertrofia',
+    shortLabel: 'Alvo',
+    icon: Target,
+    activeBorder: 'border-emerald-500',
+    activeBg: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500',
+    iconBg: 'bg-emerald-500 text-white',
+    iconColor: '',
+  },
+  {
+    id: 'heart',
+    label: 'Coração / Saúde',
+    shortLabel: 'Saúde',
+    icon: Heart,
+    activeBorder: 'border-pink-500',
+    activeBg: 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-500',
+    iconBg: 'bg-pink-500 text-white',
+    iconColor: 'fill-white',
+  },
+  {
+    id: 'flame',
+    label: 'Chama / Queima',
+    shortLabel: 'Chama',
+    icon: Flame,
+    activeBorder: 'border-orange-500',
+    activeBg: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-500',
+    iconBg: 'bg-orange-500 text-white',
+    iconColor: 'fill-white',
+  },
+  {
+    id: 'dumbbell',
+    label: 'Haltere / Força',
+    shortLabel: 'Força',
+    icon: Dumbbell,
+    activeBorder: 'border-purple-500',
+    activeBg: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-500',
+    iconBg: 'bg-purple-500 text-white',
+    iconColor: '',
+  },
+  {
+    id: 'sparkles',
+    label: 'Brilho / Recuperação',
+    shortLabel: 'Brilho',
+    icon: Sparkles,
+    activeBorder: 'border-yellow-400',
+    activeBg: 'bg-yellow-500/10 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+    iconBg: 'bg-yellow-400 text-slate-900',
+    iconColor: 'fill-slate-900',
+  },
+  {
+    id: 'pin',
+    label: 'Alfinete / Ponto',
+    shortLabel: 'Ponto',
+    icon: MapPin,
+    activeBorder: 'border-blue-500',
+    activeBg: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-500',
+    iconBg: 'bg-blue-500 text-white',
+    iconColor: '',
+  },
+];
+
+export const getMarkerBadgeIcon = (marker: AnatomicalMarker) => {
+  const iconId = marker.icon || (marker.type === 'pain' ? 'alert' : marker.type === 'goal' ? 'star' : 'pin');
+  switch (iconId) {
+    case 'star': return <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />;
+    case 'alert': return <AlertTriangle className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />;
+    case 'drop': return <Droplets className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" />;
+    case 'target': return <Target className="w-3.5 h-3.5 text-emerald-400" />;
+    case 'heart': return <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />;
+    case 'flame': return <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />;
+    case 'dumbbell': return <Dumbbell className="w-3.5 h-3.5 text-purple-400" />;
+    case 'sparkles': return <Sparkles className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />;
+    case 'pin':
+    default: return <MapPin className="w-3.5 h-3.5 text-blue-400" />;
+  }
+};
 
 const MUSCLE_FOCUS_OPTIONS = [
   { id: 'shoulders', label: 'Ombros / Deltóides', icon: '⚡', muscles: ['Deltoids', 'Lateral Deltoid', 'Anterior Deltoid'] },
@@ -56,6 +174,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
   const [isMarkerModalOpen, setIsMarkerModalOpen] = useState(false);
   const [markerNote, setMarkerNote] = useState('');
   const [markerType, setMarkerType] = useState<'note' | 'pain' | 'goal'>('note');
+  const [markerIcon, setMarkerIcon] = useState<AnatomicalMarkerIcon>('pin');
   const [pendingMarkerPosition, setPendingMarkerPosition] = useState<{ x: number, y: number, z: number } | null>(null);
   const [pendingMuscleTag, setPendingMuscleTag] = useState<string | undefined>(undefined);
   const [contractionRhythm, setContractionRhythm] = useState<'isometric' | 'moderate' | 'intense' | 'explosive'>('moderate');
@@ -252,6 +371,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     setPendingMuscleTag(muscleTag);
     setMarkerNote(muscleTag ? `${muscleTag}` : '');
     setMarkerType('note');
+    setMarkerIcon('pin');
     setIsMarkerModalOpen(true);
     playSfx('tap');
     vibrate(10);
@@ -265,6 +385,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
       label: markerNote || pendingMuscleTag || t('note'),
       position: pendingMarkerPosition,
       type: markerType,
+      icon: markerIcon,
       createdAt: new Date().toISOString(),
     };
     
@@ -277,6 +398,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
     setPendingMarkerPosition(null);
     setPendingMuscleTag(undefined);
     setMarkerNote('');
+    setMarkerIcon('pin');
     
     playSfx('success');
     vibrate(25);
@@ -885,8 +1007,9 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {profile.anatomicalMarkers.map((m) => (
-                    <div key={m.id} className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-[10px] text-slate-300">
-                      {m.label}
+                    <div key={m.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-[10px] text-slate-300">
+                      {getMarkerBadgeIcon(m)}
+                      <span>{m.label}</span>
                     </div>
                   ))}
                 </div>
@@ -1324,11 +1447,9 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        marker.type === 'pain' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
-                        marker.type === 'goal' ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' :
-                        'bg-blue-400 shadow-[0_0_8px_#60a5fa]'
-                      }`} />
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
+                        {getMarkerBadgeIcon(marker)}
+                      </div>
                       <div>
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{marker.label}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400">
@@ -1374,13 +1495,18 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'note', label: t('note'), color: 'bg-blue-500', active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' },
-                    { id: 'pain', label: t('pain'), color: 'bg-red-500', active: 'border-red-500 bg-red-50 dark:bg-red-900/20' },
-                    { id: 'goal', label: t('hypertrophy_goal'), color: 'bg-amber-400', active: 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' },
+                    { id: 'note', label: t('note'), defaultIcon: 'pin', color: 'bg-blue-500', active: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+                    { id: 'pain', label: t('pain'), defaultIcon: 'alert', color: 'bg-red-500', active: 'border-red-500 bg-red-50 dark:bg-red-900/20' },
+                    { id: 'goal', label: t('hypertrophy_goal'), defaultIcon: 'star', color: 'bg-amber-400', active: 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' },
                   ].map((type) => (
                     <button
                       key={type.id}
-                      onClick={() => setMarkerType(type.id as any)}
+                      type="button"
+                      onClick={() => {
+                        setMarkerType(type.id as any);
+                        setMarkerIcon(type.defaultIcon as AnatomicalMarkerIcon);
+                        playSfx('tap');
+                      }}
                       className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all ${
                         markerType === type.id 
                           ? type.active
@@ -1394,6 +1520,45 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                 </div>
               </div>
 
+              {/* Marker Icon Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {t('marker_icon')}
+                  </label>
+                  <span className="text-[10px] font-semibold text-emerald-500 dark:text-emerald-400">
+                    {MARKER_ICON_OPTIONS.find(o => o.id === markerIcon)?.shortLabel}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {MARKER_ICON_OPTIONS.map((opt) => {
+                    const IconComp = opt.icon;
+                    const isSelected = markerIcon === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setMarkerIcon(opt.id);
+                          playSfx('tap');
+                        }}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                          isSelected
+                            ? `${opt.activeBorder} ${opt.activeBg} ring-2 ring-emerald-500/30 scale-105 shadow-sm`
+                            : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400'
+                        }`}
+                        title={opt.label}
+                      >
+                        <div className={`p-1.5 rounded-lg ${isSelected ? opt.iconBg : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+                          <IconComp className={`w-3.5 h-3.5 ${isSelected ? opt.iconColor : ''}`} />
+                        </div>
+                        <span className="text-[9px] font-semibold truncate max-w-full leading-none">{opt.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t('marker_note')}
@@ -1402,7 +1567,7 @@ export function BodyAnalyzer({ profile, onUpdateProfile, onAwardPoints }: BodyAn
                   value={markerNote}
                   onChange={(e) => setMarkerNote(e.target.value)}
                   placeholder={t('marker_note_placeholder')}
-                  className="w-full h-24 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none resize-none dark:text-white"
+                  className="w-full h-20 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none resize-none dark:text-white"
                   autoFocus
                 />
               </div>

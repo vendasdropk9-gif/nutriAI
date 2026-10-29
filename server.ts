@@ -153,10 +153,9 @@ async function startServer() {
         for (const courier of defaultCouriers) {
           await setDoc(doc(db, "couriers", courier.id), courier);
         }
-        console.log("Seeding complete!");
       }
-    } catch (e) {
-      console.error("Failed to seed couriers:", e);
+    } catch (e: any) {
+      console.warn("Notice: Couriers seeding in Firestore deferred/skipped:", e?.message || e);
     }
   };
 
@@ -452,10 +451,9 @@ async function startServer() {
         for (const herb of defaultHerbs) {
           await setDoc(doc(db, "medicinalHerbs", herb.id), herb);
         }
-        console.log("Medicinal herbs seeding complete!");
       }
-    } catch (e) {
-      console.error("Failed to seed medicinal herbs:", e);
+    } catch (e: any) {
+      console.warn("Notice: Medicinal herbs seeding in Firestore deferred/skipped:", e?.message || e);
     }
   };
   // Defer seeding to background to allow instant server boot

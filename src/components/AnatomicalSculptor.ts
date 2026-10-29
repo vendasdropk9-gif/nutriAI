@@ -138,7 +138,7 @@ export function createSmoothParametricSurface(
   uDistribution?: (uLinear: number) => number,
   flipWinding = false,
   lodScale = 1.0,
-  enableInitialDecimation = true
+  enableInitialDecimation = false
 ): THREE.BufferGeometry {
   const geom = new THREE.BufferGeometry();
   // Dynamic polygon LOD: scale resolution according to device capability while maintaining smooth silhouette
@@ -474,40 +474,45 @@ export function createSculptedPectoralGeometry(isLeft: boolean, isFemale: boolea
     48,
     48,
     (u, v, target) => {
-      // u: 0 (sternal midline) -> 1 (lateral axilla / deltopectoral groove)
-      // v: 0 (inferior inframammary fold) -> 1 (superior clavicular origin)
+      // u: 0 (sternal/clavicular medial border) -> 1 (lateral axillary / deltopectoral groove insertion)
+      // v: 0 (inferior inframammary border) -> 1 (superior clavicular border)
 
-      // Smooth convergent fan: fibers radiate from broad sternocostal origin (u=0)
-      // toward lateral humeral insertion (u=1, slightly above mid-chest y ~ 0.015)
+      // Anatomical fan outline:
+      // Sternal origin along midline: u = 0, sits close to midline
+      // Sternal head (v ~ 0.35 - 0.65) is broad and convex
+      // Clavicular head (v > 0.65) slopes down smoothly from the clavicle
+      // Lower border (v < 0.3) curves upward into the axillary fold
+      const fanSpan = THREE.MathUtils.lerp(0.86, 1.0, Math.sin(v * Math.PI * 0.92));
+      const x = sign * (0.006 + u * width * fanSpan);
+
       const yBase = (v - 0.48) * height;
-      const y = THREE.MathUtils.lerp(yBase, 0.015 + (v - 0.5) * height * 0.24, Math.pow(u, 1.4));
-      const x = sign * (u * width);
+      const y = THREE.MathUtils.lerp(yBase, 0.022 + (v - 0.5) * height * 0.28, Math.pow(u, 1.35));
 
-      // Smooth C1 perimeter falloff on all 4 borders (replaces boxy power-curves with smooth sine tapers)
-      const sternalFalloff = Math.sin(Math.min(1.0, u / 0.18) * Math.PI * 0.5);
-      const lateralFalloff = Math.sin(Math.min(1.0, (1.0 - u) / 0.24) * Math.PI * 0.5);
-      const superiorFalloff = Math.sin(Math.min(1.0, (1.0 - v) / 0.32) * Math.PI * 0.5);
-      const inferiorFalloff = Math.sin(Math.min(1.0, v / 0.28) * Math.PI * 0.5);
+      // Smooth C1 perimeter falloff on all 4 borders
+      const sternalFalloff = Math.sin(Math.min(1.0, u / 0.16) * Math.PI * 0.5);
+      const lateralFalloff = Math.sin(Math.min(1.0, (1.0 - u) / 0.22) * Math.PI * 0.5);
+      const superiorFalloff = Math.sin(Math.min(1.0, (1.0 - v) / 0.26) * Math.PI * 0.5);
+      const inferiorFalloff = Math.sin(Math.min(1.0, v / 0.24) * Math.PI * 0.5);
       const perimeter = sternalFalloff * lateralFalloff * superiorFalloff * inferiorFalloff;
 
       // 1. Clavicular head (Upper pec fullness sloping gently down from clavicle)
-      const clavDist = Math.hypot((u - 0.38) / 0.32, (v - 0.78) / 0.24);
-      const clavBelly = Math.exp(-clavDist * clavDist * 2.2) * 0.42;
+      const clavDist = Math.hypot((u - 0.36) / 0.32, (v - 0.78) / 0.22);
+      const clavBelly = Math.exp(-clavDist * clavDist * 2.4) * 0.46;
 
       // 2. Sternocostal head (Main pectoral muscle belly fullness)
-      const sternDist = Math.hypot((u - 0.45) / 0.36, (v - 0.38) / 0.34);
-      const sternBelly = Math.exp(-sternDist * sternDist * 1.8) * 0.86;
+      const sternDist = Math.hypot((u - 0.42) / 0.38, (v - 0.38) / 0.32);
+      const sternBelly = Math.exp(-sternDist * sternDist * 1.9) * 0.88;
 
       // 3. Subtle anatomical sulcus dividing clavicular and sternal heads
       const sulcusLine = (v - 0.62) - (u - 0.30) * 0.22;
-      const sulcusDip = Math.exp(-sulcusLine * sulcusLine * 90.0) * 0.07;
+      const sulcusDip = Math.exp(-sulcusLine * sulcusLine * 90.0) * 0.06;
 
-      // Organic convex thickness with physical muscle fiber fascicle striations radiating to axilla
+      // Physical muscle fiber fascicle striations radiating toward axilla
       const striationPattern = Math.sin(v * Math.PI * 18.0 + u * 6.0) * 0.0012 * perimeter;
       const thickness = maxThickness * perimeter * (sternBelly + clavBelly - sulcusDip) + striationPattern;
 
-      // Natural ribcage convex underlay
-      const ribcageCurve = Math.cos(u * Math.PI * 0.45) * 0.016;
+      // Natural ribcage convex underlay hugging torsoCore
+      const ribcageCurve = Math.cos(u * Math.PI * 0.48) * 0.022;
 
       target.set(x, y, thickness + ribcageCurve);
     },

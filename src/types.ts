@@ -178,11 +178,14 @@ export interface UserProfile {
   anatomicalMarkers?: AnatomicalMarker[];
 }
 
+export type AnatomicalMarkerIcon = 'star' | 'alert' | 'drop' | 'target' | 'heart' | 'flame' | 'dumbbell' | 'sparkles' | 'pin';
+
 export interface AnatomicalMarker {
   id: string;
   label: string;
   position: { x: number; y: number; z: number };
   type: 'pain' | 'goal' | 'note';
+  icon?: AnatomicalMarkerIcon;
   createdAt: string;
 }
 
