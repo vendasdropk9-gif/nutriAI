@@ -204,13 +204,14 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     }
   }, [profile?.preferred_language, profile?.language, language, changeLanguage]);
 
-  const [isLocked, setIsLocked] = useState(() => {
+  const [isLocked, setIsLocked] = useState(false);
+  useEffect(() => {
     try {
-      return window.localStorage.getItem('nutri-biometric-enabled') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+      if (typeof window !== 'undefined' && window.localStorage.getItem('nutri-biometric-enabled') === 'true') {
+        setIsLocked(true);
+      }
+    } catch (e) {}
+  }, []);
 
   // Wrapper for setProfile to also sync
   const updateProfile = (value: React.SetStateAction<UserProfile | null>) => {

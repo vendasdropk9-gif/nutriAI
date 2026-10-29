@@ -308,5 +308,22 @@
   "marker_icon_flame": "Flame / Burn",
   "marker_icon_dumbbell": "Dumbbell / Strength",
   "marker_icon_sparkles": "Sparkles / Recovery",
-  "marker_icon_pin": "Pin / General Point"
+  "marker_icon_pin": "Pin / General Point",
+  "kitchen_mode": "Kitchen Mode",
+  "kitchen_mode_subtitle": "Maximized instructions with voice commands",
+  "next_step": "Next step",
+  "previous_step": "Previous step",
+  "repeat_step": "Repeat step",
+  "listening_voice": "Listening for voice commands...",
+  "voice_commands_tip": "Say 'Next step', 'Back' or 'Repeat'",
+  "exit_kitchen_mode": "Exit Kitchen Mode",
+  "step_x_of_y": "Step {{current}} of {{total}}",
+  "timer_label": "Kitchen Timer",
+  "timer_started": "Timer of {{minutes}} minutes started",
+  "timer_completed": "Time's up!",
+  "start_timer": "Start Timer",
+  "pause_timer": "Pause Timer",
+  "resume_timer": "Resume Timer",
+  "reset_timer": "Cancel Timer",
+  "timer_voice_tip": "Say 'cook for 10 minutes' or 'timer 5 min'"
 }

@@ -67,9 +67,7 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
   type FreshnessFilter = 'all' | 'urgent' | 'expired' | 'fresh' | 'this_week' | 'next_week' | 'long_term' | 'low_stock';
   const [filter, setFilter] = useState<FreshnessFilter>('all');
   const [locationFilter, setLocationFilter] = useState<'all' | 'geladeira' | 'despensa' | 'freezer'>('all');
-  const [lowStockThreshold, setLowStockThreshold] = useState<number>(() => {
-    return Number(localStorage.getItem('nutri_pantry_low_stock_threshold') || 1);
-  });
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(1);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [hoveredTimeframe, setHoveredTimeframe] = useState<string | null>(null);
   const [notificationStatus, setNotificationStatus] = useState<NotificationPermission | 'unsupported'>('default');
@@ -87,9 +85,18 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
     d.setDate(d.getDate() + 5);
     return d.toISOString().split('T')[0];
   });
-  const [consumedCount, setConsumedCount] = useState<number>(() => {
-    return Number(localStorage.getItem('nutri_consumed_fresh_count') || 0);
-  });
+  const [consumedCount, setConsumedCount] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const threshold = localStorage.getItem('nutri_pantry_low_stock_threshold');
+        if (threshold) setLowStockThreshold(Number(threshold) || 1);
+        const count = localStorage.getItem('nutri_consumed_fresh_count');
+        if (count) setConsumedCount(Number(count) || 0);
+      }
+    } catch (e) {}
+  }, []);
 
   // Check notification permission
   useEffect(() => {

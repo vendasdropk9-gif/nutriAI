@@ -21,6 +21,7 @@ import { PrintRecipe } from './PrintRecipe';
 import { OfflineRecipesModal } from './OfflineRecipesModal';
 import { ContextualRecipeAssistantModal } from './ContextualRecipeAssistantModal';
 import { RecipeCollectionsModal } from './RecipeCollectionsModal';
+import { KitchenModeModal } from './KitchenModeModal';
 import { Collection } from '../types';
 
 function parsePrepTime(prepTime: string): number {
@@ -123,6 +124,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [videoOpName, setVideoOpName] = useState<string | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [showCollectionsModal, setShowCollectionsModal] = useState(false);
+  const [isKitchenModalOpen, setIsKitchenModalOpen] = useState(false);
   
   const [tags, setTags] = useState<string[]>(recipe.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -225,27 +227,21 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const recognitionRef = useRef<any>(null);
 
   // States for Modo de Leitura (Accessibility / High-Contrast Reading Mode)
-  const [isReadingModeActive, setIsReadingModeActive] = useState<boolean>(() => {
+  const [isReadingModeActive, setIsReadingModeActive] = useState<boolean>(false);
+  const [readingFontSize, setReadingFontSize] = useState<'normal' | 'large' | 'xlarge' | 'xxlarge'>('large');
+  const [readingContrast, setReadingContrast] = useState<'contrast-max' | 'contrast-yellow' | 'contrast-soft'>('contrast-max');
+
+  useEffect(() => {
     try {
-      return window.localStorage.getItem('nutri-reading-mode') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
-  const [readingFontSize, setReadingFontSize] = useState<'normal' | 'large' | 'xlarge' | 'xxlarge'>(() => {
-    try {
-      return (window.localStorage.getItem('nutri-reading-font-size') as any) || 'large';
-    } catch (e) {
-      return 'large';
-    }
-  });
-  const [readingContrast, setReadingContrast] = useState<'contrast-max' | 'contrast-yellow' | 'contrast-soft'>(() => {
-    try {
-      return (window.localStorage.getItem('nutri-reading-contrast') as any) || 'contrast-max';
-    } catch (e) {
-      return 'contrast-max';
-    }
-  });
+      if (typeof window !== 'undefined' && window.localStorage) {
+        setIsReadingModeActive(window.localStorage.getItem('nutri-reading-mode') === 'true');
+        const font = window.localStorage.getItem('nutri-reading-font-size') as any;
+        if (font) setReadingFontSize(font);
+        const contrast = window.localStorage.getItem('nutri-reading-contrast') as any;
+        if (contrast) setReadingContrast(contrast);
+      }
+    } catch (e) {}
+  }, []);
   const [checkedIngredients, setCheckedIngredients] = useState<Record<number, boolean>>({});
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [isNarratingIngredients, setIsNarratingIngredients] = useState(false);
@@ -2275,6 +2271,20 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             </h4>
             <div className="flex flex-wrap items-center gap-2">
               <button
+                id="toggle-kitchen-mode-maximized-btn"
+                onClick={() => {
+                  stopSpeech();
+                  setIsKitchenModalOpen(true);
+                  playSfx('pop');
+                  vibrate(20);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black tracking-wide transition-all duration-300 border bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25 active:scale-95 cursor-pointer"
+              >
+                <ChefHat className="w-4 h-4 text-white animate-bounce" />
+                <span>{t('kitchen_mode', 'Modo Cozinha')} 🍳</span>
+              </button>
+
+              <button
                 id="toggle-voice-guided-mode-btn"
                 aria-label="Voice Guided Mode"
                 onClick={() => {
@@ -2290,8 +2300,8 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                 {isVoiceModeActive ? <Mic className="w-3.5 h-3.5 text-white animate-pulse" /> : <ChefHat className="w-3.5 h-3.5" />}
                 <span>
                   {isVoiceModeActive 
-                    ? ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Modo Guiado por Voz (Ativo)' : 'Voice Guided Mode (Active)')
-                    : ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Modo Guiado por Voz' : 'Voice Guided Mode')}
+                    ? ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Comandos de Voz' : 'Voice Commands')
+                    : ((language || 'pt-BR').toLowerCase().startsWith('pt') ? 'Comandos de Voz' : 'Voice Commands')}
                 </span>
               </button>
 
@@ -3554,6 +3564,15 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         isOpen={isOfflineModalOpen}
         onClose={() => setIsOfflineModalOpen(false)}
         initialRecipeId={recipe.id}
+      />
+      <KitchenModeModal
+        isOpen={isKitchenModalOpen}
+        onClose={() => setIsKitchenModalOpen(false)}
+        recipeTitle={recipe.title}
+        instructions={recipe.instructions || []}
+        ingredients={ingredients}
+        prepTime={recipe.prepTime}
+        calories={nutrition.calories}
       />
     </div>
   );

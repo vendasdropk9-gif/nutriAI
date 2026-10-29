@@ -308,5 +308,22 @@
   "marker_icon_flame": "Chama / Queima",
   "marker_icon_dumbbell": "Haltere / Força",
   "marker_icon_sparkles": "Brilho / Recuperação",
-  "marker_icon_pin": "Alfinete / Ponto"
+  "marker_icon_pin": "Alfinete / Ponto",
+  "kitchen_mode": "Modo Cozinha",
+  "kitchen_mode_subtitle": "Instruções maximizadas com comandos de voz",
+  "next_step": "Próximo passo",
+  "previous_step": "Passo anterior",
+  "repeat_step": "Repetir passo",
+  "listening_voice": "Escutando comandos de voz...",
+  "voice_commands_tip": "Diga 'Próximo passo', 'Voltar' ou 'Repetir'",
+  "exit_kitchen_mode": "Sair do Modo Cozinha",
+  "step_x_of_y": "Passo {{current}} de {{total}}",
+  "timer_label": "Temporizador de Cozinha",
+  "timer_started": "Temporizador de {{minutes}} minutos iniciado",
+  "timer_completed": "Tempo esgotado!",
+  "start_timer": "Iniciar Temporizador",
+  "pause_timer": "Pausar Timer",
+  "resume_timer": "Retomar Timer",
+  "reset_timer": "Cancelar Timer",
+  "timer_voice_tip": "Diga 'cozinhar por 10 minutos' ou 'timer de 5 min'"
 }

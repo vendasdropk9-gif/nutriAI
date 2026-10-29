@@ -3345,11 +3345,30 @@ function getMarkerIconConfig(marker: any) {
 
 function AnatomicalMarkerPoint({ marker }: { marker: any }) {
   const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  const scaleRef = useRef(0);
+  const velocityRef = useRef(0);
   const config = getMarkerIconConfig(marker);
   const IconComp = config.Icon;
 
+  // Real-time spring physics bounce animation on mount and hover
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    const clampedDelta = Math.min(delta, 0.05); // Cap delta for high frame rate stability
+    const targetScale = hovered ? 1.15 : 1.0;
+    const stiffness = 220;
+    const damping = 14;
+
+    const force = (targetScale - scaleRef.current) * stiffness;
+    velocityRef.current = (velocityRef.current + force * clampedDelta) * Math.exp(-damping * clampedDelta);
+    scaleRef.current += velocityRef.current * clampedDelta;
+
+    const currentScale = Math.max(0, scaleRef.current);
+    groupRef.current.scale.set(currentScale, currentScale, currentScale);
+  });
+
   return (
-    <group position={[marker.position.x, marker.position.y, marker.position.z]}>
+    <group ref={groupRef} position={[marker.position.x, marker.position.y, marker.position.z]} scale={[0, 0, 0]}>
       {/* 3D Core Anchor Sphere on Surface */}
       <mesh castShadow>
         <sphereGeometry args={[0.016, 16, 16]} />
@@ -3381,7 +3400,7 @@ function AnatomicalMarkerPoint({ marker }: { marker: any }) {
         <div 
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="flex flex-col items-center group cursor-pointer select-none transition-transform duration-200 hover:scale-125"
+          className="flex flex-col items-center group cursor-pointer select-none transition-all duration-200"
         >
           {/* Circular Badge with Selected Icon */}
           <div 
