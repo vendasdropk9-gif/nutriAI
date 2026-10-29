@@ -7,24 +7,32 @@ import { Login } from './components/Login';
 import { LockScreen } from './components/LockScreen';
 import { VerifyEmailScreen } from './components/VerifyEmailScreen';
 import { useProfileSync } from './lib/profileSync';
-import { Generator } from './components/Generator';
-import { Profile } from './components/Profile';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyTabLoader } from './components/LazyTabLoader';
-import { FoodGalleryBanner } from './components/FoodGalleryBanner';
 import { SplashScreen } from './components/SplashScreen';
-import { PartnerBanner } from './components/PartnerBanner';
 import { DraggableNav } from './components/DraggableNav';
 import { prefetchCuratedRecipeCatalog } from './lib/recipeImagePrefetcher';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
-import { LiveAssistant } from './components/LiveAssistant';
-import { FeedbackSystem } from './components/FeedbackSystem';
-import { WelcomeTour } from './components/WelcomeTour';
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
 
-// Code Splitting (React.lazy) for heavy modules to minimize main bundle & accelerate initial load
+// Aggressive Code Splitting (React.lazy) to minimize main bundle & maximize splash screen response speed
+const Generator = lazy(() => import('./components/Generator').then(m => ({ default: m.Generator })));
+const Profile = lazy(() => import('./components/Profile').then(m => ({ default: m.Profile })));
+const FoodGalleryBanner = lazy(() => import('./components/FoodGalleryBanner').then(m => ({ default: m.FoodGalleryBanner })));
+const PartnerBanner = lazy(() => import('./components/PartnerBanner').then(m => ({ default: m.PartnerBanner })));
+const LiveAssistant = lazy(() => import('./components/LiveAssistant').then(m => ({ default: m.LiveAssistant })));
+const FeedbackSystem = lazy(() => import('./components/FeedbackSystem').then(m => ({ default: m.FeedbackSystem })));
+const WelcomeTour = lazy(() => import('./components/WelcomeTour').then(m => ({ default: m.WelcomeTour })));
+const MagicRecipeFAB = lazy(() => import('./components/MagicRecipeFAB').then(m => ({ default: m.MagicRecipeFAB })));
+const LanguageModal = lazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })));
+const AutoTranslator = lazy(() => import('./components/AutoTranslator').then(m => ({ default: m.AutoTranslator })));
+const GlobalSearch = lazy(() => import('./components/GlobalSearch').then(m => ({ default: m.GlobalSearch })));
+const PWAInstallButton = lazy(() => import('./components/PWAInstallButton').then(m => ({ default: m.PWAInstallButton })));
+const OfflineSyncResolver = lazy(() => import('./components/OfflineSyncResolver').then(m => ({ default: m.OfflineSyncResolver })));
+const SmartHydrationBanner = lazy(() => import('./components/SmartHydrationBanner').then(m => ({ default: m.SmartHydrationBanner })));
+
 const Assistant360 = lazy(() => import('./components/Assistant360').then(m => ({ default: m.Assistant360 })));
 const MealPlanView = lazy(() => import('./components/MealPlanCalendar').then(m => ({ default: m.MealPlanView })));
 const Marketplace = lazy(() => import('./components/Marketplace').then(m => ({ default: m.Marketplace })));
@@ -69,20 +77,13 @@ import { playSfx, vibrate } from './lib/sensory';
 import { changeLanguage as changeAppLanguage, normalizeToSupportedLocale } from './i18n';
 import { LanguageProvider, useLanguage, LanguageContext } from './contexts/LanguageContext';
 
-import { MagicRecipeFAB } from './components/MagicRecipeFAB';
-import { LanguageModal } from './components/LanguageModal';
-import { AutoTranslator } from './components/AutoTranslator';
-import { GlobalSearch } from './components/GlobalSearch';
-import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { OfflineSyncBanner } from './components/OfflineSyncBanner';
-import { OfflineSyncResolver } from './components/OfflineSyncResolver';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { useMealReminders } from './hooks/useMealReminders';
 import { useSolarCircadianNotification } from './hooks/useSolarCircadianNotification';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
-import { SmartHydrationBanner } from './components/SmartHydrationBanner';
 import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
@@ -102,6 +103,25 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   const { language, changeLanguage, t, renderKey } = useLanguage();
   const currentAppLang = language;
   const [showSplash, setShowSplash] = useState(true);
+  const [isIdleMounted, setIsIdleMounted] = useState(false);
+
+  // Defer mounting secondary background/floating widgets until after splash screen completes
+  useEffect(() => {
+    if (!showSplash) {
+      const timer = setTimeout(() => {
+        setIsIdleMounted(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  // Pre-warm default tab modules in background while splash screen displays
+  useEffect(() => {
+    if (showSplash) {
+      import('./components/Assistant360');
+      import('./components/QuickDishes');
+    }
+  }, [showSplash]);
 
   // Strict fallback timer to guarantee splash screen never hangs more than 2.2 seconds
   useEffect(() => {
@@ -620,12 +640,14 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
           <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-slate-200/50 dark:bg-slate-800/40 blur-[100px] transition-colors duration-1000"></div>
         </div>
 
-        <SmartHydrationBanner 
-          profile={profile} 
-          onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
-          onAwardPoints={awardPoints}
-          onNavigateToHabits={() => setActiveTab('habits')}
-        />
+        <Suspense fallback={null}>
+          <SmartHydrationBanner 
+            profile={profile} 
+            onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+            onAwardPoints={awardPoints}
+            onNavigateToHabits={() => setActiveTab('habits')}
+          />
+        </Suspense>
 
         <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500 w-full flex items-center justify-center">
           <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 h-[54px] flex items-center justify-between gap-2 sm:gap-4">
@@ -668,14 +690,18 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
             
             {/* Global Search Bar (Desktop) */}
             <div className="hidden md:flex flex-1 max-w-md justify-center mx-2">
-              <GlobalSearch variant="desktop" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+              <Suspense fallback={null}>
+                <GlobalSearch variant="desktop" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+              </Suspense>
             </div>
 
             {/* Action Buttons Cluster (Search on mobile, Feedback, Language, Dark Mode) */}
             <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
               {/* Mobile Search Trigger */}
               <div className="md:hidden flex items-center justify-center">
-                <GlobalSearch variant="mobile" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+                <Suspense fallback={null}>
+                  <GlobalSearch variant="mobile" activeTab={activeTab} onNavigate={setActiveTab} isDarkMode={isDarkMode} />
+                </Suspense>
               </div>
 
               {/* Feedback Button */}
@@ -725,7 +751,9 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
               </motion.button>
 
               {/* PWA Install Button */}
-              <PWAInstallButton variant="header" />
+              <Suspense fallback={null}>
+                <PWAInstallButton variant="header" />
+              </Suspense>
 
               {/* Interactive Tour Button (Intro.js) */}
               <motion.button 
@@ -784,7 +812,9 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         <DraggableNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
-      <PartnerBanner />
+      <Suspense fallback={null}>
+        <PartnerBanner />
+      </Suspense>
 
       <main className={`relative z-10 flex-1 flex flex-col min-h-0 w-full mx-auto transition-all duration-500 ${
         activeTab === 'frescor' 
@@ -1052,41 +1082,45 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         </LayoutAnimationProvider>
       </main>
 
-      <LiveAssistant 
-        profile={profile} 
-        activeTab={activeTab}
-        onNavigate={(tab) => setActiveTab(tab as any)}
-        onOpenLanguage={() => setIsLanguageOpen(true)}
-        onOpenFeedback={() => setIsFeedbackOpen(true)}
-        onAwardPoints={awardPoints}
-        onUpdateProfile={updateProfile}
-      />
-      <MagicRecipeFAB profile={profile} />
-      
-      <FeedbackSystem 
-        profile={profile} 
-        isOpen={isFeedbackOpen} 
-        onClose={() => setIsFeedbackOpen(false)} 
-        addNotification={addNotification} 
-      />
+      {isIdleMounted && (
+        <Suspense fallback={null}>
+          <LiveAssistant 
+            profile={profile} 
+            activeTab={activeTab}
+            onNavigate={(tab) => setActiveTab(tab as any)}
+            onOpenLanguage={() => setIsLanguageOpen(true)}
+            onOpenFeedback={() => setIsFeedbackOpen(true)}
+            onAwardPoints={awardPoints}
+            onUpdateProfile={updateProfile}
+          />
+          <MagicRecipeFAB profile={profile} />
+          
+          <FeedbackSystem 
+            profile={profile} 
+            isOpen={isFeedbackOpen} 
+            onClose={() => setIsFeedbackOpen(false)} 
+            addNotification={addNotification} 
+          />
 
-      <LanguageModal
-        isOpen={isLanguageOpen}
-        onClose={() => setIsLanguageOpen(false)}
-        profile={profile}
-        onUpdateProfile={updateProfile}
-      />
-      
+          <LanguageModal
+            isOpen={isLanguageOpen}
+            onClose={() => setIsLanguageOpen(false)}
+            profile={profile}
+            onUpdateProfile={updateProfile}
+          />
+
+          <WelcomeTour 
+            onNavigateTab={(tab) => {
+              setActiveTab(tab as any);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </Suspense>
+      )}
+
       <NotificationSystem 
         notifications={notifications} 
         onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))} 
-      />
-
-      <WelcomeTour 
-        onNavigateTab={(tab) => {
-          setActiveTab(tab as any);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
       />
       </motion.div>
     </div>
@@ -1095,10 +1129,14 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
 
   return (
     <div key={renderKey} className="contents">
-      <AutoTranslator />
+      {isIdleMounted && (
+        <Suspense fallback={null}>
+          <AutoTranslator />
+          <OfflineSyncResolver />
+        </Suspense>
+      )}
       <OfflineIndicator />
       <OfflineSyncBanner />
-      <OfflineSyncResolver />
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       {renderContent()}
     </div>
