@@ -17,6 +17,8 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStatusText, setUploadStatusText] = useState<string>('');
   const [generatedAds, setGeneratedAds] = useState<{ type: 'photo' | 'video', url: string, status: 'ready', createdAt: string }[]>([]);
+  const [videoAction, setVideoAction] = useState<string>('');
+  const [productInfo, setProductInfo] = useState<string>('');
 
   const db = getFirestore();
   const auth = getAuth();
@@ -129,10 +131,31 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
           type,
           url: permanentStorageUrl,
           storageProvider: 'firebase-storage',
+          ...(type === 'video' ? { videoAction, productInfo } : {}),
           createdAt: newAd.createdAt
         });
       } catch (firestoreErr) {
         console.warn('[AdsManager] Aviso ao persistir anúncio no Firestore:', firestoreErr);
+      }
+
+      // 4. Save to local promo storage so it shows immediately in #partner-banner
+      try {
+        const promoItem = {
+          id: `promo-ad-${Date.now()}`,
+          title: productInfo ? productInfo.slice(0, 45) : (type === 'video' ? 'Vídeo Promocional Google Veo' : 'Anúncio Foto Nano Banana'),
+          subtitle: videoAction ? videoAction.slice(0, 60) : 'Destaque Oficial NutriAI',
+          price: type === 'video' ? 'Vídeo Veo 4K' : 'Nano Banana AI',
+          image: permanentStorageUrl,
+          videoUrl: type === 'video' ? permanentStorageUrl : undefined,
+          type,
+          videoAction: videoAction || 'Apresente o produto para a câmera sorrindo e mostre seus detalhes principais.',
+          productInfo: productInfo || 'Produto 100% natural com alto valor nutricional.'
+        };
+        const existing = JSON.parse(localStorage.getItem('nutri-partner-promos') || '[]');
+        localStorage.setItem('nutri-partner-promos', JSON.stringify([promoItem, ...existing]));
+        window.dispatchEvent(new CustomEvent('nutri-promo-added', { detail: promoItem }));
+      } catch (storageSyncErr) {
+        console.warn('[AdsManager] Aviso ao sincronizar com promos do banner:', storageSyncErr);
       }
 
       setGeneratedAds(prev => [newAd, ...prev]);
@@ -213,15 +236,15 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
             </label>
           </div>
         ) : (
-          /* Real-Time Thumbnail Preview Before Finalizing */
+          /* Real-Time Thumbnail Preview Formatted as Banner Size (matching print reference) */
           <div className="space-y-4">
-            <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 flex flex-col items-center justify-center group shadow-md">
-              <div className="w-full h-64 sm:h-80 flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+            <div className="relative w-full aspect-[21/9] sm:aspect-[24/8] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 flex flex-col items-center justify-center group shadow-md">
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
                 {previewUrl && (
                   <img
                     src={previewUrl}
-                    alt="Pré-visualização do produto"
-                    className="max-h-full max-w-full object-contain drop-shadow-xl"
+                    alt="Pré-visualização do produto no formato do banner"
+                    className="w-full h-full object-cover opacity-90 drop-shadow-xl"
                   />
                 )}
               </div>
@@ -266,6 +289,40 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Google Veo Video Action & Product Info Config */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl space-y-3 border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wider">
+                <Video className="w-4 h-4 text-indigo-500" />
+                <span>Google Veo: Roteiro e Detalhes do Vídeo</span>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    O que a pessoa vai fazer no vídeo?
+                  </label>
+                  <input
+                    type="text"
+                    value={videoAction}
+                    onChange={(e) => setVideoAction(e.target.value)}
+                    placeholder="Ex: Apresentar o produto sorrindo, provar o shake..."
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Poucas informações do produto
+                  </label>
+                  <input
+                    type="text"
+                    value={productInfo}
+                    onChange={(e) => setProductInfo(e.target.value)}
+                    placeholder="Ex: 100% natural, zero açúcar, 300g..."
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}

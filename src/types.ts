@@ -74,6 +74,18 @@ export interface VisualizerPreferences {
   mode: 'tutorial' | 'training';
 }
 
+export type MacroPreset = 'balanced' | 'high_protein' | 'low_carb' | 'keto' | 'custom';
+
+export interface MacroTargets {
+  carbs: number; // in grams
+  protein: number; // in grams
+  fat: number; // in grams
+  calories?: number; // total kcal
+  preset?: MacroPreset;
+  enabled?: boolean;
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   name: string;
   firstName?: string;
@@ -176,6 +188,7 @@ export interface UserProfile {
   sleepGoalHours?: number;
   sleepReminderEnabled?: boolean;
   anatomicalMarkers?: AnatomicalMarker[];
+  macroTargets?: MacroTargets;
 }
 
 export type AnatomicalMarkerIcon = 'star' | 'alert' | 'drop' | 'target' | 'heart' | 'flame' | 'dumbbell' | 'sparkles' | 'pin';
@@ -957,4 +970,45 @@ export interface SmartShoppingSchedule {
   totalMissingItemsCount: number;
   aisles: SmartShoppingAisle[];
   aiVoiceSummary: string;
+}
+
+export interface ComparativeProgressReport {
+  executiveSummary: string;
+  daysBetween: number;
+  overallScore: number;
+  milestoneTitle: string;
+  regionalAnalysis: {
+    postureAndAlignment: {
+      score: number;
+      observation: string;
+      improvement: string;
+    };
+    coreAndWaistline: {
+      score: number;
+      observation: string;
+      improvement: string;
+    };
+    muscleToneAndDensity: {
+      score: number;
+      observation: string;
+      improvement: string;
+    };
+    fluidRetention: {
+      score: number;
+      observation: string;
+      improvement: string;
+    };
+  };
+  keyAchievements: string[];
+  clinicalRecommendations: {
+    nutritionAdjustment: string;
+    hydrationTip: string;
+    trainingFocus: string;
+  };
+  estimatedChanges: {
+    apparentBodyFatDelta: string;
+    apparentWaistDelta: string;
+    apparentPostureImprovement: string;
+  };
+  generatedAt?: string;
 }

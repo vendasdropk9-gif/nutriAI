@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Layers, X } from 'lucide-react';
+import { Layers, X, TrendingUp } from 'lucide-react';
 import { PhotoEntry } from './PhotoEvolution';
 
 interface PhotoComparisonGalleryProps {
   entries: PhotoEntry[];
   onClose: () => void;
+  onOpenReport?: () => void;
 }
 
-export const PhotoComparisonGallery: React.FC<PhotoComparisonGalleryProps> = ({ entries, onClose }) => {
+export const PhotoComparisonGallery: React.FC<PhotoComparisonGalleryProps> = ({ entries, onClose, onOpenReport }) => {
   const [photoA, setPhotoA] = useState<PhotoEntry | null>(entries[entries.length - 1] || null);
   const [photoB, setPhotoB] = useState<PhotoEntry | null>(entries[0] || null);
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -60,6 +61,19 @@ export const PhotoComparisonGallery: React.FC<PhotoComparisonGalleryProps> = ({ 
              {entries.map(e => <option key={e.id} value={e.id}>Depois: {new Date(e.date).toLocaleDateString()}</option>)}
            </select>
         </div>
+
+        {onOpenReport && (
+          <button
+            onClick={() => {
+              onClose();
+              onOpenReport();
+            }}
+            className="w-full mt-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30 cursor-pointer transition-all active:scale-98"
+          >
+            <TrendingUp className="w-4 h-4 text-emerald-200" />
+            <span>Gerar Relatório Completo de Progresso Corporal (IA)</span>
+          </button>
+        )}
       </div>
     </div>
   );

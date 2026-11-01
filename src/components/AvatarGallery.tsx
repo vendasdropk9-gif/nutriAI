@@ -22,6 +22,7 @@ import {
   Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { playSfx, vibrate } from '../lib/sensory';
 
 interface AvatarGalleryProps {
   userProfile?: UserProfile;
@@ -59,16 +60,25 @@ export const AvatarGallery: React.FC<AvatarGalleryProps> = ({
 
   const filteredAvatars = useMemo(() => {
     if (selectedCategory === 'all') return CURATED_AVATARS;
-    return CURATED_AVATARS.filter(a => a.category === selectedCategory);
+    return CURATED_AVATARS.filter(a => {
+      if (selectedCategory === 'atletico' || selectedCategory === 'athletic') return a.category === 'atletico';
+      if (selectedCategory === 'hipertrofia' || selectedCategory === 'hypertrophy') return a.category === 'hipertrofia';
+      if (selectedCategory === 'biomecanico' || selectedCategory === 'cyber') return a.category === 'biomecanico';
+      if (selectedCategory === 'endurance') return a.category === 'endurance';
+      if (selectedCategory === 'crosstraining') return a.category === 'crosstraining';
+      if (selectedCategory === 'wellness' || selectedCategory === 'yoga') return a.category === 'wellness';
+      return a.category === selectedCategory;
+    });
   }, [selectedCategory]);
 
   const categories: { id: string; label: string; icon: string }[] = [
-    { id: 'all', label: 'Todos Modelos', icon: '🌟' },
-    { id: 'athletic', label: 'Atlético & Definição', icon: '⚡' },
-    { id: 'hypertrophy', label: 'Hipertrofia & Força', icon: '💪' },
-    { id: 'cyber', label: 'Cyber Bio & Neon', icon: '🦾' },
+    { id: 'all', label: 'Todos os Modelos', icon: '🌟' },
+    { id: 'atletico', label: 'Atlético & Definição', icon: '⚡' },
+    { id: 'hipertrofia', label: 'Hipertrofia & Força', icon: '💪' },
+    { id: 'biomecanico', label: 'Cyber Bio & Robô 3D', icon: '🦾' },
+    { id: 'crosstraining', label: 'Cross-Training', icon: '🔥' },
     { id: 'endurance', label: 'Endurance & Cardio', icon: '🏃' },
-    { id: 'yoga', label: 'Flex & Calistenia', icon: '🧘' }
+    { id: 'wellness', label: 'Flex & Yoga', icon: '🧘' }
   ];
 
   const handleApplyAvatar = async () => {
@@ -79,6 +89,8 @@ export const AvatarGallery: React.FC<AvatarGalleryProps> = ({
       if (customAccentColor) customConfig.accentColor = customAccentColor;
 
       await onSelectAvatar(selectedAvatarId, customConfig);
+      playSfx('success');
+      vibrate([30, 40]);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
       if (onClose) {
@@ -222,6 +234,8 @@ export const AvatarGallery: React.FC<AvatarGalleryProps> = ({
                   whileHover={{ y: -3, scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => {
+                    playSfx('tap');
+                    vibrate(15);
                     setSelectedAvatarId(avatar.id);
                     setCustomSkinTone(null);
                     setCustomAccentColor(null);

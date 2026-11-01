@@ -28,7 +28,8 @@ import {
   Sliders,
   Printer,
   Mic,
-  MicOff
+  MicOff,
+  Copy
 } from 'lucide-react';
 import { QuickDish, QuickDishGoal, UserProfile, Recipe, IntakeLog } from '../types';
 import { printRecipe } from '../lib/recipePrinter';
@@ -36,6 +37,7 @@ import { PrintRecipe } from './PrintRecipe';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, setDoc } from '../lib/firebase';
 import { speak, stopSpeech } from '../lib/speech';
+import { RecipeStepTimer } from './RecipeStepTimer';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -985,6 +987,16 @@ export function QuickDishes({
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleShareDish(dish)}
+                              className="p-1.5 rounded-full bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold px-2.5"
+                              title="Copiar texto formatado da receita para colar em outros aplicativos"
+                              id={`btn-copy-overlay-${dish.id}`}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Copiar Texto</span>
+                            </button>
                             <PrintRecipe
                               recipe={dish}
                               variant="icon"
@@ -1073,11 +1085,14 @@ export function QuickDishes({
                             </span>
                             <div className="space-y-2">
                               {dish.instructions.map((step, sIdx) => (
-                                <div key={sIdx} className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-[#18212C] border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
-                                  <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center justify-center mt-0.5">
-                                    {sIdx + 1}
-                                  </span>
-                                  <p className="leading-snug">{step}</p>
+                                <div key={sIdx} className="flex flex-col items-start gap-2 p-3 rounded-xl bg-slate-50 dark:bg-[#18212C] border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-start gap-2.5 w-full">
+                                    <span className="shrink-0 w-5 h-5 rounded-full bg-emerald-500 text-white font-bold text-xs flex items-center justify-center mt-0.5">
+                                      {sIdx + 1}
+                                    </span>
+                                    <p className="leading-relaxed flex-1 text-xs sm:text-sm font-medium">{step}</p>
+                                  </div>
+                                  <RecipeStepTimer stepText={step} stepIndex={sIdx} recipeName={dish.name} />
                                 </div>
                               ))}
                             </div>

@@ -1018,6 +1018,8 @@ export function Avatar3D({
         playbackSpeed={playbackSpeed}
         showReferenceControls={true}
         showOverlayBadges={false}
+        muscleDefinition={1.30}
+        skinTexture={0.65}
       />
     </div>
   );

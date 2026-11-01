@@ -6,7 +6,8 @@ import {
   Download, ExternalLink, Sparkles, Search, BookOpen, Clock, 
   Flame, Dumbbell, Leaf, Zap, Utensils, Check, TrendingDown, 
   Folder, ShoppingCart, CheckCircle2, AlertCircle, ArrowRight, 
-  RefreshCw, CheckSquare, Square, ChevronDown, ChevronUp, Mic, MicOff
+  RefreshCw, CheckSquare, Square, ChevronDown, ChevronUp, Mic, MicOff,
+  Calendar, CalendarCheck, CalendarDays, GripVertical, ArrowLeftRight, Move
 } from 'lucide-react';
 import { RecipeCard } from './RecipeCard';
 import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
@@ -20,6 +21,16 @@ import { safeGet, safeSet } from '../lib/storage';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { exportElementAsImage, downloadBlobUrl } from '../lib/cardExport';
+import {
+  googleSignInWithCalendar,
+  getCalendarAccessToken,
+  syncMealToCalendar,
+  syncEntireMealPlanToCalendar,
+  getDatesForMealPlanWeek,
+  DEFAULT_MEAL_TIMES,
+  DEFAULT_MEAL_LABELS,
+  WeekDayMealItem
+} from '../lib/googleCalendar';
 
 export const DAYS_OF_WEEK = [
   'Segunda-feira',
@@ -60,8 +71,352 @@ export function MealPlanView({
   const [isGenerating, setIsGenerating] = useState(false);
   const [addingTo, setAddingTo] = useState<{ day: string; meal: string } | null>(null);
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
+  const [viewRecipeContext, setViewRecipeContext] = useState<{ day: string; mealType: string; mealLabel?: string } | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Drag & Drop Functionality States
+  const [draggedMeal, setDraggedMeal] = useState<{
+    day: string;
+    mealType: string;
+    recipe: Recipe;
+  } | null>(null);
+  const [draggedRecipeFromHub, setDraggedRecipeFromHub] = useState<Recipe | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{ day: string; mealType: string } | null>(null);
+  const [dragOverDayTab, setDragOverDayTab] = useState<string | null>(null);
+
+  // Drag Start for Planned Meal
+  const handleMealDragStart = (e: any, day: string, mealType: string, recipe: Recipe) => {
+    setDraggedMeal({ day, mealType, recipe });
+    setDraggedRecipeFromHub(null);
+    try {
+      if (e?.dataTransfer) {
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'planned_meal', day, mealType, recipeId: recipe.id }));
+        e.dataTransfer.effectAllowed = 'move';
+      }
+    } catch (err) {}
+    playSfx('tap');
+    vibrate(20);
+  };
+
+  // Drag Start for Recipe in Hub/Bank
+  const handleHubRecipeDragStart = (e: any, recipe: Recipe) => {
+    setDraggedRecipeFromHub(recipe);
+    setDraggedMeal(null);
+    try {
+      if (e?.dataTransfer) {
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'hub_recipe', recipeId: recipe.id }));
+        e.dataTransfer.effectAllowed = 'copy';
+      }
+    } catch (err) {}
+    playSfx('tap');
+    vibrate(20);
+  };
+
+  const handleMealDragEnd = () => {
+    setDraggedMeal(null);
+    setDraggedRecipeFromHub(null);
+    setDragOverTarget(null);
+    setDragOverDayTab(null);
+  };
+
+  const handleMealDragOver = (e: React.DragEvent, day: string, mealType: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = draggedRecipeFromHub ? 'copy' : 'move';
+    if (!dragOverTarget || dragOverTarget.day !== day || dragOverTarget.mealType !== mealType) {
+      setDragOverTarget({ day, mealType });
+    }
+  };
+
+  const handleMealDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverTarget(null);
+  };
+
+  // Sync updated meal plan directly to Firestore document
+  const syncMealPlanToFirestore = async (newPlan: MealPlan) => {
+    try {
+      const user = auth.currentUser;
+      if (user?.uid) {
+        await setDoc(doc(db, 'users', user.uid), { mealPlan: newPlan }, { merge: true });
+      }
+    } catch (err) {
+      console.warn("Aviso na sincronização do plano com Firestore:", err);
+    }
+  };
+
+  // Drop Handler on a Meal Slot
+  const handleDropOnMealSlot = async (targetDay: string, targetMealType: string) => {
+    setDragOverTarget(null);
+
+    // 1. Case: Dropping a recipe from Saved Recipes Bank
+    if (draggedRecipeFromHub) {
+      const recipe = draggedRecipeFromHub;
+      onUpdatePlan(targetDay, targetMealType, recipe.id, recipe);
+      playSfx('success');
+      vibrate(30);
+
+      const updatedPlan = JSON.parse(JSON.stringify(mealPlan || {}));
+      if (!updatedPlan[targetDay]) updatedPlan[targetDay] = { date: targetDay, meals: {} };
+      updatedPlan[targetDay].meals[targetMealType] = recipe;
+      await syncMealPlanToFirestore(updatedPlan);
+
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: 'Receita Adicionada ao Plano! 🍳',
+          message: `"${recipe.name || recipe.title}" foi agendada para ${targetDay} (${DEFAULT_MEAL_LABELS[targetMealType] || targetMealType}).`,
+          type: 'success'
+        }
+      }));
+
+      setDraggedRecipeFromHub(null);
+      return;
+    }
+
+    // 2. Case: Swapping or moving an existing planned meal
+    if (!draggedMeal) return;
+
+    const { day: sourceDay, mealType: sourceMealType, recipe: sourceRecipe } = draggedMeal;
+
+    if (sourceDay === targetDay && sourceMealType === targetMealType) {
+      setDraggedMeal(null);
+      return;
+    }
+
+    const targetRecipe = mealPlan[targetDay]?.meals?.[targetMealType as keyof typeof mealPlan[string]['meals']];
+
+    if (targetRecipe) {
+      // SWAP: Target slot gets sourceRecipe, Source slot gets targetRecipe
+      onUpdatePlan(targetDay, targetMealType, sourceRecipe.id, sourceRecipe);
+      onUpdatePlan(sourceDay, sourceMealType, targetRecipe.id, targetRecipe);
+      playSfx('crystal');
+      vibrate([30, 50]);
+
+      const updatedPlan = JSON.parse(JSON.stringify(mealPlan || {}));
+      if (!updatedPlan[targetDay]) updatedPlan[targetDay] = { date: targetDay, meals: {} };
+      if (!updatedPlan[sourceDay]) updatedPlan[sourceDay] = { date: sourceDay, meals: {} };
+
+      updatedPlan[targetDay].meals[targetMealType] = sourceRecipe;
+      updatedPlan[sourceDay].meals[sourceMealType] = targetRecipe;
+      await syncMealPlanToFirestore(updatedPlan);
+
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: 'Refeições Trocadas com Sucesso! 🔄',
+          message: `Trocado "${sourceRecipe.name || sourceRecipe.title}" (${sourceDay}) por "${targetRecipe.name || targetRecipe.title}" (${targetDay}).`,
+          type: 'success'
+        }
+      }));
+    } else {
+      // MOVE: Target slot gets sourceRecipe, Source slot emptied
+      onUpdatePlan(targetDay, targetMealType, sourceRecipe.id, sourceRecipe);
+      onUpdatePlan(sourceDay, sourceMealType, null);
+      playSfx('success');
+      vibrate(30);
+
+      const updatedPlan = JSON.parse(JSON.stringify(mealPlan || {}));
+      if (!updatedPlan[targetDay]) updatedPlan[targetDay] = { date: targetDay, meals: {} };
+      if (!updatedPlan[sourceDay]) updatedPlan[sourceDay] = { date: sourceDay, meals: {} };
+
+      updatedPlan[targetDay].meals[targetMealType] = sourceRecipe;
+      delete updatedPlan[sourceDay].meals[sourceMealType];
+      await syncMealPlanToFirestore(updatedPlan);
+
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: 'Refeição Movida! 🚚',
+          message: `"${sourceRecipe.name || sourceRecipe.title}" movida para ${targetDay} (${DEFAULT_MEAL_LABELS[targetMealType] || targetMealType}).`,
+          type: 'success'
+        }
+      }));
+    }
+
+    setDraggedMeal(null);
+  };
+
+  // Drop Handler on Day Tab
+  const handleDropOnDayTab = async (targetDay: string) => {
+    setDragOverDayTab(null);
+
+    if (draggedMeal) {
+      const { day: sourceDay, mealType: sourceMealType, recipe: sourceRecipe } = draggedMeal;
+      if (sourceDay === targetDay) return;
+
+      const targetRecipe = mealPlan[targetDay]?.meals?.[sourceMealType as keyof typeof mealPlan[string]['meals']];
+
+      if (targetRecipe) {
+        onUpdatePlan(targetDay, sourceMealType, sourceRecipe.id, sourceRecipe);
+        onUpdatePlan(sourceDay, sourceMealType, targetRecipe.id, targetRecipe);
+        playSfx('crystal');
+        vibrate([30, 50]);
+      } else {
+        onUpdatePlan(targetDay, sourceMealType, sourceRecipe.id, sourceRecipe);
+        onUpdatePlan(sourceDay, sourceMealType, null);
+        playSfx('success');
+        vibrate(30);
+      }
+
+      const updatedPlan = JSON.parse(JSON.stringify(mealPlan || {}));
+      if (!updatedPlan[targetDay]) updatedPlan[targetDay] = { date: targetDay, meals: {} };
+      if (!updatedPlan[sourceDay]) updatedPlan[sourceDay] = { date: sourceDay, meals: {} };
+
+      updatedPlan[targetDay].meals[sourceMealType] = sourceRecipe;
+      if (targetRecipe) {
+        updatedPlan[sourceDay].meals[sourceMealType] = targetRecipe;
+      } else {
+        delete updatedPlan[sourceDay].meals[sourceMealType];
+      }
+      await syncMealPlanToFirestore(updatedPlan);
+
+      setSelectedDay(targetDay);
+
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: `Refeição Transferida para ${targetDay}! 📅`,
+          message: targetRecipe
+            ? `Trocada refeição com ${targetDay}.`
+            : `"${sourceRecipe.name || sourceRecipe.title}" movida para ${targetDay}.`,
+          type: 'success'
+        }
+      }));
+
+      setDraggedMeal(null);
+    }
+  };
+
+  // Google Calendar Integration States
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarScope, setCalendarScope] = useState<'single' | 'day' | 'week'>('week');
+  const [singleMealToSync, setSingleMealToSync] = useState<{ day: string; mealType: string; recipe: Recipe } | null>(null);
+  const [singleMealDate, setSingleMealDate] = useState<string>('');
+  const [singleMealTime, setSingleMealTime] = useState<string>('12:30');
+  const [calendarWeekStartDate, setCalendarWeekStartDate] = useState<string>(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  });
+  const [calendarReminderMinutes, setCalendarReminderMinutes] = useState<number>(15);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
+  const [calendarProgress, setCalendarProgress] = useState<{ current: number; total: number } | null>(null);
+  const [calendarSyncResult, setCalendarSyncResult] = useState<{ count: number; links: string[] } | null>(null);
+  const [calendarConfirmAccepted, setCalendarConfirmAccepted] = useState(false);
+
+  const handleOpenCalendarModal = (
+    scope: 'single' | 'day' | 'week',
+    singleTarget?: { day: string; mealType: string; recipe: Recipe }
+  ) => {
+    setCalendarScope(scope);
+    if (singleTarget) {
+      setSingleMealToSync(singleTarget);
+      const datesMap = getDatesForMealPlanWeek(calendarWeekStartDate);
+      const initialDate = datesMap[singleTarget.day] || calendarWeekStartDate;
+      setSingleMealDate(initialDate);
+      setSingleMealTime(DEFAULT_MEAL_TIMES[singleTarget.mealType] || '12:30');
+    } else {
+      setSingleMealToSync(null);
+    }
+    setCalendarSyncResult(null);
+    setCalendarProgress(null);
+    setCalendarConfirmAccepted(false);
+    setIsCalendarModalOpen(true);
+  };
+
+  const handleExecuteCalendarSync = async () => {
+    if (!calendarConfirmAccepted) {
+      alert("Por favor, marque a caixa de confirmação autorizando o agendamento no Google Calendar.");
+      return;
+    }
+
+    setIsSyncingCalendar(true);
+    setCalendarProgress(null);
+
+    try {
+      let token = getCalendarAccessToken();
+      if (!token) {
+        token = await googleSignInWithCalendar();
+      }
+
+      if (!token) {
+        throw new Error("Autenticação com o Google falhou ou foi cancelada.");
+      }
+
+      if (calendarScope === 'single' && singleMealToSync) {
+        const datesMap = getDatesForMealPlanWeek(calendarWeekStartDate);
+        const dateStr = singleMealDate || datesMap[singleMealToSync.day] || calendarWeekStartDate;
+        const timeStr = singleMealTime || DEFAULT_MEAL_TIMES[singleMealToSync.mealType] || '12:30';
+        const labelStr = DEFAULT_MEAL_LABELS[singleMealToSync.mealType] || 'Refeição';
+
+        const res = await syncMealToCalendar({
+          dateStr,
+          timeStr,
+          mealTypeLabel: labelStr,
+          recipe: singleMealToSync.recipe,
+          reminderMinutes: calendarReminderMinutes
+        }, token);
+
+        if (res.success) {
+          playSfx('crystal');
+          vibrate([30, 50]);
+          setCalendarSyncResult({ count: 1, links: res.htmlLink ? [res.htmlLink] : [] });
+        } else {
+          throw new Error(res.error || 'Falha ao sincronizar refeição.');
+        }
+      } else {
+        const datesMap = getDatesForMealPlanWeek(calendarWeekStartDate);
+        const daysToScan = calendarScope === 'day' ? [selectedDay] : DAYS_OF_WEEK;
+        const itemsToSync: WeekDayMealItem[] = [];
+
+        daysToScan.forEach(dName => {
+          const dMeals = mealPlan[dName]?.meals;
+          const dateStr = datesMap[dName] || calendarWeekStartDate;
+          if (dMeals) {
+            Object.entries(dMeals).forEach(([mKey, r]) => {
+              if (r) {
+                itemsToSync.push({
+                  dayName: dName,
+                  dateStr,
+                  mealType: mKey as any,
+                  mealTypeLabel: DEFAULT_MEAL_LABELS[mKey] || mKey,
+                  timeStr: DEFAULT_MEAL_TIMES[mKey] || '12:00',
+                  recipe: r
+                });
+              }
+            });
+          }
+        });
+
+        if (itemsToSync.length === 0) {
+          alert("Nenhuma refeição planejada encontrada para o período selecionado.");
+          setIsSyncingCalendar(false);
+          return;
+        }
+
+        const res = await syncEntireMealPlanToCalendar(
+          itemsToSync,
+          calendarReminderMinutes,
+          token,
+          (curr, tot) => setCalendarProgress({ current: curr, total: tot })
+        );
+
+        playSfx('crystal');
+        vibrate([30, 50, 80]);
+        setCalendarSyncResult({ count: res.successCount, links: res.links });
+      }
+    } catch (err: any) {
+      console.error("Erro na sincronização com Google Calendar:", err);
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Erro ao Agendar no Calendar",
+          message: err.message || "Tente novamente mais tarde.",
+          type: "error"
+        }
+      }));
+    } finally {
+      setIsSyncingCalendar(false);
+    }
+  };
   const [exportedCardUrl, setExportedCardUrl] = useState<string | null>(null);
   const [exportedBlobUrl, setExportedBlobUrl] = useState<string | null>(null);
   const [isExportingCard, setIsExportingCard] = useState(false);
@@ -503,6 +858,21 @@ export function MealPlanView({
 
   // Formulate recommended values dynamically based on profile
   const getRecommendedStats = () => {
+    if (profile?.macroTargets && (profile.macroTargets.carbs > 0 || profile.macroTargets.protein > 0 || profile.macroTargets.fat > 0)) {
+      const carbs = profile.macroTargets.carbs;
+      const protein = profile.macroTargets.protein;
+      const fat = profile.macroTargets.fat;
+      const calories = profile.macroTargets.calories || (carbs * 4 + protein * 4 + fat * 9);
+      return {
+        calories,
+        protein,
+        carbs,
+        fat,
+        fiber: 30,
+        sugar: 50,
+      };
+    }
+
     if (profile?.masterPlan?.dailyCalories) {
       return {
         calories: profile.masterPlan.dailyCalories,
@@ -743,12 +1113,12 @@ export function MealPlanView({
   };
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center space-y-4 mb-12">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+    <div className="w-full max-w-full px-2 sm:px-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
+      <div className="text-center space-y-4 mb-8 w-full flex flex-col items-center">
+        <h2 className="font-serif text-4xl md:text-5xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400">
           Seu Plano Semanal
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-xl leading-relaxed text-center">
           Organize suas refeições geradas pela IA e mantenha o foco na sua rotina saudável.
         </p>
       </div>
@@ -759,13 +1129,27 @@ export function MealPlanView({
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`w-full text-left px-6 py-4 rounded-2xl transition-all duration-300 font-medium font-sans ${
-                selectedDay === day
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverDayTab(day);
+              }}
+              onDragLeave={() => setDragOverDayTab(null)}
+              onDrop={() => handleDropOnDayTab(day)}
+              className={`w-full text-left px-6 py-4 rounded-2xl transition-all duration-300 font-medium font-sans flex items-center justify-between cursor-pointer ${
+                dragOverDayTab === day
+                  ? 'bg-emerald-600 text-white ring-4 ring-emerald-300 dark:ring-emerald-700 scale-[1.03] shadow-xl'
+                  : selectedDay === day
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                   : 'bg-white/40 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-700/60 border border-white/60 dark:border-slate-700/50 backdrop-blur-md'
               }`}
             >
-              {t(day)}
+              <span>{t(day)}</span>
+              {dragOverDayTab === day && (
+                <span className="text-[11px] bg-white text-emerald-800 font-bold px-2 py-0.5 rounded-full animate-bounce shadow-sm">
+                  Soltar para mover 📥
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -787,6 +1171,14 @@ export function MealPlanView({
               >
                 <ShoppingCart className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 <span>Sincronizar Lista</span>
+              </button>
+              <button
+                onClick={() => handleOpenCalendarModal('week')}
+                className="bg-sky-50 dark:bg-sky-900/40 hover:bg-sky-100 dark:hover:bg-sky-800/60 text-sky-700 dark:text-sky-300 font-semibold px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm border border-sky-500/20 shadow-sm cursor-pointer"
+                title="Sincronizar refeições agendadas diretamente com seu Google Calendar"
+              >
+                <Calendar className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <span>Google Calendar 📅</span>
               </button>
               <button
                 onClick={() => {
@@ -1156,37 +1548,78 @@ export function MealPlanView({
                 </div>
 
                 {recipe ? (
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 25 }}
-                    className="flex items-center justify-between bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-[24px] p-4 border border-white/80 dark:border-slate-600/50 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/40 transition-shadow group"
+                  <div
+                    onDragOver={(e) => handleMealDragOver(e, selectedDay, mealType.id)}
+                    onDragLeave={handleMealDragLeave}
+                    onDrop={() => handleDropOnMealSlot(selectedDay, mealType.id)}
+                    className={`transition-all rounded-[24px] ${
+                      dragOverTarget?.day === selectedDay && dragOverTarget?.mealType === mealType.id
+                        ? 'ring-4 ring-emerald-500/80 bg-emerald-500/20 dark:bg-emerald-900/50 scale-[1.02] p-1 shadow-2xl'
+                        : ''
+                    }`}
                   >
-                    <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{recipe.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{recipe.prepTime} • {recipe.nutrition.calories} kcal</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleLogMeal(recipe, mealType.label)}
-                        disabled={loggingMeal === mealType.label}
-                        className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
-                          loggingMeal === mealType.label
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
-                        }`}
-                      >
-                        {loggingMeal === mealType.label ? (
-                          <span className="flex items-center gap-1">✓ Logado</span>
-                        ) : 'Eu comi!'}
-                      </button>
-                      <button 
-                        onClick={() => setViewRecipe(recipe)}
-                        className="text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 p-2 transition-colors"
-                      >
-                        <Info className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </motion.div>
+                    <motion.div 
+                      draggable={true}
+                      onDragStart={(e: any) => handleMealDragStart(e, selectedDay, mealType.id, recipe)}
+                      onDragEnd={handleMealDragEnd}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 25 }}
+                      className={`flex items-center justify-between bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-[24px] p-4 border transition-all shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 cursor-grab active:cursor-grabbing group ${
+                        draggedMeal?.day === selectedDay && draggedMeal?.mealType === mealType.id
+                          ? 'opacity-40 border-dashed border-emerald-500 ring-2 ring-emerald-400 scale-95'
+                          : 'border-white/80 dark:border-slate-600/50 hover:border-emerald-500/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div 
+                          className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-700/60 text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                          title="Clique e arraste para trocar esta refeição de dia ou horário"
+                        >
+                          <GripVertical className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
+                            {recipe.name || recipe.title}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                            {recipe.prepTime} • {recipe.nutrition?.calories || recipe.calories || 0} kcal
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleLogMeal(recipe, mealType.label)}
+                          disabled={loggingMeal === mealType.label}
+                          className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                            loggingMeal === mealType.label
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {loggingMeal === mealType.label ? (
+                            <span className="flex items-center gap-1">✓ Logado</span>
+                          ) : 'Eu comi!'}
+                        </button>
+                        <button 
+                          onClick={() => handleOpenCalendarModal('single', { day: selectedDay, mealType: mealType.id, recipe })}
+                          className="text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 p-2 rounded-xl hover:bg-sky-500/10 transition-colors"
+                          title="Agendar esta refeição no Google Calendar"
+                        >
+                          <Calendar className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setViewRecipe(recipe);
+                            setViewRecipeContext({ day: selectedDay, mealType: mealType.id, mealLabel: mealType.label });
+                          }}
+                          className="text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 p-2 transition-colors"
+                          title={t('view_recipe', 'Ver Detalhes da Refeição')}
+                        >
+                          <Info className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
                 ) : (
                   <div>
                     {addingTo?.day === selectedDay && addingTo?.meal === mealType.id ? (
@@ -1323,16 +1756,42 @@ export function MealPlanView({
                         </div>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => {
-                          playSfx('tap');
-                          setAddingTo({ day: selectedDay, meal: mealType.id });
-                        }}
-                        className="w-full py-8 border-2 border-dashed border-white/80 dark:border-slate-700/50 bg-white/20 dark:bg-slate-800/20 rounded-[24px] text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-white/40 dark:hover:bg-slate-700/40 transition-all flex items-center justify-center gap-2 font-medium cursor-pointer"
+                      <div
+                        onDragOver={(e) => handleMealDragOver(e, selectedDay, mealType.id)}
+                        onDragLeave={handleMealDragLeave}
+                        onDrop={() => handleDropOnMealSlot(selectedDay, mealType.id)}
+                        className={`transition-all rounded-[24px] ${
+                          dragOverTarget?.day === selectedDay && dragOverTarget?.mealType === mealType.id
+                            ? 'ring-4 ring-emerald-500/80 bg-emerald-500/20 dark:bg-emerald-900/50 scale-[1.02] p-1 shadow-2xl'
+                            : ''
+                        }`}
                       >
-                        <Plus className="w-5 h-5" />
-                        {t('add_meal', 'Adicionar Refeição')}
-                      </button>
+                        <button
+                          onClick={() => {
+                            playSfx('tap');
+                            setAddingTo({ day: selectedDay, meal: mealType.id });
+                          }}
+                          className={`w-full py-8 border-2 border-dashed rounded-[24px] transition-all flex flex-col items-center justify-center gap-1.5 font-medium cursor-pointer ${
+                            dragOverTarget?.day === selectedDay && dragOverTarget?.mealType === mealType.id
+                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 font-bold shadow-lg scale-[1.01]'
+                              : 'border-white/80 dark:border-slate-700/50 bg-white/20 dark:bg-slate-800/20 text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-white/40 dark:hover:bg-slate-700/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-5 h-5" />
+                            <span>
+                              {dragOverTarget?.day === selectedDay && dragOverTarget?.mealType === mealType.id
+                                ? 'Solte a Refeição Aqui 📥'
+                                : t('add_meal', 'Adicionar Refeição')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">
+                            {dragOverTarget?.day === selectedDay && dragOverTarget?.mealType === mealType.id
+                              ? 'Sua refeição será agendada para este horário'
+                              : 'Arraste uma refeição aqui para trocar de dia ou horário'}
+                          </p>
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1408,10 +1867,15 @@ export function MealPlanView({
                     const calories = recipe.nutrition?.calories ?? recipe.calories ?? 0;
                     return (
                       <motion.div
+                        draggable={true}
+                        onDragStart={(e: any) => handleHubRecipeDragStart(e, recipe)}
+                        onDragEnd={handleMealDragEnd}
                         whileHover={{ scale: 1.03, y: -4 }}
                         transition={{ type: "spring", stiffness: 350, damping: 22 }}
                         key={recipe.id}
-                        className="bg-white/90 dark:bg-slate-800/90 rounded-[24px] p-4 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-xl hover:shadow-emerald-500/15 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-3 cursor-pointer group"
+                        className={`bg-white/90 dark:bg-slate-800/90 rounded-[24px] p-4 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-xl hover:shadow-emerald-500/15 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-3 cursor-grab active:cursor-grabbing group ${
+                          draggedRecipeFromHub?.id === recipe.id ? 'opacity-40 border-emerald-500 ring-2 ring-emerald-400 scale-95' : ''
+                        }`}
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
@@ -1489,14 +1953,62 @@ export function MealPlanView({
       </div>
 
       {viewRecipe && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-transparent rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
-            <button 
-              onClick={() => setViewRecipe(null)}
-              className="absolute top-6 right-6 p-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/60 dark:border-slate-600/50 rounded-full hover:bg-white dark:hover:bg-slate-700 transition-colors z-10"
-            >
-              <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-            </button>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] w-full max-w-4xl max-h-[92vh] overflow-y-auto relative shadow-2xl flex flex-col">
+            {/* Top Toolbar with Meal Info & Google Calendar Button */}
+            <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 rounded-t-[32px] shadow-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 rounded-2xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shrink-0">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                      {DEFAULT_MEAL_LABELS[viewRecipeContext?.mealType || 'lunch'] || 'Refeição'} • {viewRecipeContext?.day || selectedDay}
+                    </span>
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                      ⏰ {DEFAULT_MEAL_TIMES[viewRecipeContext?.mealType || 'lunch'] || '12:30'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
+                    {viewRecipe.name || viewRecipe.title}
+                  </h4>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    const targetDay = viewRecipeContext?.day || selectedDay;
+                    const targetMeal = viewRecipeContext?.mealType || 'lunch';
+                    handleOpenCalendarModal('single', {
+                      day: targetDay,
+                      mealType: targetMeal,
+                      recipe: viewRecipe
+                    });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/25 transition-all active:scale-95 cursor-pointer border border-sky-400/30"
+                  title="Criar evento no Google Calendar para o horário desta refeição com os dados da receita"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>Agendar no Google Calendar 📅</span>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setViewRecipe(null);
+                    setViewRecipeContext(null);
+                  }}
+                  className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-full transition-colors text-slate-600 dark:text-slate-300 cursor-pointer"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
             <RecipeCard recipe={viewRecipe} />
           </div>
         </div>
@@ -1901,6 +2413,314 @@ export function MealPlanView({
             </div>
           )}
         </AnimatePresence>
-    </div>
+        {/* Modal de Sincronização com Google Calendar */}
+        <AnimatePresence>
+          {isCalendarModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-300">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-slate-900 border border-sky-500/30 rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              >
+                {/* Header */}
+                <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-sky-500/10 via-emerald-500/5 to-transparent">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-500/10 dark:bg-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Sincronizar com Google Calendar</span>
+                        <span className="text-[10px] font-sans uppercase font-extrabold bg-sky-500/20 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded-full">
+                          Oficial
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        Agende automaticamente suas refeições com lembretes no seu aplicativo da agenda.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsCalendarModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                  {calendarSyncResult ? (
+                    <div className="py-8 flex flex-col items-center text-center space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center border-2 border-emerald-500/40">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <h4 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">
+                        {calendarSyncResult.count} {calendarSyncResult.count === 1 ? 'Refeição Agendada!' : 'Refeições Agendadas!'}
+                      </h4>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+                        Suas refeições foram incluídas com sucesso no seu Google Calendar com notificações e resumo dos macronutrientes.
+                      </p>
+
+                      <div className="flex flex-wrap justify-center gap-3 pt-2">
+                        {calendarSyncResult.links.length > 0 && (
+                          <a
+                            href={calendarSyncResult.links[0]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-sky-600/30 flex items-center gap-2"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            <span>Abrir no Google Calendar</span>
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setIsCalendarModalOpen(false)}
+                          className="px-5 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all"
+                        >
+                          Concluir
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Scope Selector */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                          Qual escopo você deseja sincronizar?
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {singleMealToSync && (
+                            <button
+                              type="button"
+                              onClick={() => setCalendarScope('single')}
+                              className={`p-3 rounded-2xl border text-left transition-all ${
+                                calendarScope === 'single'
+                                  ? 'bg-sky-500/10 border-sky-500 text-sky-700 dark:text-sky-300 font-bold'
+                                  : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              <div className="text-xs font-bold truncate">Apenas esta refeição</div>
+                              <div className="text-[10px] opacity-75 truncate">{singleMealToSync.recipe.name}</div>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setCalendarScope('day')}
+                            className={`p-3 rounded-2xl border text-left transition-all ${
+                              calendarScope === 'day'
+                                ? 'bg-sky-500/10 border-sky-500 text-sky-700 dark:text-sky-300 font-bold'
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <div className="text-xs font-bold">Dia Completo</div>
+                            <div className="text-[10px] opacity-75">{selectedDay}</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCalendarScope('week')}
+                            className={`p-3 rounded-2xl border text-left transition-all ${
+                              calendarScope === 'week'
+                                ? 'bg-sky-500/10 border-sky-500 text-sky-700 dark:text-sky-300 font-bold'
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <div className="text-xs font-bold">Semana Inteira</div>
+                            <div className="text-[10px] opacity-75">7 dias de plano</div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Configurations: Single Meal vs Week/Day Date & Notification Reminder */}
+                      {calendarScope === 'single' && singleMealToSync ? (
+                        <div className="space-y-4">
+                          {/* Recipe Details Snapshot */}
+                          <div className="bg-sky-50 dark:bg-sky-950/40 p-4 rounded-2xl border border-sky-500/25 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-sky-700 dark:text-sky-300">
+                                {DEFAULT_MEAL_LABELS[singleMealToSync.mealType] || 'Refeição'} • {singleMealToSync.day}
+                              </span>
+                              {singleMealToSync.recipe.prepTime && (
+                                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                                  ⏱️ {singleMealToSync.recipe.prepTime}
+                                </span>
+                              )}
+                            </div>
+                            <h5 className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">
+                              {singleMealToSync.recipe.name || singleMealToSync.recipe.title}
+                            </h5>
+                            {singleMealToSync.recipe.description && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                                {singleMealToSync.recipe.description}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 dark:text-slate-300 font-mono pt-1">
+                              <span>🔥 {singleMealToSync.recipe.nutrition?.calories ?? singleMealToSync.recipe.calories ?? 0} kcal</span>
+                              <span>•</span>
+                              <span>🥩 {singleMealToSync.recipe.nutrition?.protein ?? singleMealToSync.recipe.protein ?? 0}g prot</span>
+                              <span>•</span>
+                              <span>🌾 {singleMealToSync.recipe.nutrition?.carbs ?? singleMealToSync.recipe.carbs ?? 0}g carb</span>
+                              <span>•</span>
+                              <span>💧 {singleMealToSync.recipe.nutrition?.fat ?? singleMealToSync.recipe.fat ?? 0}g gord</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                                Data da Refeição
+                              </label>
+                              <input
+                                type="date"
+                                value={singleMealDate}
+                                onChange={(e) => setSingleMealDate(e.target.value)}
+                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-sky-500/30"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                                Horário do Alarme
+                              </label>
+                              <input
+                                type="time"
+                                value={singleMealTime}
+                                onChange={(e) => setSingleMealTime(e.target.value)}
+                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-sky-500/30"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                                Lembrete Prévio
+                              </label>
+                              <select
+                                value={calendarReminderMinutes}
+                                onChange={(e) => setCalendarReminderMinutes(Number(e.target.value))}
+                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-sky-500/30"
+                              >
+                                <option value={0}>Sem lembrete</option>
+                                <option value={10}>10 min antes</option>
+                                <option value={15}>15 min antes (Recomendado)</option>
+                                <option value={30}>30 min antes</option>
+                                <option value={60}>1 hora antes</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                              Data Inicial da Segunda-Feira
+                            </label>
+                            <input
+                              type="date"
+                              value={calendarWeekStartDate}
+                              onChange={(e) => setCalendarWeekStartDate(e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-sky-500/30"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                              Lembrete de Notificação
+                            </label>
+                            <select
+                              value={calendarReminderMinutes}
+                              onChange={(e) => setCalendarReminderMinutes(Number(e.target.value))}
+                              className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-sky-500/30"
+                            >
+                              <option value={0}>Sem lembrete</option>
+                              <option value={10}>10 minutos antes</option>
+                              <option value={15}>15 minutos antes (Recomendado)</option>
+                              <option value={30}>30 minutos antes</option>
+                              <option value={60}>1 hora antes</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Explicit Workspace Confirmation Dialog (Mandatory) */}
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <h5 className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">
+                              Confirmação de Autorização
+                            </h5>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                              O NutriAI enviará eventos e horários diretamente para o seu Google Calendar principal.
+                            </p>
+                          </div>
+                        </div>
+
+                        <label className="flex items-center gap-2.5 pt-2 border-t border-amber-500/20 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={calendarConfirmAccepted}
+                            onChange={(e) => setCalendarConfirmAccepted(e.target.checked)}
+                            className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
+                          />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                            Autorizo o NutriAI a criar e agendar estes eventos na minha conta do Google.
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* Progress Bar if Syncing */}
+                      {isSyncingCalendar && calendarProgress && (
+                        <div className="space-y-2 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-sky-600 dark:text-sky-400">Criando eventos no Calendar...</span>
+                            <span>{calendarProgress.current} de {calendarProgress.total}</span>
+                          </div>
+                          <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div
+                              className="bg-sky-500 h-full transition-all duration-300 rounded-full"
+                              style={{ width: `${Math.round((calendarProgress.current / calendarProgress.total) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                {!calendarSyncResult && (
+                  <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between gap-4">
+                    <button
+                      onClick={() => setIsCalendarModalOpen(false)}
+                      disabled={isSyncingCalendar}
+                      className="px-4 py-2.5 bg-slate-200/60 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleExecuteCalendarSync}
+                      disabled={isSyncingCalendar || !calendarConfirmAccepted}
+                      className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-sky-600/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isSyncingCalendar ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Agendando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CalendarCheck className="w-4 h-4" />
+                          <span>Sincronizar no Google Calendar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
   );
 }

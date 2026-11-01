@@ -216,6 +216,11 @@ export function InteractiveAvatarStudioModal({
   const [activeGlowPreset, setActiveGlowPreset] = useState(GLOW_PRESETS[1]); // Emerald
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
+  // Ajustes Finos de Músculo & Pele do Avatar
+  const [muscleDefinition, setMuscleDefinition] = useState<number>(1.35);
+  const [skinTexture, setSkinTexture] = useState<number>(0.65);
+  const [customSkinTone, setCustomSkinTone] = useState<string | undefined>(profile?.skinTone || undefined);
+
   // Audio & Speech
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [screenshotSuccess, setScreenshotSuccess] = useState<boolean>(false);
@@ -423,7 +428,7 @@ export function InteractiveAvatarStudioModal({
         {/* ================================================================ */}
         <div className="w-full h-full relative cursor-grab active:cursor-grabbing flex items-center justify-center">
           <AvatarAnatomico
-            profile={profile}
+            profile={customSkinTone ? { ...profile, skinTone: customSkinTone } as any : profile}
             exercise={activeExerciseFor3D}
             gender={gender}
             cameraView={cameraView}
@@ -432,6 +437,8 @@ export function InteractiveAvatarStudioModal({
             enableOrbitControls={true}
             showReferenceControls={false}
             showOverlayBadges={false}
+            muscleDefinition={muscleDefinition}
+            skinTexture={skinTexture}
             uHighlightColorPrimary={activeGlowPreset.primary}
             uHighlightColorSecondary={activeGlowPreset.secondary}
             highlightColorPrimary={activeGlowPreset.primary}
@@ -690,60 +697,155 @@ export function InteractiveAvatarStudioModal({
 
               {/* TAB CONTENT 4: STYLE & LIGHTING */}
               {activeTab === 'style' && (
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  {/* Glow Color Palettes */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 font-bold">Brilho Muscular:</span>
-                    <div className="flex items-center gap-1.5">
-                      {GLOW_PRESETS.map((p) => {
-                        const isSelected = activeGlowPreset.id === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => {
-                              playSfx('tap');
-                              vibrate(8);
-                              setActiveGlowPreset(p);
-                            }}
-                            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                              isSelected
-                                ? 'bg-slate-800 text-white border-emerald-400 shadow-md'
-                                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
-                            }`}
-                          >
-                            <span
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{ backgroundColor: p.primary }}
-                            />
-                            <span>{p.label}</span>
-                          </button>
-                        );
-                      })}
+                <div className="space-y-3 pt-1">
+                  {/* Seletor de Definição Muscular */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-xs text-slate-300 font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Definição Muscular:
+                    </span>
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                      {[
+                        { label: 'Suave', val: 0.85 },
+                        { label: 'Atlético', val: 1.20 },
+                        { label: 'Esculpido', val: 1.45 },
+                        { label: 'Hipertrofia', val: 1.85 },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => {
+                            playSfx('tap');
+                            vibrate(10);
+                            setMuscleDefinition(item.val);
+                          }}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            Math.abs(muscleDefinition - item.val) < 0.1
+                              ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                              : 'bg-slate-950/80 text-slate-400 border border-slate-800 hover:text-white'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Playback speed buttons */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400 font-bold">Velocidade:</span>
-                    {[0.5, 1.0, 1.5, 2.0].map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => {
-                          playSfx('tap');
-                          vibrate(8);
-                          setPlaybackSpeed(s);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                          playbackSpeed === s
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-slate-900 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {s}x
-                      </button>
-                    ))}
+                  {/* Seletor de Textura & Tom de Pele */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-xs text-slate-300 font-bold flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-rose-400" /> Tom & Textura da Pele:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Tons rápidos */}
+                      <div className="flex items-center gap-1.5">
+                        {[
+                          { label: 'Claro', color: '#dfb39a' },
+                          { label: 'Moreno', color: '#c68b59' },
+                          { label: 'Bronze', color: '#cca080' },
+                          { label: 'Quente', color: '#b57c58' },
+                          { label: 'Escuro', color: '#684534' },
+                        ].map((tone) => (
+                          <button
+                            key={tone.label}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(10);
+                              setCustomSkinTone(tone.color);
+                            }}
+                            className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer ${
+                              customSkinTone === tone.color
+                                ? 'border-white scale-110 shadow-lg'
+                                : 'border-transparent hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: tone.color }}
+                            title={`Tom de pele ${tone.label}`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Sheen / Acabamento */}
+                      <div className="flex items-center gap-1 border-l border-slate-700/60 pl-2">
+                        {[
+                          { label: 'Natural', val: 0.45 },
+                          { label: 'Bronzeado', val: 0.70 },
+                          { label: 'Pós-Treino', val: 0.95 },
+                        ].map((tex) => (
+                          <button
+                            key={tex.label}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(10);
+                              setSkinTexture(tex.val);
+                            }}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              Math.abs(skinTexture - tex.val) < 0.12
+                                ? 'bg-rose-500 text-white'
+                                : 'bg-slate-950/80 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {tex.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Glow Color Palettes & Playback speed */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-bold">Brilho Muscular:</span>
+                      <div className="flex items-center gap-1.5">
+                        {GLOW_PRESETS.map((p) => {
+                          const isSelected = activeGlowPreset.id === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                playSfx('tap');
+                                vibrate(8);
+                                setActiveGlowPreset(p);
+                              }}
+                              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-slate-800 text-white border-emerald-400 shadow-md'
+                                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                              }`}
+                            >
+                              <span
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: p.primary }}
+                              />
+                              <span>{p.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-400 font-bold">Velocidade:</span>
+                      {[0.5, 1.0, 1.5, 2.0].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => {
+                            playSfx('tap');
+                            vibrate(8);
+                            setPlaybackSpeed(s);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                            playbackSpeed === s
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-900 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {s}x
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video, Bookmark } from 'lucide-react';
+import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video, Bookmark, Loader2, Link2 } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline, saveRecipeOffline, getOfflineRecipes } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -22,7 +22,9 @@ import { OfflineRecipesModal } from './OfflineRecipesModal';
 import { ContextualRecipeAssistantModal } from './ContextualRecipeAssistantModal';
 import { RecipeCollectionsModal } from './RecipeCollectionsModal';
 import { KitchenModeModal } from './KitchenModeModal';
+import { ShareMealLinkModal } from './ShareMealLinkModal';
 import { Collection } from '../types';
+import { googleSignInWithCalendar, getCalendarAccessToken, syncMealToCalendar } from '../lib/googleCalendar';
 
 function parsePrepTime(prepTime: string): number {
   if (!prepTime) return 30;
@@ -125,6 +127,69 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [showCollectionsModal, setShowCollectionsModal] = useState(false);
   const [isKitchenModalOpen, setIsKitchenModalOpen] = useState(false);
+  const [isShareMealLinkOpen, setIsShareMealLinkOpen] = useState(false);
+
+  // Google Calendar Meal Notification Modal State
+  const [isGCalModalOpen, setIsGCalModalOpen] = useState(false);
+  const [gcalMealDate, setGcalMealDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [gcalMealTime, setGcalMealTime] = useState<string>('12:30');
+  const [gcalReminderMins, setGcalReminderMins] = useState<number>(15);
+  const [gcalMealType, setGcalMealType] = useState<string>('Almoço');
+  const [isSyncingGCal, setIsSyncingGCal] = useState(false);
+  const [gcalConfirmed, setGcalConfirmed] = useState(false);
+  const [gcalSuccessLink, setGcalSuccessLink] = useState<string | null>(null);
+
+  const handleOpenGCalModal = () => {
+    setGcalConfirmed(false);
+    setGcalSuccessLink(null);
+    setIsGCalModalOpen(true);
+  };
+
+  const handleSyncSingleMealGCal = async () => {
+    if (!gcalConfirmed) {
+      alert("Por favor, marque a caixa autorizando o agendamento no Google Calendar.");
+      return;
+    }
+
+    setIsSyncingGCal(true);
+    try {
+      let token = getCalendarAccessToken();
+      if (!token) {
+        token = await googleSignInWithCalendar();
+      }
+
+      if (!token) {
+        throw new Error("Não foi possível autenticar no Google.");
+      }
+
+      const res = await syncMealToCalendar({
+        dateStr: gcalMealDate,
+        timeStr: gcalMealTime,
+        mealTypeLabel: gcalMealType,
+        recipe,
+        reminderMinutes: gcalReminderMins
+      }, token);
+
+      if (res.success) {
+        playSfx('crystal');
+        vibrate([30, 50]);
+        setGcalSuccessLink(res.htmlLink || 'https://calendar.google.com');
+      } else {
+        throw new Error(res.error || "Falha ao agendar no Google Calendar.");
+      }
+    } catch (err: any) {
+      console.error("Erro no agendamento do Google Calendar:", err);
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Erro ao Agendar no Google Calendar",
+          message: err.message || "Tente novamente mais tarde.",
+          type: "error"
+        }
+      }));
+    } finally {
+      setIsSyncingGCal(false);
+    }
+  };
   
   const [tags, setTags] = useState<string[]>(recipe.tags || []);
   const [tagInput, setTagInput] = useState('');
@@ -560,6 +625,67 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       setIsSchedulingOpen(false);
     } catch (err) {
       console.warn("Error scheduling prep:", err);
+    }
+  };
+
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyToClipboard = async () => {
+    playSfx('crystal');
+    vibrate([30, 50]);
+
+    const name = recipe.name || recipe.title || 'Receita NutriAI';
+    const desc = recipe.description ? `\n\n${recipe.description}` : '';
+    const prep = recipe.prepTime ? `\n\n⏱️ Tempo de Preparo: ${recipe.prepTime}` : '';
+    
+    let macros = '';
+    if (recipe.nutrition) {
+      const c = recipe.nutrition.calories || 0;
+      const p = recipe.nutrition.protein || 0;
+      const cb = recipe.nutrition.carbs || 0;
+      const f = recipe.nutrition.fat || 0;
+      const fb = recipe.nutrition.fiber ? ` | 🥦 Fibras: ${recipe.nutrition.fiber}g` : '';
+      macros = `\n🔥 Calorias: ${c} kcal | 🥩 Proteínas: ${p}g | 🌾 Carbos: ${cb}g | 🥑 Gorduras: ${f}g${fb}`;
+    }
+
+    let ingSection = '';
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+      ingSection = `\n\n🛒 **INGREDIENTES:**\n` + recipe.ingredients.map(ing => `• ${ing}`).join('\n');
+    }
+
+    let instSection = '';
+    if (recipe.instructions && recipe.instructions.length > 0) {
+      instSection = `\n\n👨‍🍳 **MODO DE PREPARO:**\n` + recipe.instructions.map((step, idx) => `${idx + 1}. ${step}`).join('\n');
+    }
+
+    const formattedText = `🍽️ **${name}**${desc}${prep}${macros}${ingSection}${instSection}\n\n---\nGerado pelo NutriAI Inteligente 💚`;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(formattedText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = formattedText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 3000);
+
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Receita Copiada! 📋",
+          message: "O texto formatado da receita foi copiado para a sua área de transferência.",
+          type: "success"
+        }
+      }));
+    } catch (err) {
+      console.warn("Erro ao copiar receita:", err);
     }
   };
 
@@ -2220,6 +2346,42 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
           {!isSchedulingOpen && (
             <button
+              onClick={() => setIsShareMealLinkOpen(true)}
+              className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/35 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer shadow-sm hover:shadow"
+              title="Gerar link exclusivo com dados em base64 para importar esta refeição no NutriAI"
+            >
+              <Link2 className="w-4 h-4 text-emerald-500" />
+              <span>Compartilhar Refeição</span>
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              id={`btn-copy-formatted-recipe-${recipe.id}`}
+              onClick={handleCopyToClipboard}
+              className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer border shadow-sm ${
+                isCopied
+                  ? 'bg-emerald-600 text-white border-emerald-500 font-extrabold shadow-emerald-600/30'
+                  : 'bg-teal-500/10 hover:bg-teal-500/15 border-teal-500/20 hover:border-teal-500/35 text-teal-600 dark:text-teal-400'
+              }`}
+              title="Copiar texto formatado da receita para colar em outros aplicativos (WhatsApp, Bloco de Notas, etc.)"
+            >
+              {isCopied ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
+                  <span>Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-teal-500" />
+                  <span>Copiar Texto</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
               onClick={() => setIsShareModalOpen(true)}
               className="flex items-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/35 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
             >
@@ -2235,6 +2397,17 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             >
               <Bookmark className="w-4 h-4 text-purple-500" />
               Salvar em Coleção
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
+              onClick={handleOpenGCalModal}
+              className="flex items-center gap-2 bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 hover:border-sky-500/35 text-sky-600 dark:text-sky-400 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+              title="Configurar notificação no Google Calendar para esta refeição"
+            >
+              <Calendar className="w-4 h-4 text-sky-500" />
+              <span>Notificação Google Calendar 📅</span>
             </button>
           )}
 
@@ -3574,6 +3747,181 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         prepTime={recipe.prepTime}
         calories={nutrition.calories}
       />
+      <ShareMealLinkModal
+        recipe={recipe}
+        isOpen={isShareMealLinkOpen}
+        onClose={() => setIsShareMealLinkOpen(false)}
+      />
+
+      {/* Modal de Notificação do Google Calendar no Horário Exato */}
+      <AnimatePresence>
+        {isGCalModalOpen && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white dark:bg-slate-900 border border-sky-500/30 rounded-[32px] shadow-2xl w-full max-w-lg p-6 space-y-5 text-slate-800 dark:text-slate-100"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-sky-500/10 text-sky-500 rounded-2xl border border-sky-500/20">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold leading-tight">Notificação no Google Calendar</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate max-w-[220px]">{recipe.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsGCalModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {gcalSuccessLink ? (
+                <div className="py-6 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/40">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <h4 className="font-serif text-xl font-bold">Notificação Agendada!</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                    A refeição <strong>{recipe.name}</strong> foi agendada para <strong>{gcalMealDate}</strong> às <strong>{gcalMealTime}</strong> no seu Google Calendar.
+                  </p>
+                  <div className="flex justify-center gap-3 pt-2">
+                    <a
+                      href={gcalSuccessLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Abrir no Google Calendar</span>
+                    </a>
+                    <button
+                      onClick={() => setIsGCalModalOpen(false)}
+                      className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Tipo da Refeição
+                      </label>
+                      <select
+                        value={gcalMealType}
+                        onChange={(e) => setGcalMealType(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-sky-500/30"
+                      >
+                        <option value="Café da Manhã">Café da Manhã</option>
+                        <option value="Almoço">Almoço</option>
+                        <option value="Lanche">Lanche</option>
+                        <option value="Jantar">Jantar</option>
+                        <option value="Ceia">Ceia</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Horário Exato
+                      </label>
+                      <input
+                        type="time"
+                        value={gcalMealTime}
+                        onChange={(e) => setGcalMealTime(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-sky-500/30"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Data
+                      </label>
+                      <input
+                        type="date"
+                        value={gcalMealDate}
+                        onChange={(e) => setGcalMealDate(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-sky-500/30"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                        Lembrete Prévio
+                      </label>
+                      <select
+                        value={gcalReminderMins}
+                        onChange={(e) => setGcalReminderMins(Number(e.target.value))}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-sky-500/30"
+                      >
+                        <option value={0}>No horário exato</option>
+                        <option value={10}>10 min antes</option>
+                        <option value={15}>15 min antes (Recomendado)</option>
+                        <option value={30}>30 min antes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Mandatory Authorization Confirmation Checkbox */}
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                    <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed font-medium">
+                      O NutriAI incluirá o evento "🍽️ NutriAI: {gcalMealType} - {recipe.name}" no seu Google Calendar oficial.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer pt-1 border-t border-amber-500/20">
+                      <input
+                        type="checkbox"
+                        checked={gcalConfirmed}
+                        onChange={(e) => setGcalConfirmed(e.target.checked)}
+                        className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                        Autorizo criar esta notificação na minha agenda do Google.
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      onClick={() => setIsGCalModalOpen(false)}
+                      disabled={isSyncingGCal}
+                      className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSyncSingleMealGCal}
+                      disabled={isSyncingGCal || !gcalConfirmed}
+                      className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-600/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isSyncingGCal ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Agendando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="w-4 h-4" />
+                          <span>Agendar no Google Calendar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

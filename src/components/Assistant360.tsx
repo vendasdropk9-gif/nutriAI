@@ -381,7 +381,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   ];
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8 pb-32 pt-2 animate-in fade-in duration-700 flex flex-col items-center">
+    <div className="w-full max-w-full px-2 sm:px-4 space-y-8 pb-32 pt-2 animate-in fade-in duration-700 flex flex-col items-center">
       
       {/* 1. Hero AI Avatar Card */}
       <div className={`relative w-full rounded-[32px] p-6 sm:p-10 overflow-hidden transition-all duration-500 mx-auto ${
@@ -396,11 +396,11 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#D8B14A]/10 blur-[90px] pointer-events-none" />
         )}
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center">
           
           {/* Avatar Section with Idle Breathing & Glow */}
-          <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-            <div className="relative group cursor-pointer" onClick={() => onNavigate('coach')}>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-center sm:text-left w-full">
+            <div className="relative group cursor-pointer shrink-0" onClick={() => onNavigate('coach')}>
               
               {/* Breathing Glow Outer Ring */}
               <div className={`absolute inset-0 rounded-full blur-md transition-all duration-1000 ${
@@ -410,7 +410,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               }`} />
               
               {/* Outer Border Halo */}
-              <div className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1 transition-all duration-500 ${
+              <div className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full p-1 transition-all duration-500 ${
                 isPremium 
                   ? 'bg-gradient-to-tr from-[#D8B14A] via-[#F3E5AB] to-[#16C784] shadow-[0_0_25px_rgba(216,177,74,0.3)]' 
                   : 'bg-gradient-to-tr from-[#16C784] to-[#10B981] shadow-[0_0_25px_rgba(22,199,132,0.3)]'
@@ -427,22 +427,22 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-emerald-400 backdrop-blur-md">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="space-y-3 flex flex-col items-center sm:items-start text-center sm:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm font-semibold text-emerald-400 backdrop-blur-md">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
                 <span>NutriAI Coach 360°</span>
                 {isPremium && (
-                  <span className="ml-1 px-2 py-0.5 rounded-full bg-[#D8B14A]/20 text-[#D8B14A] border border-[#D8B14A]/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Crown className="w-3 h-3" /> Premium
+                  <span className="ml-1 px-2.5 py-0.5 rounded-full bg-[#D8B14A]/20 text-[#D8B14A] border border-[#D8B14A]/40 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Crown className="w-3.5 h-3.5" /> Premium
                   </span>
                 )}
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-display font-bold text-white tracking-tight">
                 {t('greeting_hello', 'Hello')}, {profile?.name?.split(' ')[0] || t('user', 'User')}!
               </h2>
 
-              <p className="text-sm text-[#B5BDC9] max-w-md leading-relaxed font-sans">
+              <p className="text-base text-[#B5BDC9] max-w-xl leading-relaxed font-sans">
                 "{t('today_overview_quote', 'Your metabolism is operating at an optimal level today. Remember to maintain continuous hydration.')}"
               </p>
             </div>

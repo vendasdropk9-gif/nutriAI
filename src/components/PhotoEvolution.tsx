@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, Image as ImageIcon, Plus, Trash2, Calendar, ShieldCheck, ChevronRight, CheckCircle2, Loader2, Sparkles, AlertCircle, X, Layers } from 'lucide-react';
+import { Camera, Image as ImageIcon, Plus, Trash2, Calendar, ShieldCheck, ChevronRight, CheckCircle2, Loader2, Sparkles, AlertCircle, X, Layers, TrendingUp, BarChart3 } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { playSfx, vibrate } from '../lib/sensory';
 import { analyzeImage } from '../lib/gemini';
 import { UserProfile } from '../types';
 import { PhotoComparisonGallery } from './PhotoComparisonGallery';
+import { BodyProgressComparativeReportModal } from './BodyProgressComparativeReportModal';
 
 export interface PhotoEntry {
   id: string;
@@ -24,6 +25,7 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showComparativeReport, setShowComparativeReport] = useState(false);
   
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -187,21 +189,21 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in duration-500">
+    <div className="w-full max-w-full px-2 sm:px-4 space-y-6 pb-24 animate-in fade-in duration-500 flex flex-col items-center">
       
       {/* Header */}
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[36px] p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 bottom-0 opacity-20 translate-x-4 translate-y-4">
-          <Camera className="w-48 h-48" />
+      <div className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[36px] p-8 sm:p-10 text-white shadow-xl relative overflow-hidden text-center flex flex-col items-center justify-center">
+        <div className="absolute right-0 bottom-0 opacity-15 translate-x-4 translate-y-4 pointer-events-none">
+          <Camera className="w-56 h-56" />
         </div>
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+        <div className="relative z-10 space-y-4 flex flex-col items-center justify-center text-center">
+          <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 bg-white/20 rounded-full text-sm font-bold uppercase tracking-wider backdrop-blur-md">
             <ShieldCheck className="w-4 h-4" /> 100% Privado
           </div>
-          <h2 className="text-3xl md:text-4xl font-serif font-black tracking-tight leading-tight">
+          <h2 className="text-3xl md:text-5xl font-serif font-black tracking-tight leading-tight text-center">
             Evolução por Fotos
           </h2>
-          <p className="text-indigo-50 max-w-lg leading-relaxed font-medium">
+          <p className="text-indigo-50 max-w-2xl leading-relaxed font-medium text-center text-base sm:text-lg">
             Registre seu corpo periodicamente. Suas fotos são armazenadas localmente no seu dispositivo e analisadas pela IA para destacar seu progresso.
           </p>
         </div>
@@ -279,22 +281,37 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
              <h3 className="text-xl font-bold font-serif text-slate-800 dark:text-white flex items-center gap-2">
                <Calendar className="w-5 h-5 text-indigo-500" /> Linha do Tempo
              </h3>
-             <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                <button
+                  onClick={() => {
+                    playSfx('crystal');
+                    vibrate([25, 45]);
+                    setShowComparativeReport(true);
+                  }}
+                  className="flex-1 sm:flex-none px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-bold text-sm shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 border-none cursor-pointer hover:scale-105 active:scale-95"
+                  title="Gerar Relatório de Progresso Corporal Comparativo"
+                >
+                  <TrendingUp className="w-4 h-4 text-emerald-200" />
+                  <span>Relatório Comparativo</span>
+                  <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                    IA
+                  </span>
+                </button>
                 <button
                   onClick={startCamera}
-                  className="flex-1 sm:flex-none px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
+                  className="flex-1 sm:flex-none px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
                 >
                   <Camera className="w-4 h-4" /> Fotografar
                 </button>
                 <button
                   onClick={() => setShowGallery(true)}
-                  className="flex-1 sm:flex-none px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
+                  className="flex-1 sm:flex-none px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 border-none cursor-pointer"
                 >
                   <Layers className="w-4 h-4" /> Comparar
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 sm:flex-none px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 sm:flex-none px-5 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ImageIcon className="w-4 h-4" /> Galeria
                 </button>
@@ -305,7 +322,7 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
                   className="hidden"
                   onChange={handleFileUpload}
                 />
-             </div>
+              </div>
           </div>
 
           {entries.length === 0 ? (
@@ -372,6 +389,25 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
                           {entry.analysis}
                         </p>
                       </div>
+
+                      {/* Shortcut to Comparative Viewer */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-400">
+                          {entries.length > 1 ? 'Foto disponível no relatório' : 'Registro de referência'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSfx('crystal');
+                            vibrate(20);
+                            setShowComparativeReport(true);
+                          }}
+                          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>Ver no Relatório</span>
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -381,7 +417,18 @@ export function PhotoEvolution({ profile, onAwardPoints }: PhotoEvolutionProps) 
         </div>
       )}
       {showGallery && (
-        <PhotoComparisonGallery entries={entries} onClose={() => setShowGallery(false)} />
+        <PhotoComparisonGallery
+          entries={entries}
+          onClose={() => setShowGallery(false)}
+          onOpenReport={() => setShowComparativeReport(true)}
+        />
+      )}
+      {showComparativeReport && (
+        <BodyProgressComparativeReportModal
+          entries={entries}
+          profile={profile}
+          onClose={() => setShowComparativeReport(false)}
+        />
       )}
     </div>
   );

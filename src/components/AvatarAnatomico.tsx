@@ -937,6 +937,24 @@ export function resolveSkinColor(skinTone?: string): string {
   return '#cca080';
 }
 
+// Resolves physiologically warm subcutaneous blood/hemoglobin scattering color
+export function resolveSkinSubsurfaceColor(skinTone?: string | THREE.Color): THREE.Color {
+  if (skinTone instanceof THREE.Color) {
+    return new THREE.Color(
+      Math.min(1.0, skinTone.r * 1.15 + 0.14),
+      skinTone.g * 0.38 + 0.05,
+      skinTone.b * 0.28 + 0.04
+    );
+  }
+  const s = (skinTone || '').toLowerCase().trim();
+  if (s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('natural')) return new THREE.Color('#d4503e');
+  if (s.includes('moreno dourado') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return new THREE.Color('#b53d24');
+  if (s.includes('bronze') || s.includes('atlet') || s.includes('tan')) return new THREE.Color('#b84428');
+  if (s.includes('medio') || s.includes('médio') || s.includes('quente')) return new THREE.Color('#a83820');
+  if (s.includes('escuro') || s.includes('dark') || s.includes('negro') || s.includes('preto')) return new THREE.Color('#68201a');
+  return new THREE.Color('#b84428'); // Warm athletic subcutaneous scattering
+}
+
 const muscleHighlightVertexShader = `
   varying vec3 vNormal;
   varying vec3 vViewPosition;
@@ -1024,56 +1042,54 @@ const muscleHighlightFragmentShader = `
   // =========================================================================
   float getMuscleFiberHeight(vec3 worldPos, vec2 uv, float time, float contraction, float isPrimary, float pace, float muscleDef) {
     float def = max(0.1, muscleDef);
-    float freq = (isPrimary > 0.5 ? 46.0 : 34.0) * (0.75 + 0.5 * def);
+    float freq = (isPrimary > 0.5 ? 58.0 : 42.0) * (0.80 + 0.6 * def);
     
-    // Longitudinal fascicle muscle fiber cords
-    float fiber1 = sin(worldPos.y * freq + worldPos.x * 14.0 + worldPos.z * 10.0);
+    // Longitudinal fascicle muscle fiber cords with multi-octave harmonic separation
+    float fiber1 = sin(worldPos.y * freq + worldPos.x * 16.0 + worldPos.z * 12.0);
+    float fiber2 = cos(worldPos.y * (freq * 1.85) - worldPos.x * 9.0 + worldPos.z * 8.0) * 0.55;
     
-    // Secondary harmonic bundle separation
-    float fiber2 = sin(worldPos.y * (freq * 2.15) - worldPos.x * 7.5) * 0.45;
+    // Secondary micro-bundle striations and vascular tension
+    float bundleSep = sin(worldPos.x * 24.0 * def) * cos(worldPos.z * 24.0 * def) * 0.35;
     
-    // Transverse micro-striations (sarcomere bands) flexing dynamically under tension
-    float striations = sin(worldPos.y * (115.0 * def) + sin(worldPos.x * 28.0) * 1.3) * 0.28 * def;
+    // Transverse sarcomere striations flexing dynamically under tension
+    float striations = sin(worldPos.y * (140.0 * def) + sin(worldPos.x * 32.0) * 1.5) * 0.32 * def;
     
     // Dynamic metabolic tension wave traveling along fibers aligned with pace tempo
-    float tension = sin(worldPos.y * 22.0 - time * (4.2 * max(0.2, pace))) * 0.22;
+    float tension = sin(worldPos.y * 26.0 - time * (5.0 * max(0.2, pace))) * 0.25;
     
     // Hypertrophic swelling scales bump relief during peak contraction
-    float contractionRelief = 0.80 + contraction * 0.60;
-    return (fiber1 * 0.52 + fiber2 * 0.34 + striations * 0.24 + tension * 0.18) * contractionRelief * def;
+    float contractionRelief = 0.85 + contraction * 0.75;
+    return (fiber1 * 0.55 + fiber2 * 0.38 + bundleSep * 0.25 + striations * 0.28 + tension * 0.20) * contractionRelief * def;
   }
 
   // Subcutaneous Vascular Network (hyperemic veins)
   float getVascularity(vec3 worldPos, float contraction, float isPrimary, float muscleDef) {
     if (isPrimary < 0.5) return 0.0;
     float def = max(0.1, muscleDef);
-    float vein1 = sin(worldPos.y * 22.0 + sin(worldPos.x * 28.0 + worldPos.z * 16.0) * 2.5);
-    float veinWidth1 = smoothstep(0.97 - 0.05 * def, 0.99, vein1);
+    float vein1 = sin(worldPos.y * 26.0 + sin(worldPos.x * 32.0 + worldPos.z * 18.0) * 2.8);
+    float veinWidth1 = smoothstep(0.96 - 0.06 * def, 0.99, vein1);
     
-    float vein2 = cos(worldPos.y * 36.0 - cos(worldPos.z * 24.0) * 1.8);
-    float veinWidth2 = smoothstep(0.98 - 0.04 * def, 0.99, vein2) * 0.65;
+    float vein2 = cos(worldPos.y * 42.0 - cos(worldPos.z * 28.0) * 2.1);
+    float veinWidth2 = smoothstep(0.97 - 0.05 * def, 0.99, vein2) * 0.75;
     
-    return (veinWidth1 + veinWidth2) * (0.5 + 0.5 * contraction) * min(2.0, def);
+    return (veinWidth1 + veinWidth2) * (0.6 + 0.6 * contraction) * min(2.5, def);
   }
 
   // Procedural skin pore texture (noise-based) scaled by texture intensity and LOD
   float getPoreTexture(vec2 uv, float texIntensity, float lod) {
     if (texIntensity < 0.01) return 0.0;
-    // Scale pore frequency by LOD
-    float frequency = 1200.0 * lod;
-    float n = sin(uv.x * frequency) * sin(uv.y * frequency);
+    float frequency = 1400.0 * lod;
+    float n = sin(uv.x * frequency) * cos(uv.y * frequency);
     n = fract(n * 43758.5453123);
-    return smoothstep(0.85, 1.0, n) * texIntensity;
+    return smoothstep(0.82, 1.0, n) * texIntensity;
   }
 
   // Mikkelsen / Screen-Space Cotangent Frame Normal Perturbation
-  // Computes precise view-space perturbed surface normal N' from procedural heightfield
   vec3 getPerturbedNormal(vec3 eyePos, vec3 surfNorm, float height, float bumpStrength, vec2 uv, float texIntensity, float lod) {
     vec3 dpdx = dFdx(eyePos);
     vec3 dpdy = dFdy(eyePos);
     
-    // Add pore height to muscle fiber height for normal perturbation
-    float totalHeight = height + getPoreTexture(uv, texIntensity, lod) * 0.005;
+    float totalHeight = height + getPoreTexture(uv, texIntensity, lod) * 0.006;
     
     float dhdx = dFdx(totalHeight);
     float dhdy = dFdy(totalHeight);
@@ -1096,69 +1112,63 @@ const muscleHighlightFragmentShader = `
     float effectiveDef = max(0.05, uMuscleDefinition);
     float effectiveTex = clamp(uSkinTexture, 0.0, 1.0);
     
-    // Hyperemia color shift based on fatigue
-    vec3 fatigueColorShift = vec3(0.2, -0.1, -0.1) * uFatigueLevel;
+    vec3 fatigueColorShift = vec3(0.25, -0.12, -0.12) * uFatigueLevel;
 
-    // Calculate procedural normal mapping height and perturbed surface normal N'
     float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace, effectiveDef);
-    float bumpScale = (uIsHighlighted > 0.5 ? (uIsPrimary > 0.5 ? 0.036 : 0.024) : 0.020) * effectiveDef * (1.0 + uContraction * 0.45);
+    float bumpScale = (uIsHighlighted > 0.5 ? (uIsPrimary > 0.5 ? 0.045 : 0.032) : 0.028) * effectiveDef * (1.0 + uContraction * 0.55);
     
-    // Pass UV and texture intensity for pore calculation
     vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale, vUv, effectiveTex, uLODFactor);
 
-    // =========================================================================
     // MULTI-SOURCE NORMAL-MAPPED LIGHTING CALCULATIONS
-    // =========================================================================
-    vec3 L_key = normalize(vec3(0.55, 0.90, 0.85));   // Key light (top-front-right)
-    vec3 L_fill = normalize(vec3(-0.65, 0.20, 0.50)); // Fill light (cool lateral left)
+    vec3 L_key = normalize(vec3(0.55, 0.90, 0.85));
+    vec3 L_fill = normalize(vec3(-0.65, 0.20, 0.50));
     
-    // Normal-mapped Diffuse with Half-Lambert soft tissue translucency
     float NdotL_key = dot(normal, L_key);
-    float diffKey = pow(NdotL_key * 0.5 + 0.5, 1.35 + (1.0 - effectiveTex) * 0.4);
-    float diffFill = max(0.0, dot(normal, L_fill)) * 0.42;
+    // Biological light penetration wrap: light penetrates translucent epidermis into subsurface
+    float wrapKey = max(0.0, (NdotL_key + 0.32) / 1.32);
+    float diffKey = pow(wrapKey, 1.15 + (1.0 - effectiveTex) * 0.25);
+    float diffFill = max(0.0, dot(normal, L_fill) * 0.5 + 0.5) * 0.44;
     
-    // Subsurface organic scattering approximation (light wrapping through muscular volume)
-    float sss = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.45;
+    // Subsurface scattering terminator flush: warm hemoglobin bleed at shadow boundaries
+    float terminatorGlow = smoothstep(-0.25, 0.22, NdotL_key) * (1.0 - smoothstep(0.06, 0.62, NdotL_key));
+    float sssTerminator = terminatorGlow * 0.52;
+    // Backlight transmission / translucent thin cartilage and rim scattering
+    float sssBack = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.50;
+    float sss = sssTerminator + sssBack;
     
-    // High-gloss specular gleam reflecting off individual normal-mapped fiber striations
     vec3 H_key = normalize(L_key + viewDir);
     float NdotH = max(0.0, dot(normal, H_key));
     
-    // Enhanced Specular: Base specular + pore-based roughness variation
-    float specPowerSharp = 30.0 + effectiveTex * 100.0;
-    float specSharp = pow(NdotH, specPowerSharp);
-    // Add specular micro-variation based on pore density
-    float poreRoughness = getPoreTexture(vUv, effectiveTex, uLODFactor) * 0.5;
-    float specularGleam = specSharp * (1.0 - poreRoughness) * (0.8 + 0.7 * effectiveTex);
-    specularGleam += pow(NdotH, 10.0) * (0.2 + 0.3 * effectiveTex);
+    // Dual-lobe specular reflections: broad organic epidermal reflection + tight lipid moisture gleam
+    float specBroad = pow(NdotH, 12.0) * (0.26 + 0.16 * effectiveTex);
+    float specPowerSharp = 42.0 + effectiveTex * 105.0;
+    float specSharp = pow(NdotH, specPowerSharp) * (0.60 + 0.40 * effectiveTex);
+    
+    float poreRoughness = getPoreTexture(vUv, effectiveTex, uLODFactor) * 0.38;
+    float sweatSheen = 1.0 + uSweatIntensity * 1.8;
+    float specularGleam = (specBroad + specSharp) * (1.0 - poreRoughness) * sweatSheen;
 
-    // Normal-mapped View Angle Fresnel
     float NdotV = max(0.0, dot(normal, viewDir));
-    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 1.0); // Skin type dependent Fresnel
+    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 0.6);
 
-    // Inter-fascicular Cavity Shadowing / Crevice Ambient Occlusion
-    float cavity = smoothstep(-1.1 / max(0.2, effectiveDef), 0.7, fiberHeight);
+    // Anatomical muscle cavity ambient occlusion (deepens muscle separation lines with warmth)
+    float cavity = smoothstep(-1.0 / max(0.2, effectiveDef), 0.72, fiberHeight);
+    float microAO = clamp(0.72 + 0.28 * cavity, 0.55, 1.0);
 
-    // =========================================================================
     // RESTING ATHLETIC HUMAN SKIN & SCULPTED MUSCLE SHADING
-    // =========================================================================
     vec3 baseSkin = uSkinBaseColor;
     vec3 subSkin = uSkinSubsurfaceColor;
 
-    // Crevice tone: deep anatomical creases and linea alba shadows
-    vec3 creviceTone = mix(subSkin * 0.65, baseSkin * 0.52, cavity);
-    // Lit skin tone: Half-Lambert diffuse with warm subsurface bleed
-    vec3 litSkinTone = mix(creviceTone, baseSkin, diffKey * 0.82 + diffFill * 0.36);
-    litSkinTone += subSkin * (sss * 0.52);
-    // Velvety epidermal Fresnel rim sheen
-    vec3 skinRimGleam = mix(baseSkin * 1.35, vec3(1.0, 0.92, 0.85), 0.50);
-    litSkinTone += skinRimGleam * (fresnel * 0.30);
-    // Specular hydration / sweat sheen
-    float sweatSheen = 1.0 + uSweatIntensity * 1.6;
-    vec3 skinSpecularColor = vec3(1.0, 0.96, 0.90);
-    litSkinTone += skinSpecularColor * (specularGleam * 0.38 * sweatSheen);
-    // Muscle definition contrast accent: deepen muscle cuts slightly when definition is high
-    litSkinTone = mix(litSkinTone * (0.82 + 0.18 * cavity), litSkinTone, 1.0 / (1.0 + effectiveDef * 0.45));
+    vec3 creviceTone = mix(subSkin * 0.72, baseSkin * 0.44, cavity);
+    vec3 litSkinTone = mix(creviceTone, baseSkin, diffKey * 0.88 + diffFill * 0.38);
+    litSkinTone += subSkin * (sss * 0.72);
+    
+    vec3 skinRimGleam = mix(baseSkin * 1.35, vec3(1.0, 0.95, 0.90), 0.50);
+    litSkinTone += skinRimGleam * (fresnel * 0.34);
+    
+    vec3 skinSpecularColor = vec3(1.0, 0.97, 0.92);
+    litSkinTone += skinSpecularColor * (specularGleam * 0.38);
+    litSkinTone *= microAO;
 
     // =========================================================================
     // CAMERA VIEW-SPECIFIC PROJECTION MODULATION
@@ -1355,7 +1365,7 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
         uStretching: { value: options?.stretching ? 1.0 : 0.0 },
         uIsHighlighted: { value: isHighlighted ? 1.0 : 0.0 },
         uSkinBaseColor: { value: skinColorVal },
-        uSkinSubsurfaceColor: { value: new THREE.Color('#9e3824') },
+        uSkinSubsurfaceColor: { value: resolveSkinSubsurfaceColor(skinColorVal) },
       },
       vertexShader: muscleHighlightVertexShader,
       fragmentShader: muscleHighlightFragmentShader,
@@ -1377,6 +1387,10 @@ export class MuscleHighlightShaderMaterial extends THREE.ShaderMaterial {
       } else {
         this.uniforms.uSkinBaseColor.value.copy(color);
       }
+    }
+    if (this.uniforms.uSkinSubsurfaceColor) {
+      const sub = resolveSkinSubsurfaceColor(color);
+      this.uniforms.uSkinSubsurfaceColor.value.copy(sub);
     }
   }
 
@@ -3781,10 +3795,13 @@ function AnatomicalAvatarModel({
   const skinColor = useMemo(() => resolveSkinColor(profile?.skinTone), [profile?.skinTone]);
 
   // Athletic studio living skin material for skeletal, cranial, and non-muscular landmarks
-  const inactiveMat = useMemo(() => new THREE.MeshStandardMaterial({
+  const inactiveMat = useMemo(() => new THREE.MeshPhysicalMaterial({
     color: skinColor,
-    roughness: Math.max(0.32, 0.48 - (skinTexture ?? 0.5) * 0.12),
-    metalness: 0.03,
+    roughness: Math.max(0.36, 0.50 - (skinTexture ?? 0.5) * 0.14),
+    metalness: 0.02,
+    clearcoat: 0.16,
+    clearcoatRoughness: 0.38,
+    reflectivity: 0.52,
     side: THREE.DoubleSide,
     transparent: xRayMode ?? false,
     opacity: (xRayMode ?? false) ? 0.35 : 1.0,

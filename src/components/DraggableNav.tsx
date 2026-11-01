@@ -296,7 +296,7 @@ export function DraggableNav({ activeTab, onTabChange }: DraggableNavProps) {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                group flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none text-center
+                group flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 whitespace-nowrap shrink-0 cursor-pointer select-none text-center
                 ${isActive
                   ? isPremiumItem
                     ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-bold shadow-[0_4px_18px_rgba(16,185,129,0.38)] ring-1 ring-[#D8B14A]/90 border border-[#D8B14A]/80 scale-[1.02]'

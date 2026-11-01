@@ -9,6 +9,15 @@ export default defineConfig(({mode}) => {
   return {
     plugins: [
       {
+        name: 'log-resolved-modules',
+        load(id) {
+          if (!id.includes('\x00') && !id.startsWith('\0')) {
+            console.log(`[Rollup Resolved Module]: ${id}`);
+          }
+          return null;
+        }
+      },
+      {
         name: 'suppress-vite-logs',
         enforce: 'pre',
         transformIndexHtml(html) {

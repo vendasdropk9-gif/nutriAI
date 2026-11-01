@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Camera, Upload, Sparkles, Check, X } from 'lucide-react';
+import { User, Camera, Upload, Sparkles, Check, X, Cpu } from 'lucide-react';
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -246,6 +246,23 @@ export function HeaderAvatar({ profile, onSaveProfile, onOpenProfileTab }: Heade
                       ))}
                     </div>
                   </div>
+
+                  {/* Link to 3D avatar customization */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenProfileTab();
+                      setTimeout(() => {
+                        const btn = document.getElementById('open-3d-avatar-gallery-btn');
+                        if (btn) btn.click();
+                      }, 120);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500/15 to-teal-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 border border-emerald-500/30 transition-all cursor-pointer"
+                  >
+                    <Cpu className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Personalizar Avatar 3D (DRACO)</span>
+                  </button>
 
                   {/* Link to full profile tab */}
                   <button

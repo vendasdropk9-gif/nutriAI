@@ -80,8 +80,8 @@ export function MealPlanCalorieSwapAnalyzer({
 
   const [selectedDay, setSelectedDay] = useState<string>(availableDays[0] || 'Segunda-feira');
 
-  // Calorie limit configuration (defaults to profile masterPlan or 2000 kcal)
-  const defaultTargetLimit = profile?.masterPlan?.dailyCalories || 2000;
+  // Calorie limit configuration (defaults to profile macroTargets, masterPlan or 2000 kcal)
+  const defaultTargetLimit = profile?.macroTargets?.calories || profile?.masterPlan?.dailyCalories || 2000;
   const [calorieLimit, setCalorieLimit] = useState<number>(defaultTargetLimit);
   const [isCustomLimitOpen, setIsCustomLimitOpen] = useState(false);
 

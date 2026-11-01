@@ -466,9 +466,9 @@ export function createSculptedTrapeziusGeometry(isFemale: boolean, lodScale = 1.
  */
 export function createSculptedPectoralGeometry(isLeft: boolean, isFemale: boolean, lodScale = 1.0): THREE.BufferGeometry {
   const sign = isLeft ? -1 : 1;
-  const width = isFemale ? 0.170 : 0.205;
-  const height = isFemale ? 0.160 : 0.185;
-  const maxThickness = isFemale ? 0.045 : 0.058;
+  const width = isFemale ? 0.175 : 0.215;
+  const height = isFemale ? 0.165 : 0.192;
+  const maxThickness = isFemale ? 0.052 : 0.068;
 
   return createSmoothParametricSurface(
     48,
@@ -497,22 +497,22 @@ export function createSculptedPectoralGeometry(isLeft: boolean, isFemale: boolea
 
       // 1. Clavicular head (Upper pec fullness sloping gently down from clavicle)
       const clavDist = Math.hypot((u - 0.36) / 0.32, (v - 0.78) / 0.22);
-      const clavBelly = Math.exp(-clavDist * clavDist * 2.4) * 0.46;
+      const clavBelly = Math.exp(-clavDist * clavDist * 2.4) * 0.52;
 
       // 2. Sternocostal head (Main pectoral muscle belly fullness)
       const sternDist = Math.hypot((u - 0.42) / 0.38, (v - 0.38) / 0.32);
-      const sternBelly = Math.exp(-sternDist * sternDist * 1.9) * 0.88;
+      const sternBelly = Math.exp(-sternDist * sternDist * 1.9) * 0.96;
 
       // 3. Subtle anatomical sulcus dividing clavicular and sternal heads
       const sulcusLine = (v - 0.62) - (u - 0.30) * 0.22;
-      const sulcusDip = Math.exp(-sulcusLine * sulcusLine * 90.0) * 0.06;
+      const sulcusDip = Math.exp(-sulcusLine * sulcusLine * 90.0) * 0.055;
 
       // Physical muscle fiber fascicle striations radiating toward axilla
-      const striationPattern = Math.sin(v * Math.PI * 18.0 + u * 6.0) * 0.0012 * perimeter;
+      const striationPattern = Math.sin(v * Math.PI * 18.0 + u * 6.0) * 0.0014 * perimeter;
       const thickness = maxThickness * perimeter * (sternBelly + clavBelly - sulcusDip) + striationPattern;
 
       // Natural ribcage convex underlay hugging torsoCore
-      const ribcageCurve = Math.cos(u * Math.PI * 0.48) * 0.022;
+      const ribcageCurve = Math.cos(u * Math.PI * 0.48) * 0.024;
 
       target.set(x, y, thickness + ribcageCurve);
     },
@@ -546,9 +546,9 @@ export function createSculptedClaviclesGeometry(isFemale: boolean, lodScale = 1.
  * Zero circular button-like protrusions or isolated bumps.
  */
 export function createSculptedAbdominalWallGeometry(isFemale: boolean, lodScale = 1.0): THREE.BufferGeometry {
-  const width = isFemale ? 0.185 : 0.225;
+  const width = isFemale ? 0.190 : 0.232;
   const height = isFemale ? 0.32 : 0.36;
-  const depth = isFemale ? 0.032 : 0.044;
+  const depth = isFemale ? 0.038 : 0.050;
 
   return createSmoothParametricSurface(
     44,
@@ -561,16 +561,16 @@ export function createSculptedAbdominalWallGeometry(isFemale: boolean, lodScale 
       const y = (v - 0.5) * height;
 
       // 1. Central Linea Alba (smooth vertical furrow down the midline)
-      const lineaAlba = 1.0 - Math.exp(-Math.pow(normX * 4.2, 2)) * 0.60;
+      const lineaAlba = 1.0 - Math.exp(-Math.pow(normX * 4.6, 2)) * 0.65;
 
       // 2. Transverse Tendinous Inscriptions (3 distinct horizontal divisions at v ~ 0.32, 0.54, 0.74)
-      const groove1 = Math.exp(-Math.pow((v - 0.32) * 14.0, 2)) * 0.32;
-      const groove2 = Math.exp(-Math.pow((v - 0.54) * 14.0, 2)) * 0.35;
-      const groove3 = Math.exp(-Math.pow((v - 0.74) * 14.0, 2)) * 0.30;
+      const groove1 = Math.exp(-Math.pow((v - 0.32) * 15.0, 2)) * 0.36;
+      const groove2 = Math.exp(-Math.pow((v - 0.54) * 15.0, 2)) * 0.38;
+      const groove3 = Math.exp(-Math.pow((v - 0.74) * 15.0, 2)) * 0.34;
       const transverseGrooves = 1.0 - (groove1 + groove2 + groove3);
 
       // 3. Gentle convex muscle belly pillowing (smooth continuous wave, zero isolated knob peaks)
-      const packWave = 0.78 + 0.22 * Math.cos(v * Math.PI * 3.8);
+      const packWave = 0.74 + 0.26 * Math.cos(v * Math.PI * 3.8);
 
       // 4. Lateral Linea Semilunaris & vertical perimeter falloff
       const lateralFade = Math.pow(Math.max(0, Math.cos(normX * Math.PI * 0.5)), 1.25);
@@ -584,7 +584,7 @@ export function createSculptedAbdominalWallGeometry(isFemale: boolean, lodScale 
       }
 
       // 6. Natural cylindrical abdominal curvature
-      const torsoArch = Math.cos(normX * Math.PI * 0.45) * 0.015;
+      const torsoArch = Math.cos(normX * Math.PI * 0.45) * 0.016;
 
       const z = depth * lineaAlba * transverseGrooves * packWave * lateralFade * verticalFade * vCut + torsoArch;
 
@@ -647,9 +647,9 @@ export function createSculptedDeltoidGeometry(
   lodScale = 1.0
 ): THREE.BufferGeometry {
   const sign = isLeft ? -1 : 1;
-  const radiusX = isFemale ? 0.082 : 0.098;
-  const radiusY = isFemale ? 0.138 : 0.165;
-  const radiusZ = isFemale ? 0.080 : 0.096;
+  const radiusX = isFemale ? 0.086 : 0.104;
+  const radiusY = isFemale ? 0.142 : 0.170;
+  const radiusZ = isFemale ? 0.084 : 0.100;
 
   return createSmoothParametricSurface(
     44,
@@ -664,7 +664,7 @@ export function createSculptedDeltoidGeometry(
       // Realistic teardrop fullness in upper-middle belly (v ~ 0.65-0.80),
       // tapering down to humeral insertion V-point (v = 0)
       const taper = Math.sin(Math.pow(v, 0.70) * Math.PI * 0.82 + 0.18);
-      const belly = Math.pow(Math.sin(v * Math.PI), 0.75) * 0.18;
+      const belly = Math.pow(Math.sin(v * Math.PI), 0.75) * 0.22;
 
       let xOffset = 0;
       let zOffset = 0;
@@ -682,8 +682,8 @@ export function createSculptedDeltoidGeometry(
 
       // Multipennate fiber bundle striation grooves in acromial / lateral deltoid
       const deltoidStriation = part === 'lateral'
-        ? Math.sin(u * Math.PI * 10.0 + v * 4.0) * 0.0016 * Math.sin(v * Math.PI)
-        : Math.sin(u * Math.PI * 6.0) * 0.0010 * Math.sin(v * Math.PI);
+        ? Math.sin(u * Math.PI * 10.0 + v * 4.0) * 0.0018 * Math.sin(v * Math.PI)
+        : Math.sin(u * Math.PI * 6.0) * 0.0012 * Math.sin(v * Math.PI);
 
       const rX = radiusX * (taper + belly) + deltoidStriation;
       const rZ = radiusZ * (taper + belly) + deltoidStriation;
@@ -707,7 +707,7 @@ export function createSculptedDeltoidGeometry(
  */
 export function createSculptedBicepGeometry(isLeft: boolean, isFemale: boolean, lodScale = 1.0): THREE.BufferGeometry {
   const length = isFemale ? 0.23 : 0.26;
-  const maxRadius = isFemale ? 0.054 : 0.070;
+  const maxRadius = isFemale ? 0.058 : 0.076;
 
   return createSmoothParametricSurface(
     36,
@@ -726,12 +726,12 @@ export function createSculptedBicepGeometry(isLeft: boolean, isFemale: boolean, 
       // Anterior bicep peak
       if (sinTheta > 0.10) {
         // Dual head separation (long head lateral vs short head medial)
-        const headGroove = 1.0 - Math.exp(-Math.pow(cosTheta * 3.8, 2)) * 0.08;
-        r *= (1.0 + Math.pow(belly, 1.2) * 0.20) * headGroove;
+        const headGroove = 1.0 - Math.exp(-Math.pow(cosTheta * 3.8, 2)) * 0.085;
+        r *= (1.0 + Math.pow(belly, 1.15) * 0.24) * headGroove;
       }
 
       // Longitudinal muscle fascicle striation and bicipital groove detail
-      const bicepStriation = Math.sin(theta * 8.0 + v * 5.0) * 0.0012 * Math.sin(v * Math.PI);
+      const bicepStriation = Math.sin(theta * 8.0 + v * 5.0) * 0.0015 * Math.sin(v * Math.PI);
       r += bicepStriation;
 
       target.set(r * Math.cos(theta), y, r * sinTheta);
@@ -750,7 +750,7 @@ export function createSculptedBicepGeometry(isLeft: boolean, isFemale: boolean, 
  */
 export function createSculptedTricepGeometry(isLeft: boolean, isFemale: boolean, lodScale = 1.0): THREE.BufferGeometry {
   const length = isFemale ? 0.23 : 0.26;
-  const maxRadius = isFemale ? 0.052 : 0.068;
+  const maxRadius = isFemale ? 0.056 : 0.072;
 
   return createSmoothParametricSurface(
     36,
@@ -768,7 +768,7 @@ export function createSculptedTricepGeometry(isLeft: boolean, isFemale: boolean,
       if (sinTheta < -0.10) {
         // Horseshoe triceps: lateral head (outer) and long head (inner) with tendon valley
         const tendonValley = Math.exp(-Math.pow(cosTheta * 3.0, 2)) * 0.12 * Math.pow(v, 0.8);
-        r *= 1.0 + Math.pow(belly, 1.1) * 0.18 - tendonValley;
+        r *= 1.0 + Math.pow(belly, 1.05) * 0.22 - tendonValley;
       }
 
       target.set(r * Math.cos(theta), y, r * sinTheta);
@@ -872,19 +872,19 @@ export function createSculptedQuadricepsGeometry(isLeft: boolean, isFemale: bool
 
       // 1. Rectus femoris anterior longitudinal muscular ridge
       if (sinTheta > 0.15) {
-        r *= 1.0 + Math.sin(v * Math.PI) * 0.15;
+        r *= 1.0 + Math.sin(v * Math.PI) * 0.20;
       }
 
       // 2. Vastus lateralis outer muscular sweep (mid-upper thigh, v ~ 0.25 to 0.88)
       if (sign * cosTheta > 0.18 && v > 0.25) {
         const sweep = Math.sin(((v - 0.25) / 0.68) * Math.PI);
-        r *= 1.0 + sweep * 0.18;
+        r *= 1.0 + sweep * 0.24;
       }
 
       // 3. Vastus medialis prominent "Teardrop" bulb over inner knee (v ~ 0.06 to 0.42)
       if (sign * cosTheta < -0.12 && v >= 0.06 && v <= 0.42) {
         const teardrop = Math.sin(((v - 0.06) / 0.36) * Math.PI);
-        r *= 1.0 + teardrop * 0.28;
+        r *= 1.0 + teardrop * 0.35;
       }
 
       // 4. Smooth suprapatellar transition wrapping gracefully into the knee joint

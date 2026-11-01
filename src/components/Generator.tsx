@@ -336,12 +336,12 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center space-y-4">
-        <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
+    <div className="w-full max-w-full px-2 sm:px-4 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
+      <div className="text-center space-y-4 flex flex-col items-center w-full">
+        <h2 className="font-serif text-4xl md:text-5xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400 text-center">
           {t('discover_new_meals', 'Discover New Meals')}
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
+        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-xl leading-relaxed text-center">
           Informe o que você tem na geladeira ou tire uma foto. A Inteligência Artificial criará uma receita exclusiva respeitando seu perfil.
         </p>
 

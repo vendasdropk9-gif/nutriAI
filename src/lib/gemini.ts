@@ -1,4 +1,4 @@
-import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule } from "../types";
+import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule, ComparativeProgressReport } from "../types";
 import { generateFallbackComparison } from "../data/foodNutritionDatabase";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
@@ -477,6 +477,18 @@ export const analyzeImage = async (
   prompt: string
 ): Promise<string | null> => {
   return callGeminiEndpoint('analyzeImage', [base64Image, prompt]);
+};
+
+export const generateComparativeProgressReport = async (
+  photoABase64: string,
+  photoBBase64: string,
+  metadata: {
+    dateA: string;
+    dateB: string;
+    profile?: any;
+  }
+): Promise<ComparativeProgressReport | null> => {
+  return callGeminiEndpoint('generateComparativeProgressReport', [photoABase64, photoBBase64, metadata]);
 };
 
 export const analyzeEmotionalPatterns = async (

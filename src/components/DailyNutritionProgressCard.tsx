@@ -65,10 +65,11 @@ export const DailyNutritionProgressCard: React.FC<DailyNutritionProgressCardProp
 
   // 2. Retrieve goals from user profile or calculate smart adaptive defaults
   const weight = profile?.weight || 70;
-  const targetCalories = profile?.masterPlan?.dailyCalories || 2000;
+  const targetCalories = profile?.macroTargets?.calories || profile?.masterPlan?.dailyCalories || 2000;
 
-  // Goals priority: masterPlan.macros -> profile calculated goals
+  // Goals priority: profile.macroTargets -> masterPlan.macros -> profile calculated goals
   const targetProtein = Math.round(
+    profile?.macroTargets?.protein || 
     profile?.masterPlan?.macros?.protein || 
     (profile?.goals?.toLowerCase().includes('hipertrofia') || profile?.goals?.toLowerCase().includes('massa')
       ? weight * 2.0 
@@ -76,11 +77,13 @@ export const DailyNutritionProgressCard: React.FC<DailyNutritionProgressCardProp
   );
 
   const targetCarbs = Math.round(
+    profile?.macroTargets?.carbs || 
     profile?.masterPlan?.macros?.carbs || 
     ((targetCalories * 0.45) / 4)
   );
 
   const targetFat = Math.round(
+    profile?.macroTargets?.fat || 
     profile?.masterPlan?.macros?.fat || 
     ((targetCalories * 0.25) / 9)
   );

@@ -87,6 +87,8 @@ import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
 import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
+import { decodeRecipeFromShareLink } from './lib/recipeShareLink';
+import { ImportRecipeModal } from './components/ImportRecipeModal';
 
 const TAB_ORDER = [
   "admin_library",
@@ -259,6 +261,8 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   const [isRecipesGenerating, setIsRecipesGenerating] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [recipeToImport, setRecipeToImport] = useState<Recipe | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
     const id = Math.random().toString(36).substring(7);
@@ -310,37 +314,16 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     window.addEventListener('app:openLanguageModal', handleOpenLanguage);
     window.addEventListener('app:openLanguage', handleOpenLanguage);
 
-    // Automatic import of recipe shared via QR code link
+    // Automatic detection and modal prompt for recipe shared via link
     try {
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
         const importB64 = urlParams.get('import_recipe');
         if (importB64) {
-          const decoded = decodeURIComponent(escape(atob(importB64)));
-          const importedRecipe = JSON.parse(decoded);
-          if (importedRecipe && (importedRecipe.name || importedRecipe.title)) {
-            const recipeName = importedRecipe.name || importedRecipe.title;
-            const existingRaw = window.localStorage.getItem('nutri_saved_recipes');
-            let savedList: any[] = [];
-            try {
-              if (existingRaw) savedList = JSON.parse(existingRaw);
-            } catch (e) {}
-
-            const exists = savedList.some((r: any) => (r.name || r.title) === recipeName);
-            if (!exists) {
-              const fullRecipe = {
-                ...importedRecipe,
-                id: importedRecipe.id || `imported-${Date.now()}`,
-                savedAt: new Date().toISOString()
-              };
-              window.localStorage.setItem('nutri_saved_recipes', JSON.stringify([fullRecipe, ...savedList]));
-            }
-
-            addNotification({
-              title: 'Receita Importada via QR Code! 📲',
-              message: `"${recipeName}" foi importada com sucesso para o seu NutriAI.`,
-              type: 'success'
-            });
+          const imported = decodeRecipeFromShareLink(importB64);
+          if (imported && (imported.name || imported.title)) {
+            setRecipeToImport(imported);
+            setIsImportModalOpen(true);
 
             // Clean the query param from URL without refreshing the page
             const cleanUrl = window.location.pathname;
@@ -349,7 +332,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         }
       }
     } catch (e) {
-      console.warn('Erro ao processar receita importada via QR Code:', e);
+      console.warn('Erro ao processar receita compartilhada:', e);
     }
 
     // Checker for scheduled recipe preparation reminders
@@ -650,7 +633,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         </Suspense>
 
         <header className="relative z-20 clay-panel backdrop-blur-md border-b border-white/60 dark:border-slate-800/50 sticky top-0 transition-colors duration-500 w-full flex items-center justify-center">
-          <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 h-[54px] flex items-center justify-between gap-2 sm:gap-4">
+          <div className="w-full max-w-full px-4 sm:px-8 h-[60px] flex items-center justify-between gap-2 sm:gap-4">
             <motion.div 
               className="flex items-center gap-2 sm:gap-2.5 text-emerald-600 dark:text-emerald-400 shrink-0 cursor-pointer select-none"
               animate={{ 
@@ -820,8 +803,8 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         activeTab === 'frescor' 
         ? 'max-w-none px-0 py-0' 
         : activeTab === 'partner'
-        ? 'max-w-7xl px-0 sm:px-6 lg:px-8 py-0 md:py-16'
-        : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-16'
+        ? 'w-full max-w-full px-2 sm:px-6 lg:px-8 py-0 md:py-12'
+        : 'w-full max-w-full px-2 sm:px-6 lg:px-8 py-6 md:py-10'
       }`}>
         <LayoutAnimationProvider animationKey={activeTab}>
           <div key={`tab-view-${activeTab}-${currentAppLang}`} className="w-full flex-1 flex flex-col items-center">
@@ -1121,6 +1104,20 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
       <NotificationSystem 
         notifications={notifications} 
         onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))} 
+      />
+
+      <ImportRecipeModal
+        recipe={recipeToImport}
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onRecipeImported={(imported) => {
+          addNotification({
+            title: 'Receita Importada! 🍽️',
+            message: `"${imported.name}" foi importada e salva com sucesso no seu NutriAI.`,
+            type: 'success'
+          });
+          setActiveTab('generator');
+        }}
       />
       </motion.div>
     </div>

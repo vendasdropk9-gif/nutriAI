@@ -5,12 +5,13 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { HealthIntegrationSettings } from './HealthIntegrationSettings';
 import { AvatarGallery } from './AvatarGallery';
 import { getAvatarById, AvatarCatalogItem } from '../data/avatarCatalog';
-import { UserProfile } from '../types';
+import { UserProfile, MacroPreset } from '../types';
 import { 
   Check, LogOut, Cloud, Bell, BellOff, Fingerprint, ScanFace, 
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
   User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
-  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store, Mic, MicOff
+  Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store, Mic, MicOff,
+  FileSpreadsheet, Stethoscope, FileText, Sliders, Scale, PieChart, TrendingUp, HelpCircle
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -30,6 +31,8 @@ import {
 } from '../lib/pushScheduler';
 
 import { NutritionalReportPDF } from './NutritionalReportPDF';
+import { HealthReportExportModal } from './HealthReportExportModal';
+import { ClinicalTextSummaryModal } from './ClinicalTextSummaryModal';
 import { FamilyProfilesManager } from './FamilyProfilesManager';
 import { WearablesSync } from './WearablesSync';
 import { SavedRecipesSwipeList } from './SavedRecipesSwipeList';
@@ -113,9 +116,12 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [isTestingBiometric, setIsTestingBiometric] = useState<'face' | 'fingerprint' | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [show3DAvatarGallery, setShow3DAvatarGallery] = useState(false);
+  const [avatarHeroMode, setAvatarHeroMode] = useState<'photo' | '3d'>('photo');
   const [customPhotoUrlInput, setCustomPhotoUrlInput] = useState('');
   const [showUrlInputModal, setShowUrlInputModal] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showExportLogsModal, setShowExportLogsModal] = useState(false);
+  const [showClinicalTextModal, setShowClinicalTextModal] = useState(false);
   const [userRole, setUserRole] = useState<'client' | 'merchant' | 'admin'>(() => {
     if (profile?.role === 'merchant' || profile?.role === 'seller') return 'merchant';
     if (profile?.role === 'admin') return 'admin';
@@ -164,10 +170,11 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     goals: profile?.goals || '',
     preferences: profile?.preferences || '',
     equipment: profile?.equipment?.join(', ') || '',
-    dailyCalories: profile?.masterPlan?.dailyCalories?.toString() || '',
-    proteinGoal: profile?.masterPlan?.macros?.protein?.toString() || '',
-    carbsGoal: profile?.masterPlan?.macros?.carbs?.toString() || '',
-    fatGoal: profile?.masterPlan?.macros?.fat?.toString() || '',
+    dailyCalories: profile?.macroTargets?.calories?.toString() || profile?.masterPlan?.dailyCalories?.toString() || '2000',
+    proteinGoal: profile?.macroTargets?.protein?.toString() || profile?.masterPlan?.macros?.protein?.toString() || '130',
+    carbsGoal: profile?.macroTargets?.carbs?.toString() || profile?.masterPlan?.macros?.carbs?.toString() || '210',
+    fatGoal: profile?.macroTargets?.fat?.toString() || profile?.masterPlan?.macros?.fat?.toString() || '65',
+    macroPreset: (profile?.macroTargets?.preset || 'balanced') as MacroPreset,
   });
 
   // Keep form data in sync if profile updates asynchronously (e.g. initial Firestore load)
@@ -198,10 +205,11 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         goals: profile.goals || prev.goals || '',
         preferences: profile.preferences || prev.preferences || '',
         equipment: profile.equipment ? profile.equipment.join(', ') : prev.equipment,
-        dailyCalories: profile.masterPlan?.dailyCalories?.toString() || prev.dailyCalories,
-        proteinGoal: profile.masterPlan?.macros?.protein?.toString() || prev.proteinGoal,
-        carbsGoal: profile.masterPlan?.macros?.carbs?.toString() || prev.carbsGoal,
-        fatGoal: profile.masterPlan?.macros?.fat?.toString() || prev.fatGoal,
+        dailyCalories: profile.macroTargets?.calories?.toString() || profile.masterPlan?.dailyCalories?.toString() || prev.dailyCalories || '2000',
+        proteinGoal: profile.macroTargets?.protein?.toString() || profile.masterPlan?.macros?.protein?.toString() || prev.proteinGoal || '130',
+        carbsGoal: profile.macroTargets?.carbs?.toString() || profile.masterPlan?.macros?.carbs?.toString() || prev.carbsGoal || '210',
+        fatGoal: profile.macroTargets?.fat?.toString() || profile.masterPlan?.macros?.fat?.toString() || prev.fatGoal || '65',
+        macroPreset: (profile.macroTargets?.preset || prev.macroPreset || 'balanced') as MacroPreset,
       }));
     }
   }, [profile]);
@@ -950,6 +958,100 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     setIsSaved(false);
   };
 
+  const applyMacroPreset = (preset: MacroPreset) => {
+    playSfx('tap');
+    vibrate(15);
+    const weight = Number(formData.weight) || (profile?.weight ? Number(profile.weight) : 70);
+    let baseCalories = Number(formData.dailyCalories) || 2000;
+    if (baseCalories < 1000) baseCalories = 2000;
+
+    let c = 200;
+    let p = 130;
+    let f = 65;
+
+    if (preset === 'balanced') {
+      // 45% carbs, 25% protein, 30% fat
+      c = Math.round((baseCalories * 0.45) / 4);
+      p = Math.round((baseCalories * 0.25) / 4);
+      f = Math.round((baseCalories * 0.30) / 9);
+    } else if (preset === 'high_protein') {
+      // ~2.0 g/kg protein or 35% protein, 40% carbs, 25% fat
+      const targetP = Math.max(Math.round(weight * 2.0), Math.round((baseCalories * 0.35) / 4));
+      p = targetP;
+      const remCal = Math.max(0, baseCalories - (p * 4));
+      c = Math.round((remCal * 0.60) / 4);
+      f = Math.round((remCal * 0.40) / 9);
+    } else if (preset === 'low_carb') {
+      // 20% carbs, 35% protein, 45% fat
+      c = Math.round((baseCalories * 0.20) / 4);
+      p = Math.round((baseCalories * 0.35) / 4);
+      f = Math.round((baseCalories * 0.45) / 9);
+    } else if (preset === 'keto') {
+      // 5% carbs, 25% protein, 70% fat
+      c = Math.min(30, Math.max(15, Math.round((baseCalories * 0.05) / 4)));
+      p = Math.round((baseCalories * 0.25) / 4);
+      const remCal = Math.max(0, baseCalories - (c * 4) - (p * 4));
+      f = Math.round(remCal / 9);
+    }
+
+    const calculatedCalories = (c * 4) + (p * 4) + (f * 9);
+
+    setFormData((prev) => ({
+      ...prev,
+      macroPreset: preset,
+      carbsGoal: String(c),
+      proteinGoal: String(p),
+      fatGoal: String(f),
+      dailyCalories: String(calculatedCalories),
+    }));
+    setIsSaved(false);
+  };
+
+  const handleQuickSaveMacros = () => {
+    const carbs = Math.max(0, Number(formData.carbsGoal) || 0);
+    const protein = Math.max(0, Number(formData.proteinGoal) || 0);
+    const fat = Math.max(0, Number(formData.fatGoal) || 0);
+    const calories = Number(formData.dailyCalories) || (carbs * 4 + protein * 4 + fat * 9);
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      macroTargets: {
+        carbs,
+        protein,
+        fat,
+        calories,
+        preset: formData.macroPreset,
+        enabled: true,
+        updatedAt: new Date().toISOString()
+      },
+      masterPlan: {
+        ...(profile?.masterPlan || { workoutFocus: '', nutritionFocus: '', adaptiveNotes: '' }),
+        dailyCalories: calories,
+        macros: {
+          protein,
+          carbs,
+          fat
+        }
+      }
+    };
+
+    onSaveProfile(updatedProfile);
+    playSfx('success');
+    vibrate([30, 40]);
+    showInAppToast(
+      'Metas de Macros Salvas para a IA! 🎯',
+      `Carbos: ${carbs}g | Prot: ${protein}g | Gord: ${fat}g (~${calories} kcal). A IA usará estas metas nos próximos cardápios!`
+    );
+    window.dispatchEvent(new CustomEvent('nutri:macro-targets-updated', {
+      detail: updatedProfile.macroTargets
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -986,12 +1088,21 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
       challengeReviewTime: challengeReviewTime,
       backupDestination: backupDestination as 'google_drive' | 'dropbox' | 'onedrive' || undefined,
       elevenLabsVoiceId: selectedVoice || undefined,
+      macroTargets: {
+        carbs: Math.max(0, Number(formData.carbsGoal) || 0),
+        protein: Math.max(0, Number(formData.proteinGoal) || 0),
+        fat: Math.max(0, Number(formData.fatGoal) || 0),
+        calories: Number(formData.dailyCalories) || ((Math.max(0, Number(formData.carbsGoal) || 0) * 4) + (Math.max(0, Number(formData.proteinGoal) || 0) * 4) + (Math.max(0, Number(formData.fatGoal) || 0) * 9)),
+        preset: formData.macroPreset,
+        enabled: true,
+        updatedAt: new Date().toISOString()
+      },
       masterPlan: {
-        dailyCalories: formData.dailyCalories ? Number(formData.dailyCalories) : (profile?.masterPlan?.dailyCalories || 0),
+        dailyCalories: Number(formData.dailyCalories) || ((Math.max(0, Number(formData.carbsGoal) || 0) * 4) + (Math.max(0, Number(formData.proteinGoal) || 0) * 4) + (Math.max(0, Number(formData.fatGoal) || 0) * 9)),
         macros: {
-          protein: formData.proteinGoal ? Number(formData.proteinGoal) : (profile?.masterPlan?.macros?.protein || 0),
-          carbs: formData.carbsGoal ? Number(formData.carbsGoal) : (profile?.masterPlan?.macros?.carbs || 0),
-          fat: formData.fatGoal ? Number(formData.fatGoal) : (profile?.masterPlan?.macros?.fat || 0),
+          protein: Math.max(0, Number(formData.proteinGoal) || 0),
+          carbs: Math.max(0, Number(formData.carbsGoal) || 0),
+          fat: Math.max(0, Number(formData.fatGoal) || 0),
         },
         workoutFocus: profile?.masterPlan?.workoutFocus || '',
         nutritionFocus: profile?.masterPlan?.nutritionFocus || '',
@@ -1003,10 +1114,13 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     
     onSaveProfile(processedProfile);
     syncSchedulesToServiceWorker(processedProfile);
+    window.dispatchEvent(new CustomEvent('nutri:macro-targets-updated', { 
+      detail: processedProfile.macroTargets 
+    }));
     playSfx('success');
     vibrate([30, 50]);
     setIsSaved(true);
-    showInAppToast('Perfil Salvo!', 'Todas as suas informações e lembretes foram salvos e sincronizados.');
+    showInAppToast('Perfil Salvo!', 'Todas as suas informações, metas de macros e lembretes foram salvos e sincronizados com a IA.');
     setTimeout(() => setIsSaved(false), 4000);
   };
 
@@ -1028,6 +1142,22 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
     return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date)).slice(-7);
   }, [profile?.hydrationLogs, profile?.bodyMonitorLogs]);
 
+  const numCarbs = Math.max(0, Number(formData.carbsGoal) || 0);
+  const numProtein = Math.max(0, Number(formData.proteinGoal) || 0);
+  const numFat = Math.max(0, Number(formData.fatGoal) || 0);
+  const macroCalculatedCal = (numCarbs * 4) + (numProtein * 4) + (numFat * 9);
+  const carbsKcal = numCarbs * 4;
+  const proteinKcal = numProtein * 4;
+  const fatKcal = numFat * 9;
+  const sumKcal = macroCalculatedCal || 1;
+  const carbsPct = Math.round((carbsKcal / sumKcal) * 100);
+  const proteinPct = Math.round((proteinKcal / sumKcal) * 100);
+  const fatPct = Math.max(0, 100 - carbsPct - proteinPct);
+  const userWeight = Number(formData.weight) || (profile?.weight ? Number(profile.weight) : null);
+  const proteinPerKg = userWeight && userWeight > 0 ? (numProtein / userWeight).toFixed(1) : null;
+  const carbsPerKg = userWeight && userWeight > 0 ? (numCarbs / userWeight).toFixed(1) : null;
+  const fatPerKg = userWeight && userWeight > 0 ? (numFat / userWeight).toFixed(1) : null;
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-16 flex flex-col items-center gap-8">
       {/* Header Info */}
@@ -1044,9 +1174,38 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         </p>
       </div>
 
-      {/* Admin Panel Link */}
-      <div className="w-full flex justify-center px-2">
-        <button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: "admin_library" }))} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium shadow-md hover:bg-slate-800 transition-colors text-xs sm:text-sm">
+      {/* Quick Action Bar: Clinical Export & Admin Library */}
+      <div className="w-full flex flex-wrap items-center justify-center gap-3 px-2">
+        <button
+          type="button"
+          onClick={() => {
+            playSfx('tap');
+            vibrate(20);
+            setShowClinicalTextModal(true);
+          }}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer"
+          id="btn-open-clinical-text-summary-bar"
+        >
+          <Stethoscope className="w-4 h-4 shrink-0 text-blue-100" />
+          <span>Resumo Clínico em Texto (Profissionais de Saúde)</span>
+          <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">Data Range</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            playSfx('tap');
+            vibrate(20);
+            setShowExportLogsModal(true);
+          }}
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer"
+        >
+          <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-100" />
+          <span>Exportar Histórico de Logs (PDF / CSV)</span>
+          <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">Nutricionista</span>
+        </button>
+
+        <button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: "admin_library" }))} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium shadow-md hover:bg-slate-800 transition-colors text-xs sm:text-sm cursor-pointer">
           <Database className="w-4 h-4 shrink-0" />
           <span>Área Admin: Biblioteca Científica</span>
         </button>
@@ -1080,39 +1239,115 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
               )}
             </button>
 
-            {/* Avatar with Actions */}
-            <div className="relative group shrink-0 mx-auto">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-emerald-500/30 dark:ring-emerald-400/20 overflow-hidden shadow-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center relative">
-                {formData.photoURL ? (
-                  <img
-                    src={formData.photoURL}
-                    alt={formData.name || 'Foto do Perfil'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl sm:text-5xl font-serif font-bold text-white tracking-wider select-none">
-                    {userInitial}
-                  </span>
-                )}
-
-                {/* Uploading loading overlay */}
-                {isUploadingPhoto && (
-                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white">
-                    <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-1" />
-                    <span className="text-[10px] font-bold uppercase">Carregando...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Camera Action Button */}
+            {/* View Mode Toggle: [ 📸 Foto 2D | 🦾 Avatar 3D ] */}
+            <div className="flex items-center justify-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 mb-2 shadow-xs">
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-white dark:border-slate-800"
-                title="Carregar nova foto da câmera ou galeria"
+                onClick={() => {
+                  setAvatarHeroMode('photo');
+                  playSfx('tap');
+                  vibrate(15);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  avatarHeroMode === 'photo'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-500'
+                }`}
               >
-                <Camera className="w-4 h-4" />
+                <Camera className="w-3.5 h-3.5" />
+                <span>Foto 2D</span>
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAvatarHeroMode('3d');
+                  playSfx('crystal');
+                  vibrate([20, 30]);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  avatarHeroMode === '3d'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-500'
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>Avatar 3D</span>
+              </button>
+            </div>
+
+            {/* Avatar with Actions */}
+            <div className="relative group shrink-0 mx-auto">
+              {avatarHeroMode === '3d' ? (
+                // 3D Avatar Hero Preview Circle
+                <div 
+                  onClick={() => {
+                    playSfx('crystal');
+                    vibrate(20);
+                    setShow3DAvatarGallery(true);
+                  }}
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-cyan-500/50 dark:ring-cyan-400/40 overflow-hidden shadow-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex flex-col items-center justify-center relative cursor-pointer group-hover:scale-105 transition-all"
+                  title="Clique para personalizar seu Avatar 3D"
+                >
+                  <img
+                    src={getAvatarById(formData.avatarId || 'cyberfit-biomechanic').photoURL}
+                    alt={getAvatarById(formData.avatarId || 'cyberfit-biomechanic').name}
+                    className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end items-center pb-1.5 pointer-events-none">
+                    <span className="text-[9px] font-mono font-black uppercase tracking-wider text-cyan-300 bg-slate-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                      3D DRACO
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                // Standard 2D Photo
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-emerald-500/30 dark:ring-emerald-400/20 overflow-hidden shadow-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 flex items-center justify-center relative">
+                  {formData.photoURL ? (
+                    <img
+                      src={formData.photoURL}
+                      alt={formData.name || 'Foto do Perfil'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-4xl sm:text-5xl font-serif font-bold text-white tracking-wider select-none">
+                      {userInitial}
+                    </span>
+                  )}
+
+                  {/* Uploading loading overlay */}
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white">
+                      <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-1" />
+                      <span className="text-[10px] font-bold uppercase">Carregando...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Button: Camera for Photo mode, Studio for 3D mode */}
+              {avatarHeroMode === '3d' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('crystal');
+                    vibrate(20);
+                    setShow3DAvatarGallery(true);
+                  }}
+                  className="absolute bottom-0 right-0 p-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-white dark:border-slate-800"
+                  title="Abrir Galeria de Avatares 3D"
+                >
+                  <Cpu className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer border-2 border-white dark:border-slate-800"
+                  title="Carregar nova foto da câmera ou galeria"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              )}
 
               {/* Hidden File Input */}
               <input
@@ -1201,6 +1436,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             streak={profile?.streak || 7}
             level={profile?.level || 4}
             avatarId={profile?.avatarId || 'cyberfit-biomechanic'}
+            onOpenGallery={() => setShow3DAvatarGallery(true)}
             onAwardPoints={(earned) => {
               if (profile) {
                 const updated = {
@@ -1622,61 +1858,396 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             }}
           />
 
-          {/* Custom Daily Goals */}
-          <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-700">
-            <h3 className="font-serif text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <Target className="w-5 h-5 text-emerald-500" />
-              Metas Diárias Personalizadas (Macros)
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                  Calorias
-                </label>
-                <input
-                  type="number"
-                  value={formData.dailyCalories}
-                  onChange={(e) => handleChange('dailyCalories', e.target.value)}
-                  placeholder="Ex: 2000"
-                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
-                />
+          {/* Macronutrient Goals & AI Meal Plan Sizing */}
+          <div className="space-y-6 pt-6 border-t border-slate-200/80 dark:border-slate-700/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                  <Target className="w-6 h-6 text-emerald-500 shrink-0" />
+                  <span>Metas Diárias de Macronutrientes</span>
+                </h3>
+                <p className="font-sans text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                  Defina os carboidratos, proteínas e gorduras que você deseja consumir por dia. A inteligência artificial usará estes valores ao gerar novos planos alimentares e receitas.
+                </p>
               </div>
-              <div className="space-y-2">
-                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                  Proteína (g)
-                </label>
-                <input
-                  type="number"
-                  value={formData.proteinGoal}
-                  onChange={(e) => handleChange('proteinGoal', e.target.value)}
-                  placeholder="Ex: 150"
-                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
-                />
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                  Sincronizado com a IA
+                </span>
               </div>
-              <div className="space-y-2">
-                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                  Carboidratos (g)
-                </label>
-                <input
-                  type="number"
-                  value={formData.carbsGoal}
-                  onChange={(e) => handleChange('carbsGoal', e.target.value)}
-                  placeholder="Ex: 200"
-                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
-                />
+            </div>
+
+            {/* Presets Selection Bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-emerald-500" />
+                  Distribuição & Presets Nutricionais
+                </span>
+                <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500 normal-case">
+                  Toque para preencher automaticamente
+                </span>
               </div>
-              <div className="space-y-2">
-                <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-                  Gorduras (g)
-                </label>
-                <input
-                  type="number"
-                  value={formData.fatGoal}
-                  onChange={(e) => handleChange('fatGoal', e.target.value)}
-                  placeholder="Ex: 70"
-                  className="w-full p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans text-slate-700 dark:text-slate-200 placeholder:text-slate-400 shadow-sm transition-all"
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { id: 'balanced', label: 'Equilibrada', desc: '45% C • 25% P • 30% G', emoji: '🥗' },
+                  { id: 'high_protein', label: 'Hipertrofia', desc: '40% C • 35% P • 25% G', emoji: '🥩' },
+                  { id: 'low_carb', label: 'Low Carb', desc: '20% C • 35% P • 45% G', emoji: '🥑' },
+                  { id: 'keto', label: 'Cetogênica', desc: '5% C • 25% P • 70% G', emoji: '🧀' },
+                  { id: 'custom', label: 'Personalizada', desc: 'Valores livres', emoji: '⚙️' }
+                ].map((preset) => {
+                  const isActive = formData.macroPreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyMacroPreset(preset.id as MacroPreset)}
+                      className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/30 shadow-md'
+                          : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-700/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm">
+                        <span>{preset.emoji}</span>
+                        <span>{preset.label}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight line-clamp-1">
+                        {preset.desc}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Visual Macro Proportion Bar & Calories Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-emerald-50/20 dark:from-slate-900/60 dark:via-slate-800/60 dark:to-slate-900/80 border border-slate-200/80 dark:border-slate-700/80 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
+                    <Flame className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      Calorias Diárias dos Macros
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-serif text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
+                        {macroCalculatedCal}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">kcal calculadas</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sync calories button if there's mismatch */}
+                {Number(formData.dailyCalories) !== macroCalculatedCal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange('dailyCalories', String(macroCalculatedCal));
+                      playSfx('tap');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 text-xs font-semibold border border-amber-300 dark:border-amber-700 transition-colors cursor-pointer self-start sm:self-auto"
+                    title="Igualar meta calórica diária com a soma dos macronutrientes"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Sincronizar Calorias ({macroCalculatedCal} kcal)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Segmented Distribution Bar */}
+              <div className="space-y-1.5">
+                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex shadow-inner">
+                  <div
+                    style={{ width: `${carbsPct}%` }}
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-300"
+                    title={`Carboidratos: ${carbsPct}% (${numCarbs}g)`}
+                  />
+                  <div
+                    style={{ width: `${proteinPct}%` }}
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
+                    title={`Proteínas: ${proteinPct}% (${numProtein}g)`}
+                  />
+                  <div
+                    style={{ width: `${fatPct}%` }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-300"
+                    title={`Gorduras: ${fatPct}% (${numFat}g)`}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-300 gap-2 pt-1 font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                    <span>Carbos: <strong>{numCarbs}g</strong> ({carbsPct}% • {carbsKcal} kcal)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>Proteínas: <strong>{numProtein}g</strong> ({proteinPct}% • {proteinKcal} kcal)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                    <span>Gorduras: <strong>{numFat}g</strong> ({fatPct}% • {fatKcal} kcal)</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 Interactive Macro Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Carboidratos */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-amber-200/80 dark:border-amber-900/50 shadow-sm space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-bl-3xl pointer-events-none" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold text-sm">
+                      🍞
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">Carboidratos</h4>
+                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">{carbsKcal} kcal • {carbsPct}%</span>
+                    </div>
+                  </div>
+                  {carbsPerKg && (
+                    <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 font-medium">
+                      {carbsPerKg} g/kg
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = Math.max(0, numCarbs - 5);
+                      handleChange('carbsGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    -
+                  </button>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="600"
+                      value={formData.carbsGoal}
+                      onChange={(e) => {
+                        handleChange('carbsGoal', e.target.value);
+                        handleChange('macroPreset', 'custom');
+                      }}
+                      className="w-full text-center py-2 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-lg text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500/40"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium pointer-events-none">g</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = numCarbs + 5;
+                      handleChange('carbsGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="500"
+                  step="5"
+                  value={numCarbs}
+                  onChange={(e) => {
+                    handleChange('carbsGoal', e.target.value);
+                    handleChange('macroPreset', 'custom');
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Fonte primária de energia rápida para o cérebro e performance física.
+                </p>
+              </div>
+
+              {/* Proteínas */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-emerald-200/80 dark:border-emerald-900/50 shadow-sm space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-bl-3xl pointer-events-none" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm">
+                      🍗
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">Proteínas</h4>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">{proteinKcal} kcal • {proteinPct}%</span>
+                    </div>
+                  </div>
+                  {proteinPerKg && (
+                    <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 font-bold">
+                      {proteinPerKg} g/kg
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = Math.max(0, numProtein - 5);
+                      handleChange('proteinGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    -
+                  </button>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="400"
+                      value={formData.proteinGoal}
+                      onChange={(e) => {
+                        handleChange('proteinGoal', e.target.value);
+                        handleChange('macroPreset', 'custom');
+                      }}
+                      className="w-full text-center py-2 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-lg text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium pointer-events-none">g</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = numProtein + 5;
+                      handleChange('proteinGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="350"
+                  step="5"
+                  value={numProtein}
+                  onChange={(e) => {
+                    handleChange('proteinGoal', e.target.value);
+                    handleChange('macroPreset', 'custom');
+                  }}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Construção de massa magra, saciedade prolongada e síntese tecidual.
+                </p>
+              </div>
+
+              {/* Gorduras */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-purple-200/80 dark:border-purple-900/50 shadow-sm space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-3xl pointer-events-none" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-sm">
+                      🥑
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">Gorduras (Lipídios)</h4>
+                      <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold">{fatKcal} kcal • {fatPct}%</span>
+                    </div>
+                  </div>
+                  {fatPerKg && (
+                    <span className="text-[10px] bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 font-medium">
+                      {fatPerKg} g/kg
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = Math.max(0, numFat - 5);
+                      handleChange('fatGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    -
+                  </button>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="250"
+                      value={formData.fatGoal}
+                      onChange={(e) => {
+                        handleChange('fatGoal', e.target.value);
+                        handleChange('macroPreset', 'custom');
+                      }}
+                      className="w-full text-center py-2 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-lg text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-purple-500/40"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium pointer-events-none">g</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = numFat + 5;
+                      handleChange('fatGoal', String(next));
+                      handleChange('macroPreset', 'custom');
+                      playSfx('tap');
+                    }}
+                    className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-base transition-colors cursor-pointer shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="200"
+                  step="5"
+                  value={numFat}
+                  onChange={(e) => {
+                    handleChange('fatGoal', e.target.value);
+                    handleChange('macroPreset', 'custom');
+                  }}
+                  className="w-full accent-purple-500 cursor-pointer"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Suporte hormonal vital, saúde celular e absorção de vitaminas lipossolúveis (A, D, E, K).
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Save Macro Action Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/20">
+              <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>
+                  As metas acima serão salvas no seu perfil e utilizadas imediatamente pela IA na geração de novos planos alimentares.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleQuickSaveMacros}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Salvar Metas de Macros para IA</span>
+              </button>
             </div>
           </div>
         </div>
@@ -2433,6 +3004,42 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
           {/* Relatório PDF para Médicos/Nutricionistas */}
           <NutritionalReportPDF profile={profile} />
 
+          {/* Card Resumo Clínico em Texto (Profissionais de Saúde & Intervalo de Datas) */}
+          <div className="w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-teal-600/10 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shrink-0">
+                <Stethoscope className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                    Resumo Clínico Consolidado em Texto
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-[10px] uppercase tracking-wider">
+                    Intervalo de Datas
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Filtre por qualquer intervalo de datas e gere um resumo clínico estruturado em texto puro para Prontuário Eletrônico (PEP) ou envio rápido no WhatsApp do seu profissional de saúde.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('tap');
+                vibrate(20);
+                setShowClinicalTextModal(true);
+              }}
+              className="px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all cursor-pointer w-full sm:w-auto text-center shrink-0"
+              id="btn-open-clinical-text-summary-card"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Gerar Resumo em Texto</span>
+            </button>
+          </div>
+
           {/* Gestão de Perfil Familiar & Pets */}
           <FamilyProfilesManager currentProfile={profile} />
 
@@ -2834,6 +3441,20 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
         </AnimatePresence>,
         document.body
       )}
+
+      {/* Complete Clinical Health Report Export Modal (PDF / CSV) */}
+      <HealthReportExportModal
+        profile={profile}
+        isOpen={showExportLogsModal}
+        onClose={() => setShowExportLogsModal(false)}
+      />
+
+      {/* Consolidated Clinical Text Summary Modal (Healthcare Professionals) */}
+      <ClinicalTextSummaryModal
+        profile={profile}
+        isOpen={showClinicalTextModal}
+        onClose={() => setShowClinicalTextModal(false)}
+      />
     </div>
   );
 }
