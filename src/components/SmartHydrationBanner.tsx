@@ -22,7 +22,10 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
   const [showPrompt, setShowPrompt] = useState(false);
   const [smartAnalysis, setSmartAnalysis] = useState<HydrationAnalysis | null>(null);
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
   const [tempGoal, setTempGoal] = useState<number>(() => profile?.waterGoal || 2500);
+  const [tempInterval, setTempInterval] = useState<number>(() => profile?.waterReminderIntervalMinutes || 60);
+  const [tempReminderEnabled, setTempReminderEnabled] = useState<boolean>(() => profile?.waterReminderEnabled ?? true);
 
   useEffect(() => {
     analyzeSmartHydration(profile).then(res => {
@@ -121,6 +124,27 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     setShowGoalModal(false);
   };
 
+  const handleSaveReminder = () => {
+    const validatedInterval = Math.max(15, Math.min(240, Number(tempInterval) || 60));
+    onUpdateProfile({
+      waterReminderEnabled: tempReminderEnabled,
+      waterReminderIntervalMinutes: validatedInterval
+    });
+    playSfx('crystal');
+    vibrate([30, 40]);
+    setShowReminderModal(false);
+
+    window.dispatchEvent(new CustomEvent('app:notification', {
+      detail: {
+        title: "Lembrete de Hidratação Atualizado 💧",
+        message: tempReminderEnabled
+          ? `Notificações configuradas a cada ${validatedInterval} minutos.`
+          : `Lembretes de hidratação desativados.`,
+        type: 'success'
+      }
+    }));
+  };
+
   const isVisible = (showPrompt || (!dismissed && currentTotalWater < goalWater));
   if (!isVisible && !showGoalModal) return null;
 
@@ -209,6 +233,17 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
                     Abrir HabitTracker
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => { setShowReminderModal(true); playSfx('tap'); }}
+                  className="px-3 py-1.5 bg-cyan-700/80 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer border border-cyan-400/40"
+                  title="Configurar Lembrete de Hidratação"
+                  id="btn-configure-hydration-reminder"
+                >
+                  <Bell className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+                  <span>Configurar Lembrete</span>
+                </button>
 
                 <button
                   onClick={() => { setShowPrompt(false); setDismissed(true); }}
@@ -417,6 +452,120 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
               >
                 <Check className="w-4 h-4" />
                 Salvar Meta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Configuração de Lembrete de Hidratação */}
+      {showReminderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl text-slate-800 dark:text-slate-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shadow-inner">
+                  <Bell className="w-5 h-5 text-cyan-500 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    Configurar Lembrete de Hidratação
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Defina intervalos personalizados para beber água.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReminderModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Enable/Disable Toggle */}
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Notificações Ativas
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Alertas periódicos entre 08:00 e 22:00
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setTempReminderEnabled(prev => !prev); playSfx('tap'); }}
+                className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer ${
+                  tempReminderEnabled ? 'bg-cyan-600' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <div
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                    tempReminderEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Interval Minutes Selection */}
+            {tempReminderEnabled && (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Intervalo entre Lembretes (minutos)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[30, 45, 60, 90].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => { setTempInterval(mins); playSfx('tap'); }}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        tempInterval === mins
+                          ? 'bg-cyan-600 text-white shadow-md'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {mins} min
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-1">
+                  <input
+                    type="range"
+                    min="15"
+                    max="180"
+                    step="15"
+                    value={tempInterval}
+                    onChange={(e) => setTempInterval(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                    <span>15 min</span>
+                    <span className="font-bold text-cyan-600 dark:text-cyan-400">Atual: {tempInterval} minutos</span>
+                    <span>180 min</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowReminderModal(false)}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveReminder}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-bold text-xs shadow-lg shadow-cyan-600/20 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                Salvar Lembretes
               </button>
             </div>
           </div>

@@ -138,6 +138,7 @@ export interface UserProfile {
   biometricsEnabled?: boolean;
   biometricType?: 'face' | 'fingerprint' | 'both' | null;
   emotionalLogs?: EmotionalLog[];
+  workoutReminderTimes?: Record<string, string>;
   currentChallenge?: Challenge;
   weeklyChallenges?: WeeklyChallenge[];
   culinaryChallenges?: CulinaryChallenge[];
@@ -187,6 +188,9 @@ export interface UserProfile {
   circadianNotificationConfig?: CircadianNotificationConfig;
   sleepGoalHours?: number;
   sleepReminderEnabled?: boolean;
+  workoutRemindersEnabled?: boolean;
+  hydrationRemindersEnabled?: boolean;
+  hydrationInterval?: string | number;
   anatomicalMarkers?: AnatomicalMarker[];
   macroTargets?: MacroTargets;
 }

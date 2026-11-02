@@ -926,33 +926,31 @@ function BarbellBar({ position }: { position: [number, number, number] }) {
 // Resolves natural living skin tone from user profile with physiological warmth
 // ============================================================================
 export function resolveSkinColor(skinTone?: string): string {
-  if (!skinTone) return '#cca080'; // Warm athletic bronze skin tone
+  if (!skinTone) return '#d29469'; // Warm athletic bronze skin tone
   if (skinTone.startsWith('#')) return skinTone;
   const s = skinTone.toLowerCase().trim();
-  if (s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('natural')) return '#dfb39a';
-  if (s.includes('moreno dourado') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return '#c68b59';
-  if (s.includes('bronze') || s.includes('atlet') || s.includes('tan')) return '#d4a373';
-  if (s.includes('medio') || s.includes('médio') || s.includes('quente')) return '#b57c58';
-  if (s.includes('escuro') || s.includes('dark') || s.includes('negro') || s.includes('preto')) return '#684534';
-  return '#cca080';
+  if (s.includes('clara') || s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('porcelana')) return '#f2cbb4';
+  if (s.includes('media') || s.includes('médio') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return '#e2b38f';
+  if (s.includes('parda') || s.includes('bronze') || s.includes('atlet') || s.includes('tan') || s.includes('moren')) return '#d29469';
+  if (s.includes('escura') || s.includes('dark') || s.includes('negra') || s.includes('negro') || s.includes('preto') || s.includes('ébano')) return '#5e3321';
+  return '#d29469';
 }
 
 // Resolves physiologically warm subcutaneous blood/hemoglobin scattering color
 export function resolveSkinSubsurfaceColor(skinTone?: string | THREE.Color): THREE.Color {
   if (skinTone instanceof THREE.Color) {
     return new THREE.Color(
-      Math.min(1.0, skinTone.r * 1.15 + 0.14),
-      skinTone.g * 0.38 + 0.05,
-      skinTone.b * 0.28 + 0.04
+      Math.min(1.0, skinTone.r * 1.25 + 0.22),
+      skinTone.g * 0.32 + 0.04,
+      skinTone.b * 0.22 + 0.03
     );
   }
   const s = (skinTone || '').toLowerCase().trim();
-  if (s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('natural')) return new THREE.Color('#d4503e');
-  if (s.includes('moreno dourado') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return new THREE.Color('#b53d24');
-  if (s.includes('bronze') || s.includes('atlet') || s.includes('tan')) return new THREE.Color('#b84428');
-  if (s.includes('medio') || s.includes('médio') || s.includes('quente')) return new THREE.Color('#a83820');
-  if (s.includes('escuro') || s.includes('dark') || s.includes('negro') || s.includes('preto')) return new THREE.Color('#68201a');
-  return new THREE.Color('#b84428'); // Warm athletic subcutaneous scattering
+  if (s.includes('clara') || s.includes('claro') || s.includes('fair') || s.includes('light') || s.includes('porcelana')) return new THREE.Color('#e85d47');
+  if (s.includes('media') || s.includes('médio') || s.includes('dourado') || s.includes('ouro') || s.includes('gold')) return new THREE.Color('#d44a33');
+  if (s.includes('parda') || s.includes('bronze') || s.includes('atlet') || s.includes('tan') || s.includes('moren')) return new THREE.Color('#b6381e');
+  if (s.includes('escura') || s.includes('dark') || s.includes('negra') || s.includes('negro') || s.includes('preto') || s.includes('ébano')) return new THREE.Color('#781e10');
+  return new THREE.Color('#b6381e'); // Warm arterial hemoglobin subsurface scattering
 }
 
 const muscleHighlightVertexShader = `
@@ -1075,13 +1073,15 @@ const muscleHighlightFragmentShader = `
     return (veinWidth1 + veinWidth2) * (0.6 + 0.6 * contraction) * min(2.5, def);
   }
 
-  // Procedural skin pore texture (noise-based) scaled by texture intensity and LOD
+  // Smooth physiological micro-dermal cellular pore heightfield without aliasing hash noise
   float getPoreTexture(vec2 uv, float texIntensity, float lod) {
     if (texIntensity < 0.01) return 0.0;
-    float frequency = 1400.0 * lod;
-    float n = sin(uv.x * frequency) * cos(uv.y * frequency);
-    n = fract(n * 43758.5453123);
-    return smoothstep(0.82, 1.0, n) * texIntensity;
+    float freq = 280.0 * lod;
+    float p1 = sin(uv.x * freq) * cos(uv.y * freq);
+    float p2 = sin(uv.x * (freq * 1.85) + uv.y * (freq * 1.45)) * 0.45;
+    float p3 = cos(uv.x * (freq * 3.4) - uv.y * (freq * 2.9)) * 0.25;
+    float poreField = (p1 + p2 + p3) * 0.55;
+    return poreField * texIntensity * 0.014;
   }
 
   // Mikkelsen / Screen-Space Cotangent Frame Normal Perturbation
@@ -1089,7 +1089,7 @@ const muscleHighlightFragmentShader = `
     vec3 dpdx = dFdx(eyePos);
     vec3 dpdy = dFdy(eyePos);
     
-    float totalHeight = height + getPoreTexture(uv, texIntensity, lod) * 0.006;
+    float totalHeight = height + getPoreTexture(uv, texIntensity, lod);
     
     float dhdx = dFdx(totalHeight);
     float dhdy = dFdy(totalHeight);
@@ -1115,7 +1115,7 @@ const muscleHighlightFragmentShader = `
     vec3 fatigueColorShift = vec3(0.25, -0.12, -0.12) * uFatigueLevel;
 
     float fiberHeight = getMuscleFiberHeight(vWorldPosition, vUv, uTime, uContraction, uIsPrimary, uExercisePace, effectiveDef);
-    float bumpScale = (uIsHighlighted > 0.5 ? (uIsPrimary > 0.5 ? 0.045 : 0.032) : 0.028) * effectiveDef * (1.0 + uContraction * 0.55);
+    float bumpScale = (uIsHighlighted > 0.5 ? (uIsPrimary > 0.5 ? 0.045 : 0.032) : 0.024) * effectiveDef * (1.0 + uContraction * 0.55);
     
     vec3 normal = getPerturbedNormal(eyePos, geomNormal, fiberHeight, bumpScale, vUv, effectiveTex, uLODFactor);
 
@@ -1124,50 +1124,50 @@ const muscleHighlightFragmentShader = `
     vec3 L_fill = normalize(vec3(-0.65, 0.20, 0.50));
     
     float NdotL_key = dot(normal, L_key);
-    // Biological light penetration wrap: light penetrates translucent epidermis into subsurface
-    float wrapKey = max(0.0, (NdotL_key + 0.32) / 1.32);
-    float diffKey = pow(wrapKey, 1.15 + (1.0 - effectiveTex) * 0.25);
-    float diffFill = max(0.0, dot(normal, L_fill) * 0.5 + 0.5) * 0.44;
+    // Biological light penetration wrap: light penetrates translucent epidermis into subsurface dermis
+    float wrapKey = max(0.0, (NdotL_key + 0.38) / 1.38);
+    float diffKey = pow(wrapKey, 1.12 + (1.0 - effectiveTex) * 0.20);
+    float diffFill = max(0.0, dot(normal, L_fill) * 0.5 + 0.5) * 0.46;
     
-    // Subsurface scattering terminator flush: warm hemoglobin bleed at shadow boundaries
-    float terminatorGlow = smoothstep(-0.25, 0.22, NdotL_key) * (1.0 - smoothstep(0.06, 0.62, NdotL_key));
-    float sssTerminator = terminatorGlow * 0.52;
+    // Subsurface scattering terminator flush: warm arterial hemoglobin bleed at day/night shadow boundaries
+    float terminatorGlow = smoothstep(-0.30, 0.25, NdotL_key) * (1.0 - smoothstep(0.05, 0.58, NdotL_key));
+    float sssTerminator = terminatorGlow * 0.65;
     // Backlight transmission / translucent thin cartilage and rim scattering
-    float sssBack = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.50;
+    float sssBack = pow(max(0.0, dot(-normal, L_key) * 0.5 + 0.5), 2.2) * 0.55;
     float sss = sssTerminator + sssBack;
     
     vec3 H_key = normalize(L_key + viewDir);
     float NdotH = max(0.0, dot(normal, H_key));
     
     // Dual-lobe specular reflections: broad organic epidermal reflection + tight lipid moisture gleam
-    float specBroad = pow(NdotH, 12.0) * (0.26 + 0.16 * effectiveTex);
-    float specPowerSharp = 42.0 + effectiveTex * 105.0;
-    float specSharp = pow(NdotH, specPowerSharp) * (0.60 + 0.40 * effectiveTex);
+    float specBroad = pow(NdotH, 14.0) * (0.28 + 0.18 * effectiveTex);
+    float specPowerSharp = 45.0 + effectiveTex * 95.0;
+    float specSharp = pow(NdotH, specPowerSharp) * (0.65 + 0.35 * effectiveTex);
     
-    float poreRoughness = getPoreTexture(vUv, effectiveTex, uLODFactor) * 0.38;
+    float poreRoughness = clamp(getPoreTexture(vUv, effectiveTex, uLODFactor) * 8.0, 0.0, 0.25);
     float sweatSheen = 1.0 + uSweatIntensity * 1.8;
     float specularGleam = (specBroad + specSharp) * (1.0 - poreRoughness) * sweatSheen;
 
     float NdotV = max(0.0, dot(normal, viewDir));
-    float fresnel = pow(1.0 - NdotV, 2.3 + (1.0 - effectiveTex) * 0.6);
+    float fresnel = pow(1.0 - NdotV, 2.4 + (1.0 - effectiveTex) * 0.5);
 
-    // Anatomical muscle cavity ambient occlusion (deepens muscle separation lines with warmth)
+    // Anatomical muscle cavity ambient occlusion (deepens muscle separation lines with vascular warmth)
     float cavity = smoothstep(-1.0 / max(0.2, effectiveDef), 0.72, fiberHeight);
-    float microAO = clamp(0.72 + 0.28 * cavity, 0.55, 1.0);
+    float microAO = clamp(0.72 + 0.28 * cavity, 0.58, 1.0);
 
     // RESTING ATHLETIC HUMAN SKIN & SCULPTED MUSCLE SHADING
     vec3 baseSkin = uSkinBaseColor;
     vec3 subSkin = uSkinSubsurfaceColor;
 
-    vec3 creviceTone = mix(subSkin * 0.72, baseSkin * 0.44, cavity);
+    vec3 creviceTone = mix(subSkin * 0.85, baseSkin * 0.52, cavity);
     vec3 litSkinTone = mix(creviceTone, baseSkin, diffKey * 0.88 + diffFill * 0.38);
-    litSkinTone += subSkin * (sss * 0.72);
+    litSkinTone += subSkin * (sss * 0.88);
     
-    vec3 skinRimGleam = mix(baseSkin * 1.35, vec3(1.0, 0.95, 0.90), 0.50);
-    litSkinTone += skinRimGleam * (fresnel * 0.34);
+    vec3 skinRimGleam = mix(baseSkin * 1.35, vec3(1.0, 0.95, 0.90), 0.45);
+    litSkinTone += skinRimGleam * (fresnel * 0.36);
     
-    vec3 skinSpecularColor = vec3(1.0, 0.97, 0.92);
-    litSkinTone += skinSpecularColor * (specularGleam * 0.38);
+    vec3 skinSpecularColor = mix(vec3(1.0, 0.97, 0.94), subSkin * 1.15, 0.12);
+    litSkinTone += skinSpecularColor * (specularGleam * 0.42);
     litSkinTone *= microAO;
 
     // =========================================================================
@@ -3793,19 +3793,23 @@ function AnatomicalAvatarModel({
   }, [geo]);
 
   const skinColor = useMemo(() => resolveSkinColor(profile?.skinTone), [profile?.skinTone]);
+  const subColor = useMemo(() => resolveSkinSubsurfaceColor(skinColor), [skinColor]);
 
   // Athletic studio living skin material for skeletal, cranial, and non-muscular landmarks
   const inactiveMat = useMemo(() => new THREE.MeshPhysicalMaterial({
     color: skinColor,
-    roughness: Math.max(0.36, 0.50 - (skinTexture ?? 0.5) * 0.14),
-    metalness: 0.02,
-    clearcoat: 0.16,
-    clearcoatRoughness: 0.38,
-    reflectivity: 0.52,
+    roughness: Math.max(0.32, 0.44 - (skinTexture ?? 0.5) * 0.12),
+    metalness: 0.0,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.24,
+    sheen: 0.82,
+    sheenColor: subColor,
+    sheenRoughness: 0.35,
+    specularIntensity: 0.95,
     side: THREE.DoubleSide,
     transparent: xRayMode ?? false,
     opacity: (xRayMode ?? false) ? 0.35 : 1.0,
-  }), [skinColor, skinTexture, xRayMode]);
+  }), [skinColor, subColor, skinTexture, xRayMode]);
 
   // Athletic fitness training gloves with refined cyber grip
   const mechanicalGloveMat = useMemo(() => new THREE.MeshStandardMaterial({

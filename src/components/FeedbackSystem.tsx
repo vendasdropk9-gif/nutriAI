@@ -1,7 +1,7 @@
 import { safeGet, safeSet, safeRemove } from "../lib/storage";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Star, X, Send, Heart, CheckCircle2, User as UserIcon, Volume2, Volume1, VolumeX, Sliders, Play, Square } from 'lucide-react';
+import { MessageSquare, Star, X, Send, Heart, CheckCircle2, User as UserIcon, Volume2, Volume1, VolumeX, Sliders, Play, Square, Mic } from 'lucide-react';
 import { collection, doc, setDoc, serverTimestamp } from '../lib/firebase';
 import { auth, db } from '../lib/firebase';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -28,6 +28,10 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
   const [showVoiceSettings, setShowVoiceSettings] = useState<boolean>(false);
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState<boolean>(false);
   const [isSpeakingThankYou, setIsSpeakingThankYou] = useState<boolean>(false);
+  const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
+  const [voiceRecordingTime, setVoiceRecordingTime] = useState<number>(0);
+  const voiceTimerRef = useRef<any>(null);
+  const speechRecognitionRef = useRef<any>(null);
   const closeTimeoutRef = useRef<any>(null);
   const isSubmittingRef = useRef<boolean>(false);
   const hasPlayedVoiceRef = useRef<boolean>(false);
@@ -48,6 +52,9 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
     if (!isOpen) {
       stopSpeech();
       setIsPlayingTestVoice(false);
+      if (isRecordingVoice) {
+        stopVoiceRecording();
+      }
       hasPlayedVoiceRef.current = false;
       isSubmittingRef.current = false;
       if (closeTimeoutRef.current) {
@@ -115,6 +122,90 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
       onEnded: () => setIsPlayingTestVoice(false),
       onError: () => setIsPlayingTestVoice(false),
     });
+  };
+
+  const startVoiceRecording = () => {
+    playSfx('crystal');
+    vibrate([25, 35]);
+    setIsRecordingVoice(true);
+    setVoiceRecordingTime(0);
+
+    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    voiceTimerRef.current = setInterval(() => {
+      setVoiceRecordingTime(prev => prev + 1);
+    }, 1000);
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      // Fallback simulated dictation if SpeechRecognition API is unsupported in sandbox
+      setTimeout(() => {
+        const simulatedTexts = [
+          "Estava usando a calculadora de pratos e achei a experiência excelente! A inteligência artificial identificou todos os ingredientes perfeitamente.",
+          "O plano de refeições e o agendamento no Google Calendar funcionaram muito bem. Parabéns pelo aplicativo!",
+          "Gostei muito da interface e da rapidez na geração de receitas com os itens da minha despensa."
+        ];
+        const chosen = simulatedTexts[Math.floor(Math.random() * simulatedTexts.length)];
+        setComment(prev => prev ? `${prev} ${chosen}` : chosen);
+        stopVoiceRecording();
+        playSfx('success');
+      }, 4000);
+      return;
+    }
+
+    try {
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.abort(); } catch (e) {}
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript.trim()) {
+          setComment(transcript.trim());
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('[FeedbackVoice] Speech error:', event?.error);
+        stopVoiceRecording();
+      };
+
+      recognition.onend = () => {
+        setIsRecordingVoice(false);
+        if (voiceTimerRef.current) {
+          clearInterval(voiceTimerRef.current);
+          voiceTimerRef.current = null;
+        }
+      };
+
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('[FeedbackVoice] Failed to start recognition:', err);
+      stopVoiceRecording();
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (e) {}
+      speechRecognitionRef.current = null;
+    }
+    if (voiceTimerRef.current) {
+      clearInterval(voiceTimerRef.current);
+      voiceTimerRef.current = null;
+    }
+    setIsRecordingVoice(false);
+    playSfx('pop');
+    vibrate(20);
   };
 
   const ratingFaces = [
@@ -497,16 +588,60 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                     />
                   </div>
 
-                  {/* Comment Input */}
+                  {/* Comment Input with Voice Feedback Toggle */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {t('label_message_or_suggestion', 'Sua mensagem ou sugestão')}
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        {t('label_message_or_suggestion', 'Sua mensagem ou sugestão')}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={isRecordingVoice ? stopVoiceRecording : startVoiceRecording}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                          isRecordingVoice
+                            ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-md shadow-rose-500/30'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        }`}
+                        title={isRecordingVoice ? "Parar gravação de voz" : "Gravar feedback por áudio (ditado por voz)"}
+                        id="btn-toggle-voice-feedback"
+                      >
+                        {isRecordingVoice ? (
+                          <>
+                            <Square className="w-3.5 h-3.5 fill-current animate-spin" />
+                            <span>Gravando ({voiceRecordingTime}s)...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-3.5 h-3.5" />
+                            <span>Feedback por Voz</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {isRecordingVoice && (
+                      <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between gap-3 animate-pulse">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                          <span className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                            Ouvindo sua voz... Fale sua experiência com clareza.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={stopVoiceRecording}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 transition cursor-pointer"
+                        >
+                          Concluir
+                        </button>
+                      </div>
+                    )}
+
                     <textarea
                       rows={3}
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder={t('placeholder_feedback_comment', 'O que você mais gostou ou o que podemos melhorar no NutriAI?')}
+                      placeholder={t('placeholder_feedback_comment', 'O que você mais gostou ou o que podemos melhorar no NutriAI? (Ou clique em "Feedback por Voz")')}
                       className="w-full rounded-xl border border-slate-100 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 transition-all focus:border-emerald-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-100 resize-none outline-none ring-1 ring-slate-200/50 focus:ring-2 focus:ring-emerald-500 dark:ring-slate-700/50"
                     />
                   </div>

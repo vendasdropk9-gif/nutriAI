@@ -77,16 +77,17 @@ function MusclePart({
       if (lower === 'legs' && (a.includes('pern') || a.includes('leg') || a.includes('quad') || a.includes('glut') || a.includes('pant') || a.includes('isquiot'))) return true;
       if (lower === 'glutes' && (a.includes('glut') || a.includes('glute') || a.includes('quad'))) return true;
       if (lower === 'calves' && (a.includes('pant') || a.includes('gêm') || a.includes('calf') || a.includes('pern'))) return true;
-      return a.includes(lower);
     });
   }, [muscleType, activeMuscles]);
 
   const mat = useMemo(() => {
+    const restingSkin = colorOverride || '#d29469';
+
     if (isJoint) {
       return new THREE.MeshStandardMaterial({
-        color: '#f8fafc',
-        metalness: 0.0,
-        roughness: 0.82,
+        color: '#1e293b',
+        metalness: 0.1,
+        roughness: 0.6,
         wireframe: false,
       });
     }
@@ -95,7 +96,7 @@ function MusclePart({
       return new THREE.MeshStandardMaterial({
         color: colorOverride,
         metalness: 0.0,
-        roughness: 0.82,
+        roughness: 0.42,
       });
     }
 
@@ -105,13 +106,13 @@ function MusclePart({
     return new THREE.MeshStandardMaterial({
       color: isMuscleActive 
         ? (isWrong ? '#ef4444' : isPerfect ? '#10b981' : '#ef4444') 
-        : '#f8fafc',
+        : restingSkin,
       emissive: isMuscleActive 
         ? (isWrong ? '#dc2626' : isPerfect ? '#10b981' : '#ef4444') 
         : '#000000',
       emissiveIntensity: isMuscleActive ? (isPerfect ? 2.5 : 1.5) : 0,
       metalness: isMuscleActive ? 0.05 : 0.0,
-      roughness: isMuscleActive ? 0.28 : 0.82,
+      roughness: isMuscleActive ? 0.28 : 0.42,
     });
   }, [isMuscleActive, animation, colorOverride, isJoint]);
 
@@ -1020,6 +1021,9 @@ export function Avatar3D({
         showOverlayBadges={false}
         muscleDefinition={1.30}
         skinTexture={0.65}
+        profile={{
+          skinTone: avatarConfig?.skinColor || avatarConfig?.skinTone || '#d29469',
+        } as any}
       />
     </div>
   );

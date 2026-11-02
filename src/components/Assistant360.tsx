@@ -6,14 +6,18 @@ import {
   Activity, Leaf, Utensils, Zap, ShoppingBag, Truck, Map, 
   Dumbbell, Moon, Droplets, Camera, Flame, ChevronRight, MessageCircle, AlertTriangle,
   Scale, Smile, Sparkles, Crown, ArrowUpRight, TrendingUp, Heart, Footprints,
-  Mic, MicOff, HelpCircle, Calendar, X, CheckCircle2, Loader2, ChefHat
+  Mic, MicOff, HelpCircle, Calendar, X, CheckCircle2, Loader2, ChefHat,
+  Bell, Clock, Volume2
 } from 'lucide-react';
 import { UserProfile, IntakeLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
+import { safeGet } from '../lib/storage';
+import { DEFAULT_WEEKLY_PLAN } from './PersonalTrainer';
 import { DashboardQuickTips } from './DashboardQuickTips';
 import { ConnectedHealthWidget } from './ConnectedHealthWidget';
 import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
+import { WeeklyReport } from './WeeklyReport';
 import { WeeklyNutritionChart } from './WeeklyNutritionChart';
 import { DailyNutritionProgressCard } from './DailyNutritionProgressCard';
 import { GlucoseSmartSnacksCard } from './GlucoseSmartSnacksCard';
@@ -28,9 +32,10 @@ interface Assistant360Props {
   onLogIntake?: (log: IntakeLog) => void;
   onUpdateProfile?: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
   activeTab?: string;
+  addNotification?: (notif: { title: string; message: string; type: any }) => void;
 }
 
-export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile, activeTab = 'assistant360' }: Assistant360Props) {
+export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile, activeTab = 'assistant360', addNotification }: Assistant360Props) {
   const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
 
@@ -366,6 +371,104 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   const targetCarbs = Math.round(profile?.masterPlan?.macros?.carbs || ((targetCalories * 0.45) / 4));
   const targetFat = Math.round(profile?.masterPlan?.macros?.fat || ((targetCalories * 0.25) / 9));
 
+  // Next workout calculation from Personal Trainer & Notification System
+  const todayDayKey = useMemo(() => {
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return dayKeys[new Date().getDay()];
+  }, []);
+
+  const todayWorkout = useMemo(() => {
+    const weeklyPlan = profile?.weeklyWorkoutPlan || DEFAULT_WEEKLY_PLAN;
+    return weeklyPlan?.days?.find(d => d.dayKey === todayDayKey) || weeklyPlan?.days?.[new Date().getDay()];
+  }, [profile?.weeklyWorkoutPlan, todayDayKey]);
+
+  const workoutRemindersEnabled = profile?.workoutRemindersEnabled !== false && safeGet('nutri-workout-reminders') !== 'false';
+  const scheduledWorkoutTime = profile?.workoutReminderTimes?.[todayDayKey] || (profile as any)?.workoutReminderTime || safeGet('nutri-workout-time') || '18:00';
+
+  const isWorkoutCompletedToday = useMemo(() => {
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    return Boolean(profile?.workoutLogs?.some(log => log.date?.startsWith(todayDateStr) && log.completed));
+  }, [profile?.workoutLogs]);
+
+  const workoutTimingStatus = useMemo(() => {
+    const now = new Date();
+    const [h, m] = scheduledWorkoutTime.split(':').map(Number);
+    const targetMins = (isNaN(h) ? 18 : h) * 60 + (isNaN(m) ? 0 : m);
+    const currMins = now.getHours() * 60 + now.getMinutes();
+    const diff = targetMins - currMins;
+    const isUnder30 = !isWorkoutCompletedToday && diff > 0 && diff <= 30;
+
+    if (isWorkoutCompletedToday) {
+      return { 
+        status: 'completed', 
+        label: t('workout_completed_badge', 'Treino Concluído Hoje!'), 
+        urgency: 'done' as const,
+        countdownText: t('workout_done_streak', 'Meta diária atingida!'),
+        isUnder30Minutes: false,
+        diffMinutes: diff
+      };
+    }
+    if (isUnder30) {
+      return { 
+        status: 'imminent', 
+        label: t('workout_starts_soon', `Inicia em ${diff} min (${scheduledWorkoutTime})`), 
+        urgency: 'high' as const,
+        countdownText: `Inicia em ${diff} min`,
+        isUnder30Minutes: true,
+        diffMinutes: diff
+      };
+    }
+    if (diff > 30 && diff <= 60) {
+      return { 
+        status: 'upcoming', 
+        label: t('workout_starts_soon', `Inicia em ${diff} min (${scheduledWorkoutTime})`), 
+        urgency: 'medium' as const,
+        countdownText: `Faltam ${diff} minutos`,
+        isUnder30Minutes: false,
+        diffMinutes: diff
+      };
+    }
+    if (diff <= 0 && diff >= -120) {
+      return { 
+        status: 'now', 
+        label: t('workout_time_now', `Horário de Treino Agora (${scheduledWorkoutTime})`), 
+        urgency: 'urgent' as const,
+        countdownText: 'Em andamento',
+        isUnder30Minutes: false,
+        diffMinutes: diff
+      };
+    }
+    return { 
+      status: 'scheduled', 
+      label: t('workout_scheduled_for', `Hoje às ${scheduledWorkoutTime}`), 
+      urgency: 'normal' as const,
+      countdownText: `Às ${scheduledWorkoutTime}`,
+      isUnder30Minutes: false,
+      diffMinutes: diff
+    };
+  }, [scheduledWorkoutTime, isWorkoutCompletedToday, t]);
+
+  const handleTriggerWorkoutNotification = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playSfx('crystal');
+    vibrate([40, 60, 40]);
+
+    if (addNotification) {
+      addNotification({
+        title: `🏋️ Próximo Treino: ${todayWorkout?.workoutTitle || 'Treino do Dia'}!`,
+        message: `Seu treino está programado para às ${scheduledWorkoutTime}. Foco: ${todayWorkout?.workoutFocus || 'Calistenia e força'}. Vamos lá!`,
+        type: 'success'
+      });
+    }
+
+    speak(
+      language?.startsWith('pt')
+        ? `Lembrete do Personal Trainer! Seu próximo treino de hoje é ${todayWorkout?.workoutTitle || 'Treino do Dia'}, agendado para às ${scheduledWorkoutTime}. Foco: ${todayWorkout?.workoutFocus || 'Evolução física'}.`
+        : `Personal Trainer reminder! Your next workout today is ${todayWorkout?.workoutTitle || 'Daily Workout'}, scheduled for ${scheduledWorkoutTime}. Focus: ${todayWorkout?.workoutFocus || 'Fitness progression'}.`,
+      { voice: 'Aoede', lang: language }
+    );
+  };
+
 
   const features = [
     { id: 'quickdishes', labelKey: 'feature_quickdishes', descKey: 'desc_quickdishes', defaultLabel: 'Pratos Rápidos IA', defaultDesc: '3 opções em 1 toque', icon: <Flame className="w-5 h-5 text-orange-500" /> },
@@ -629,6 +732,220 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         </div>
       </div>
 
+      {/* 2.7. INDICADOR VISUAL DE 'PRÓXIMO TREINO' (INTEGRAÇÃO PERSONAL TRAINER + NOTIFICAÇÕES) */}
+      {todayWorkout && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={
+            workoutTimingStatus.isUnder30Minutes
+              ? {
+                  opacity: 1,
+                  y: 0,
+                  scale: [1, 1.018, 1],
+                  boxShadow: [
+                    "0 10px 25px -5px rgba(168, 85, 247, 0.25), 0 0 0 0px rgba(168, 85, 247, 0.35)",
+                    "0 22px 40px -5px rgba(168, 85, 247, 0.45), 0 0 0 8px rgba(168, 85, 247, 0.2)",
+                    "0 10px 25px -5px rgba(168, 85, 247, 0.25), 0 0 0 0px rgba(168, 85, 247, 0.35)"
+                  ]
+                }
+              : { opacity: 1, y: 0, scale: 1 }
+          }
+          transition={
+            workoutTimingStatus.isUnder30Minutes
+              ? {
+                  scale: {
+                    duration: 2.4,
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    ease: "easeInOut"
+                  },
+                  boxShadow: {
+                    duration: 2.4,
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    ease: "easeInOut"
+                  },
+                  opacity: { duration: 0.4 },
+                  y: { duration: 0.4 }
+                }
+              : { duration: 0.4 }
+          }
+          onClick={() => {
+            playSfx('tap');
+            vibrate(15);
+            onNavigate('trainer');
+          }}
+          className={`relative w-full overflow-hidden rounded-[32px] p-6 sm:p-7 border transition-all duration-300 cursor-pointer group backdrop-blur-md mx-auto ${
+            isWorkoutCompletedToday
+              ? 'bg-gradient-to-r from-emerald-950/40 via-teal-950/30 to-slate-900 border-emerald-500/40 hover:border-emerald-500/70 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/25'
+              : workoutTimingStatus.isUnder30Minutes
+              ? 'bg-gradient-to-r from-purple-950/85 via-indigo-950/75 to-fuchsia-950/65 border-2 border-purple-400 hover:border-purple-300 ring-2 ring-purple-500/40'
+              : workoutTimingStatus.urgency === 'urgent'
+              ? 'bg-gradient-to-r from-purple-950/80 via-indigo-950/70 to-fuchsia-950/60 border-2 border-purple-400 hover:border-purple-300 shadow-2xl shadow-purple-500/30 ring-2 ring-purple-500/40'
+              : 'bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-purple-950/40 border border-purple-500/40 hover:border-purple-500/70 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/25'
+          }`}
+        >
+          {/* Ambient Background Glow */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-60 h-60 rounded-full bg-gradient-to-br from-purple-500/20 to-indigo-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 -mb-10 w-48 h-48 rounded-full bg-purple-600/10 blur-2xl pointer-events-none" />
+
+          {/* Gentle Pulsing Ambient Glow layer when < 30 min */}
+          {workoutTimingStatus.isUnder30Minutes && (
+            <motion.div
+              animate={{ opacity: [0.12, 0.32, 0.12], scale: [1, 1.05, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+              className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-fuchsia-600/15 to-indigo-600/20 rounded-[32px] pointer-events-none"
+            />
+          )}
+
+          <div className="relative z-10 flex flex-col gap-5">
+            {/* Top Bar: Badges & Notification Status */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-300 text-xs font-bold uppercase tracking-wider border border-purple-500/30 backdrop-blur-sm">
+                  <Dumbbell className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{t('next_workout_badge', 'Próximo Treino')}</span>
+                </div>
+
+                <span className="px-2.5 py-0.5 rounded-full bg-white/10 dark:bg-white/5 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                  {todayWorkout.dayName}
+                </span>
+
+                {isWorkoutCompletedToday ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{t('completed_badge', 'Concluído Hoje')}</span>
+                  </span>
+                ) : workoutTimingStatus.isUnder30Minutes ? (
+                  <motion.span 
+                    animate={{ scale: [1, 1.06, 1] }}
+                    transition={{ duration: 1.8, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+                    className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/25 text-amber-300 text-xs font-extrabold border border-amber-400/50 shadow-md shadow-amber-500/20"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span>⚡ {workoutTimingStatus.countdownText}</span>
+                  </motion.span>
+                ) : workoutTimingStatus.urgency === 'urgent' || workoutTimingStatus.urgency === 'high' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-300 text-xs font-extrabold border border-amber-500/40 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span>{workoutTimingStatus.countdownText}</span>
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Notification System Integration Info & Sound Trigger */}
+              <div className="flex items-center gap-2">
+                <div 
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                    workoutRemindersEnabled 
+                      ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                  }`}
+                  title={workoutRemindersEnabled ? `Lembrete diário ativo para às ${scheduledWorkoutTime}` : 'Lembretes de treino desativados'}
+                >
+                  <Bell className={`w-3.5 h-3.5 ${workoutRemindersEnabled ? 'text-purple-400 animate-bounce' : 'text-slate-400'}`} />
+                  <Clock className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{scheduledWorkoutTime}</span>
+                  {workoutRemindersEnabled && (
+                    <span className="hidden sm:inline text-[11px] font-normal opacity-80">
+                      • {t('reminder_active', 'Lembrete Ativo')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Button to test notification & listen with Malu Aoede voice */}
+                <button
+                  type="button"
+                  onClick={handleTriggerWorkoutNotification}
+                  className="p-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-600 dark:text-purple-300 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer shadow-sm flex items-center justify-center shrink-0"
+                  title="Testar notificação no sistema e ouvir lembrete da Malu"
+                >
+                  <Volume2 className="w-4 h-4 text-purple-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Info Row: Icon, Title, Focus & Tags */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 transition-transform duration-300 group-hover:scale-110 ${
+                  isWorkoutCompletedToday 
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30' 
+                    : 'bg-gradient-to-br from-purple-600 via-indigo-600 to-violet-600 shadow-purple-500/30'
+                }`}>
+                  <Dumbbell className="w-7 h-7" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <span>{todayWorkout.workoutTitle}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30">
+                      {todayWorkout.intensity}
+                    </span>
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
+                    {todayWorkout.workoutFocus}
+                  </p>
+
+                  {/* Target Muscles & Exercises Tag Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {todayWorkout.targetMuscles?.map((muscle, idx) => (
+                      <span 
+                        key={idx}
+                        className="px-2 py-0.5 rounded-lg bg-white/40 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold"
+                      >
+                        {muscle}
+                      </span>
+                    ))}
+                    <span className="px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[11px] font-bold">
+                      {todayWorkout.exercises?.length || 4} exercícios
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 sm:self-center shrink-0">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playSfx('tap');
+                    vibrate(20);
+                    onNavigate('trainer');
+                  }}
+                  className={`px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                    isWorkoutCompletedToday 
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/30' 
+                      : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-violet-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-500/30 group-hover:shadow-purple-500/50'
+                  }`}
+                >
+                  <Dumbbell className="w-4 h-4" />
+                  <span>
+                    {isWorkoutCompletedToday 
+                      ? t('view_workout_history', 'VER NO PERSONAL TRAINER') 
+                      : t('start_workout_now', 'INICIAR TREINO AGORA')}
+                  </span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Nutrition Context Footer: Connecting nutrition and training */}
+            {todayWorkout.nutritionContext && (
+              <div className="pt-3 border-t border-purple-500/20 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong className="text-purple-700 dark:text-purple-300">Dica Nutricional Sincronizada:</strong> {todayWorkout.nutritionContext}
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* 3. Proactive AI Banner */}
       <motion.div 
         key={activeTip}
@@ -888,8 +1205,8 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           onUpdateProfile={onUpdateProfile}
         />
 
-        {/* PROGRESSO SEMANAL DE MACRONUTRIENTES */}
-        <WeeklyNutritionChart />
+        {/* RELATÓRIO SEMANAL (METAS CALÓRICAS E MACRONUTRIENTES DOS ÚLTIMOS 7 DIAS) */}
+        <WeeklyReport profile={profile} onNavigate={onNavigate} />
       </div>
 
       {/* NOVO: BANNER DESTAQUE PARA O RESTAURANTE INTELIGENTE */}

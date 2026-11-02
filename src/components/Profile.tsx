@@ -11,7 +11,8 @@ import {
   ShieldCheck, Trash2, Sparkles, Volume2, Camera, Upload, 
   User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
   Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store, Mic, MicOff,
-  FileSpreadsheet, Stethoscope, FileText, Sliders, Scale, PieChart, TrendingUp, HelpCircle
+  FileSpreadsheet, Stethoscope, FileText, Sliders, Scale, PieChart, TrendingUp, HelpCircle,
+  Calendar
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -42,6 +43,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface ProfileProps {
   profile: UserProfile | null;
   onSaveProfile: (profile: UserProfile) => void;
+  addNotification?: (notif: { title: string; message: string; type: 'achievement' | 'point' | 'streak' | 'info' | 'success' | 'warning' | 'error' }) => void;
 }
 
 const PRESET_AVATARS = [
@@ -73,7 +75,7 @@ export const AVATAR_OPTIONS = [
   { id: 'female-athletic-01', name: 'Treinadora Feminina Padrão', gender: 'Feminino', category: 'Padrão', description: 'Instrutora de Mobilidade & Força' },
 ];
 
-export function Profile({ profile, onSaveProfile }: ProfileProps) {
+export function Profile({ profile, onSaveProfile, addNotification }: ProfileProps) {
   const { t } = useTranslation();
   const { logoutLocally } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +102,82 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
   const [challengeReviewTime, setChallengeReviewTime] = useState<string>(() => {
     return profile?.challengeReviewTime || safeGet('nutri-challenge-time-evening') || DEFAULT_CHALLENGE_TIMES.eveningReview;
   });
+  const [hydrationRemindersEnabled, setHydrationRemindersEnabled] = useState<boolean>(() => {
+    if (profile?.hydrationRemindersEnabled !== undefined) return Boolean(profile.hydrationRemindersEnabled);
+    return safeGet('nutri-hydration-reminders') !== 'false';
+  });
+  const [hydrationInterval, setHydrationInterval] = useState<string>(() => {
+    return String(profile?.hydrationInterval || safeGet('nutri-hydration-interval') || '90');
+  });
+  const [workoutRemindersEnabled, setWorkoutRemindersEnabled] = useState<boolean>(() => {
+    if (profile?.workoutRemindersEnabled !== undefined) return Boolean(profile.workoutRemindersEnabled);
+    return safeGet('nutri-workout-reminders') !== 'false';
+  });
+
+
+  const handleToggleHydrationReminders = () => {
+    const next = !hydrationRemindersEnabled;
+    setHydrationRemindersEnabled(next);
+    safeSet('nutri-hydration-reminders', String(next));
+    playSfx('tap');
+    vibrate(15);
+    if (profile) {
+      onSaveProfile({ ...profile, hydrationRemindersEnabled: next, hydrationInterval });
+    }
+    if (next && addNotification) {
+      addNotification({
+        title: 'Hidratação Ativada',
+        message: 'Lembretes periódicos de água ativados com sucesso!',
+        type: 'success'
+      });
+    }
+  };
+
+  const handleToggleWorkoutReminders = () => {
+    const next = !workoutRemindersEnabled;
+    setWorkoutRemindersEnabled(next);
+    safeSet('nutri-workout-reminders', String(next));
+    playSfx('tap');
+    vibrate(15);
+    if (profile) {
+      onSaveProfile({ ...profile, workoutRemindersEnabled: next, workoutReminderTimes: profile.workoutReminderTimes });
+    }
+    if (next && addNotification) {
+      addNotification({
+        title: 'Lembretes de Treino Ativados',
+        message: 'Sua rotina de treinos e preparação física está programada.',
+        type: 'success'
+      });
+    }
+  };
+
+  const handleTestHydrationNotification = () => {
+    playSfx('crystal');
+    vibrate([20, 40]);
+    if (addNotification) {
+      addNotification({
+        title: '💧 Hora de Beber Água!',
+        message: 'Mantenha-se hidratado(a)! Beba um copo d\'água agora para manter seu metabolismo em alta.',
+        type: 'info'
+      });
+    } else {
+      alert('💧 Hora de Beber Água! Mantenha-se hidratado(a)!');
+    }
+  };
+
+  const handleTestWorkoutNotification = () => {
+    playSfx('success');
+    vibrate([30, 60, 30]);
+    if (addNotification) {
+      addNotification({
+        title: '🏋️ Hora do Treino!',
+        message: 'Prepare seu equipamento e aquecimento. Seu horário de treino programado chegou!',
+        type: 'success'
+      });
+    } else {
+      alert('🏋️ Hora do Treino! Prepare-se para sua sessão!');
+    }
+  };
   const [isTestingPush, setIsTestingPush] = useState(false);
   const [isTestingPreMeal, setIsTestingPreMeal] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState<boolean>(() => {
@@ -1436,6 +1514,7 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
             streak={profile?.streak || 7}
             level={profile?.level || 4}
             avatarId={profile?.avatarId || 'cyberfit-biomechanic'}
+            userSkinTone={formData.skinTone || profile?.skinTone}
             onOpenGallery={() => setShow3DAvatarGallery(true)}
             onAwardPoints={(earned) => {
               if (profile) {
@@ -2541,6 +2620,166 @@ export function Profile({ profile, onSaveProfile }: ProfileProps) {
                         className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-700 dark:text-amber-300 outline-none focus:ring-2 focus:ring-amber-500 text-center w-24 shrink-0"
                       />
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Hydration Reminders Card */}
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3.5 rounded-2xl transition-colors ${
+                    hydrationRemindersEnabled 
+                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  }`}>
+                    <Droplets className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Lembretes de Hidratação</h4>
+                      {hydrationRemindersEnabled && (
+                        <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold text-[10px] uppercase tracking-wider border border-sky-500/20">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {hydrationRemindersEnabled 
+                        ? 'Alertas periódicos para garantir que você atinja sua meta diária de água.' 
+                        : 'Ative para receber lembretes de consumo de água ao longo do dia.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleTestHydrationNotification}
+                    className="px-3.5 py-2 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded-xl font-bold text-xs transition-all border border-sky-200 dark:border-sky-800/60 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm w-full sm:w-auto text-center"
+                    title="Testar notificação de hidratação no sistema"
+                  >
+                    <Droplets className="w-3.5 h-3.5 text-sky-500" />
+                    <span>Testar Água</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleHydrationReminders}
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer flex items-center justify-center text-center ${
+                      hydrationRemindersEnabled
+                        ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
+                        : 'bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20 hover:scale-105 active:scale-95'
+                    } w-full sm:w-auto`}
+                  >
+                    {hydrationRemindersEnabled ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              </div>
+
+              {hydrationRemindersEnabled && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-sky-500" />
+                    Frequência de Alertas de Hidratação
+                  </span>
+                  <select
+                    value={hydrationInterval}
+                    onChange={(e) => {
+                      setHydrationInterval(e.target.value);
+                      safeSet('nutri-hydration-interval', e.target.value);
+                      if (profile) onSaveProfile({ ...profile, hydrationInterval: e.target.value });
+                    }}
+                    className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-sky-800/80 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300 outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                  >
+                    <option value="45">A cada 45 minutos</option>
+                    <option value="60">A cada 1 hora</option>
+                    <option value="90">A cada 1h30 (Recomendado)</option>
+                    <option value="120">A cada 2 horas</option>
+                    <option value="180">A cada 3 horas</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Workout Reminders Card */}
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3.5 rounded-2xl transition-colors ${
+                    workoutRemindersEnabled 
+                      ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  }`}>
+                    <Flame className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Lembretes de Horários de Treino</h4>
+                      {workoutRemindersEnabled && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-[10px] uppercase tracking-wider border border-purple-500/20">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {workoutRemindersEnabled 
+                        ? 'Notificações programadas para lembrar sua sessão de treino diária.' 
+                        : 'Ative para manter o foco na sua rotina de exercícios.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleTestWorkoutNotification}
+                    className="px-3.5 py-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-xs transition-all border border-purple-200 dark:border-purple-800/60 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm w-full sm:w-auto text-center"
+                    title="Testar notificação de treino no sistema"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-purple-500" />
+                    <span>Testar Treino</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleWorkoutReminders}
+                    className={`px-5 py-2 rounded-full font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer flex items-center justify-center text-center ${
+                      workoutRemindersEnabled
+                        ? 'bg-slate-200 dark:bg-slate-700 hover:bg-red-500 hover:text-white text-slate-700 dark:text-slate-200'
+                        : 'bg-purple-500 hover:bg-purple-600 text-white shadow-purple-500/20 hover:scale-105 active:scale-95'
+                    } w-full sm:w-auto`}
+                  >
+                    {workoutRemindersEnabled ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              </div>
+
+              {workoutRemindersEnabled && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                      Horários Semanais de Treino
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(profile?.weeklyWorkoutPlan?.days || []).map((day) => (
+                      <div key={day.dayKey} className="bg-purple-50/50 dark:bg-purple-950/20 p-2 rounded-xl border border-purple-100 dark:border-purple-900/30 flex flex-col justify-between">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 truncate">{day.dayName}</p>
+                        <input
+                          type="time"
+                          value={profile?.workoutReminderTimes?.[day.dayKey] || '18:00'}
+                          onChange={(e) => {
+                            const newTimes = { ...(profile?.workoutReminderTimes || {}), [day.dayKey]: e.target.value };
+                            if (profile) onSaveProfile({ ...profile, workoutReminderTimes: newTimes });
+                          }}
+                          className="mt-1.5 w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/80 rounded-lg px-2 py-1 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 outline-none focus:ring-2 focus:ring-purple-500 text-center"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

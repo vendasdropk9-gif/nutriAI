@@ -55,6 +55,7 @@ export interface Profile3DAvatarProps {
   streak?: number;
   level?: number;
   avatarId?: string;
+  userSkinTone?: string;
   onAwardPoints?: (amount: number) => void;
   onOpenGallery?: () => void;
 }
@@ -63,21 +64,22 @@ export type PoseType = 'idle' | 'flex' | 'celebrate' | 'jump' | 'spin';
 export type LightingPreset = 'studio' | 'cyber' | 'solar' | 'emerald';
 export type MuscleDefinitionLevel = 'natural' | 'fit' | 'hipertrofia';
 
-// Skin & Avatar Material Palettes (including Minimalist Matte Gray Faceless Preset)
+// Skin & Avatar Material Palettes with realistic Fitzpatrick dermatological phototypes & subcutaneous undertones
 export const SKIN_TONE_PALETTE = [
-  { id: 'matteGray', name: 'Cinza Minimalista Fosco', hex: '#8e98a3', subHex: '#64748b', desc: 'Avatar minimalista cinza fosco sem rosto, músculos sólidos e renderização limpa e rápida' },
-  { id: 'fairNordic', name: 'Porcelana Nórdica', hex: '#f8d8ca', subHex: '#ea7662', desc: 'Fototipo I - Tez clara com subtom rosado' },
-  { id: 'peachBeige', name: 'Bege Rosado', hex: '#f0c2a8', subHex: '#e25e46', desc: 'Fototipo II - Tom pêssego com alta translucidez' },
-  { id: 'mediterranean', name: 'Dourado Mediterrâneo', hex: '#e3ae88', subHex: '#cd4b31', desc: 'Fototipo III - Tom dourado aquecido' },
-  { id: 'tanAthletic', name: 'Bronzeado Atlético', hex: '#d29469', subHex: '#b6381e', desc: 'Fototipo IV - Tom bronzeado de alta definição' },
-  { id: 'warmBronze', name: 'Moreno Tropical', hex: '#b8744b', subHex: '#9b2e18', desc: 'Fototipo V - Tom bronze quente e homogêneo' },
-  { id: 'cinnamon', name: 'Castanho Canela', hex: '#8c4d31', subHex: '#721f0f', desc: 'Fototipo V+ - Tom castanho profundo' },
-  { id: 'mahogany', name: 'Café Sublime', hex: '#5e3321', subHex: '#4a1409', desc: 'Fototipo VI - Tom café rico e aveludado' },
-  { id: 'ebonyDeep', name: 'Ébano Profundo', hex: '#3b1e14', subHex: '#300c06', desc: 'Fototipo VI+ - Ébano escuro com alto brilho specular' },
+  { id: 'tanAthletic', name: 'Bronzeado Atlético', hex: '#d29469', subHex: '#b6381e', desc: 'Fototipo IV - Tom bronzeado esportivo com definição vascular e alto vigor dérmico' },
+  { id: 'peachBeige', name: 'Bege Pêssego Natural', hex: '#f2cbb4', subHex: '#e85d47', desc: 'Fototipo II - Tez pêssego translúcida com rica difusão epidérmica' },
+  { id: 'fairNordic', name: 'Porcelana Nórdica', hex: '#f8dfd4', subHex: '#f46b5a', desc: 'Fototipo I - Tez clara com subtons rosados de microcirculação' },
+  { id: 'mediterranean', name: 'Dourado Mediterrâneo', hex: '#e2b38f', subHex: '#d44a33', desc: 'Fototipo III - Tom dourado aquecido e iluminado pelo sol' },
+  { id: 'warmBronze', name: 'Moreno Tropical', hex: '#b8744b', subHex: '#9e2b17', desc: 'Fototipo V - Tom moreno quente e homogêneo com dispersão profunda' },
+  { id: 'cinnamon', name: 'Castanho Canela', hex: '#8c4d31', subHex: '#731e0f', desc: 'Fototipo V+ - Tom castanho aveludado e rico em melanina' },
+  { id: 'mahogany', name: 'Café Sublime', hex: '#5e3321', subHex: '#4a1409', desc: 'Fototipo VI - Tom café profundo com brilho specular acetinado' },
+  { id: 'ebonyDeep', name: 'Ébano Profundo', hex: '#3b1e14', subHex: '#300c06', desc: 'Fototipo VI+ - Ébano escuro de alta pigmentação com reflexos vítreos' },
+  { id: 'matteGray', name: 'Cinza Minimalista Fosco', hex: '#8e98a3', subHex: '#64748b', desc: 'Avatar minimalista sem rosto, músculos sólidos e estética de estúdio neutra' },
 ];
 
 /**
- * High-Resolution Procedural Skin Textures Generator
+ * High-Resolution Multi-Octave Procedural Skin Texture Generator
+ * Creates isotropic micro-pore normals via finite-difference gradient and lipid roughness variation
  */
 function createProceduralSkinTextures(): {
   normalMap: THREE.CanvasTexture;
@@ -104,19 +106,50 @@ function createProceduralSkinTextures(): {
     const nData = normImg.data;
     const rData = roughImg.data;
 
+    // Precalculate cellular heightfield using multi-scale harmonic dermal pores
+    const heightField = new Float32Array(size * size);
     for (let y = 0; y < size; y++) {
+      const fy = y / size;
       for (let x = 0; x < size; x++) {
+        const fx = x / size;
+
+        // Multi-frequency organic cellular skin pores and subtle micro-lines
+        const p1 = Math.sin(fx * 95.0) * Math.cos(fy * 95.0) * 0.42;
+        const p2 = Math.sin(fx * 190.0 + fy * 160.0) * Math.cos(fx * 150.0 - fy * 190.0) * 0.28;
+        const p3 = Math.sin(fx * 380.0 - fy * 320.0) * 0.18;
+        const p4 = Math.cos(fx * 720.0 + fy * 680.0) * 0.12;
+
+        // Follicular micro-pores (soft indentations)
+        const cellNoise = Math.sin(fx * 240.0) * Math.sin(fy * 240.0);
+        const poreDip = cellNoise > 0.65 ? -0.35 * (cellNoise - 0.65) * 2.8 : 0.0;
+
+        heightField[y * size + x] = p1 + p2 + p3 + p4 + poreDip;
+      }
+    }
+
+    // Finite central differences for physically accurate isotropic normal vectors
+    const bumpStrength = 18.0;
+    for (let y = 0; y < size; y++) {
+      const yPrev = (y - 1 + size) % size;
+      const yNext = (y + 1) % size;
+      for (let x = 0; x < size; x++) {
+        const xPrev = (x - 1 + size) % size;
+        const xNext = (x + 1) % size;
         const idx = (y * size + x) * 4;
 
-        const p1 = Math.sin(x * 0.28) * Math.cos(y * 0.28);
-        const p2 = Math.sin(x * 0.65 + y * 0.55) * 0.5;
-        const p3 = Math.cos(x * 1.35 - y * 1.20) * 0.25;
-        const p4 = Math.sin(x * 2.80 + y * 2.60) * 0.12;
+        const hL = heightField[y * size + xPrev];
+        const hR = heightField[y * size + xNext];
+        const hU = heightField[yPrev * size + x];
+        const hD = heightField[yNext * size + x];
+        const hCurrent = heightField[y * size + x];
 
-        const h = p1 + p2 + p3 + p4;
+        // Central difference gradient
+        const dhdx = (hR - hL) * 0.5;
+        const dhdy = (hD - hU) * 0.5;
 
-        const nx = Math.round(128 + h * 22);
-        const ny = Math.round(128 + h * 22);
+        // Normal vector components
+        const nx = Math.round(128 - dhdx * bumpStrength * 128);
+        const ny = Math.round(128 - dhdy * bumpStrength * 128);
         const nz = 240;
 
         nData[idx] = Math.max(0, Math.min(255, nx));
@@ -124,10 +157,12 @@ function createProceduralSkinTextures(): {
         nData[idx + 2] = Math.max(0, Math.min(255, nz));
         nData[idx + 3] = 255;
 
-        const roughVal = Math.round(120 + Math.abs(h) * 45);
-        rData[idx] = roughVal;
-        rData[idx + 1] = roughVal;
-        rData[idx + 2] = roughVal;
+        // Roughness map: pores trap light (higher roughness), epidermal plateau has natural silky sebum sheen
+        const baseRough = 100; // ~0.39 in normalized 0-1
+        const poreRoughness = Math.round(baseRough + Math.max(0, -hCurrent) * 48);
+        rData[idx] = Math.max(70, Math.min(180, poreRoughness));
+        rData[idx + 1] = rData[idx];
+        rData[idx + 2] = rData[idx];
         rData[idx + 3] = 255;
       }
     }
@@ -138,13 +173,13 @@ function createProceduralSkinTextures(): {
     const normalMap = new THREE.CanvasTexture(normCanvas);
     normalMap.wrapS = THREE.RepeatWrapping;
     normalMap.wrapT = THREE.RepeatWrapping;
-    normalMap.repeat.set(12, 12);
+    normalMap.repeat.set(16, 16);
     normalMap.needsUpdate = true;
 
     const roughnessMap = new THREE.CanvasTexture(roughCanvas);
     roughnessMap.wrapS = THREE.RepeatWrapping;
     roughnessMap.wrapT = THREE.RepeatWrapping;
-    roughnessMap.repeat.set(12, 12);
+    roughnessMap.repeat.set(16, 16);
     roughnessMap.needsUpdate = true;
 
     return { normalMap, roughnessMap };
@@ -249,6 +284,201 @@ function CelebrationParticles({ active }: { active: boolean }) {
 }
 
 /**
+ * Dynamic Facial Micro-Expressions Engine
+ * Manages involuntary blinking, playful winking, joyful smile morphing, and eyebrow tilts
+ * when user achieves gamification rewards, completes goals, or triggers poses.
+ */
+function FacialMicroExpressions({
+  animationState,
+  accentColor,
+  isCelebrating,
+  subsurfaceColor,
+}: {
+  animationState: PoseType;
+  accentColor: string;
+  isCelebrating: boolean;
+  skinColor: string;
+  subsurfaceColor: string;
+}) {
+  const leftEyelidRef = useRef<THREE.Mesh>(null);
+  const rightEyelidRef = useRef<THREE.Mesh>(null);
+  const leftEyebrowRef = useRef<THREE.Mesh>(null);
+  const rightEyebrowRef = useRef<THREE.Mesh>(null);
+  const smileGroupRef = useRef<THREE.Group>(null);
+  const smileMeshRef = useRef<THREE.Mesh>(null);
+
+  const blinkProgressRef = useRef(0);
+  const winkTimerRef = useRef(0);
+  const isWinkingRef = useRef(false);
+  const nextBlinkTimeRef = useRef(2.5);
+
+  const currentSmileScaleYRef = useRef(0.20);
+  const currentSmileScaleXRef = useRef(0.90);
+
+  useFrame((state, delta) => {
+    const t = state.clock.getElapsedTime();
+
+    // 1. Playful Winks on Gamification Reward & Celebration
+    if (isCelebrating || animationState === 'celebrate' || animationState === 'flex') {
+      if (!isWinkingRef.current && Math.random() < 0.03) {
+        isWinkingRef.current = true;
+        winkTimerRef.current = 0;
+      }
+    }
+
+    if (isWinkingRef.current) {
+      winkTimerRef.current += delta;
+      const winkProgress = Math.sin(Math.min(1, winkTimerRef.current / 0.38) * Math.PI);
+      if (leftEyelidRef.current) {
+        leftEyelidRef.current.scale.y = THREE.MathUtils.lerp(1.0, 0.05, winkProgress);
+      }
+      if (rightEyelidRef.current) {
+        rightEyelidRef.current.scale.y = 1.0;
+      }
+      if (winkTimerRef.current > 0.48) {
+        isWinkingRef.current = false;
+      }
+    } else {
+      // Natural involuntary blinking
+      blinkProgressRef.current += delta;
+      if (blinkProgressRef.current > nextBlinkTimeRef.current) {
+        const blinkPhase = (blinkProgressRef.current - nextBlinkTimeRef.current) / 0.18;
+        if (blinkPhase <= 1.0) {
+          const eyelidClosure = Math.sin(blinkPhase * Math.PI);
+          const eyeScaleY = Math.max(0.08, 1.0 - eyelidClosure * 0.92);
+          if (leftEyelidRef.current) leftEyelidRef.current.scale.y = eyeScaleY;
+          if (rightEyelidRef.current) rightEyelidRef.current.scale.y = eyeScaleY;
+        } else {
+          blinkProgressRef.current = 0;
+          nextBlinkTimeRef.current = 2.8 + Math.random() * 2.8;
+          if (leftEyelidRef.current) leftEyelidRef.current.scale.y = 1.0;
+          if (rightEyelidRef.current) rightEyelidRef.current.scale.y = 1.0;
+        }
+      }
+    }
+
+    // 2. Dynamic Smile Morphing
+    const isJoyful = isCelebrating || animationState === 'celebrate' || animationState === 'flex';
+    const targetSmileY = isJoyful ? 0.52 : 0.22 + Math.sin(t * 1.5) * 0.04;
+    const targetSmileX = isJoyful ? 1.30 : 0.92;
+
+    currentSmileScaleYRef.current = THREE.MathUtils.lerp(currentSmileScaleYRef.current, targetSmileY, 0.14);
+    currentSmileScaleXRef.current = THREE.MathUtils.lerp(currentSmileScaleXRef.current, targetSmileX, 0.14);
+
+    if (smileMeshRef.current) {
+      smileMeshRef.current.scale.set(currentSmileScaleXRef.current, currentSmileScaleYRef.current, 1.0);
+    }
+
+    if (smileGroupRef.current) {
+      smileGroupRef.current.position.y = THREE.MathUtils.lerp(
+        smileGroupRef.current.position.y,
+        isJoyful ? -0.042 : -0.050,
+        0.12
+      );
+    }
+
+    // 3. Eyebrow Expressive Tilts
+    const browRaise = isJoyful ? 0.014 : Math.sin(t * 0.8) * 0.003;
+    const browTilt = isJoyful ? 0.22 : 0.03;
+
+    if (leftEyebrowRef.current && rightEyebrowRef.current) {
+      leftEyebrowRef.current.position.y = 0.042 + browRaise;
+      rightEyebrowRef.current.position.y = 0.042 + browRaise;
+
+      leftEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(leftEyebrowRef.current.rotation.z, browTilt, 0.12);
+      rightEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(rightEyebrowRef.current.rotation.z, -browTilt, 0.12);
+    }
+  });
+
+  const matEyeGlow = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#f8fafc',
+        emissive: accentColor,
+        emissiveIntensity: 0.85,
+        roughness: 0.18,
+      }),
+    [accentColor]
+  );
+
+  const matIris = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: accentColor,
+        emissive: accentColor,
+        emissiveIntensity: 0.45,
+        roughness: 0.25,
+      }),
+    [accentColor]
+  );
+
+  const matLips = useMemo(
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        color: subsurfaceColor,
+        roughness: 0.35,
+        clearcoat: 0.50,
+        clearcoatRoughness: 0.18,
+      }),
+    [subsurfaceColor]
+  );
+
+  const matEyebrow = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.65,
+      }),
+    []
+  );
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Left & Right Eyes with Eyelids */}
+      <group position={[-0.062, 0.022, 0.128]}>
+        <mesh ref={leftEyelidRef} position={[0, 0, 0]}>
+          <sphereGeometry args={[0.024, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
+          <primitive object={matEyeGlow} attach="material" />
+        </mesh>
+        <mesh position={[0, 0, 0.018]}>
+          <circleGeometry args={[0.012, 16]} />
+          <primitive object={matIris} attach="material" />
+        </mesh>
+      </group>
+
+      <group position={[0.062, 0.022, 0.128]}>
+        <mesh ref={rightEyelidRef} position={[0, 0, 0]}>
+          <sphereGeometry args={[0.024, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
+          <primitive object={matEyeGlow} attach="material" />
+        </mesh>
+        <mesh position={[0, 0, 0.018]}>
+          <circleGeometry args={[0.012, 16]} />
+          <primitive object={matIris} attach="material" />
+        </mesh>
+      </group>
+
+      {/* Expressive Eyebrows */}
+      <mesh ref={leftEyebrowRef} position={[-0.062, 0.042, 0.132]}>
+        <boxGeometry args={[0.038, 0.007, 0.008]} />
+        <primitive object={matEyebrow} attach="material" />
+      </mesh>
+      <mesh ref={rightEyebrowRef} position={[0.062, 0.042, 0.132]}>
+        <boxGeometry args={[0.038, 0.007, 0.008]} />
+        <primitive object={matEyebrow} attach="material" />
+      </mesh>
+
+      {/* Dynamic Smile Curve Group */}
+      <group ref={smileGroupRef} position={[0, -0.05, 0.128]}>
+        <mesh ref={smileMeshRef}>
+          <torusGeometry args={[0.028, 0.006, 12, 24, Math.PI]} />
+          <primitive object={matLips} attach="material" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/**
  * 3D Avatar Model (Supports Faceless Minimalist Matte Gray & Photorealistic PBR)
  */
 function SculptedAvatarModel({
@@ -263,7 +493,8 @@ function SculptedAvatarModel({
   isPumpActive = false,
   isBioFibersActive = false,
   isVascularActive = false,
-  isFacelessMinimalist = true
+  isFacelessMinimalist = false,
+  isCelebrating = false,
 }: {
   animationState: PoseType;
   accentColor?: string;
@@ -277,6 +508,7 @@ function SculptedAvatarModel({
   isBioFibersActive?: boolean;
   isVascularActive?: boolean;
   isFacelessMinimalist?: boolean;
+  isCelebrating?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
@@ -306,9 +538,9 @@ function SculptedAvatarModel({
     return { muscle: 1.06, cutDepth: 1.08, pecThickness: 1.06, bicepPeak: 1.10 };
   }, [definitionLevel]);
 
-  // Clean Solid Matte Gray Material or Physical Photorealistic Skin Material
+  // Clean Solid Matte Gray Material or Hyperrealistic PBR Physical Skin Material
   const matSkin = useMemo(() => {
-    if (isFacelessMinimalist || skinColor === '#8e98a3') {
+    if (isFacelessMinimalist && skinColor === '#8e98a3') {
       return new THREE.MeshStandardMaterial({
         color: '#8b95a1',
         roughness: 0.85,
@@ -317,13 +549,16 @@ function SculptedAvatarModel({
     }
 
     const moistureFactor = sweatIntensity / 100;
-    const baseRoughness = isPumpActive ? 0.30 : 0.46;
-    const finalRoughness = Math.max(0.12, baseRoughness - moistureFactor * 0.22);
+    // Human skin physiological roughness: 0.38 - 0.42 resting; smoothed by sweat/hydration
+    const baseRoughness = isPumpActive ? 0.28 : 0.40;
+    const finalRoughness = Math.max(0.16, baseRoughness - moistureFactor * 0.18);
 
-    const clearcoatVal = isPumpActive ? 0.92 : (0.22 + moistureFactor * 0.65);
-    const clearcoatRoughnessVal = Math.max(0.06, 0.28 - moistureFactor * 0.18);
+    // Natural epidermal sebum / lipid film clearcoat layer (sweat increases glossiness)
+    const clearcoatVal = isPumpActive ? 0.85 : (0.30 + moistureFactor * 0.55);
+    const clearcoatRoughnessVal = Math.max(0.08, 0.22 - moistureFactor * 0.12);
 
-    const normalScaleVal = (poreDetailLevel / 100) * (isPumpActive ? 0.42 : 0.28);
+    // Realistic microscopic pore displacement depth
+    const normalScaleVal = (poreDetailLevel / 100) * (isPumpActive ? 0.32 : 0.22);
 
     const sssWarmthFactor = subsurfaceWarmth / 100;
     const emissiveVal = isBioFibersActive ? accentColor : (isVascularActive ? '#22c55e' : '#000000');
@@ -337,15 +572,17 @@ function SculptedAvatarModel({
       clearcoat: clearcoatVal,
       clearcoatRoughness: clearcoatRoughnessVal,
       clearcoatNormalMap: skinTextures?.normalMap || undefined,
-      sheen: 0.70 + sssWarmthFactor * 0.25,
+      // Sheen simulates soft vellus hair & dermal micro-scattering at grazing angles
+      sheen: 0.82 + sssWarmthFactor * 0.16,
       sheenColor: new THREE.Color(skinSubsurfaceColor),
-      sheenRoughness: 0.35,
+      sheenRoughness: 0.32,
       normalMap: skinTextures?.normalMap || undefined,
       normalScale: new THREE.Vector2(normalScaleVal, normalScaleVal),
-      specularIntensity: 0.92,
-      thickness: 0.85,
+      specularIntensity: 0.96,
+      // Epidermal subsurface light absorption & hemoglobin transmission
+      thickness: 0.72,
       attenuationColor: new THREE.Color(skinSubsurfaceColor),
-      attenuationDistance: 0.28 + (1 - sssWarmthFactor) * 0.20,
+      attenuationDistance: 0.32 + (1 - sssWarmthFactor) * 0.18,
       emissive: emissiveVal,
       emissiveIntensity: emissiveInt,
     });
@@ -583,19 +820,15 @@ function SculptedAvatarModel({
         {/* Sculpted Cranial Base & Jaw */}
         <mesh geometry={geoHead} material={matSkin} position={[0, 0, 0]} castShadow receiveShadow />
 
-        {/* Visor & Sensor Ear Nodes render only when not in Faceless Minimalist Mode */}
+        {/* Facial Micro-Expressions Engine (Eye Blinks, Winks, Smile Morphing & Eyebrows) */}
         {!isFacelessMinimalist && (
-          <>
-            <mesh material={matGlowVisor} position={[0, 0.02, 0.138]}>
-              <boxGeometry args={[0.22, 0.045, 0.06]} />
-            </mesh>
-            <mesh material={matAccent} position={[-0.18, 0, 0]}>
-              <cylinderGeometry args={[0.035, 0.035, 0.04, 16]} />
-            </mesh>
-            <mesh material={matAccent} position={[0.18, 0, 0]}>
-              <cylinderGeometry args={[0.035, 0.035, 0.04, 16]} />
-            </mesh>
-          </>
+          <FacialMicroExpressions
+            animationState={animationState}
+            accentColor={accentColor}
+            isCelebrating={isCelebrating}
+            skinColor={skinColor}
+            subsurfaceColor={skinSubsurfaceColor}
+          />
         )}
 
         {/* Sculpted Neck */}
@@ -870,6 +1103,7 @@ export function Profile3DAvatar({
   streak = 7,
   level = 4,
   avatarId = 'cyberfit-biomechanic',
+  userSkinTone,
   onAwardPoints,
   onOpenGallery
 }: Profile3DAvatarProps) {
@@ -879,20 +1113,37 @@ export function Profile3DAvatar({
   const [localPoints, setLocalPoints] = useState(points);
   const [showToast, setShowToast] = useState<string | null>(null);
 
-  // Default to Faceless Minimalist Matte Gray Mode as requested!
-  const [isFacelessMinimalist, setIsFacelessMinimalist] = useState(true);
-  const [skinToneIndex, setSkinToneIndex] = useState(0); // 0 = Cinza Minimalista
-  const [sweatIntensity, setSweatIntensity] = useState(15);
-  const [poreDetailLevel, setPoreDetailLevel] = useState(50);
-  const [subsurfaceWarmth, setSubsurfaceWarmth] = useState(40);
+  const avatarInfo = useMemo(() => getAvatarById(avatarId), [avatarId]);
+  const accentColor = avatarInfo.modelConfig.accentColor || '#10b981';
+
+  // Initialize with realistic physiological skin by default
+  const [isFacelessMinimalist, setIsFacelessMinimalist] = useState(false);
+
+  // Match initial skin tone from user profile or avatar catalog
+  const initialSkinToneIndex = useMemo(() => {
+    const raw = (userSkinTone || avatarInfo.modelConfig.skinColor || avatarInfo.modelConfig.skinTone || '').toLowerCase();
+    if (raw) {
+      const matchIdx = SKIN_TONE_PALETTE.findIndex(
+        (t) => t.hex.toLowerCase() === raw || t.name.toLowerCase().includes(raw) || t.id.toLowerCase() === raw
+      );
+      if (matchIdx !== -1) return matchIdx;
+      if (raw.includes('clara') || raw.includes('fair') || raw.includes('light')) return 1; // Bege Pêssego
+      if (raw.includes('media') || raw.includes('dourado') || raw.includes('gold')) return 3; // Dourado Mediterrâneo
+      if (raw.includes('parda') || raw.includes('bronze') || raw.includes('moren')) return 0; // Bronzeado Atlético
+      if (raw.includes('escura') || raw.includes('negra') || raw.includes('dark')) return 6; // Café Sublime
+    }
+    return 0; // Bronzeado Atlético by default
+  }, [userSkinTone, avatarInfo]);
+
+  const [skinToneIndex, setSkinToneIndex] = useState(initialSkinToneIndex);
+  const [sweatIntensity, setSweatIntensity] = useState(25);
+  const [poreDetailLevel, setPoreDetailLevel] = useState(60);
+  const [subsurfaceWarmth, setSubsurfaceWarmth] = useState(65);
   const [muscleDef, setMuscleDef] = useState<MuscleDefinitionLevel>('fit');
   const [isPumpActive, setIsPumpActive] = useState(false);
   const [isBioFibersActive, setIsBioFibersActive] = useState(false);
   const [isVascularActive, setIsVascularActive] = useState(false);
   const [showSkinFineTuning, setShowSkinFineTuning] = useState(false);
-
-  const avatarInfo = useMemo(() => getAvatarById(avatarId), [avatarId]);
-  const accentColor = avatarInfo.modelConfig.accentColor || '#10b981';
 
   const activeSkin = SKIN_TONE_PALETTE[skinToneIndex] || SKIN_TONE_PALETTE[0];
 
@@ -959,15 +1210,16 @@ export function Profile3DAvatar({
     const next = !isFacelessMinimalist;
     setIsFacelessMinimalist(next);
     if (next) {
-      setSkinToneIndex(0); // Matte Gray
+      const grayIdx = SKIN_TONE_PALETTE.findIndex((t) => t.id === 'matteGray');
+      setSkinToneIndex(grayIdx >= 0 ? grayIdx : 8);
       playSfx('crystal');
       vibrate([25, 40]);
-      setShowToast('🩶 Modo Cinza Minimalista sem Rosto Ativado! Renderização rápida.');
+      setShowToast('🩶 Modo Cinza Minimalista sem Rosto Ativado.');
     } else {
-      setSkinToneIndex(4); // Bronzeado Atlético
+      setSkinToneIndex(0); // Bronzeado Atlético
       playSfx('pop');
       vibrate(20);
-      setShowToast('✨ Modo Estúdio PBR Fotorrealista Ativado.');
+      setShowToast('✨ Pele Realista PBR Ativada (Hiper-Realismo Dérmico).');
     }
     setTimeout(() => setShowToast(null), 2500);
   };
@@ -1360,6 +1612,7 @@ export function Profile3DAvatar({
               isBioFibersActive={isBioFibersActive}
               isVascularActive={isVascularActive}
               isFacelessMinimalist={isFacelessMinimalist}
+              isCelebrating={isParticleActive}
             />
           </Float>
 
@@ -1376,7 +1629,7 @@ export function Profile3DAvatar({
         {/* Floating Hint */}
         <div className="absolute bottom-2 left-2 right-2 text-center pointer-events-none">
           <span className="text-[10px] bg-slate-900/90 text-slate-300 px-3 py-1 rounded-full border border-slate-800 backdrop-blur-xs shadow-xs font-medium">
-            ✨ Arraste para girar em 360° • Avatar 3D cinza minimalista sem rosto com musculatura limpa e sólida
+            ✨ Giro 360° • PBR SSS Fisiológico & Micro-Expressões Dinâmicas (Sorrisos & Piscadelas)
           </span>
         </div>
       </div>
@@ -1414,9 +1667,10 @@ export function Profile3DAvatar({
           type="button"
           onClick={handleManualAwardPoints}
           className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+          title="Ganhar XP e ver reações de micro-expressões (sorriso & piscadela)"
         >
           <Award className="w-4 h-4 text-amber-400" />
-          <span>+50 XP</span>
+          <span>+50 XP 😉</span>
         </button>
       </div>
 

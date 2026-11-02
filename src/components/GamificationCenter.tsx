@@ -1,6 +1,30 @@
-import React, { useEffect, useState } from 'react';
+/* eslint-disable i18next/no-literal-string */
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Flame, Target, Medal, Star, ChevronRight, CheckCircle2, TrendingUp, Sparkles, Gift, Utensils, Settings, Plus, Check, RotateCcw, Zap } from 'lucide-react';
+import { 
+  Trophy, 
+  Flame, 
+  Target, 
+  Medal, 
+  Star, 
+  ChevronRight, 
+  CheckCircle2, 
+  TrendingUp, 
+  Sparkles, 
+  Gift, 
+  Utensils, 
+  Settings, 
+  Plus, 
+  Check, 
+  RotateCcw, 
+  Zap,
+  Lock,
+  Award,
+  Crown,
+  ChevronUp,
+  Volume2,
+  X
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserProfile, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenges } from '../lib/gemini';
@@ -9,6 +33,7 @@ import { FitnessRoulette } from './FitnessRoulette';
 import { ConfettiCelebration } from './ConfettiCelebration';
 import { CommunityChallenges } from './CommunityChallenges';
 import { playSfx, vibrate } from '../lib/sensory';
+import { speak } from '../lib/speech';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
@@ -19,6 +44,17 @@ interface WeeklyTreat {
   name: string;
   image: string;
   description: string;
+}
+
+interface CelebrationModalData {
+  type: 'level' | 'medal' | 'goal';
+  title: string;
+  subtitle: string;
+  description?: string;
+  badgeName?: string;
+  badgeIcon?: React.ReactNode;
+  levelNumber?: number;
+  pointsEarned?: number;
 }
 
 const WEEKLY_TREATS: WeeklyTreat[] = [
@@ -68,6 +104,169 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   const [revealedTreat, setRevealedTreat] = useState<WeeklyTreat | null>(null);
   const [completedChallenges, setCompletedChallenges] = useState<string[]>([]);
   const [celebratedGoalTitle, setCelebratedGoalTitle] = useState<string | null>(null);
+
+  // Celebration Modal State for New Medal or Level Up
+  const [celebrationData, setCelebrationData] = useState<CelebrationModalData | null>(null);
+
+  // Points & Level Calculation
+  const currentPoints = profile?.points || 0;
+  const currentLevel = Math.max(1, profile?.level || Math.floor(currentPoints / 500) + 1);
+
+  // User unlocked badges (defaulting to starter badges if empty)
+  const userBadges: string[] = profile?.badges || ['1', '2'];
+
+  // Previous tracking to detect transitions
+  const prevPointsRef = useRef<number>(currentPoints);
+  const prevLevelRef = useRef<number>(currentLevel);
+  const prevBadgesCountRef = useRef<number>(userBadges.length);
+
+  // List of all comprehensive badges with metadata
+  const ALL_BADGES = [
+    {
+      id: '1',
+      key: 'madrugador',
+      name: 'Madrugador',
+      icon: <Sparkles className="w-7 h-7" />,
+      color: 'from-amber-400 to-yellow-500',
+      bgLight: 'bg-amber-400',
+      borderGlow: 'border-amber-400/50',
+      description: 'Completou um treino antes das 7h',
+      rewardPoints: 100
+    },
+    {
+      id: '2',
+      key: 'hidratado_plus',
+      name: 'Hidratado+',
+      icon: <CheckCircle2 className="w-7 h-7" />,
+      color: 'from-blue-400 to-cyan-500',
+      bgLight: 'bg-blue-400',
+      borderGlow: 'border-blue-400/50',
+      description: 'Bebeu 3L de água por 5 dias seguidos',
+      rewardPoints: 120
+    },
+    {
+      id: '3',
+      key: 'scanner_pro',
+      name: 'Scanner Pro',
+      icon: <Target className="w-7 h-7" />,
+      color: 'from-emerald-400 to-teal-500',
+      bgLight: 'bg-emerald-400',
+      borderGlow: 'border-emerald-400/50',
+      description: 'Analisou 10 pratos com a IA Nutricional',
+      rewardPoints: 150
+    },
+    {
+      id: '4',
+      key: 'fogo_sagrado',
+      name: 'Fogo Sagrado',
+      icon: <Flame className="w-7 h-7" />,
+      color: 'from-orange-500 to-red-500',
+      bgLight: 'bg-orange-500',
+      borderGlow: 'border-orange-500/50',
+      description: 'Manteve 7 dias de ofensiva seguidos',
+      rewardPoints: 200
+    },
+    {
+      id: '5',
+      key: 'mestre_proteina',
+      name: 'Mestre da Proteína',
+      icon: <Utensils className="w-7 h-7" />,
+      color: 'from-rose-500 to-pink-500',
+      bgLight: 'bg-rose-500',
+      borderGlow: 'border-rose-500/50',
+      description: 'Bateu a meta de proteína 5 vezes na semana',
+      rewardPoints: 180
+    },
+    {
+      id: '6',
+      key: 'atleta_calistenia',
+      name: 'Atleta Calistenia',
+      icon: <Trophy className="w-7 h-7" />,
+      color: 'from-purple-500 to-indigo-500',
+      bgLight: 'bg-purple-500',
+      borderGlow: 'border-purple-500/50',
+      description: 'Completou 3 treinos no simulador 3D',
+      rewardPoints: 250
+    }
+  ];
+
+  // Helper to get Level Title & Range
+  const getLevelDetails = (lvl: number) => {
+    if (lvl === 1) return { title: 'Iniciante', badgeColor: 'text-slate-400 bg-slate-400/10' };
+    if (lvl === 2) return { title: 'Intermediário', badgeColor: 'text-emerald-500 bg-emerald-500/10' };
+    if (lvl === 3) return { title: 'Avançado', badgeColor: 'text-blue-500 bg-blue-500/10' };
+    if (lvl === 4) return { title: 'Elite Fitness', badgeColor: 'text-purple-500 bg-purple-500/10' };
+    return { title: 'Mestre NutriAI', badgeColor: 'text-amber-500 bg-amber-500/10' };
+  };
+
+  const levelInfo = getLevelDetails(currentLevel);
+  const currentLevelBasePoints = (currentLevel - 1) * 500;
+  const nextLevelThreshold = currentLevel * 500;
+  const pointsInCurrentLevel = Math.max(0, currentPoints - currentLevelBasePoints);
+  const levelProgressPct = Math.min(100, Math.round((pointsInCurrentLevel / 500) * 100));
+
+  // Spectacular Confetti and Celebration Trigger
+  const triggerCelebration = (data: CelebrationModalData) => {
+    setCelebrationData(data);
+    setShowConfetti(true);
+    playSfx('confetti');
+    vibrate([100, 50, 150, 50, 200]);
+
+    // Multi-angle canvas confetti blast
+    try {
+      // 1. Center burst
+      confetti({
+        particleCount: 140,
+        spread: 100,
+        origin: { y: 0.45 },
+        colors: ['#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6', '#eab308']
+      });
+
+      // 2. Left and right cannons
+      setTimeout(() => {
+        confetti({
+          particleCount: 80,
+          angle: 60,
+          spread: 70,
+          origin: { x: 0.1, y: 0.75 },
+          colors: ['#10b981', '#38bdf8', '#fbbf24', '#f43f5e']
+        });
+        confetti({
+          particleCount: 80,
+          angle: 120,
+          spread: 70,
+          origin: { x: 0.9, y: 0.75 },
+          colors: ['#a855f7', '#ec4899', '#10b981', '#fbbf24']
+        });
+      }, 250);
+
+      // 3. Gold shimmer stars
+      setTimeout(() => {
+        confetti({
+          particleCount: 45,
+          spread: 80,
+          shapes: ['star'],
+          origin: { y: 0.5 },
+          colors: ['#ffd700', '#f59e0b', '#ffffff']
+        });
+      }, 500);
+    } catch {
+      // Fallback
+    }
+
+    // Audio narration with Malu Aoede voice
+    if (data.type === 'level') {
+      speak(
+        `Parabéns extraordinário! Você acaba de subir para o Nível ${data.levelNumber}! Continue firme na sua evolução!`,
+        { voice: 'Aoede', lang: 'pt-BR' }
+      );
+    } else if (data.type === 'medal') {
+      speak(
+        `Sensacional! Você desbloqueou uma nova medalha: ${data.badgeName}! Mais uma grande conquista adicionada ao seu perfil!`,
+        { voice: 'Aoede', lang: 'pt-BR' }
+      );
+    }
+  };
 
   // Configurable Daily Goals State
   const [dailyGoals, setDailyGoals] = useState<DailyConfigurableGoal[]>([
@@ -124,7 +323,7 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [tempTargetValue, setTempTargetValue] = useState<string>('');
 
-  // Triggers canvas-confetti burst + ConfettiCelebration overlay automatically when 100% of a goal is reached
+  // Daily goals confetti
   const triggerConfettiBurst = (goalTitle?: string) => {
     setShowConfetti(true);
     playSfx('confetti');
@@ -153,7 +352,6 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
       const newCurrent = Math.max(0, goal.current + amount);
       const isNowCompleted = newCurrent >= goal.target;
 
-      // Trigger particle confetti automatically upon reaching 100% of the configured daily goal!
       if (isNowCompleted && !goal.completed) {
         triggerConfettiBurst(goal.title);
       }
@@ -178,7 +376,6 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
       if (goal.id !== goalId) return goal;
       const isNowCompleted = goal.current >= numTarget;
 
-      // Trigger particle confetti automatically upon setting target to <= current (100% complete)
       if (isNowCompleted && !goal.completed) {
         triggerConfettiBurst(goal.title);
       }
@@ -191,7 +388,87 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
     }));
     setEditingGoalId(null);
   };
-  
+
+  // Add Points and Check for Level Up
+  const handleAddPoints = (amount: number, reason: string = 'Pontos de Atividade') => {
+    playSfx('success');
+    vibrate(20);
+    if (!profile) return;
+
+    const newPoints = currentPoints + amount;
+    const newLevel = Math.max(1, Math.floor(newPoints / 500) + 1);
+
+    const updatedProfile: UserProfile = {
+      ...profile,
+      points: newPoints,
+      level: newLevel
+    };
+
+    onUpdateProfile(updatedProfile);
+
+    // If level crossed threshold -> Trigger Level Celebration!
+    if (newLevel > currentLevel) {
+      triggerCelebration({
+        type: 'level',
+        title: '🎉 NOVO NÍVEL ALCANÇADO!',
+        subtitle: `Você atingiu o Nível ${newLevel} (${getLevelDetails(newLevel).title})!`,
+        description: `Seus esforços constantes geraram ${amount} XP adicionais e desbloquearam um novo patamar de evolução!`,
+        levelNumber: newLevel,
+        pointsEarned: amount
+      });
+    } else {
+      playSfx('crystal');
+    }
+  };
+
+  // Unlock / Claim a Medal
+  const handleUnlockBadge = (badge: typeof ALL_BADGES[0]) => {
+    if (!profile) return;
+    const isAlreadyUnlocked = userBadges.includes(badge.id) || userBadges.includes(badge.key);
+
+    if (isAlreadyUnlocked) {
+      // Re-celebrate already unlocked medal
+      triggerCelebration({
+        type: 'medal',
+        title: '🏅 MEDALHA CONQUISTADA!',
+        subtitle: badge.name,
+        description: badge.description,
+        badgeName: badge.name,
+        badgeIcon: badge.icon,
+        pointsEarned: badge.rewardPoints
+      });
+      return;
+    }
+
+    playSfx('success');
+    vibrate([30, 50, 30]);
+
+    const updatedBadges = [...userBadges, badge.id];
+    const newPoints = currentPoints + badge.rewardPoints;
+    const newLevel = Math.max(1, Math.floor(newPoints / 500) + 1);
+
+    const updatedProfile: UserProfile = {
+      ...profile,
+      badges: updatedBadges,
+      points: newPoints,
+      level: newLevel
+    };
+
+    onUpdateProfile(updatedProfile);
+
+    // Trigger Medal Celebration
+    triggerCelebration({
+      type: 'medal',
+      title: '🏅 NOVA MEDALHA DESBLOQUEADA!',
+      subtitle: badge.name,
+      description: badge.description,
+      badgeName: badge.name,
+      badgeIcon: badge.icon,
+      pointsEarned: badge.rewardPoints
+    });
+  };
+
+  // Check for completed weekly challenges
   useEffect(() => {
     if (!profile?.weeklyChallenges) return;
     
@@ -215,7 +492,7 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
     const today = new Date().toISOString().split('T')[0];
     const lastActive = profile.lastActiveDate ? profile.lastActiveDate.split('T')[0] : null;
 
-    if (lastActive === today) return; // Already checked today
+    if (lastActive === today) return;
 
     let newStreak = profile.streak || 0;
     const yesterday = new Date();
@@ -231,7 +508,13 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
     }
 
     if (reachedSevenToday) {
-      setShowConfetti(true);
+      triggerCelebration({
+        type: 'medal',
+        title: '🔥 SUPER STREAK DE 7 DIAS!',
+        subtitle: 'Você manteve consistência durante uma semana inteira!',
+        description: 'Sua dedicação diária ativa hábitos saudáveis profundos e duradouros.',
+        pointsEarned: 200
+      });
     }
 
     onUpdateProfile({
@@ -278,21 +561,16 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
     }
   ];
 
-  const badges = [
-    { id: '1', name: 'Madrugador', icon: <Sparkles className="w-6 h-6" />, color: 'bg-amber-400', description: 'Completou um treino antes das 7h' },
-    { id: '2', name: 'Hidratado+', icon: <CheckCircle2 className="w-6 h-6" />, color: 'bg-blue-400', description: 'Bebeu 3L de água por 5 dias seguidos' },
-    { id: '3', name: 'Scanner Pro', icon: <Target className="w-6 h-6" />, color: 'bg-emerald-400', description: 'Analisou 10 pratos com a IA' }
-  ];
-
   return (
     <div className="space-y-8 p-4">
       {/* Premium Full-screen Confetti Celebration Overlay */}
       <ConfettiCelebration active={showConfetti} onComplete={() => setShowConfetti(false)} mode="all" />
 
-      {/* Top Stats Cards */}
-      <div className="grid grid-cols-2 gap-5">
+      {/* Top Stats Cards: Streak, Points, and Current Level */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {/* Streak Card */}
         <motion.div 
-          whileHover={{ y: -5 }}
+          whileHover={{ y: -4 }}
           className="clay-card p-6 relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full translate-x-8 -translate-y-8 blur-2xl" />
@@ -300,30 +578,187 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl">
               <Flame className="w-5 h-5 text-orange-500" />
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Streak</span>
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Streak Diário</span>
           </div>
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{profile?.streak || 0}</span>
-            <span className="text-sm font-bold text-slate-400">dias</span>
+            <span className="text-sm font-bold text-slate-400">dias seguidos</span>
           </div>
         </motion.div>
 
+        {/* Points (XP) Card */}
         <motion.div 
-          whileHover={{ y: -5 }}
-          className="clay-card p-6 relative overflow-hidden"
+          whileHover={{ y: -4 }}
+          className="clay-card p-6 relative overflow-hidden flex flex-col justify-between"
         >
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full translate-x-8 -translate-y-8 blur-2xl" />
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
-              <Star className="w-5 h-5 text-emerald-500" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                  <Star className="w-5 h-5 text-emerald-500" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest text-slate-400">Pontuação Total</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddPoints(100, 'Pontos de Teste')}
+                className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold transition cursor-pointer"
+                title="Ganhar +100 XP"
+              >
+                +100 XP
+              </button>
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Pontos</span>
-          </div>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{profile?.points || 0}</span>
-            <span className="text-sm font-bold text-slate-400">XP</span>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{currentPoints}</span>
+              <span className="text-sm font-bold text-slate-400">XP</span>
+            </div>
           </div>
         </motion.div>
+
+        {/* Level Progression Card with Immediate Level Up Trigger */}
+        <motion.div 
+          whileHover={{ y: -4 }}
+          className="clay-card p-6 relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-950/30 dark:via-slate-800 dark:to-slate-800 border-purple-500/20"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/15 rounded-full translate-x-8 -translate-y-8 blur-2xl" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
+                  <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest text-slate-400">Nível</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelInfo.badgeColor}`}>
+                {levelInfo.title}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between">
+              <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+                Nível {currentLevel}
+              </span>
+              <span className="text-[11px] font-bold text-slate-400">
+                {currentPoints} / {nextLevelThreshold} XP
+              </span>
+            </div>
+
+            {/* Micro Progress Bar to Next Level */}
+            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden mt-2.5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${levelProgressPct}%` }}
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-700"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              // Add remaining XP to reach the next level threshold and trigger celebration
+              const needed = nextLevelThreshold - currentPoints;
+              handleAddPoints(needed > 0 ? needed : 500, 'Subida de Nível');
+            }}
+            className="mt-3 w-full py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-purple-500/20 cursor-pointer"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Subir de Nível (Celebrar 🎉)</span>
+          </button>
+        </motion.div>
+      </div>
+
+      {/* Interactive Badges & Medals Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-amber-500/10 rounded-2xl text-amber-500">
+              <Medal className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                Conquistas e Medalhas
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  {userBadges.length}/{ALL_BADGES.length} Desbloqueadas
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Toque nas medalhas para desbloquear ou comemorar novas conquistas com chuva de confetes!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {ALL_BADGES.map((badge) => {
+            const isUnlocked = userBadges.includes(badge.id) || userBadges.includes(badge.key) || userBadges.includes(badge.name);
+
+            return (
+              <motion.div
+                key={badge.id}
+                whileHover={{ y: -4, scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleUnlockBadge(badge)}
+                className={`p-4 rounded-3xl clay-card border transition-all cursor-pointer flex flex-col items-center text-center justify-between relative overflow-hidden group ${
+                  isUnlocked
+                    ? `bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900/90 ${badge.borderGlow} shadow-lg shadow-amber-500/5`
+                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 opacity-75 hover:opacity-100'
+                }`}
+              >
+                {/* Unlocked / Locked Indicator Icon */}
+                <div className="absolute top-2 right-2">
+                  {isUnlocked ? (
+                    <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
+                  ) : (
+                    <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 flex items-center justify-center">
+                      <Lock className="w-3 h-3" />
+                    </span>
+                  )}
+                </div>
+
+                {/* Badge Medal Emblem with Glowing Ring */}
+                <div className="my-2 relative">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${badge.color} flex items-center justify-center text-white shadow-md relative z-10 ${
+                    isUnlocked ? 'group-hover:scale-110 transition-transform duration-300' : 'grayscale-[40%]'
+                  }`}>
+                    {badge.icon}
+                  </div>
+                  {isUnlocked && (
+                    <div className="absolute inset-0 rounded-2xl bg-amber-400/20 blur-md pointer-events-none" />
+                  )}
+                </div>
+
+                <div className="space-y-1 w-full">
+                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
+                    {badge.name}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight line-clamp-2">
+                    {badge.description}
+                  </p>
+                </div>
+
+                {/* Action Tag */}
+                <div className="mt-3 w-full">
+                  {isUnlocked ? (
+                    <span className="w-full py-1 px-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold block">
+                      ✨ Celebrar!
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full py-1 px-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-emerald-500 hover:text-white text-slate-700 dark:text-slate-300 text-[10px] font-bold transition block cursor-pointer"
+                    >
+                      Desbloquear +{badge.rewardPoints}XP
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Configurable Daily Goals with Particle Confetti Animation Trigger */}
@@ -531,9 +966,14 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
                   <p className="text-xs text-slate-500 dark:text-slate-400">{challenge.description}</p>
                 </div>
                 {challenge.completed ? (
-                  <div className="p-2 clay-primary px-6 py-3">
+                  <button
+                    type="button"
+                    onClick={() => handleAddPoints(challenge.rewardPoints, challenge.title)}
+                    className="p-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+                  >
                     <CheckCircle2 className="w-4 h-4" />
-                  </div>
+                    <span>Reivindicar +{challenge.rewardPoints} XP</span>
+                  </button>
                 ) : (
                   <div className="flex items-center gap-1 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full text-[10px] font-black uppercase">
                     <TrendingUp className="w-3 h-3" />
@@ -592,21 +1032,21 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
               height={200} 
               brushSize={25} 
               finishPercent={45}
-              onComplete={() => setShowConfetti(true)}
+              onComplete={() => {
+                setShowConfetti(true);
+                playSfx('confetti');
+              }}
             >
               {revealedTreat && (
                 <div className="w-full h-full relative overflow-hidden group select-none">
-                  {/* Photo of the rewarded treat */}
                   <img 
                     src={revealedTreat.image} 
                     alt={revealedTreat.name} 
                     className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 group-hover:scale-105" 
                     referrerPolicy="no-referrer"
                   />
-                  {/* Elegant darkening mask for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent select-none pointer-events-none" />
                   
-                  {/* Absolute content details inside the card */}
                   <div className="absolute inset-x-0 bottom-0 p-4 text-left flex flex-col justify-end select-none pointer-events-none">
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
                       🏆 Recompensa Revelada!
@@ -623,32 +1063,6 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
             </ScratchCard>
           </div>
         )}
-      </div>
-
-      {/* Badges and Trophies */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Medal className="w-5 h-5 text-amber-500" />
-          Conquistas e Medalhas
-        </h3>
-
-        <div className="grid grid-cols-3 gap-4">
-          {badges.map((badge) => (
-            <motion.div
-              key={badge.id}
-              whileHover={{ scale: 1.05 }}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className={`w-20 h-20 ${badge.color} rounded-full flex items-center justify-center text-white shadow-xl relative`}>
-                <div className="absolute inset-2 border-2 border-white/30 rounded-full border-dashed" />
-                {badge.icon}
-              </div>
-              <span className="text-[10px] font-black text-center text-slate-600 dark:text-slate-400 uppercase tracking-widest leading-tight">
-                {badge.name}
-              </span>
-            </motion.div>
-          ))}
-        </div>
       </div>
 
       {/* Community Challenges Section */}
@@ -670,6 +1084,105 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
           </button>
         </div>
       </div>
+
+      {/* SPECTACULAR CELEBRATION MODAL FOR NEW MEDAL OR LEVEL UP */}
+      <AnimatePresence>
+        {celebrationData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.7, y: 40, rotate: -2 }}
+              animate={{ scale: 1, y: 0, rotate: 0 }}
+              exit={{ scale: 0.7, y: 40, opacity: 0 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 220 }}
+              className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white rounded-[40px] p-8 max-w-md w-full text-center relative overflow-hidden border-2 border-amber-400/60 shadow-[0_0_60px_rgba(245,158,11,0.35)]"
+            >
+              {/* Golden Rotating Halo Background */}
+              <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-amber-500/25 to-yellow-500/10 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-tl from-emerald-500/25 to-teal-500/10 blur-3xl pointer-events-none" />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setCelebrationData(null)}
+                className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Central Pulsating Emblem Icon */}
+              <div className="relative my-4 flex items-center justify-center">
+                <motion.div
+                  animate={{ scale: [1, 1.12, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="w-28 h-28 rounded-3xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-600 flex items-center justify-center text-white shadow-2xl shadow-amber-500/40 relative z-10 border-2 border-white/40"
+                >
+                  {celebrationData.type === 'level' ? (
+                    <Trophy className="w-14 h-14 text-white drop-shadow-lg" />
+                  ) : (
+                    celebrationData.badgeIcon || <Medal className="w-14 h-14 text-white drop-shadow-lg" />
+                  )}
+                </motion.div>
+
+                {/* Sparkling Halo */}
+                <div className="absolute w-36 h-36 rounded-full bg-amber-400/20 blur-xl animate-pulse pointer-events-none" />
+              </div>
+
+              {/* Title & Celebration Subtitle */}
+              <div className="space-y-2 mt-4 relative z-10">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-black uppercase tracking-widest border border-amber-400/30">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                  <span>{celebrationData.title}</span>
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow">
+                  {celebrationData.subtitle}
+                </h3>
+
+                {celebrationData.description && (
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xs mx-auto">
+                    {celebrationData.description}
+                  </p>
+                )}
+
+                {celebrationData.pointsEarned && (
+                  <div className="pt-2">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      +{celebrationData.pointsEarned} XP Adicionados ao Perfil
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-8 space-y-2.5 relative z-10">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    playSfx('confetti');
+                    vibrate([50, 100]);
+                    confetti({
+                      particleCount: 100,
+                      spread: 80,
+                      origin: { y: 0.6 }
+                    });
+                    setCelebrationData(null);
+                  }}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-amber-500/30 transition-all cursor-pointer"
+                >
+                  🎉 Celebrar & Continuar
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

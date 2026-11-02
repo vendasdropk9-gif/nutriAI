@@ -20,6 +20,7 @@ import { EXERCISE_DATABASE, DetailedExercise } from '../data/exerciseDatabase';
 import { resolveExerciseWithKinematics } from '../lib/animationManager';
 import avatarGlobalStore, { useAvatarGlobalState } from '../lib/avatarGlobalState';
 import { PostureAnalyzer } from './PostureAnalyzer';
+import { AiCoachTipsCard } from './AiCoachTipsCard';
 
 // Lazy load the high-fidelity 3D Anatomical Avatar and Smart Demonstration
 const AvatarAnatomico = lazy(() => import('./AvatarAnatomico'));
@@ -34,7 +35,7 @@ interface PersonalTrainerProps {
   onUpdateProfile?: (profile: UserProfile) => void;
 }
 
-const DEFAULT_WEEKLY_PLAN: WeeklyWorkoutPlan = {
+export const DEFAULT_WEEKLY_PLAN: WeeklyWorkoutPlan = {
   id: "weekly-plan-default",
   title: "Plano Semanal NutriAI - Sincronizado",
   description: "Treinos semanais de calistenia sincronizados com sua nutrição e nível de atividade.",
@@ -723,6 +724,22 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
         </p>
       </div>
 
+      {/* AI Coach Tips Card */}
+      <AiCoachTipsCard
+        profile={profile}
+        weeklyPlan={weeklyPlan}
+        onApplyAdjustment={(newPlan, _reason) => {
+          setWeeklyPlan(newPlan);
+          if (onUpdateProfile && profile) {
+            onUpdateProfile({
+              ...profile,
+              weeklyWorkoutPlan: newPlan
+            });
+          }
+        }}
+        onUpdateProfile={onUpdateProfile}
+      />
+
       {/* Sub-tabs Navigation */}
       <div className="flex justify-center w-full">
         <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full flex flex-wrap justify-center gap-1.5 shadow-inner border border-slate-200/40 dark:border-slate-700/40">
@@ -770,6 +787,21 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
           >
             <Calendar className="w-4 h-4" />
             <span>{t('nav_weekly_plan', 'Plano Semanal')}</span>
+          </button>
+          <button
+            onClick={() => {
+              playSfx('tap');
+              vibrate(10);
+              setActiveSubTab('calendar');
+            }}
+            className={`px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'calendar'
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4 text-emerald-300" />
+            <span>{t('nav_workout_calendar', 'Calendário de Treinos')}</span>
           </button>
         </div>
       </div>
@@ -953,7 +985,11 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
           </div>
         </div>
       ) : activeSubTab === 'calendar' ? (
-        <WorkoutCalendarComponent profile={profile} onUpdateProfile={onUpdateProfile} />
+        <WorkoutCalendarComponent 
+          profile={profile} 
+          onUpdateProfile={onUpdateProfile} 
+          onStartWorkoutDay={startWeeklyDayWorkout}
+        />
       ) : (
         <div>
           {!workout ? (

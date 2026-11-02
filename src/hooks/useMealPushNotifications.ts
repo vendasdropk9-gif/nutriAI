@@ -8,6 +8,8 @@ import {
 } from '../lib/pushScheduler';
 import { playSfx, vibrate } from '../lib/sensory';
 import { analyzeSmartHydration } from '../lib/smartHydrationEngine';
+import { safeGet } from '../lib/storage';
+import { DEFAULT_WEEKLY_PLAN } from '../components/PersonalTrainer';
 
 const PROACTIVE_TIPS = [
   "Você bebeu pouca água hoje. Que tal um copo fresco agora?",
@@ -222,6 +224,71 @@ export function useMealPushNotifications(
               sendNativePushNotification(challenge.title, challenge.body, {
                 tag: `challenge-${challenge.id}-${todayStr}`,
                 data: { url: '/?tab=challenge' }
+              });
+            }
+          }
+        }
+      }
+
+      // 3. Checar Alertas de Treino (Personal Trainer + NotificationSystem)
+      const workoutRemindersEnabled = profile?.workoutRemindersEnabled !== false && safeGet('nutri-workout-reminders') !== 'false';
+      if (workoutRemindersEnabled) {
+        const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const todayDayKey = dayKeys[now.getDay()];
+        const weeklyPlan = profile?.weeklyWorkoutPlan || DEFAULT_WEEKLY_PLAN;
+        const todayWorkoutDay = weeklyPlan?.days?.find(d => d.dayKey === todayDayKey) || weeklyPlan?.days?.[now.getDay()];
+
+        if (todayWorkoutDay) {
+          const workoutTime = profile?.workoutReminderTimes?.[todayDayKey] || (profile as any)?.workoutReminderTime || safeGet('nutri-workout-time') || '18:00';
+          const [wHour, wMin] = workoutTime.split(':').map(Number);
+          const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+          const workoutTotalMinutes = (isNaN(wHour) ? 18 : wHour) * 60 + (isNaN(wMin) ? 0 : wMin);
+          const diffMins = workoutTotalMinutes - currentTotalMinutes;
+
+          // 15 minutos antes do treino
+          if (diffMins > 0 && diffMins <= 15) {
+            const preWorkoutKey = `${todayStr}-pre-workout-${todayDayKey}`;
+            if (!notifiedKeys.current.has(preWorkoutKey)) {
+              notifiedKeys.current.add(preWorkoutKey);
+              const title = `⏰ Treino em ${diffMins} min: ${todayWorkoutDay.workoutTitle}!`;
+              const message = `Seu treino no Personal Trainer está programado para às ${workoutTime}. Separe seu equipamento e água!`;
+
+              playSfx('notification');
+              vibrate([80, 40, 80]);
+
+              addNotification({
+                title,
+                message,
+                type: 'info'
+              });
+
+              sendNativePushNotification(title, message, {
+                tag: `pre-workout-${todayDayKey}-${todayStr}`,
+                data: { url: '/?tab=trainer' }
+              });
+            }
+          }
+
+          // No horário exato do treino
+          if (workoutTime === currentTime || diffMins === 0) {
+            const workoutKey = `${todayStr}-workout-${todayDayKey}`;
+            if (!notifiedKeys.current.has(workoutKey)) {
+              notifiedKeys.current.add(workoutKey);
+              const title = `🏋️ Hora do Treino: ${todayWorkoutDay.workoutTitle}!`;
+              const message = `Foco em: ${todayWorkoutDay.workoutFocus}. Abra o Personal Trainer para iniciar sua sessão guiada!`;
+
+              playSfx('success');
+              vibrate([150, 80, 150]);
+
+              addNotification({
+                title,
+                message,
+                type: 'success'
+              });
+
+              sendNativePushNotification(title, message, {
+                tag: `workout-${todayDayKey}-${todayStr}`,
+                data: { url: '/?tab=trainer' }
               });
             }
           }

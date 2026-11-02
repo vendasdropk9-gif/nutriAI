@@ -830,6 +830,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                     onLogIntake={handleLogIntake}
                     onUpdateProfile={updateProfile}
                     activeTab={activeTab}
+                    addNotification={addNotification}
                   />
                 )}
                 {activeTab === 'quickdishes' && (
@@ -920,7 +921,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                   <ShoppingListView mealPlan={mealPlan} />
                 )}
                 {activeTab === 'profile' && (
-                  <Profile profile={profile} onSaveProfile={updateProfile} />
+                  <Profile profile={profile} onSaveProfile={updateProfile} addNotification={addNotification} />
                 )}
                 {activeTab === 'admin' && (
                   <AdminDashboard 
