@@ -29,6 +29,7 @@ import { DailyWorkoutTipCard } from './DailyWorkoutTipCard';
 import { QuickWaterLogger } from './QuickWaterLogger';
 import { EvolutionComparison } from './EvolutionComparison';
 import { NutritionTipsCarousel } from './NutritionTipsCarousel';
+import { Malu3DAvatar } from './Malu3DAvatar';
 
 
 const staggerContainerVariants = {
@@ -68,6 +69,7 @@ interface Assistant360Props {
 export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile, activeTab = 'assistant360', addNotification }: Assistant360Props) {
   const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
+  const [isMaluSpeaking, setIsMaluSpeaking] = useState(false);
 
   const handleRemoveFavorite = (recipeId: string) => {
     if (!profile || !onUpdateProfile) return;

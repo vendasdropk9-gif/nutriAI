@@ -459,6 +459,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
   const [testScanProgress, setTestScanProgress] = useState(0);
 
   // ElevenLabs Voice Selection & Malu Customization
+  const maluAvatarFileInputRef = useRef<HTMLInputElement>(null);
   const [voices, setVoices] = useState<{ voice_id: string; name: string }[]>([]);
   const [selectedVoice, setSelectedVoice] = useState(profile?.elevenLabsVoiceId || 'Aoede');
   const [maluAvatarStyle, setMaluAvatarStyle] = useState<'artistic' | 'photo' | 'cyber'>(() => {
@@ -470,6 +471,27 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
   const [maluSpeechSpeed, setMaluSpeechSpeed] = useState<number>(() => {
     return (profile as any)?.maluSpeechSpeed || 1.0;
   });
+
+  const MALU_PRESET_AVATARS = [
+    { id: 'robot', label: 'Robô Humanóide 3D', url: '/assets/robot_avatar_portrait.jpg' },
+    { id: 'chef', label: 'Chef Malu', url: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=300&h=300' },
+    { id: 'fitness', label: 'Atleta Fitness', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300' },
+    { id: 'zen', label: 'Zen & Bem-Estar', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=300&h=300' },
+    { id: 'cyber', label: 'Cyber AI', url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=300&h=300' },
+    { id: 'vitality', label: 'Vitalidade Natural', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300&h=300' }
+  ];
+
+  const handleMaluFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Str = reader.result as string;
+      setMaluAvatarUrl(base64Str);
+      handleSaveMaluCustomization({ url: base64Str });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveMaluCustomization = (updates: { style?: 'artistic' | 'photo' | 'cyber'; url?: string; speed?: number; voiceId?: string }) => {
     const nextStyle = updates.style !== undefined ? updates.style : maluAvatarStyle;
@@ -1661,12 +1683,19 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 1. Visual Appearance Style */}
-            <div className="space-y-3 p-4 rounded-2xl bg-slate-950/85 border border-slate-800">
-              <label className="block text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4" />
-                <span>Aparência Visual da Malu</span>
-              </label>
+            {/* 1. Visual Appearance Style & Visual Selector */}
+            <div className="space-y-4 p-4 rounded-2xl bg-slate-950/85 border border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Aparência Visual da Malu</span>
+                </label>
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-teal-500 shadow-md">
+                  <img src={maluAvatarUrl} alt="Malu Avatar Preview" className="w-full h-full object-cover" />
+                </div>
+              </div>
+
+              {/* Style Category selector */}
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'artistic' as const, label: '🎨 Artístico 3D' },
@@ -1696,8 +1725,62 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                 })}
               </div>
 
-              <div className="space-y-1.5 pt-2">
-                <span className="text-[11px] text-slate-400 font-medium">URL da Imagem / Avatar da Malu:</span>
+              {/* Hidden file input for uploading custom photo */}
+              <input
+                type="file"
+                ref={maluAvatarFileInputRef}
+                accept="image/*"
+                onChange={handleMaluFileUpload}
+                className="hidden"
+              />
+
+              {/* Upload Button */}
+              <button
+                type="button"
+                onClick={() => maluAvatarFileInputRef.current?.click()}
+                className="w-full py-3 px-4 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 font-bold text-xs flex items-center justify-center gap-2 border border-teal-500/40 transition-all cursor-pointer shadow-sm"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Enviar Foto do Dispositivo (Upload)</span>
+              </button>
+
+              {/* Preset Visual Avatars Grid */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-teal-400" />
+                  Ou selecione um avatar predefinido:
+                </span>
+                <div className="grid grid-cols-6 gap-2">
+                  {MALU_PRESET_AVATARS.map((av) => (
+                    <button
+                      key={av.id}
+                      type="button"
+                      onClick={() => {
+                        setMaluAvatarUrl(av.url);
+                        playSfx('tap');
+                        vibrate(10);
+                        handleSaveMaluCustomization({ url: av.url });
+                      }}
+                      className={`relative aspect-square rounded-full overflow-hidden border-2 transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                        maluAvatarUrl === av.url
+                          ? 'border-teal-400 ring-2 ring-teal-500/40 shadow-md'
+                          : 'border-slate-800 hover:border-slate-600'
+                      }`}
+                      title={av.label}
+                    >
+                      <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
+                      {maluAvatarUrl === av.url && (
+                        <div className="absolute inset-0 bg-teal-600/40 flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] text-slate-400 font-medium">Ou cole a URL direta da imagem:</span>
                 <input
                   type="text"
                   value={maluAvatarUrl}
@@ -1706,7 +1789,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                     handleSaveMaluCustomization({ url: e.target.value });
                   }}
                   placeholder="https://exemplo.com/malu-avatar.jpg"
-                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:ring-2 focus:ring-teal-500/50"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:ring-2 focus:ring-teal-500/50 font-mono"
                 />
               </div>
             </div>
