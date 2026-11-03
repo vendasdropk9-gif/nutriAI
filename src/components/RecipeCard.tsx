@@ -3,12 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage, useTranslation } from '../contexts/LanguageContext';
 import { Recipe, RecipePreparationTips } from '../types';
 import { RecipeStepTimer } from './RecipeStepTimer';
-import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video, Bookmark, Loader2, Link2 } from 'lucide-react';
+import { Clock, Flame, Zap, Info, ChevronDown, ChevronUp, LeafyGreen, Activity, Volume2, VolumeX, Square, Star, MessageSquare, Send, Sparkles, Mic, MicOff, HelpCircle, Check, X, ChevronLeft, ChevronRight, Beef, Wheat, Droplet, ChefHat, Utensils, Calendar, Trash2, Bell, Share2, Copy, Download, ExternalLink, BookOpen, Eye, CheckCircle2, ArrowUp, RotateCcw, ZoomIn, ZoomOut, CheckSquare, WifiOff, Printer, Video, Bookmark, Loader2, Link2, Headphones, Play, Pause, Sliders } from 'lucide-react';
 import { isRecipeSavedOffline, toggleRecipeOffline, saveRecipeOffline, getOfflineRecipes } from '../lib/offlineRecipes';
 import { printRecipe } from '../lib/recipePrinter';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { speak, stopSpeech, speakWithWebSpeech } from '../lib/speech';
-import { playSfx, vibrate } from '../lib/sensory';
+import { playSfx, vibrate, vibrateVoiceCommandConfirmation } from '../lib/sensory';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from '../lib/firebase';
 import { db, auth } from '../lib/firebase';
 import { motion, AnimatePresence, Variants } from 'motion/react';
@@ -23,6 +23,12 @@ import { ContextualRecipeAssistantModal } from './ContextualRecipeAssistantModal
 import { RecipeCollectionsModal } from './RecipeCollectionsModal';
 import { KitchenModeModal } from './KitchenModeModal';
 import { ShareMealLinkModal } from './ShareMealLinkModal';
+import { HandsFreeWaveIndicator } from './HandsFreeWaveIndicator';
+import { HandsFreeGestureDetector } from './HandsFreeGestureDetector';
+import { HandsFreeListeningStatusBar } from './HandsFreeListeningStatusBar';
+import { HandsFreeVoiceSensitivitySettings } from './HandsFreeVoiceSensitivitySettings';
+import { HandsFreeVoiceCommandsPanel } from './HandsFreeVoiceCommandsPanel';
+import { matchVoiceCommandKey } from '../lib/customVoiceAliases';
 import { Collection } from '../types';
 import { googleSignInWithCalendar, getCalendarAccessToken, syncMealToCalendar } from '../lib/googleCalendar';
 
@@ -311,6 +317,171 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [isNarratingIngredients, setIsNarratingIngredients] = useState(false);
   const [isNarratingFull, setIsNarratingFull] = useState(false);
+
+  // Modo Hands-Free (Leitura por Síntese de Fala do Navegador)
+  const [isHandsFreeActive, setIsHandsFreeActive] = useState<boolean>(false);
+  const [handsFreeStepIndex, setHandsFreeStepIndex] = useState<number>(0);
+  const [handsFreeSpeaking, setHandsFreeSpeaking] = useState<boolean>(false);
+  const [handsFreeRate, setHandsFreeRate] = useState<number>(1.0);
+  const [handsFreeAutoAdvance, setHandsFreeAutoAdvance] = useState<boolean>(true);
+  const [isGestureSensorEnabled, setIsGestureSensorEnabled] = useState<boolean>(true);
+  const [handsFreePauseReason, setHandsFreePauseReason] = useState<'keyword' | 'gesture' | 'manual' | null>(null);
+  const [lastGestureTrigger, setLastGestureTrigger] = useState<{ type: 'wave' | 'palm'; timestamp: number } | null>(null);
+  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
+  const handsFreeAutoAdvanceTimeoutRef = useRef<any>(null);
+  const countdownIntervalRef = useRef<any>(null);
+  const isHandsFreeActiveRef = useRef(false);
+  const handsFreeStepIndexRef = useRef(0);
+  const handsFreeRateRef = useRef(1.0);
+  const handsFreeAutoAdvanceRef = useRef(true);
+
+  useEffect(() => {
+    isHandsFreeActiveRef.current = isHandsFreeActive;
+  }, [isHandsFreeActive]);
+  useEffect(() => {
+    handsFreeStepIndexRef.current = handsFreeStepIndex;
+  }, [handsFreeStepIndex]);
+  useEffect(() => {
+    handsFreeRateRef.current = handsFreeRate;
+  }, [handsFreeRate]);
+  useEffect(() => {
+    handsFreeAutoAdvanceRef.current = handsFreeAutoAdvance;
+  }, [handsFreeAutoAdvance]);
+
+  // Voice Detection Sensitivity & Kitchen Noise Gate State
+  const [voiceSensitivity, setVoiceSensitivity] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('nutri_handsfree_voice_sensitivity');
+      return saved ? Number(saved) : 35;
+    } catch {
+      return 35;
+    }
+  });
+  const [currentAudioLevel, setCurrentAudioLevel] = useState<number>(0);
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState<boolean>(false);
+  const [isCommandsPanelOpen, setIsCommandsPanelOpen] = useState<boolean>(false);
+  const voiceSensitivityRef = useRef(35);
+  const currentAudioLevelRef = useRef(0);
+  const recentPeakVolumeRef = useRef(0);
+  const audioContextRef = useRef<any>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioAnimFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    voiceSensitivityRef.current = voiceSensitivity;
+    try {
+      localStorage.setItem('nutri_handsfree_voice_sensitivity', String(voiceSensitivity));
+    } catch (e) {
+      // storage unavailable
+    }
+  }, [voiceSensitivity]);
+
+  useEffect(() => {
+    currentAudioLevelRef.current = currentAudioLevel;
+  }, [currentAudioLevel]);
+
+  // Real-time Audio Level & Microphone Volume Monitoring via Web Audio API
+  useEffect(() => {
+    if (!isHandsFreeActive) {
+      if (audioAnimFrameRef.current) {
+        cancelAnimationFrame(audioAnimFrameRef.current);
+        audioAnimFrameRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      setCurrentAudioLevel(0);
+      currentAudioLevelRef.current = 0;
+      return;
+    }
+
+    let isCancelled = false;
+
+    const initAudioMeter = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          return;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: false, // keep measurable for kitchen threshold comparison
+            autoGainControl: false
+          }
+        });
+
+        if (isCancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        audioStreamRef.current = stream;
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const audioCtx = new AudioContextClass();
+        audioContextRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.25;
+
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let peakDecay = 0;
+
+        const updateMeter = () => {
+          if (isCancelled) return;
+          analyser.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / dataArray.length;
+          // Scale smoothly to 0 - 100 percentage
+          const rawPercentage = Math.min(100, Math.round((average / 110) * 100));
+
+          // Smooth tracking with gradual peak decay
+          peakDecay = Math.max(rawPercentage, peakDecay * 0.85);
+          recentPeakVolumeRef.current = peakDecay;
+          currentAudioLevelRef.current = rawPercentage;
+          setCurrentAudioLevel(rawPercentage);
+
+          audioAnimFrameRef.current = requestAnimationFrame(updateMeter);
+        };
+
+        audioAnimFrameRef.current = requestAnimationFrame(updateMeter);
+      } catch (err) {
+        console.warn("Hands-Free Web Audio meter init note:", err);
+      }
+    };
+
+    initAudioMeter();
+
+    return () => {
+      isCancelled = true;
+      if (audioAnimFrameRef.current) {
+        cancelAnimationFrame(audioAnimFrameRef.current);
+        audioAnimFrameRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
+  }, [isHandsFreeActive]);
 
   // Progressive Step-by-Step Staggered Reveal State
   const [isGuidedStepMode, setIsGuidedStepMode] = useState<boolean>(true);
@@ -1090,12 +1261,376 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
     }
   };
 
+  const playHandsFreeStep = (index: number, rate = handsFreeRateRef.current) => {
+    if (index < 0 || index >= recipe.instructions.length) {
+      setHandsFreeSpeaking(false);
+      return;
+    }
+
+    if (handsFreeAutoAdvanceTimeoutRef.current) {
+      clearTimeout(handsFreeAutoAdvanceTimeoutRef.current);
+      handsFreeAutoAdvanceTimeoutRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoAdvanceCountdown(null);
+
+    setHandsFreeStepIndex(index);
+    handsFreeStepIndexRef.current = index;
+    setActiveStep(index);
+    setHandsFreeSpeaking(true);
+
+    const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+    const stepLabel = isPt 
+      ? `Passo ${index + 1} de ${recipe.instructions.length}` 
+      : `Step ${index + 1} of ${recipe.instructions.length}`;
+    const stepContent = recipe.instructions[index];
+    const textToSpeak = `${stepLabel}: ${stepContent}`;
+
+    speakWithWebSpeech(textToSpeak, {
+      lang: language || 'pt-BR',
+      rate: rate,
+      onEnded: () => {
+        setHandsFreeSpeaking(false);
+        if (isHandsFreeActiveRef.current && handsFreeAutoAdvanceRef.current && index < recipe.instructions.length - 1) {
+          let count = 5;
+          setAutoAdvanceCountdown(count);
+          countdownIntervalRef.current = setInterval(() => {
+            count -= 1;
+            if (count <= 0) {
+              clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+              setAutoAdvanceCountdown(null);
+              if (isHandsFreeActiveRef.current) {
+                playHandsFreeStep(index + 1, handsFreeRateRef.current);
+              }
+            } else {
+              setAutoAdvanceCountdown(count);
+            }
+          }, 1000);
+        } else if (index >= recipe.instructions.length - 1) {
+          const congratsText = isPt 
+            ? "Parabéns! Você concluiu todos os passos da receita. Bom apetite!" 
+            : "Congratulations! You completed all the steps of the recipe. Enjoy your meal!";
+          setTimeout(() => {
+            if (isHandsFreeActiveRef.current) {
+              speakWithWebSpeech(congratsText, { lang: language || 'pt-BR', rate: rate });
+            }
+          }, 700);
+        }
+      },
+      onError: (err) => {
+        console.warn("Hands-Free Speech error:", err);
+        setHandsFreeSpeaking(false);
+      }
+    });
+  };
+
+  const handleToggleHandsFree = (stepToStart?: number) => {
+    if (isHandsFreeActive) {
+      stopSpeech();
+      if (handsFreeAutoAdvanceTimeoutRef.current) clearTimeout(handsFreeAutoAdvanceTimeoutRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      setIsHandsFreeActive(false);
+      isHandsFreeActiveRef.current = false;
+      setHandsFreeSpeaking(false);
+      setAutoAdvanceCountdown(null);
+      playSfx('pop');
+      vibrate(15);
+      const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+      speakWithWebSpeech(isPt ? "Modo Hands-Free desativado." : "Hands-Free Mode deactivated.", { lang: language || 'pt-BR' });
+    } else {
+      stopSpeech();
+      setIsHandsFreeActive(true);
+      isHandsFreeActiveRef.current = true;
+      const startIdx = typeof stepToStart === 'number' ? stepToStart : (activeStep !== null ? activeStep : 0);
+      setHandsFreeStepIndex(startIdx);
+      handsFreeStepIndexRef.current = startIdx;
+      playSfx('crystal');
+      vibrate([25, 45]);
+      setIsVoiceModeActive(true);
+
+      const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+      const introText = isPt
+        ? `Modo Hands-Free ativado para ${recipe.name}. Lendo o passo ${startIdx + 1} de ${recipe.instructions.length}. Você também pode falar próximo ou voltar para navegar sem as mãos.`
+        : `Hands-Free mode activated for ${recipe.name}. Reading step ${startIdx + 1} of ${recipe.instructions.length}. You can also say next or back to navigate hands-free.`;
+
+      speakWithWebSpeech(introText, {
+        lang: language || 'pt-BR',
+        rate: handsFreeRateRef.current,
+        onEnded: () => {
+          if (isHandsFreeActiveRef.current) {
+            playHandsFreeStep(startIdx, handsFreeRateRef.current);
+          }
+        }
+      });
+    }
+  };
+
+  const handlePauseHandsFree = (reason: 'keyword' | 'gesture' | 'manual' = 'manual', triggerWord?: string) => {
+    stopSpeech();
+    setHandsFreeSpeaking(false);
+    setHandsFreePauseReason(reason);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (handsFreeAutoAdvanceTimeoutRef.current) {
+      clearTimeout(handsFreeAutoAdvanceTimeoutRef.current);
+      handsFreeAutoAdvanceTimeoutRef.current = null;
+    }
+    setAutoAdvanceCountdown(null);
+    playSfx('pop');
+    vibrateVoiceCommandConfirmation('pause');
+
+    const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+    if (reason === 'gesture') {
+      setRecognizedCommand(isPt ? "pausa (gesto ✋)" : "pause (gesture ✋)");
+    } else if (reason === 'keyword') {
+      setRecognizedCommand(isPt ? `pausa ("${triggerWord || 'pausa'}")` : `pause ("${triggerWord || 'pause'}")`);
+    } else {
+      setRecognizedCommand(isPt ? "pausa" : "pause");
+    }
+    setTimeout(() => setRecognizedCommand(null), 2500);
+  };
+
+  const handleGestureDetected = (type: 'wave' | 'palm') => {
+    if (!isHandsFreeActiveRef.current) return;
+    setLastGestureTrigger({ type, timestamp: Date.now() });
+    handlePauseHandsFree('gesture');
+  };
+
+  const handlePauseResumeHandsFree = () => {
+    if (handsFreeSpeaking) {
+      handlePauseHandsFree('manual');
+    } else {
+      setHandsFreePauseReason(null);
+      playHandsFreeStep(handsFreeStepIndexRef.current, handsFreeRateRef.current);
+      playSfx('tap');
+      vibrateVoiceCommandConfirmation('resume');
+    }
+  };
+
+  const handleHandsFreePrev = () => {
+    if (handsFreeStepIndexRef.current > 0) {
+      stopSpeech();
+      playSfx('tap');
+      vibrateVoiceCommandConfirmation('prev');
+      setHandsFreePauseReason(null);
+      playHandsFreeStep(handsFreeStepIndexRef.current - 1, handsFreeRateRef.current);
+    }
+  };
+
+  const handleHandsFreeNext = () => {
+    if (handsFreeStepIndexRef.current < recipe.instructions.length - 1) {
+      stopSpeech();
+      playSfx('tap');
+      vibrateVoiceCommandConfirmation('next');
+      setHandsFreePauseReason(null);
+      playHandsFreeStep(handsFreeStepIndexRef.current + 1, handsFreeRateRef.current);
+    }
+  };
+
+  const handleHandsFreeRepeat = () => {
+    stopSpeech();
+    playSfx('pop');
+    vibrateVoiceCommandConfirmation('repeat');
+    setHandsFreePauseReason(null);
+    playHandsFreeStep(handsFreeStepIndexRef.current, handsFreeRateRef.current);
+  };
+
+  const handleChangeSpeechRate = (newRate: number) => {
+    setHandsFreeRate(newRate);
+    handsFreeRateRef.current = newRate;
+    playSfx('tap');
+    if (handsFreeSpeaking) {
+      playHandsFreeStep(handsFreeStepIndexRef.current, newRate);
+    }
+  };
+
+  const handleReadIngredients = () => {
+    stopSpeech();
+    setHandsFreeSpeaking(true);
+    setHandsFreePauseReason(null);
+    playSfx('crystal');
+    vibrateVoiceCommandConfirmation('ingredients');
+    const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
+    const ingredientList = recipe.ingredients && recipe.ingredients.length > 0
+      ? recipe.ingredients.join(". ")
+      : (isPt ? "Nenhum ingrediente listado." : "No ingredients listed.");
+    
+    const intro = isPt 
+      ? `Ingredientes de ${recipe.name}: ${ingredientList}. Diga "continuar" para retomar o passo a passo.`
+      : `Ingredients for ${recipe.name}: ${ingredientList}. Say "resume" to continue the steps.`;
+
+    speakWithWebSpeech(intro, {
+      lang: language || 'pt-BR',
+      rate: handsFreeRateRef.current,
+      onEnded: () => {
+        setHandsFreeSpeaking(false);
+      },
+      onError: () => {
+        setHandsFreeSpeaking(false);
+      }
+    });
+  };
+
   const handleVoiceCommand = (command: string) => {
     const trimmed = command.toLowerCase().trim();
     const isPt = (language || 'pt-BR').toLowerCase().startsWith('pt');
     const currentIdx = currentStepIndexRef.current !== null && currentStepIndexRef.current !== undefined
       ? currentStepIndexRef.current 
       : (activeStep !== null ? activeStep : 0);
+
+    // Match custom user-defined aliases and built-in synonyms first
+    const { matchedKey, matchedPhrase } = matchVoiceCommandKey(trimmed);
+
+    // Dedicated Hands-Free routing
+    if (isHandsFreeActiveRef.current) {
+      if (matchedKey === 'pause') {
+        handlePauseHandsFree('keyword', matchedPhrase ? matchedPhrase.toUpperCase() : 'PAUSA');
+        return;
+      }
+
+      if (matchedKey === 'resume') {
+        setRecognizedCommand(isPt ? "retomar" : "resume");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        setHandsFreePauseReason(null);
+        vibrateVoiceCommandConfirmation('resume');
+        playHandsFreeStep(handsFreeStepIndexRef.current, handsFreeRateRef.current);
+        return;
+      }
+
+      if (matchedKey === 'next') {
+        setRecognizedCommand(isPt ? "próximo" : "next");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreeNext();
+        return;
+      }
+
+      if (matchedKey === 'prev') {
+        setRecognizedCommand(isPt ? "voltar" : "back");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreePrev();
+        return;
+      }
+
+      if (matchedKey === 'repeat') {
+        setRecognizedCommand(isPt ? "repetir" : "repeat");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreeRepeat();
+        return;
+      }
+
+      if (matchedKey === 'ingredients') {
+        setRecognizedCommand(isPt ? "repetir ingredientes" : "read ingredients");
+        setTimeout(() => setRecognizedCommand(null), 2500);
+        handleReadIngredients();
+        return;
+      }
+
+      if (matchedKey === 'exit') {
+        setRecognizedCommand(isPt ? "sair" : "exit");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        vibrateVoiceCommandConfirmation('general');
+        handleToggleHandsFree();
+        return;
+      }
+
+      // Fallback Keyword Pause Detection
+      const isPauseKeyword = 
+        trimmed.includes("pausa") ||
+        trimmed.includes("pausar") ||
+        trimmed.includes("pare") ||
+        trimmed.includes("parar") ||
+        trimmed.includes("espera") ||
+        trimmed.includes("aguarde") ||
+        trimmed.includes("silêncio") ||
+        trimmed.includes("silencio") ||
+        trimmed.includes("calma") ||
+        trimmed.includes("parou") ||
+        trimmed.includes("stop") ||
+        trimmed.includes("pause") ||
+        trimmed.includes("wait") ||
+        trimmed.includes("hold") ||
+        trimmed.includes("quiet") ||
+        trimmed.includes("silenciar");
+
+      if (isPauseKeyword) {
+        const keywordMatched = trimmed.includes("pausa") ? "PAUSA" : trimmed.includes("pare") ? "PARE" : "PARAR";
+        handlePauseHandsFree('keyword', keywordMatched);
+        return;
+      }
+
+      // Command: Repeat / Read Ingredients
+      if (
+        trimmed.includes("ingrediente") ||
+        trimmed.includes("ingredientes") ||
+        trimmed.includes("repetir ingrediente") ||
+        trimmed.includes("quais ingredientes") ||
+        trimmed.includes("ler ingredientes") ||
+        trimmed.includes("listar ingredientes")
+      ) {
+        setRecognizedCommand(isPt ? "repetir ingredientes" : "read ingredients");
+        setTimeout(() => setRecognizedCommand(null), 2500);
+        handleReadIngredients();
+        return;
+      }
+
+      // Command: Voice Guide / Lista de Comandos / Ajuda
+      if (
+        trimmed.includes("comandos") ||
+        trimmed.includes("comando") ||
+        trimmed.includes("guia de voz") ||
+        trimmed.includes("ajuda") ||
+        trimmed.includes("quais comandos") ||
+        trimmed.includes("help") ||
+        trimmed.includes("commands")
+      ) {
+        setRecognizedCommand(isPt ? "guia de comandos" : "commands guide");
+        setTimeout(() => setRecognizedCommand(null), 2000);
+        setIsCommandsPanelOpen(true);
+        playSfx('pop');
+        vibrateVoiceCommandConfirmation('general');
+        return;
+      }
+
+      if (trimmed.includes("próximo") || trimmed.includes("proximo") || trimmed.includes("avançar") || trimmed.includes("avancar") || trimmed.includes("next") || trimmed.includes("vai para a frente")) {
+        setRecognizedCommand(isPt ? "próximo" : "next");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreeNext();
+        return;
+      }
+      if (trimmed.includes("voltar") || trimmed.includes("anterior") || trimmed.includes("back") || trimmed.includes("previous")) {
+        setRecognizedCommand(isPt ? "voltar" : "back");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreePrev();
+        return;
+      }
+      if (trimmed.includes("repetir") || trimmed.includes("de novo") || trimmed.includes("repeat") || trimmed.includes("ouvir")) {
+        setRecognizedCommand(isPt ? "repetir" : "repeat");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        handleHandsFreeRepeat();
+        return;
+      }
+      if (trimmed.includes("continuar") || trimmed.includes("retomar") || trimmed.includes("ler") || trimmed.includes("play") || trimmed.includes("resume") || trimmed.includes("prosseguir")) {
+        setRecognizedCommand(isPt ? "retomar" : "resume");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        setHandsFreePauseReason(null);
+        vibrateVoiceCommandConfirmation('resume');
+        playHandsFreeStep(handsFreeStepIndexRef.current, handsFreeRateRef.current);
+        return;
+      }
+      if (trimmed.includes("fechar") || trimmed.includes("sair") || trimmed.includes("exit") || trimmed.includes("close")) {
+        setRecognizedCommand(isPt ? "sair" : "exit");
+        setTimeout(() => setRecognizedCommand(null), 1500);
+        vibrateVoiceCommandConfirmation('general');
+        handleToggleHandsFree();
+        return;
+      }
+    }
     
     // Command: Next / Próximo
     if (trimmed.includes("próximo") || trimmed.includes("proximo") || trimmed.includes("avançar") || trimmed.includes("avancar") || trimmed.includes("seguinte") || trimmed.includes("next") || trimmed.includes("forward")) {
@@ -1185,7 +1720,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
       try {
         recognition = new SpeechRecognition();
         recognition.continuous = true;
-        recognition.interimResults = false;
+        recognition.interimResults = true;
         recognition.lang = language || 'pt-BR';
 
         recognition.onstart = () => {
@@ -1194,10 +1729,55 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
         };
 
         recognition.onresult = (event: any) => {
-          const latestResultIndex = event.resultIndex;
-          const transcript = event.results[latestResultIndex][0].transcript.trim().toLowerCase();
-          setVoiceTranscript(transcript);
-          handleVoiceCommand(transcript);
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i];
+            const transcript = result[0].transcript.trim().toLowerCase();
+            setVoiceTranscript(transcript);
+
+            // Check voice detection sensitivity against kitchen ambient noise
+            const measuredVolume = Math.max(recentPeakVolumeRef.current, currentAudioLevelRef.current);
+            const sensitivityCutoff = voiceSensitivityRef.current;
+            // When audio level is actively tracked (> 0), filter out sounds quieter than the sensitivity threshold (with 0.7 margin)
+            const isBelowThreshold = isHandsFreeActiveRef.current && measuredVolume > 0 && measuredVolume < (sensitivityCutoff * 0.7);
+
+            if (isBelowThreshold) {
+              // Ignore accidental noise triggers (frying pan, water running, clattering cutlery)
+              console.log(`[Hands-Free Sensitivity] Ruído de cozinha filtrado: ${measuredVolume}% < limiar ${sensitivityCutoff}%`);
+              setVoiceTranscript(`Ruído ambiente filtrado (${measuredVolume}% < ${sensitivityCutoff}%)`);
+              return;
+            }
+
+            // Fast-path immediate keyword pause: halts speech in <150ms before end-of-speech pause!
+            const isImmediatePauseWord =
+              transcript.includes("pausa") ||
+              transcript.includes("pausar") ||
+              transcript.includes("pare") ||
+              transcript.includes("parar") ||
+              transcript.includes("espera") ||
+              transcript.includes("aguarde") ||
+              transcript.includes("silêncio") ||
+              transcript.includes("silencio") ||
+              transcript.includes("calma") ||
+              transcript.includes("stop") ||
+              transcript.includes("pause");
+
+            if (isImmediatePauseWord) {
+              if (isHandsFreeActiveRef.current) {
+                const keywordMatched = transcript.includes("pausa") ? "PAUSA" : transcript.includes("pare") ? "PARE" : "PARAR";
+                handlePauseHandsFree('keyword', keywordMatched);
+              } else {
+                stopSpeech();
+                setIsPlaying(false);
+                isPlayingRef.current = false;
+              }
+              return;
+            }
+
+            // Route standard navigation commands on final results
+            if (result.isFinal) {
+              handleVoiceCommand(transcript);
+            }
+          }
         };
 
         recognition.onerror = (errEvent: any) => {
@@ -1485,6 +2065,22 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               label="Imprimir"
               servingsMultiplier={multiplier}
             />
+
+            {/* Hands-Free Button in Reading Mode */}
+            <button
+              type="button"
+              onClick={() => handleToggleHandsFree()}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer font-bold ${
+                isHandsFreeActive
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30'
+                  : activeContrast.buttonSecondary
+              }`}
+              title="Modo Hands-Free: a síntese de fala do navegador lê o passo a passo da receita em voz alta enquanto você cozinha"
+              id={`btn-hands-free-reading-${recipe.id}`}
+            >
+              <Headphones className="w-4 h-4" />
+              <span>{isHandsFreeActive ? 'Hands-Free Ativo' : 'Modo Hands-Free'}</span>
+            </button>
 
             {/* Exit Reading Mode Button */}
             <button
@@ -2288,6 +2884,25 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
           {!isSchedulingOpen && (
             <button
+              onClick={() => handleToggleHandsFree()}
+              className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer border shadow-sm ${
+                isHandsFreeActive
+                  ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-amber-400 font-extrabold shadow-amber-500/25 ring-2 ring-amber-400/50'
+                  : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 hover:border-amber-500/40 text-amber-700 dark:text-amber-400'
+              }`}
+              title="Ativar Modo Hands-Free: a síntese de fala do navegador lê o passo a passo da receita em voz alta enquanto você cozinha"
+              id={`btn-hands-free-mode-${recipe.id}`}
+            >
+              <Headphones className={`w-4 h-4 ${isHandsFreeActive ? 'animate-bounce text-white' : 'text-amber-500'}`} />
+              <span>{isHandsFreeActive ? 'Hands-Free Ativo 🔊' : 'Modo Hands-Free'}</span>
+              {isHandsFreeActive && (
+                <span className="w-2 h-2 rounded-full bg-white animate-ping ml-0.5" />
+              )}
+            </button>
+          )}
+
+          {!isSchedulingOpen && (
+            <button
               onClick={() => handleToggleReadingMode(true)}
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer"
               title="Ativar Modo de Leitura acessível (alto contraste e fontes ampliadas)"
@@ -2444,6 +3059,20 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             </h4>
             <div className="flex flex-wrap items-center gap-2">
               <button
+                id="toggle-hands-free-recipe-btn"
+                onClick={() => handleToggleHandsFree()}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 border shadow-sm cursor-pointer ${
+                  isHandsFreeActive
+                    ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-amber-400 shadow-md shadow-amber-500/30'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                }`}
+                title="Modo Hands-Free: a síntese de fala do navegador lê o passo a passo em voz alta enquanto você cozinha"
+              >
+                <Headphones className={`w-4 h-4 ${isHandsFreeActive ? 'animate-bounce text-white' : 'text-amber-500'}`} />
+                <span>{isHandsFreeActive ? 'Hands-Free Ligado 🎙️' : 'Modo Hands-Free'}</span>
+              </button>
+
+              <button
                 id="toggle-kitchen-mode-maximized-btn"
                 onClick={() => {
                   stopSpeech();
@@ -2527,6 +3156,390 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               />
             </div>
           )}
+
+          {/* Dedicated Hands-Free Cooking Mode Active Panel */}
+          <AnimatePresence>
+            {isHandsFreeActive && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, scale: 0.98 }}
+                animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                exit={{ opacity: 0, height: 0, scale: 0.98 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden mb-6"
+                id={`hands-free-active-panel-${recipe.id}`}
+              >
+                <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-950 border-2 border-amber-500/50 p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden ring-1 ring-amber-500/30">
+                  {/* Subtle Ambient Background Lighting */}
+                  <div className="absolute -top-16 -right-16 w-56 h-56 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Header Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/10 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30">
+                        <Headphones className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                            Modo Hands-Free
+                          </span>
+                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/25">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            Síntese de Fala (Web Speech API)
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-0.5 font-medium">
+                          Ouvindo comandos de voz e lendo o passo a passo em voz alta para você cozinhar livremente.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setIsCommandsPanelOpen((prev) => !prev);
+                          playSfx('tap');
+                        }}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+                          isCommandsPanelOpen
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-md shadow-emerald-500/20'
+                            : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300'
+                        }`}
+                        title="Ver lista de comandos de voz reconhecidos"
+                      >
+                        <BookOpen className="w-4 h-4 text-emerald-400" />
+                        <span>Comandos de Voz</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleHandsFree()}
+                        className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                        title="Encerrar Modo Hands-Free"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Sair do Hands-Free</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Real-time Hands-Free Active Listening Status Bar */}
+                  <HandsFreeListeningStatusBar
+                    isListening={isListening || isHandsFreeActive}
+                    isSpeaking={handsFreeSpeaking}
+                    isPaused={!handsFreeSpeaking && handsFreePauseReason !== null}
+                    pauseReason={handsFreePauseReason}
+                    currentAudioLevel={currentAudioLevel}
+                    voiceSensitivity={voiceSensitivity}
+                    onOpenSettings={() => {
+                      setIsVoiceSettingsOpen((prev) => !prev);
+                      playSfx('tap');
+                    }}
+                    isSettingsOpen={isVoiceSettingsOpen}
+                    onOpenCommandsGuide={() => {
+                      setIsCommandsPanelOpen((prev) => !prev);
+                      playSfx('tap');
+                    }}
+                    isCommandsGuideOpen={isCommandsPanelOpen}
+                    className="mt-4 relative z-10"
+                  />
+
+                  {/* Expandable Voice Detection Sensitivity & Kitchen Noise Gate Settings */}
+                  <AnimatePresence>
+                    {isVoiceSettingsOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, y: -8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden mt-3 relative z-20"
+                      >
+                        <HandsFreeVoiceSensitivitySettings
+                          voiceSensitivity={voiceSensitivity}
+                          onSensitivityChange={(val) => {
+                            setVoiceSensitivity(val);
+                            voiceSensitivityRef.current = val;
+                          }}
+                          currentAudioLevel={currentAudioLevel}
+                          onSimulateCommand={(cmd) => {
+                            setVoiceTranscript(`Simulado: "${cmd}"`);
+                            handleVoiceCommand(cmd);
+                          }}
+                          onClose={() => setIsVoiceSettingsOpen(false)}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Expandable Voice Commands Recognized Guide Panel */}
+                  <AnimatePresence>
+                    {isCommandsPanelOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, y: -8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden mt-3 relative z-20"
+                      >
+                        <HandsFreeVoiceCommandsPanel
+                          isOpen={isCommandsPanelOpen}
+                          onClose={() => setIsCommandsPanelOpen(false)}
+                          onSimulateCommand={(cmd) => {
+                            setVoiceTranscript(`Simulado: "${cmd}"`);
+                            handleVoiceCommand(cmd);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Step Card with Giant High-Legibility Text */}
+                  <div className="py-6 space-y-4 relative z-10">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5 bg-black/40 px-3 py-1 rounded-full border border-white/10">
+                          <ChefHat className="w-4 h-4 text-amber-400" />
+                          Passo {handsFreeStepIndex + 1} de {recipe.instructions.length}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono">
+                          ({Math.round(((handsFreeStepIndex + 1) / recipe.instructions.length) * 100)}% concluído)
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {handsFreeSpeaking && (
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold shadow-sm">
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                            <span>Lendo agora...</span>
+                            <span className="flex items-center gap-0.5 ml-1">
+                              <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                              <span className="w-1 h-4 bg-emerald-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                              <span className="w-1 h-2 bg-emerald-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                            </span>
+                          </div>
+                        )}
+                        {autoAdvanceCountdown !== null && (
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold animate-pulse">
+                            <Clock className="w-3.5 h-3.5 animate-spin" />
+                            <span>Próximo passo em {autoAdvanceCountdown}s...</span>
+                            <button
+                              onClick={handleHandsFreeNext}
+                              className="underline text-white font-bold ml-1 hover:text-amber-200 cursor-pointer"
+                            >
+                              Avançar já
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Visual Wave Animation Indicator (Speaking / Listening Real-Time Feedback) */}
+                    <HandsFreeWaveIndicator
+                      isSpeaking={handsFreeSpeaking}
+                      isListening={isListening}
+                      isVoiceModeActive={isVoiceModeActive}
+                      isPaused={!handsFreeSpeaking && handsFreePauseReason !== null}
+                      pauseReason={handsFreePauseReason}
+                      currentStepIndex={handsFreeStepIndex}
+                      totalSteps={recipe.instructions.length}
+                      recognizedCommand={recognizedCommand}
+                      voiceTranscript={voiceTranscript}
+                      voiceSensitivity={voiceSensitivity}
+                      currentAudioLevel={currentAudioLevel}
+                      onOpenVoiceSettings={() => {
+                        setIsVoiceSettingsOpen((prev) => !prev);
+                        playSfx('tap');
+                      }}
+                      onSimulateCommand={(cmd) => {
+                        setVoiceTranscript(`Simulado: "${cmd}"`);
+                        handleVoiceCommand(cmd);
+                      }}
+                      onSimulateGesture={() => {
+                        setVoiceTranscript(`Gesto simulado: Aceno de Mão ✋`);
+                        handleGestureDetected('wave');
+                      }}
+                      className="my-1"
+                    />
+
+                    {/* Sensor de Gesto por Câmera (Wave / Palm Gesture Instant Pause) */}
+                    <HandsFreeGestureDetector
+                      isActive={isHandsFreeActive}
+                      isEnabled={isGestureSensorEnabled}
+                      isSpeaking={handsFreeSpeaking}
+                      onToggleEnabled={(enabled) => {
+                        setIsGestureSensorEnabled(enabled);
+                        playSfx('tap');
+                      }}
+                      onGestureDetected={handleGestureDetected}
+                      lastGestureTrigger={lastGestureTrigger}
+                      className="my-1"
+                    />
+
+                    {/* Step Content */}
+                    <div className="p-6 sm:p-8 rounded-2xl bg-black/50 border border-white/10 relative shadow-inner">
+                      <p className="text-xl sm:text-2xl md:text-3xl font-medium leading-relaxed text-slate-100 tracking-tight">
+                        {recipe.instructions[handsFreeStepIndex]}
+                      </p>
+
+                      {/* Progress bar */}
+                      <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden mt-6 border border-white/10">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                          style={{ width: `${Math.round(((handsFreeStepIndex + 1) / recipe.instructions.length) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary Hands-Free Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10 relative z-10">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <button
+                        onClick={handleHandsFreePrev}
+                        disabled={handsFreeStepIndex === 0}
+                        className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                        title="Ir para o passo anterior"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Passo Anterior</span>
+                      </button>
+
+                      <button
+                        onClick={handlePauseResumeHandsFree}
+                        className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2.5 cursor-pointer transition-all active:scale-95 border shadow-lg ${
+                          handsFreeSpeaking
+                            ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300 shadow-amber-500/10'
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 border-emerald-400 shadow-emerald-500/20'
+                        }`}
+                        title={handsFreeSpeaking ? "Pausar leitura em voz alta" : "Ler passo em voz alta"}
+                      >
+                        {handsFreeSpeaking ? (
+                          <>
+                            <Pause className="w-4 h-4 fill-current" />
+                            <span>Pausar Leitura</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 fill-current" />
+                            <span>Ouvir Passo</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={handleHandsFreeRepeat}
+                        className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                        title="Repetir o passo atual"
+                      >
+                        <RotateCcw className="w-4 h-4 text-amber-400" />
+                        <span>Repetir</span>
+                      </button>
+
+                      <button
+                        onClick={handleReadIngredients}
+                        className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                        title="Malu lê em voz alta a lista completa de ingredientes"
+                      >
+                        <Utensils className="w-4 h-4 text-emerald-400" />
+                        <span>Ingredientes</span>
+                      </button>
+
+                      <button
+                        onClick={handleHandsFreeNext}
+                        disabled={handsFreeStepIndex === recipe.instructions.length - 1}
+                        className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-lg shadow-amber-500/20 border border-amber-400/30"
+                        title="Ir para o próximo passo"
+                      >
+                        <span>Próximo Passo</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Speed & Auto-Advance & Voice Sensitivity Settings & Commands Guide */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <div className="flex items-center gap-1 bg-black/40 p-1.5 rounded-2xl border border-white/10 text-xs">
+                        <span className="text-[10px] uppercase font-mono font-bold text-slate-400 px-2">Velocidade:</span>
+                        {[0.8, 1.0, 1.2].map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => handleChangeSpeechRate(r)}
+                            className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all ${
+                              handsFreeRate === r ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {r}x
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const next = !handsFreeAutoAdvance;
+                          setHandsFreeAutoAdvance(next);
+                          handsFreeAutoAdvanceRef.current = next;
+                          playSfx('tap');
+                        }}
+                        className={`px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                          handsFreeAutoAdvance
+                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-sm'
+                            : 'bg-slate-800 border-white/10 text-slate-400'
+                        }`}
+                        title="Avança automaticamente após a leitura de cada passo"
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${handsFreeAutoAdvance ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                        <span>Auto-Avanço</span>
+                      </button>
+
+                      {/* Voice Sensitivity Slider / Settings Button */}
+                      <button
+                        onClick={() => {
+                          setIsVoiceSettingsOpen((prev) => !prev);
+                          playSfx('tap');
+                        }}
+                        className={`px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                          isVoiceSettingsOpen
+                            ? 'bg-amber-500 text-slate-950 border-amber-300 font-black shadow-md shadow-amber-500/20'
+                            : 'bg-slate-800 hover:bg-slate-700/80 border-white/10 text-slate-200'
+                        }`}
+                        title="Ajustar sensibilidade de voz e controle de ruído de cozinha"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Sensibilidade ({voiceSensitivity}%)</span>
+                      </button>
+
+                      {/* Voice Commands Guide Button */}
+                      <button
+                        onClick={() => {
+                          setIsCommandsPanelOpen((prev) => !prev);
+                          playSfx('tap');
+                        }}
+                        className={`px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                          isCommandsPanelOpen
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black shadow-md shadow-emerald-500/20'
+                            : 'bg-slate-800 hover:bg-slate-700/80 border-white/10 text-emerald-300'
+                        }`}
+                        title="Ver painel com todos os comandos de voz reconhecidos"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Comandos 📖</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Hands-Free Voice Tips Footer */}
+                  <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1.5 text-amber-300/90 font-medium">
+                      <Mic className="w-3.5 h-3.5 text-amber-400" />
+                      Diga <strong>"PAUSA"</strong> ou acene a mão ✋ para parar imediatamente. Diga <strong>"repetir ingrediente"</strong>, <strong>"próximo"</strong> ou <strong>"continuar"</strong>.
+                    </span>
+                    <span className="font-mono text-[10px] text-slate-500">
+                      Powered by Browser Web Speech Synthesis API
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {isVoiceModeActive && (

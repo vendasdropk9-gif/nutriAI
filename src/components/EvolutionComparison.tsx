@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { UserProfile } from '../types';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Sparkles, Layers } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Evolution3DTimelapseModal } from './Evolution3DTimelapseModal';
+import { playSfx, vibrate } from '../lib/sensory';
 
 interface EvolutionComparisonProps {
   profile: UserProfile | null;
@@ -10,6 +12,7 @@ interface EvolutionComparisonProps {
 
 export function EvolutionComparison({ profile }: EvolutionComparisonProps) {
   const { t, language } = useLanguage();
+  const [isTimelapseOpen, setIsTimelapseOpen] = useState(false);
 
   const evolutionData = useMemo(() => {
     const now = new Date();
@@ -28,18 +31,34 @@ export function EvolutionComparison({ profile }: EvolutionComparisonProps) {
 
   return (
     <div className="bg-white dark:bg-slate-900/60 p-6 sm:p-8 rounded-[32px] border border-slate-200/80 dark:border-slate-800 shadow-md relative overflow-hidden space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-          <TrendingUp className="w-6 h-6" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              {t('evolution_comparison_title', 'Comparativo de Evolução')}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('evolution_comparison_desc', 'Tendência de peso e gordura corporal nos últimos 30 dias.')}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-            {t('evolution_comparison_title', 'Comparativo de Evolução')}
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('evolution_comparison_desc', 'Tendência de peso e gordura corporal nos últimos 30 dias.')}
-          </p>
-        </div>
+
+        {/* Button to open 3D Avatar Timelapse Modal */}
+        <button
+          type="button"
+          onClick={() => {
+            playSfx('crystal');
+            vibrate(15);
+            setIsTimelapseOpen(true);
+          }}
+          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs transition-all cursor-pointer shadow-lg shadow-purple-500/25 active:scale-95 flex items-center gap-2"
+        >
+          <Sparkles className="w-4 h-4 text-purple-200" />
+          <span>🎥 Timelapse 3D do Corpo (Antes vs. Hoje)</span>
+        </button>
       </div>
 
       <div className="h-[300px] w-full">
@@ -57,6 +76,15 @@ export function EvolutionComparison({ profile }: EvolutionComparisonProps) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Evolution 3D Timelapse Modal */}
+      {isTimelapseOpen && (
+        <Evolution3DTimelapseModal
+          isOpen={isTimelapseOpen}
+          onClose={() => setIsTimelapseOpen(false)}
+          profile={profile}
+        />
+      )}
     </div>
   );
 }

@@ -28,8 +28,12 @@ Responda APENAS com o texto da curiosidade.`;
     });
 
     return response.text || "Comer conscientemente melhora a digestão e ajuda seu corpo a absorver melhor os nutrientes!";
-  } catch (error) {
-    console.error("Erro ao gerar dica nutricional:", error);
+  } catch (error: any) {
+    if (error?.status === 429 || error?.message?.includes("RESOURCE_EXHAUSTED")) {
+      console.warn("Dica nutricional: Cota gratuita do Gemini atingida. Usando fallback.");
+    } else {
+      console.error("Erro ao gerar dica nutricional:", error);
+    }
     return "Comer conscientemente melhora a digestão e ajuda seu corpo a absorver melhor os nutrientes!";
   }
 };

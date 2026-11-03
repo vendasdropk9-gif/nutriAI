@@ -77,7 +77,11 @@ export function WeeklyReport({ profile, onNavigate, onUpdateProfile }: WeeklyRep
         return {
           ...prev,
           masterPlan: {
-            ...(prev.masterPlan || {}),
+            ...(prev.masterPlan || {
+              workoutFocus: 'Geral',
+              nutritionFocus: 'Equilíbrio',
+              adaptiveNotes: 'Sem adaptações'
+            }),
             dailyCalories: tempCalorieGoal,
             macros: {
               ...(prev.masterPlan?.macros || { protein: 140, carbs: 200, fat: 65 }),

@@ -16,13 +16,13 @@ import { NotificationSystem, AppNotification } from './components/NotificationSy
 import { saveProfileToIndexedDB, loadProfileFromIndexedDB } from './lib/profileStorageIDB';
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
+import { prefetchMealImages } from './lib/mealImagePrefetcher';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
 
 // Aggressive Code Splitting (React.lazy) to minimize main bundle & maximize splash screen response speed
 const Generator = lazy(() => import('./components/Generator').then(m => ({ default: m.Generator })));
 const Profile = lazy(() => import('./components/Profile').then(m => ({ default: m.Profile })));
 const FoodGalleryBanner = lazy(() => import('./components/FoodGalleryBanner').then(m => ({ default: m.FoodGalleryBanner })));
-const PartnerBanner = lazy(() => import('./components/PartnerBanner').then(m => ({ default: m.PartnerBanner })));
 const LiveAssistant = lazy(() => import('./components/LiveAssistant').then(m => ({ default: m.LiveAssistant })));
 const FeedbackSystem = lazy(() => import('./components/FeedbackSystem').then(m => ({ default: m.FeedbackSystem })));
 const WelcomeTour = lazy(() => import('./components/WelcomeTour').then(m => ({ default: m.WelcomeTour })));
@@ -134,8 +134,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     }, 2200);
     return () => clearTimeout(splashTimer);
   }, []);
-  const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
-  
+
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
   const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
   const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
@@ -522,6 +521,10 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     });
   };
 
+  useEffect(() => {
+    prefetchMealImages(profile?.mealPlan);
+  }, [profile?.mealPlan]);
+
   const awardPoints = (amount: number, reason: string) => {
     updateProfile(prev => {
       if (!prev) return prev;
@@ -614,10 +617,10 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
       return <Login />;
     }
 
-    // Enforce email verification (if not Google and not bypassed)
+    // Enforce email verification (if not Google)
     const isGoogleProvider = user?.providerData?.some(p => p.providerId === 'google.com');
-    if (!user.emailVerified && !isGoogleProvider && !emailVerificationBypassed) {
-      return <VerifyEmailScreen user={user} onVerified={() => setEmailVerificationBypassed(true)} />;
+    if (!user.emailVerified && !isGoogleProvider) {
+      return <VerifyEmailScreen user={user} onVerified={() => {}} />;
     }
 
     if (isLocked) {
@@ -824,9 +827,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         <DraggableNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
-      <Suspense fallback={null}>
-        <PartnerBanner />
-      </Suspense>
+      {/* PartnerBanner removed */}
 
       <main className={`relative z-10 flex-1 flex flex-col min-h-0 w-full mx-auto transition-all duration-500 ${
         activeTab === 'frescor' 

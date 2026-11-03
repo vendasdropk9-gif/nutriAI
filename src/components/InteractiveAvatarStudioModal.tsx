@@ -22,9 +22,14 @@ import {
   Dumbbell,
   ShieldCheck,
   Maximize2,
-  Share2
+  Share2,
+  Flame,
+  Scale,
+  Ruler,
+  SlidersHorizontal
 } from 'lucide-react';
 import { AvatarAnatomico } from './AvatarAnatomico';
+import { Evolution3DTimelapseModal } from './Evolution3DTimelapseModal';
 import {
   EXERCISE_DATABASE,
   DetailedExercise,
@@ -34,7 +39,7 @@ import {
 import { UserProfile } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
-import { avatarGlobalStore } from '../lib/avatarGlobalState';
+import { avatarGlobalStore, useAvatarGlobalState, SomatotypeType } from '../lib/avatarGlobalState';
 
 export interface InteractiveAvatarStudioModalProps {
   isOpen: boolean;
@@ -196,8 +201,12 @@ export function InteractiveAvatarStudioModal({
   profile,
   initialExerciseId = 'seated-lateral-raises'
 }: InteractiveAvatarStudioModalProps) {
+  // Global Avatar Morphing State
+  const globalAvatarState = useAvatarGlobalState();
+  const { bodyFatPercentage, somatotype, heightCm, shoulderWaistRatio } = globalAvatarState;
+
   // Navigation & Tool State
-  const [activeTab, setActiveTab] = useState<'poses' | 'exercises' | 'anatomy' | 'style'>('poses');
+  const [activeTab, setActiveTab] = useState<'poses' | 'exercises' | 'anatomy' | 'style' | 'morphing' | 'outfit'>('poses');
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
 
   // Active Pose / Exercise Selection
@@ -221,9 +230,10 @@ export function InteractiveAvatarStudioModal({
   const [skinTexture, setSkinTexture] = useState<number>(0.65);
   const [customSkinTone, setCustomSkinTone] = useState<string | undefined>(profile?.skinTone || undefined);
 
-  // Audio & Speech
+  // Audio & Speech & Modals
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [screenshotSuccess, setScreenshotSuccess] = useState<boolean>(false);
+  const [isTimelapseOpen, setIsTimelapseOpen] = useState<boolean>(false);
 
   // Sync initial exercise if provided
   useEffect(() => {
@@ -371,6 +381,21 @@ export function InteractiveAvatarStudioModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Timelapse 3D Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx('crystal');
+                vibrate(15);
+                setIsTimelapseOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/40 text-xs font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
+              title="Abrir Comparativo 3D de Evolução e Timelapse Corporal"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+              <span className="hidden sm:inline">Timelapse 3D</span>
+            </button>
+
             {/* Snapshot Button */}
             <button
               type="button"
@@ -556,6 +581,8 @@ export function InteractiveAvatarStudioModal({
                     { id: 'poses' as const, label: 'Poses Especiais', icon: Sparkles },
                     { id: 'exercises' as const, label: 'Exercícios 3D', icon: Dumbbell },
                     { id: 'anatomy' as const, label: 'Atlas Muscular', icon: Activity },
+                    { id: 'morphing' as const, label: 'Biotipo & Morphing', icon: SlidersHorizontal },
+                    { id: 'outfit' as const, label: 'Outfit Studio', icon: Layers },
                     { id: 'style' as const, label: 'Estilo & Gênero', icon: Sliders }
                   ].map(({ id, label, icon: Icon }) => (
                     <button
@@ -849,9 +876,315 @@ export function InteractiveAvatarStudioModal({
                   </div>
                 </div>
               )}
+
+              {/* TAB CONTENT 5: BIOTIPO & MORPHING CORPORAL */}
+              {activeTab === 'morphing' && (
+                <div className="space-y-3 pt-1">
+                  {/* Body Fat Percentage Slider */}
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                        <Flame className="w-4 h-4 text-amber-400" />
+                        <span>Percentual de Gordura Corporal Estimado:</span>
+                      </span>
+                      <span className="text-xs font-mono font-black text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+                        {bodyFatPercentage}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="8"
+                        max="35"
+                        step="1"
+                        value={bodyFatPercentage}
+                        onChange={(e) => {
+                          avatarGlobalStore.setBodyFatPercentage(Number(e.target.value));
+                        }}
+                        className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      />
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-white/10 shrink-0">
+                        {bodyFatPercentage <= 11
+                          ? '🔥 Trincado Atleta'
+                          : bodyFatPercentage <= 16
+                          ? '⚡ Atlético Definido'
+                          : bodyFatPercentage <= 21
+                          ? '🌱 Natural Encorpado'
+                          : '🏋️ Suave / Endomorfo'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Somatotype Selector */}
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                        <Scale className="w-4 h-4 text-emerald-400" />
+                        <span>Biotipo Somatotópico:</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {somatotype === 'ectomorph' ? '⚡ Ectomorfo (Longilíneo & Magro)' : somatotype === 'endomorph' ? '🔥 Endomorfo (Robusto & Força)' : '💪 Mesomorfo (Atlético & V-Taper)'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'ectomorph' as const, label: '⚡ Ectomorfo', bf: 10, sw: 1.1, desc: 'Longilíneo / Esbelto' },
+                        { id: 'mesomorph' as const, label: '💪 Mesomorfo', bf: 14, sw: 1.3, desc: 'Atlético / V-Taper' },
+                        { id: 'endomorph' as const, label: '🔥 Endomorfo', bf: 22, sw: 1.0, desc: 'Robusto / Força' },
+                      ].map((s) => {
+                        const isSelected = somatotype === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(12);
+                              avatarGlobalStore.setSomatotype(s.id);
+                              avatarGlobalStore.setBodyFatPercentage(s.bf);
+                              avatarGlobalStore.setShoulderWaistRatio(s.sw);
+                            }}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 active:scale-95 ${
+                              isSelected
+                                ? 'bg-emerald-500 text-slate-950 font-black border-emerald-300 shadow-lg shadow-emerald-500/20'
+                                : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="text-xs font-bold">{s.label}</div>
+                            <div className={`text-[9px] ${isSelected ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+                              {s.desc}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Height & V-Taper Sliders Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Height Slider */}
+                    <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                          <Ruler className="w-3.5 h-3.5 text-cyan-400" /> Altura Estimada:
+                        </span>
+                        <span className="font-mono font-bold text-cyan-300">{heightCm} cm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="145"
+                        max="210"
+                        step="1"
+                        value={heightCm}
+                        onChange={(e) => avatarGlobalStore.setHeightCm(Number(e.target.value))}
+                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      />
+                    </div>
+
+                    {/* Shoulder-Waist V-Taper Ratio Slider */}
+                    <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-rose-400" /> Proporção V-Taper:
+                        </span>
+                        <span className="font-mono font-bold text-rose-300">{shoulderWaistRatio.toFixed(2)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.80"
+                        max="1.60"
+                        step="0.05"
+                        value={shoulderWaistRatio}
+                        onChange={(e) => avatarGlobalStore.setShoulderWaistRatio(Number(e.target.value))}
+                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Reset Button */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSfx('tap');
+                        vibrate(10);
+                        avatarGlobalStore.resetBodyMorphing();
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Restaurar Biotipo Padrão</span>
+                    </button>
+
+                    <span className="text-[10px] text-emerald-400/80 font-mono">
+                      ✓ Alterações aplicadas em tempo real ao modelo 3D
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB CONTENT 6: OUTFIT STUDIO (ROUPAS & ACESSÓRIOS) */}
+              {activeTab === 'outfit' && (
+                <div className="space-y-3 pt-1">
+                  {/* Top Wear Selection */}
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <span>Traje Superior (Camisa / Regata):</span>
+                    </span>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'tank_top' as const, label: '🎽 Regata Atlético' },
+                        { id: 'compression_shirt' as const, label: '👕 Compressão' },
+                        { id: 'tshirt' as const, label: '👕 Camiseta Pro' },
+                        { id: 'bare_chest' as const, label: '💪 Sem Camisa' },
+                      ].map((item) => {
+                        const isSelected = globalAvatarState.outfitTop === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(10);
+                              avatarGlobalStore.setOutfitTop(item.id);
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center active:scale-95 ${
+                              isSelected
+                                ? 'bg-emerald-500 text-slate-950 font-black border-emerald-300 shadow-md shadow-emerald-500/20'
+                                : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Bottom Wear Selection */}
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-cyan-400" />
+                      <span>Traje Inferior (Shorts / Legging / Jogger):</span>
+                    </span>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'shorts' as const, label: '🩳 Shorts Esportivo' },
+                        { id: 'leggings' as const, label: '👖 Legging Compressão' },
+                        { id: 'jogger' as const, label: '👖 Calça Jogger' },
+                      ].map((item) => {
+                        const isSelected = globalAvatarState.outfitBottom === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(10);
+                              avatarGlobalStore.setOutfitBottom(item.id);
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center active:scale-95 ${
+                              isSelected
+                                ? 'bg-cyan-500 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/20'
+                                : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Outfit Palette & Accessories Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Color Palette */}
+                    <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Cor do Traje:
+                      </span>
+                      <div className="flex items-center gap-2 pt-1">
+                        {[
+                          { label: 'Esmeralda', hex: '#10b981' },
+                          { label: 'Azul Cyber', hex: '#3b82f6' },
+                          { label: 'Vermelho Ruby', hex: '#ef4444' },
+                          { label: 'Grafite', hex: '#334155' },
+                          { label: 'Roxo Ametista', hex: '#8b5cf6' },
+                          { label: 'Âmbar', hex: '#f59e0b' },
+                        ].map((c) => (
+                          <button
+                            key={c.hex}
+                            type="button"
+                            onClick={() => {
+                              playSfx('tap');
+                              vibrate(8);
+                              avatarGlobalStore.setOutfitColor(c.hex);
+                            }}
+                            className={`w-7 h-7 rounded-full border-2 transition-all cursor-pointer ${
+                              globalAvatarState.outfitColor === c.hex
+                                ? 'border-white scale-110 shadow-lg'
+                                : 'border-transparent hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                            title={c.label}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Accessories Toggles */}
+                    <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <span className="text-xs text-slate-200 font-bold flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-purple-400" /> Acessórios Fitness:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {[
+                          { key: 'smartwatch' as const, label: '⌚ Smartwatch' },
+                          { key: 'wristbands' as const, label: '🧵 Faixas de Pulso' },
+                          { key: 'liftingStraps' as const, label: '🥊 Luvas / Straps' },
+                        ].map((acc) => {
+                          const isActive = globalAvatarState.accessories[acc.key];
+                          return (
+                            <button
+                              key={acc.key}
+                              type="button"
+                              onClick={() => {
+                                playSfx('tap');
+                                vibrate(8);
+                                avatarGlobalStore.setAccessory(acc.key, !isActive);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 border ${
+                                isActive
+                                  ? 'bg-purple-500 text-white border-purple-300 shadow-md shadow-purple-500/20'
+                                  : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-white'
+                              }`}
+                            >
+                              {acc.label} {isActive ? '✓' : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </div>
+
+        {/* Evolution 3D Timelapse Modal */}
+        {isTimelapseOpen && (
+          <Evolution3DTimelapseModal
+            isOpen={isTimelapseOpen}
+            onClose={() => setIsTimelapseOpen(false)}
+            profile={profile || null}
+          />
+        )}
 
       </div>
     </AnimatePresence>

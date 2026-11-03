@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChefHat, X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX, Mic, HelpCircle, BookOpen, Clock, Play, Pause, Square, Plus, CheckCircle2, BellRing, Sparkles } from 'lucide-react';
+import { ChefHat, X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX, Mic, HelpCircle, BookOpen, Clock, Play, Pause, Square, Plus, CheckCircle2, BellRing, Sparkles, Sliders } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from '../contexts/LanguageContext';
 import { speak, stopSpeech } from '../lib/speech';
-import { playSfx, vibrate } from '../lib/sensory';
+import { playSfx, vibrate, vibrateVoiceCommandConfirmation } from '../lib/sensory';
+import { HandsFreeListeningStatusBar } from './HandsFreeListeningStatusBar';
+import { HandsFreeVoiceSensitivitySettings } from './HandsFreeVoiceSensitivitySettings';
+import { HandsFreeVoiceCommandsPanel } from './HandsFreeVoiceCommandsPanel';
+import { matchVoiceCommandKey } from '../lib/customVoiceAliases';
 
 interface KitchenModeModalProps {
   isOpen: boolean;
@@ -39,6 +44,134 @@ export function KitchenModeModal({
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [isTimerCompleted, setIsTimerCompleted] = useState<boolean>(false);
   const [timerLabel, setTimerLabel] = useState<string>('');
+  
+  // Voice Detection Sensitivity & Ambient Noise Gate State
+  const [voiceSensitivity, setVoiceSensitivity] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('nutri_handsfree_voice_sensitivity');
+      return saved ? Number(saved) : 35;
+    } catch {
+      return 35;
+    }
+  });
+  const [currentAudioLevel, setCurrentAudioLevel] = useState<number>(0);
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState<boolean>(false);
+  const [isCommandsPanelOpen, setIsCommandsPanelOpen] = useState<boolean>(false);
+  const voiceSensitivityRef = useRef(35);
+  const currentAudioLevelRef = useRef(0);
+  const recentPeakVolumeRef = useRef(0);
+  const audioContextRef = useRef<any>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioAnimFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    voiceSensitivityRef.current = voiceSensitivity;
+    try {
+      localStorage.setItem('nutri_handsfree_voice_sensitivity', String(voiceSensitivity));
+    } catch (e) {}
+  }, [voiceSensitivity]);
+
+  useEffect(() => {
+    currentAudioLevelRef.current = currentAudioLevel;
+  }, [currentAudioLevel]);
+
+  // Real-time Audio Level & Microphone Volume Monitoring via Web Audio API
+  useEffect(() => {
+    if (!isOpen) {
+      if (audioAnimFrameRef.current) {
+        cancelAnimationFrame(audioAnimFrameRef.current);
+        audioAnimFrameRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      setCurrentAudioLevel(0);
+      currentAudioLevelRef.current = 0;
+      return;
+    }
+
+    let isCancelled = false;
+
+    const initAudioMeter = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+
+        if (isCancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        audioStreamRef.current = stream;
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const audioCtx = new AudioContextClass();
+        audioContextRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.25;
+
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let peakDecay = 0;
+
+        const updateMeter = () => {
+          if (isCancelled) return;
+          analyser.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / dataArray.length;
+          const rawPercentage = Math.min(100, Math.round((average / 110) * 100));
+
+          peakDecay = Math.max(rawPercentage, peakDecay * 0.85);
+          recentPeakVolumeRef.current = peakDecay;
+          currentAudioLevelRef.current = rawPercentage;
+          setCurrentAudioLevel(rawPercentage);
+
+          audioAnimFrameRef.current = requestAnimationFrame(updateMeter);
+        };
+
+        audioAnimFrameRef.current = requestAnimationFrame(updateMeter);
+      } catch (err) {
+        console.warn("Hands-Free Web Audio meter init note:", err);
+      }
+    };
+
+    initAudioMeter();
+
+    return () => {
+      isCancelled = true;
+      if (audioAnimFrameRef.current) {
+        cancelAnimationFrame(audioAnimFrameRef.current);
+        audioAnimFrameRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
+  }, [isOpen]);
 
   const recognitionRef = useRef<any>(null);
   const activeStepRef = useRef(0);
@@ -205,75 +338,87 @@ export function KitchenModeModal({
       return;
     }
 
-    // 3. Next Step voice triggers: 'próximo', 'next', 'avançar', 'continua'
-    if (
-      text.includes('próximo') ||
-      text.includes('proximo') ||
-      text.includes('avançar') ||
-      text.includes('avancar') ||
-      text.includes('next') ||
-      text.includes('continua') ||
-      text.includes('seguinte')
-    ) {
+    // 3. Custom Voice Aliases & Base Commands Lookup
+    const { matchedKey, matchedPhrase } = matchVoiceCommandKey(text);
+
+    if (matchedKey === 'next') {
       setRecognizedCommand('PRÓXIMO PASSO');
       if (activeStepRef.current < totalSteps - 1) {
         const nextIdx = activeStepRef.current + 1;
         setCurrentStepIndex(nextIdx);
         playSfx('tap');
-        vibrate(20);
+        vibrateVoiceCommandConfirmation('next');
         speakCurrentStep(nextIdx);
       }
       return;
     }
 
-    // 4. Previous Step voice triggers: 'voltar', 'anterior', 'atrás', 'back', 'previous'
-    if (
-      text.includes('voltar') ||
-      text.includes('anterior') ||
-      text.includes('atrás') ||
-      text.includes('atras') ||
-      text.includes('back') ||
-      text.includes('previous')
-    ) {
+    if (matchedKey === 'prev') {
       setRecognizedCommand('PASSO ANTERIOR');
       if (activeStepRef.current > 0) {
         const prevIdx = activeStepRef.current - 1;
         setCurrentStepIndex(prevIdx);
         playSfx('tap');
-        vibrate(20);
+        vibrateVoiceCommandConfirmation('prev');
         speakCurrentStep(prevIdx);
       }
       return;
     }
 
-    // 5. Repeat Step voice triggers: 'repetir', 'de novo', 'novamente', 'repeat', 'ouvir'
-    if (
-      text.includes('repetir') ||
-      text.includes('de novo') ||
-      text.includes('novamente') ||
-      text.includes('repeat') ||
-      text.includes('ouvir') ||
-      text.includes('ler')
-    ) {
+    if (matchedKey === 'repeat') {
       setRecognizedCommand('REPETIR PASSO');
       playSfx('pop');
-      vibrate(20);
+      vibrateVoiceCommandConfirmation('repeat');
       speakCurrentStep(activeStepRef.current);
       return;
     }
 
-    // 6. Pause / Stop speech triggers: 'parar', 'pausar', 'silêncio', 'stop', 'pause'
-    if (
-      text.includes('parar voz') ||
-      text.includes('pausar voz') ||
-      text.includes('silêncio') ||
-      text.includes('silencio') ||
-      text.includes('stop speech')
-    ) {
+    if (matchedKey === 'ingredients') {
+      setRecognizedCommand('REPETIR INGREDIENTES');
+      playSfx('crystal');
+      vibrateVoiceCommandConfirmation('ingredients');
+      const ingList = ingredients && ingredients.length > 0 ? ingredients.join('. ') : 'Nenhum ingrediente listado.';
+      speakText(`Ingredientes para ${recipeTitle}: ${ingList}. Diga próximo ou continuar para voltar ao modo de preparo.`);
+      return;
+    }
+
+    if (matchedKey === 'pause') {
       setRecognizedCommand('PAUSAR ÁUDIO');
       stopSpeech();
       setIsSpeaking(false);
       playSfx('tap');
+      vibrateVoiceCommandConfirmation('pause');
+      return;
+    }
+
+    if (matchedKey === 'resume') {
+      setRecognizedCommand('RETOMAR ÁUDIO');
+      playSfx('tap');
+      vibrateVoiceCommandConfirmation('resume');
+      speakCurrentStep(activeStepRef.current);
+      return;
+    }
+
+    if (matchedKey === 'exit') {
+      setRecognizedCommand('ENCERRAR');
+      playSfx('pop');
+      vibrateVoiceCommandConfirmation('general');
+      onClose();
+      return;
+    }
+
+    // 4. Fallback Commands Guide voice trigger: 'comandos', 'ajuda', 'guia de voz'
+    if (
+      text.includes('comandos') ||
+      text.includes('comando') ||
+      text.includes('guia de voz') ||
+      text.includes('ajuda') ||
+      text.includes('quais comandos')
+    ) {
+      setRecognizedCommand('GUIA DE COMANDOS');
+      setIsCommandsPanelOpen(true);
+      playSfx('pop');
+      vibrateVoiceCommandConfirmation('general');
       return;
     }
   };
@@ -319,6 +464,13 @@ export function KitchenModeModal({
           }
         }
         if (finalTranscript) {
+          const measuredVolume = Math.max(recentPeakVolumeRef.current, currentAudioLevelRef.current);
+          const sensitivityCutoff = voiceSensitivityRef.current;
+          if (measuredVolume > 0 && measuredVolume < sensitivityCutoff * 0.7) {
+            console.log(`[KitchenMode Sensitivity] Ruído ambiente filtrado: ${measuredVolume}% < limiar ${sensitivityCutoff}%`);
+            setVoiceTranscript(`Ruído ambiente filtrado (${measuredVolume}% < ${sensitivityCutoff}%)`);
+            return;
+          }
           processTranscript(finalTranscript);
         }
       };
@@ -414,8 +566,35 @@ export function KitchenModeModal({
           )}
 
           <button
+            onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+              isVoiceSettingsOpen
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 font-black'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+            }`}
+            title="Ajustar sensibilidade de voz e controle de ruído de cozinha"
+          >
+            <Sliders className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Sensibilidade:</span>
+            <span className="font-mono">{voiceSensitivity}%</span>
+          </button>
+
+          <button
+            onClick={() => setIsCommandsPanelOpen(!isCommandsPanelOpen)}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+              isCommandsPanelOpen
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/20 font-black'
+                : 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-slate-700'
+            }`}
+            title="Ver painel com todos os comandos de voz reconhecidos"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Comandos</span>
+          </button>
+
+          <button
             onClick={() => setShowHelp(!showHelp)}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all"
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
             title="Ajuda com comandos de voz"
           >
             <HelpCircle className="w-5 h-5" />
@@ -423,7 +602,7 @@ export function KitchenModeModal({
 
           <button
             onClick={onClose}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs transition-all active:scale-95 cursor-pointer"
           >
             <X className="w-4 h-4" />
             <span className="hidden sm:inline">{t('exit_kitchen_mode', 'Sair')}</span>
@@ -461,6 +640,68 @@ export function KitchenModeModal({
 
         {/* Center Giant Step Display Area */}
         <main className="flex-1 flex flex-col justify-between p-6 sm:p-10 max-w-4xl mx-auto w-full overflow-y-auto custom-scrollbar">
+          {/* Dynamic Active Listening Status Bar */}
+          <div className="mb-4">
+            <HandsFreeListeningStatusBar
+              isListening={isListening}
+              isSpeaking={isSpeaking}
+              isPaused={false}
+              currentAudioLevel={currentAudioLevel}
+              voiceSensitivity={voiceSensitivity}
+              onOpenSettings={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
+              isSettingsOpen={isVoiceSettingsOpen}
+              onOpenCommandsGuide={() => setIsCommandsPanelOpen(!isCommandsPanelOpen)}
+              isCommandsGuideOpen={isCommandsPanelOpen}
+            />
+          </div>
+
+          {/* Expandable Voice Sensitivity Settings */}
+          <AnimatePresence>
+            {isVoiceSettingsOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -8 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden mb-4 relative z-20"
+              >
+                <HandsFreeVoiceSensitivitySettings
+                  voiceSensitivity={voiceSensitivity}
+                  onSensitivityChange={(val) => {
+                    setVoiceSensitivity(val);
+                    voiceSensitivityRef.current = val;
+                  }}
+                  currentAudioLevel={currentAudioLevel}
+                  onSimulateCommand={(cmd) => {
+                    processTranscript(cmd);
+                  }}
+                  onClose={() => setIsVoiceSettingsOpen(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Expandable Voice Commands Recognized Guide Panel */}
+          <AnimatePresence>
+            {isCommandsPanelOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -8 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden mb-4 relative z-20"
+              >
+                <HandsFreeVoiceCommandsPanel
+                  isOpen={isCommandsPanelOpen}
+                  onClose={() => setIsCommandsPanelOpen(false)}
+                  onSimulateCommand={(cmd) => {
+                    processTranscript(cmd);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Progress Header & Counter */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-mono uppercase tracking-widest text-slate-400">

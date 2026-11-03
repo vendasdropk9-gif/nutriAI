@@ -564,6 +564,24 @@ async function startServer() {
     }
   });
 
+  app.post("/api/generate-image", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const result = await (ai as any).models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt,
+        config: {
+          numberOfImages: 1,
+          outputMimeType: 'image/jpeg'
+        }
+      });
+      res.json({ imageUrl: result.generatedImages[0].image.imageBytes });
+    } catch (e) {
+      console.error("Generate image failed:", e);
+      res.status(500).json({ error: "Failed to generate image" });
+    }
+  });
+
   // Serve the manual directly
   app.get(["/manual", "/manual.html"], (req, res) => {
     res.sendFile(path.join(process.cwd(), "public", "manual_nutriai.html"));
@@ -599,7 +617,6 @@ async function startServer() {
     }
   });
 
-  // POST Generate Next-Day Meal Plan (Gemini API with Pantry & Profile Restrictions)
   app.post("/api/generate-next-day-plan", express.json(), async (req, res) => {
     const startTime = Date.now();
     try {
@@ -617,6 +634,13 @@ async function startServer() {
       return res.json({ success: true, plan });
     } catch (err: any) {
       const durationMs = Date.now() - startTime;
+      const isQuota = err?.status === 429 || err?.message?.includes("RESOURCE_EXHAUSTED");
+      
+      if (isQuota) {
+        console.warn("Plano alimentar: Cota gratuita do Gemini atingida.");
+        return res.status(429).json({ error: "quota_exceeded" });
+      }
+
       console.error("Erro ao gerar plano para o dia seguinte com Gemini:", err);
 
       recordAiTelemetry({

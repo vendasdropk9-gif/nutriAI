@@ -133,12 +133,20 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             : "Next day meal plan generated successfully by Gemini API considering your profile restrictions and pantry items!",
           { voice: 'Aoede', lang: language }
         );
+      } else if (res.status === 429 || data.error === 'quota_exceeded') {
+        alert(language?.startsWith('pt') 
+          ? "Cota diária de IA atingida. Por favor, tente novamente em algumas horas." 
+          : "Daily AI quota reached. Please try again in a few hours.");
       } else {
-        alert("Não foi possível gerar o plano no momento. Tente novamente.");
+        alert(language?.startsWith('pt') 
+          ? "Não foi possível gerar o plano no momento. Tente novamente." 
+          : "Could not generate the plan at this moment. Please try again.");
       }
     } catch (err) {
       console.error("Erro ao solicitar plano do dia seguinte:", err);
-      alert("Erro ao conectar com a Gemini API para gerar o plano.");
+      alert(language?.startsWith('pt') 
+        ? "Erro ao conectar com a API para gerar o plano." 
+        : "Error connecting to the API to generate the plan.");
     } finally {
       setIsGeneratingNextDayPlan(false);
     }

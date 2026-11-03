@@ -7,6 +7,14 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initDatabaseIntegrityMonitor } from './lib/databaseIntegrityMonitor';
+import { initThemePalette } from './lib/themePalette';
+
+// Initialize saved custom theme color palette (--primary-color)
+try {
+  initThemePalette();
+} catch (e) {
+  console.warn('Theme palette initialization note:', e);
+}
 // import { analytics, logEvent, setAnalyticsCollectionEnabled } from './lib/firebase';
 
 // Auto-run database integrity monitoring for Firestore & Supabase in dev/runtime with error safety

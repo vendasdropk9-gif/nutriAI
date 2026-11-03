@@ -546,6 +546,26 @@ function SculptedAvatarModel({
   const chestCoreRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
 
+  // Global Body Morphing State
+  const globalAvatarState = useAvatarGlobalState();
+  const { bodyFatPercentage, somatotype, heightCm, shoulderWaistRatio } = globalAvatarState;
+
+  // Real-Time Body Morphing Scales Computation
+  const morphHeightScaleY = useMemo(() => Math.min(1.25, Math.max(0.75, heightCm / 175)), [heightCm]);
+  const morphShoulderScaleX = useMemo(() => Math.min(1.50, Math.max(0.75, shoulderWaistRatio / 1.20)), [shoulderWaistRatio]);
+
+  const morphBodyFatWaistScaleZ = useMemo(() => {
+    if (bodyFatPercentage <= 12) return 0.92;
+    if (bodyFatPercentage <= 18) return 1.0;
+    return 1.0 + ((bodyFatPercentage - 18) / 100) * 0.90;
+  }, [bodyFatPercentage]);
+
+  const morphSomatotypeScale = useMemo(() => {
+    if (somatotype === 'ectomorph') return { x: 0.90, z: 0.88 };
+    if (somatotype === 'endomorph') return { x: 1.15, z: 1.12 };
+    return { x: 1.0, z: 1.0 }; // mesomorph
+  }, [somatotype]);
+
   // Procedural skin micro-pore & roughness textures
   const skinTextures = useMemo(() => createProceduralSkinTextures(), []);
 
@@ -837,7 +857,15 @@ function SculptedAvatarModel({
   });
 
   return (
-    <group ref={groupRef} position={[0, -0.42, 0]}>
+    <group
+      ref={groupRef}
+      position={[0, -0.42, 0]}
+      scale={[
+        morphSomatotypeScale.x * morphShoulderScaleX,
+        morphHeightScaleY,
+        morphSomatotypeScale.z * morphBodyFatWaistScaleZ
+      ]}
+    >
       {/* Head Assembly (Faceless Minimalist or Cyber Head) */}
       <group ref={headRef} position={[0, 1.26, 0]}>
         {/* Sculpted Cranial Base & Jaw */}

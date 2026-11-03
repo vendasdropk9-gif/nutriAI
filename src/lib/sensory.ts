@@ -269,9 +269,35 @@ export const playSfx = (type: 'tap' | 'success' | 'notification' | 'pop' | 'crys
 };
 
 export const vibrate = (pattern: number | number[]) => {
-  if (typeof navigator !== 'undefined' && typeof window !== 'undefined' && userHasInteracted && typeof navigator.vibrate === 'function') {
+  if (typeof navigator !== 'undefined' && typeof window !== 'undefined' && typeof navigator.vibrate === 'function') {
     try {
       navigator.vibrate(pattern);
     } catch(e) {}
+  }
+};
+
+/**
+ * Feedback tátil (Vibration) exclusivo para confirmação sutil de comandos de voz no Modo Hands-Free.
+ * Garante que o usuário sinta que o aplicativo atendeu ao comando mesmo estando distante da tela na cozinha.
+ */
+export const vibrateVoiceCommandConfirmation = (type: 'pause' | 'resume' | 'next' | 'prev' | 'repeat' | 'ingredients' | 'general' = 'general') => {
+  if (type === 'pause') {
+    // Duplo pulso marcante em pausa imediata
+    vibrate([40, 50, 40]);
+  } else if (type === 'resume') {
+    // Pulso único suave ao retomar
+    vibrate(45);
+  } else if (type === 'next') {
+    // Sequência ascendente rápida de avanço
+    vibrate([25, 30, 35]);
+  } else if (type === 'prev') {
+    // Sequência sutil de retorno
+    vibrate([35, 30, 25]);
+  } else if (type === 'ingredients') {
+    // Três impulsos curtos para ingredientes
+    vibrate([25, 30, 25, 30, 25]);
+  } else {
+    // Pulso duplo padrão de confirmação de voz
+    vibrate([30, 40, 30]);
   }
 };

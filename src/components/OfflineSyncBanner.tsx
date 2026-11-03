@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WifiOff, RefreshCw, CheckCircle2, CloudUpload } from 'lucide-react';
+import { motion } from 'motion/react';
 import { getPendingOfflineMutations, flushOfflineMutations, PendingMutation } from '../lib/offlineSyncEngine';
 import { playSfx, vibrate } from '../lib/sensory';
 
@@ -71,7 +72,12 @@ export function OfflineSyncBanner() {
       {isSyncing && (
         <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-2xl border border-indigo-400/40 flex items-center justify-between gap-3 text-xs font-bold backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <RefreshCw className="w-5 h-5 shrink-0 animate-spin text-indigo-200" />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            >
+              <RefreshCw className="w-5 h-5 shrink-0 text-indigo-200" />
+            </motion.div>
             <div>
               <p className="font-extrabold flex items-center gap-1.5">
                 <span>Sincronização em Progresso</span>

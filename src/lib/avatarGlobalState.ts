@@ -6,6 +6,7 @@ export type AvatarCameraViewType = 'front' | 'side' | 'detail' | 'back';
 export type MuscleHighlightMode = 'all' | 'primary-only' | 'secondary-only' | 'none';
 
 export type MicroExpressionType = 'none' | 'smile' | 'wink' | 'double_blink' | 'joy_nod' | 'eyebrow_raise' | 'celebrate';
+export type SomatotypeType = 'ectomorph' | 'mesomorph' | 'endomorph';
 
 export interface AvatarGlobalState {
   gender: AvatarGenderType;
@@ -28,9 +29,27 @@ export interface AvatarGlobalState {
   microExpressionType: MicroExpressionType;
   microExpressionIntensity: number;
   microExpressionTimestamp: number;
+  // Morphing Corporal (Biotipo & Gordura)
+  bodyFatPercentage: number;
+  somatotype: SomatotypeType;
+  heightCm: number;
+  shoulderWaistRatio: number;
+  // Outfit & Accessories Studio
+  outfitTop: 'tank_top' | 'compression_shirt' | 'tshirt' | 'bare_chest';
+  outfitBottom: 'shorts' | 'leggings' | 'jogger';
+  outfitColor: string;
+  accessories: {
+    smartwatch: boolean;
+    wristbands: boolean;
+    liftingStraps: boolean;
+  };
 }
 
 const STORAGE_GENDER_KEY = 'nutriai_avatar_gender_pref';
+const STORAGE_BODYFAT_KEY = 'nutriai_avatar_bodyfat';
+const STORAGE_SOMATOTYPE_KEY = 'nutriai_avatar_somatotype';
+const STORAGE_HEIGHT_KEY = 'nutriai_avatar_height';
+const STORAGE_SW_RATIO_KEY = 'nutriai_avatar_sw_ratio';
 
 function getInitialGender(): AvatarGenderType {
   if (typeof window !== 'undefined') {
@@ -53,9 +72,64 @@ function getInitialGender(): AvatarGenderType {
   return 'male';
 }
 
+function getInitialBodyFat(gender: AvatarGenderType): number {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_BODYFAT_KEY);
+      if (stored) {
+        const num = Number(stored);
+        if (!isNaN(num) && num >= 5 && num <= 45) return num;
+      }
+    } catch {}
+  }
+  return gender === 'female' ? 20 : 14;
+}
+
+function getInitialSomatotype(): SomatotypeType {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_SOMATOTYPE_KEY) as SomatotypeType;
+      if (stored === 'ectomorph' || stored === 'mesomorph' || stored === 'endomorph') return stored;
+    } catch {}
+  }
+  return 'mesomorph';
+}
+
+function getInitialHeight(): number {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_HEIGHT_KEY);
+      if (stored) {
+        const num = Number(stored);
+        if (!isNaN(num) && num >= 130 && num <= 220) return num;
+      }
+      const profileStr = localStorage.getItem('nutri-profile');
+      if (profileStr) {
+        const p = JSON.parse(profileStr);
+        if (p.height && !isNaN(Number(p.height))) return Number(p.height);
+      }
+    } catch {}
+  }
+  return 175;
+}
+
+function getInitialSWRatio(): number {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_SW_RATIO_KEY);
+      if (stored) {
+        const num = Number(stored);
+        if (!isNaN(num) && num >= 0.7 && num <= 1.8) return num;
+      }
+    } catch {}
+  }
+  return 1.2;
+}
+
 class AvatarGlobalStateStore {
+  private initialGender = getInitialGender();
   private state: AvatarGlobalState = {
-    gender: getInitialGender(),
+    gender: this.initialGender,
     cameraView: 'front',
     isPlaying: true,
     playbackSpeed: 1,
@@ -74,7 +148,19 @@ class AvatarGlobalStateStore {
     fatigueLevel: 0,
     microExpressionType: 'none',
     microExpressionIntensity: 0,
-    microExpressionTimestamp: 0
+    microExpressionTimestamp: 0,
+    bodyFatPercentage: getInitialBodyFat(this.initialGender),
+    somatotype: getInitialSomatotype(),
+    heightCm: getInitialHeight(),
+    shoulderWaistRatio: getInitialSWRatio(),
+    outfitTop: 'tank_top',
+    outfitBottom: 'shorts',
+    outfitColor: '#10b981',
+    accessories: {
+      smartwatch: true,
+      wristbands: false,
+      liftingStraps: false
+    }
   };
 
   private listeners = new Set<() => void>();
@@ -269,6 +355,101 @@ class AvatarGlobalStateStore {
         this.emitChange();
       }
     }, durationMs);
+  }
+
+  public setBodyFatPercentage(bf: number) {
+    const clamped = Math.min(45, Math.max(5, Math.round(bf)));
+    if (this.state.bodyFatPercentage !== clamped) {
+      this.state.bodyFatPercentage = clamped;
+      try {
+        localStorage.setItem(STORAGE_BODYFAT_KEY, String(clamped));
+      } catch {}
+      this.emitChange();
+    }
+  }
+
+  public setSomatotype(somatotype: SomatotypeType) {
+    if (this.state.somatotype !== somatotype) {
+      this.state.somatotype = somatotype;
+      try {
+        localStorage.setItem(STORAGE_SOMATOTYPE_KEY, somatotype);
+      } catch {}
+      this.emitChange();
+    }
+  }
+
+  public setHeightCm(heightCm: number) {
+    const clamped = Math.min(220, Math.max(130, Math.round(heightCm)));
+    if (this.state.heightCm !== clamped) {
+      this.state.heightCm = clamped;
+      try {
+        localStorage.setItem(STORAGE_HEIGHT_KEY, String(clamped));
+      } catch {}
+      this.emitChange();
+    }
+  }
+
+  public setShoulderWaistRatio(swRatio: number) {
+    const clamped = Math.min(1.8, Math.max(0.7, Number(swRatio.toFixed(2))));
+    if (this.state.shoulderWaistRatio !== clamped) {
+      this.state.shoulderWaistRatio = clamped;
+      try {
+        localStorage.setItem(STORAGE_SW_RATIO_KEY, String(clamped));
+      } catch {}
+      this.emitChange();
+    }
+  }
+
+  public setOutfitTop(top: 'tank_top' | 'compression_shirt' | 'tshirt' | 'bare_chest') {
+    if (this.state.outfitTop !== top) {
+      this.state.outfitTop = top;
+      this.emitChange();
+    }
+  }
+
+  public setOutfitBottom(bottom: 'shorts' | 'leggings' | 'jogger') {
+    if (this.state.outfitBottom !== bottom) {
+      this.state.outfitBottom = bottom;
+      this.emitChange();
+    }
+  }
+
+  public setOutfitColor(color: string) {
+    if (this.state.outfitColor !== color) {
+      this.state.outfitColor = color;
+      this.emitChange();
+    }
+  }
+
+  public setAccessory(key: 'smartwatch' | 'wristbands' | 'liftingStraps', val: boolean) {
+    if (this.state.accessories[key] !== val) {
+      this.state.accessories = {
+        ...this.state.accessories,
+        [key]: val
+      };
+      this.emitChange();
+    }
+  }
+
+  public resetBodyMorphing() {
+    const defaultBf = this.state.gender === 'female' ? 20 : 14;
+    const defaultSomato: SomatotypeType = 'mesomorph';
+    const defaultHeight = 175;
+    const defaultSw = 1.2;
+
+    this.state.bodyFatPercentage = defaultBf;
+    this.state.somatotype = defaultSomato;
+    this.state.heightCm = defaultHeight;
+    this.state.shoulderWaistRatio = defaultSw;
+
+    try {
+      localStorage.removeItem(STORAGE_BODYFAT_KEY);
+      localStorage.removeItem(STORAGE_SOMATOTYPE_KEY);
+      localStorage.removeItem(STORAGE_HEIGHT_KEY);
+      localStorage.removeItem(STORAGE_SW_RATIO_KEY);
+    } catch {}
+
+    this.emitChange();
   }
 
   public triggerGamificationReaction(

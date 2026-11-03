@@ -21,7 +21,7 @@ import { doc, setDoc, serverTimestamp } from '../lib/firebase';
 
 export function Login() {
   const { t } = useTranslation();
-  const { loginLocally } = useAuth();
+  const {  } = useAuth();
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   
   // Login & Registration Fields
@@ -236,12 +236,7 @@ export function Login() {
           setSuccess('Conta criada com sucesso! Bem-vindo(a) ao NutriAI.');
         } catch (firebaseErr: any) {
           console.warn("Firebase Register error", firebaseErr);
-          if (['auth/operation-not-allowed', 'auth/web-storage-unsupported', 'auth/network-request-failed', 'auth/invalid-api-key'].includes(firebaseErr.code)) {
-            loginLocally(fullName, email.trim());
-            setSuccess('Modo seguro local ativado! Cadastro realizado com sucesso.');
-          } else {
-            throw firebaseErr;
-          }
+          throw firebaseErr;
         }
       } else {
         // Login View
@@ -258,12 +253,7 @@ export function Login() {
           playSfx('success');
         } catch (firebaseErr: any) {
           console.warn("Firebase Login error", firebaseErr);
-          if (['auth/operation-not-allowed', 'auth/web-storage-unsupported', 'auth/network-request-failed', 'auth/invalid-api-key'].includes(firebaseErr.code)) {
-            loginLocally(email.split('@')[0], email.trim());
-            setSuccess('Acesso concedido em modo offline seguro.');
-          } else {
-            throw firebaseErr;
-          }
+          throw firebaseErr;
         }
       }
     } catch (err: any) {
@@ -304,18 +294,7 @@ export function Login() {
     } catch (err: any) {
       console.warn("Google login failed", err);
       playSfx('scratch');
-      if (err.code === 'auth/unauthorized-domain' || err?.message?.includes('authorized for OAuth operations')) {
-        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
-        setError(`Domínio "${currentHost}" não autorizado no Firebase. Adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
-      } else if (err.code === 'auth/popup-blocked') {
-        setError('O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        setError('Login cancelado: A janela do Google foi fechada antes da autorização.');
-      } else if (window !== window.parent) {
-        setError('O login do Google pode ser bloqueado dentro de iFrames. Recomendamos abrir o app em uma nova janela.');
-      } else {
-        setError(err?.message || 'Não foi possível entrar com a conta do Google. Tente novamente.');
-      }
+      setError(err?.message || 'Não foi possível entrar com a conta do Google.');
     } finally {
       setLoading(false);
     }

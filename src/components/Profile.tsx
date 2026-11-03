@@ -12,7 +12,7 @@ import {
   User, RefreshCw, X, Image as ImageIcon, Droplets, Contrast, Eye, Database, Compass,
   Clock, Trophy, Target, Smartphone, Flame, AlertCircle, CheckCircle2, Zap, Cpu, Layers, Store, Mic, MicOff,
   FileSpreadsheet, Stethoscope, FileText, Sliders, Scale, PieChart, TrendingUp, HelpCircle,
-  Calendar
+  Calendar, Sun, Moon
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
@@ -39,6 +39,8 @@ import { WearablesSync } from './WearablesSync';
 import { SavedRecipesSwipeList } from './SavedRecipesSwipeList';
 import { Profile3DAvatar } from './Profile3DAvatar';
 import { WorkoutCategoryNotificationSettings } from './WorkoutCategoryNotificationSettings';
+import { PushNotificationManagerModal } from './PushNotificationManagerModal';
+import { ThemePaletteSelector } from './ThemePaletteSelector';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 
@@ -79,7 +81,7 @@ export const AVATAR_OPTIONS = [
 
 export function Profile({ profile, onSaveProfile, addNotification }: ProfileProps) {
   const { t } = useTranslation();
-  const { logoutLocally } = useAuth();
+  const { logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [mealRemindersEnabled, setMealRemindersEnabled] = useState<boolean>(() => {
@@ -202,6 +204,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showExportLogsModal, setShowExportLogsModal] = useState(false);
   const [showClinicalTextModal, setShowClinicalTextModal] = useState(false);
+  const [isPushModalOpen, setIsPushModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<'client' | 'merchant' | 'admin'>(() => {
     if (profile?.role === 'merchant' || profile?.role === 'seller') return 'merchant';
     if (profile?.role === 'admin') return 'admin';
@@ -255,6 +258,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
     carbsGoal: profile?.macroTargets?.carbs?.toString() || profile?.masterPlan?.macros?.carbs?.toString() || '210',
     fatGoal: profile?.macroTargets?.fat?.toString() || profile?.masterPlan?.macros?.fat?.toString() || '65',
     macroPreset: (profile?.macroTargets?.preset || 'balanced') as MacroPreset,
+    themePreference: (profile?.themePreference || 'auto') as 'light' | 'dark' | 'auto',
   });
 
   // Keep form data in sync if profile updates asynchronously (e.g. initial Firestore load)
@@ -290,6 +294,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
         carbsGoal: profile.macroTargets?.carbs?.toString() || profile.masterPlan?.macros?.carbs?.toString() || prev.carbsGoal || '210',
         fatGoal: profile.macroTargets?.fat?.toString() || profile.masterPlan?.macros?.fat?.toString() || prev.fatGoal || '65',
         macroPreset: (profile.macroTargets?.preset || prev.macroPreset || 'balanced') as MacroPreset,
+        themePreference: (profile.themePreference || prev.themePreference || 'auto') as 'light' | 'dark' | 'auto',
       }));
     }
   }, [profile]);
@@ -774,7 +779,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
     try {
       playSfx('tap');
       vibrate(15);
-      await logoutLocally();
+      await logout();
     } catch (error) {
       console.error("Logout failed", error);
     }
@@ -2346,6 +2351,14 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
 
               {/* Native Permission Status Badge */}
               <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPushModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-md transition-all cursor-pointer"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  Gerenciar Notificações
+                </button>
                 {notificationPermission === 'granted' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold border border-emerald-200 dark:border-emerald-800">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -2354,18 +2367,9 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                 ) : notificationPermission === 'denied' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-semibold border border-amber-200 dark:border-amber-800">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                    Bloqueado no Navegador
+                    Bloqueado
                   </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleRequestPushPermission}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[11px] font-semibold border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
-                  >
-                    <Bell className="w-3.5 h-3.5 text-blue-500" />
-                    Habilitar Permissão Nativa
-                  </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -2391,6 +2395,10 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                 </select>
                 <p className="text-[10px] text-slate-400">Nota: O padrão é a voz Aoede (Recomendada para consistência).</p>
               </div>
+
+              {/* Theme Color Palette Selector Card */}
+              <ThemePaletteSelector className="my-4" />
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`p-3.5 rounded-2xl transition-colors ${
@@ -3442,12 +3450,12 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                     } catch (e) {}
                     await deleteUser(currentUser);
                   }
-                  await logoutLocally();
+                  await logout();
                   window.location.reload();
                 } catch (err: any) {
                   if (err.code === 'auth/requires-recent-login') {
                     alert('Por motivos de segurança, você precisa fazer login novamente antes de excluir sua conta.');
-                    await logoutLocally();
+                    await logout();
                   } else {
                     alert('Não foi possível excluir a conta: ' + (err.message || err));
                   }
@@ -3736,6 +3744,13 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
         profile={profile}
         isOpen={showClinicalTextModal}
         onClose={() => setShowClinicalTextModal(false)}
+      />
+
+      <PushNotificationManagerModal
+        isOpen={isPushModalOpen}
+        onClose={() => setIsPushModalOpen(false)}
+        profile={profile}
+        onUpdateProfile={onSaveProfile as any}
       />
     </div>
   );

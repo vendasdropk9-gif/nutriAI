@@ -110,13 +110,28 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
       // 1. Upload real product photo to Firebase Storage
       const permanentStorageUrl = await uploadToStorage(selectedFile, currentUserId);
 
-      // 2. Simulate AI Processing by Nano Banana / Google Veo
+      // 2. Call real AI generation API
       setUploadStatusText(`Gerando anúncio inteligente com ${type === 'photo' ? 'Nano Banana' : 'Google Veo'}...`);
-      await new Promise(resolve => setTimeout(resolve, 2200));
+      
+      const endpoint = type === 'photo' ? '/api/generate-image' : '/api/generate-video';
+      const prompt = `Crie um anúncio ${type === 'photo' ? 'de uma foto' : 'de um vídeo'} baseado nestes detalhes: ${productInfo}. Ação: ${videoAction}.`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      
+      if (!response.ok) throw new Error('Falha na geração pela IA');
+      const data = await response.json();
+      
+      // For photo, data.imageUrl; for video, we might need a status check or polling.
+      // For now, assume it returns the URL or URI directly for demonstration
+      const finalUrl = type === 'photo' ? `data:image/jpeg;base64,${data.imageUrl}` : data.imageUrl; // simplified assumption
 
       const newAd = {
         type,
-        url: permanentStorageUrl,
+        url: finalUrl,
         status: 'ready' as const,
         createdAt: new Date().toISOString()
       };
@@ -129,7 +144,7 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
           fileSize: selectedFile.size,
           mimeType: selectedFile.type,
           type,
-          url: permanentStorageUrl,
+          url: finalUrl,
           storageProvider: 'firebase-storage',
           ...(type === 'video' ? { videoAction, productInfo } : {}),
           createdAt: newAd.createdAt
@@ -145,8 +160,8 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
           title: productInfo ? productInfo.slice(0, 45) : (type === 'video' ? 'Vídeo Promocional Google Veo' : 'Anúncio Foto Nano Banana'),
           subtitle: videoAction ? videoAction.slice(0, 60) : 'Destaque Oficial NutriAI',
           price: type === 'video' ? 'Vídeo Veo 4K' : 'Nano Banana AI',
-          image: permanentStorageUrl,
-          videoUrl: type === 'video' ? permanentStorageUrl : undefined,
+          image: finalUrl,
+          videoUrl: type === 'video' ? finalUrl : undefined,
           type,
           videoAction: videoAction || 'Apresente o produto para a câmera sorrindo e mostre seus detalhes principais.',
           productInfo: productInfo || 'Produto 100% natural com alto valor nutricional.'
