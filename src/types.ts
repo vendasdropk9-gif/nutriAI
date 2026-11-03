@@ -189,9 +189,14 @@ export interface UserProfile {
   sleepGoalHours?: number;
   sleepReminderEnabled?: boolean;
   workoutRemindersEnabled?: boolean;
+  workoutCategoryReminders?: WorkoutCategoryRemindersConfig;
   hydrationRemindersEnabled?: boolean;
+
   hydrationInterval?: string | number;
   anatomicalMarkers?: AnatomicalMarker[];
+  fitnessLevel?: string;
+  experienceLevel?: string;
+  themePreference?: 'light' | 'dark' | 'auto';
   macroTargets?: MacroTargets;
 }
 
@@ -263,6 +268,24 @@ export interface MealNotificationTimes {
   supper?: string;
 }
 
+export type WorkoutCategoryType = 'cardio' | 'forca' | 'flexibilidade';
+
+export interface WorkoutCategoryReminderSetting {
+  enabled: boolean;
+  leadTimeMinutes: number; // e.g. 15, 30, 45, 60, 120
+  activeDays: string[]; // ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  time?: string; // e.g. "18:00"
+}
+
+export interface WorkoutCategoryRemindersConfig {
+  enabled: boolean;
+  categories: {
+    cardio: WorkoutCategoryReminderSetting;
+    forca: WorkoutCategoryReminderSetting;
+    flexibilidade: WorkoutCategoryReminderSetting;
+  };
+}
+
 export interface NotificationPreferences {
   nativePushEnabled?: boolean;
   mealAlertsEnabled?: boolean;
@@ -271,7 +294,9 @@ export interface NotificationPreferences {
   challengeReminderTime?: string;
   challengeReviewTime?: string;
   soundEnabled?: boolean;
+  workoutCategoryReminders?: WorkoutCategoryRemindersConfig;
 }
+
 
 export interface BodyMonitorLog {
   id: string;

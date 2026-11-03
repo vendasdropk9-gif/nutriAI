@@ -5,6 +5,8 @@ export type AvatarGenderType = 'male' | 'female';
 export type AvatarCameraViewType = 'front' | 'side' | 'detail' | 'back';
 export type MuscleHighlightMode = 'all' | 'primary-only' | 'secondary-only' | 'none';
 
+export type MicroExpressionType = 'none' | 'smile' | 'wink' | 'double_blink' | 'joy_nod' | 'eyebrow_raise' | 'celebrate';
+
 export interface AvatarGlobalState {
   gender: AvatarGenderType;
   cameraView: AvatarCameraViewType;
@@ -23,6 +25,9 @@ export interface AvatarGlobalState {
   motivationalSmile: number;
   isSpeaking: boolean;
   fatigueLevel: number;
+  microExpressionType: MicroExpressionType;
+  microExpressionIntensity: number;
+  microExpressionTimestamp: number;
 }
 
 const STORAGE_GENDER_KEY = 'nutriai_avatar_gender_pref';
@@ -66,7 +71,10 @@ class AvatarGlobalStateStore {
     positiveFeedback: false,
     motivationalSmile: 0,
     isSpeaking: false,
-    fatigueLevel: 0
+    fatigueLevel: 0,
+    microExpressionType: 'none',
+    microExpressionIntensity: 0,
+    microExpressionTimestamp: 0
   };
 
   private listeners = new Set<() => void>();
@@ -238,6 +246,42 @@ class AvatarGlobalStateStore {
       this.state.fatigueLevel = level;
       this.emitChange();
     }
+  }
+
+  public triggerMicroExpression(
+    type: MicroExpressionType,
+    durationMs: number = 3800,
+    intensity: number = 1.0
+  ) {
+    this.state.microExpressionType = type;
+    this.state.microExpressionIntensity = intensity;
+    this.state.microExpressionTimestamp = Date.now();
+    this.state.positiveFeedback = true;
+    this.state.motivationalSmile = type === 'smile' || type === 'celebrate' || type === 'wink' ? 1.0 : 0.6;
+    this.emitChange();
+
+    setTimeout(() => {
+      if (this.state.microExpressionTimestamp <= Date.now() - (durationMs - 150)) {
+        this.state.microExpressionType = 'none';
+        this.state.microExpressionIntensity = 0;
+        this.state.positiveFeedback = false;
+        this.state.motivationalSmile = 0.0;
+        this.emitChange();
+      }
+    }, durationMs);
+  }
+
+  public triggerGamificationReaction(
+    eventType: 'goal_completed' | 'level_up' | 'points_awarded' | 'badge_unlocked' | 'streak_milestone',
+    options?: { durationMs?: number }
+  ) {
+    const duration = options?.durationMs || (eventType === 'level_up' ? 5500 : eventType === 'badge_unlocked' ? 4500 : 3800);
+    const exprType: MicroExpressionType = 
+      eventType === 'level_up' ? 'celebrate' :
+      eventType === 'badge_unlocked' ? 'wink' :
+      eventType === 'goal_completed' ? 'smile' : 'joy_nod';
+
+    this.triggerMicroExpression(exprType, duration, 1.0);
   }
 }
 

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
 import { getAvatarById } from '../data/avatarCatalog';
+import avatarGlobalStore, { useAvatarGlobalState } from '../lib/avatarGlobalState';
 import {
   createSculptedTorsoCoreGeometry,
   createSculptedHeadGeometry,
@@ -300,6 +301,7 @@ function FacialMicroExpressions({
   skinColor: string;
   subsurfaceColor: string;
 }) {
+  const avatarState = useAvatarGlobalState();
   const leftEyelidRef = useRef<THREE.Mesh>(null);
   const rightEyelidRef = useRef<THREE.Mesh>(null);
   const leftEyebrowRef = useRef<THREE.Mesh>(null);
@@ -315,12 +317,22 @@ function FacialMicroExpressions({
   const currentSmileScaleYRef = useRef(0.20);
   const currentSmileScaleXRef = useRef(0.90);
 
+  // Trigger wink if global state requests wink or celebrate
+  useEffect(() => {
+    if (avatarState.microExpressionType === 'wink' || avatarState.microExpressionType === 'celebrate') {
+      isWinkingRef.current = true;
+      winkTimerRef.current = 0;
+    }
+  }, [avatarState.microExpressionTimestamp, avatarState.microExpressionType]);
+
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
 
-    // 1. Playful Winks on Gamification Reward & Celebration
-    if (isCelebrating || animationState === 'celebrate' || animationState === 'flex') {
-      if (!isWinkingRef.current && Math.random() < 0.03) {
+    // 1. Playful Winks on Gamification Reward, Goal Completed & Celebration
+    const isWinkRequested = avatarState.microExpressionType === 'wink' || avatarState.microExpressionType === 'celebrate';
+
+    if (isCelebrating || animationState === 'celebrate' || animationState === 'flex' || isWinkRequested) {
+      if (!isWinkingRef.current && Math.random() < 0.04) {
         isWinkingRef.current = true;
         winkTimerRef.current = 0;
       }
@@ -339,10 +351,13 @@ function FacialMicroExpressions({
         isWinkingRef.current = false;
       }
     } else {
-      // Natural involuntary blinking
+      // Natural involuntary blinking & double blinks
       blinkProgressRef.current += delta;
-      if (blinkProgressRef.current > nextBlinkTimeRef.current) {
-        const blinkPhase = (blinkProgressRef.current - nextBlinkTimeRef.current) / 0.18;
+      const isDoubleBlink = avatarState.microExpressionType === 'double_blink';
+      const blinkInterval = isDoubleBlink ? 0.9 : nextBlinkTimeRef.current;
+
+      if (blinkProgressRef.current > blinkInterval) {
+        const blinkPhase = (blinkProgressRef.current - blinkInterval) / 0.18;
         if (blinkPhase <= 1.0) {
           const eyelidClosure = Math.sin(blinkPhase * Math.PI);
           const eyeScaleY = Math.max(0.08, 1.0 - eyelidClosure * 0.92);
@@ -350,7 +365,7 @@ function FacialMicroExpressions({
           if (rightEyelidRef.current) rightEyelidRef.current.scale.y = eyeScaleY;
         } else {
           blinkProgressRef.current = 0;
-          nextBlinkTimeRef.current = 2.8 + Math.random() * 2.8;
+          nextBlinkTimeRef.current = 2.5 + Math.random() * 2.5;
           if (leftEyelidRef.current) leftEyelidRef.current.scale.y = 1.0;
           if (rightEyelidRef.current) rightEyelidRef.current.scale.y = 1.0;
         }
@@ -358,12 +373,19 @@ function FacialMicroExpressions({
     }
 
     // 2. Dynamic Smile Morphing
-    const isJoyful = isCelebrating || animationState === 'celebrate' || animationState === 'flex';
-    const targetSmileY = isJoyful ? 0.52 : 0.22 + Math.sin(t * 1.5) * 0.04;
-    const targetSmileX = isJoyful ? 1.30 : 0.92;
+    const isJoyful = isCelebrating || 
+      animationState === 'celebrate' || 
+      animationState === 'flex' || 
+      avatarState.positiveFeedback || 
+      avatarState.motivationalSmile > 0 ||
+      avatarState.microExpressionType === 'smile' ||
+      avatarState.microExpressionType === 'celebrate';
 
-    currentSmileScaleYRef.current = THREE.MathUtils.lerp(currentSmileScaleYRef.current, targetSmileY, 0.14);
-    currentSmileScaleXRef.current = THREE.MathUtils.lerp(currentSmileScaleXRef.current, targetSmileX, 0.14);
+    const targetSmileY = isJoyful ? 0.58 : 0.22 + Math.sin(t * 1.5) * 0.04;
+    const targetSmileX = isJoyful ? 1.35 : 0.92;
+
+    currentSmileScaleYRef.current = THREE.MathUtils.lerp(currentSmileScaleYRef.current, targetSmileY, 0.16);
+    currentSmileScaleXRef.current = THREE.MathUtils.lerp(currentSmileScaleXRef.current, targetSmileX, 0.16);
 
     if (smileMeshRef.current) {
       smileMeshRef.current.scale.set(currentSmileScaleXRef.current, currentSmileScaleYRef.current, 1.0);
@@ -372,21 +394,22 @@ function FacialMicroExpressions({
     if (smileGroupRef.current) {
       smileGroupRef.current.position.y = THREE.MathUtils.lerp(
         smileGroupRef.current.position.y,
-        isJoyful ? -0.042 : -0.050,
-        0.12
+        isJoyful ? -0.040 : -0.050,
+        0.14
       );
     }
 
-    // 3. Eyebrow Expressive Tilts
-    const browRaise = isJoyful ? 0.014 : Math.sin(t * 0.8) * 0.003;
-    const browTilt = isJoyful ? 0.22 : 0.03;
+    // 3. Eyebrow Expressive Tilts & Lift
+    const isEyebrowRaised = isJoyful || avatarState.microExpressionType === 'eyebrow_raise' || avatarState.microExpressionType === 'joy_nod';
+    const browRaise = isEyebrowRaised ? 0.016 : Math.sin(t * 0.8) * 0.003;
+    const browTilt = isEyebrowRaised ? 0.24 : 0.03;
 
     if (leftEyebrowRef.current && rightEyebrowRef.current) {
       leftEyebrowRef.current.position.y = 0.042 + browRaise;
       rightEyebrowRef.current.position.y = 0.042 + browRaise;
 
-      leftEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(leftEyebrowRef.current.rotation.z, browTilt, 0.12);
-      rightEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(rightEyebrowRef.current.rotation.z, -browTilt, 0.12);
+      leftEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(leftEyebrowRef.current.rotation.z, browTilt, 0.14);
+      rightEyebrowRef.current.rotation.z = THREE.MathUtils.lerp(rightEyebrowRef.current.rotation.z, -browTilt, 0.14);
     }
   });
 

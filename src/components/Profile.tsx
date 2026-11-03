@@ -38,7 +38,9 @@ import { FamilyProfilesManager } from './FamilyProfilesManager';
 import { WearablesSync } from './WearablesSync';
 import { SavedRecipesSwipeList } from './SavedRecipesSwipeList';
 import { Profile3DAvatar } from './Profile3DAvatar';
+import { WorkoutCategoryNotificationSettings } from './WorkoutCategoryNotificationSettings';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -2536,8 +2538,16 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
               )}
             </div>
 
+            {/* 1.5. Workout Category Reminders Card (Cardio, Força, Flexibilidade) */}
+            <WorkoutCategoryNotificationSettings
+              profile={profile}
+              onSaveProfile={onSaveProfile}
+              addNotification={addNotification}
+            />
+
             {/* 2. Challenge & Habit Reminders Card */}
             <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-5 rounded-2xl shadow-sm space-y-4">
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`p-3.5 rounded-2xl transition-colors ${
@@ -3162,10 +3172,43 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
           {/* Accessibility & High Contrast Card */}
           <div className="space-y-4 w-full">
             <label className="block font-sans text-xs font-bold tracking-wide uppercase text-slate-500 dark:text-slate-400">
-              Acessibilidade & Visual
+              Preferências de Visual e Acessibilidade
             </label>
-            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-4">
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] shadow-sm space-y-6">
+              
+              {/* Theme Preference */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                    <Sun className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Modo de Cor</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Escolha o tema para o aplicativo.
+                    </p>
+                  </div>
+                </div>
+                <select 
+                  value={formData.themePreference || 'auto'} 
+                  onChange={(e) => {
+                    const newTheme = e.target.value as 'light' | 'dark' | 'auto';
+                    setFormData(prev => ({ ...prev, themePreference: newTheme }));
+                    if (profile) {
+                      onSaveProfile({ ...profile, themePreference: newTheme });
+                    }
+                    playSfx('tap');
+                  }}
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="auto">Automático (Baseado no Sol)</option>
+                  <option value="light">Claro</option>
+                  <option value="dark">Escuro</option>
+                </select>
+              </div>
+
+              {/* High Contrast */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex items-start gap-4">
                   <div className={`p-3 rounded-full shrink-0 transition-colors ${
                     highContrastEnabled 
@@ -3190,7 +3233,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                       )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
-                      Reforça o contraste de cores, espessura de bordas e nitidez dos textos para facilitar a visualização e navegação de pessoas com baixa visão ou em ambientes com luz solar intensa.
+                      Reforça o contraste de cores, espessura de bordas e nitidez dos textos.
                     </p>
                   </div>
                 </div>

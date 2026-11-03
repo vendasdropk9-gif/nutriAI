@@ -13,6 +13,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { DraggableNav } from './components/DraggableNav';
 import { prefetchCuratedRecipeCatalog } from './lib/recipeImagePrefetcher';
 import { NotificationSystem, AppNotification } from './components/NotificationSystem';
+import { saveProfileToIndexedDB, loadProfileFromIndexedDB } from './lib/profileStorageIDB';
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
@@ -135,8 +136,22 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   }, []);
   const [emailVerificationBypassed, setEmailVerificationBypassed] = useState(false);
   
+  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
+  const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
+  const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+
   // Dark Mode based on sun
   useEffect(() => {
+    if (profile?.themePreference === 'dark') {
+      setIsDarkMode(true);
+      window.localStorage.setItem('nutri-dark-mode-manual', 'true');
+      return;
+    } else if (profile?.themePreference === 'light') {
+      setIsDarkMode(false);
+      window.localStorage.setItem('nutri-dark-mode-manual', 'true');
+      return;
+    }
+
     const applyAutoDarkMode = async () => {
       // Check if user has already set a preference manually
       if (window.localStorage.getItem('nutri-dark-mode-manual') === 'true') return;
@@ -163,11 +178,25 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     };
 
     applyAutoDarkMode();
+  }, [profile?.themePreference]);
+
+
+  // Load profile & Weekly Report history from IndexedDB on startup for robust offline access
+  useEffect(() => {
+    loadProfileFromIndexedDB().then(savedProfile => {
+      if (savedProfile && (!profile || (savedProfile.intakeLogs?.length || 0) >= (profile.intakeLogs?.length || 0))) {
+        setProfile(savedProfile);
+      }
+    });
   }, []);
 
-  const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('nutri-dark-mode', false);
-  const [isReadingMode, setIsReadingMode] = useLocalStorage<boolean>('nutri-reading-mode', false);
-  const [profile, setProfile] = useLocalStorage<UserProfile | null>('nutri-profile', null);
+  // Save profile & Weekly Report history to IndexedDB whenever profile updates
+  useEffect(() => {
+    if (profile) {
+      saveProfileToIndexedDB(profile);
+    }
+  }, [profile]);
+
   const { syncToFirestore } = useProfileSync(user, profile, setProfile);
 
   // Auto-detect navigation events

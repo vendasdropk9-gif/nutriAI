@@ -34,6 +34,7 @@ import { ConfettiCelebration } from './ConfettiCelebration';
 import { CommunityChallenges } from './CommunityChallenges';
 import { playSfx, vibrate } from '../lib/sensory';
 import { speak } from '../lib/speech';
+import avatarGlobalStore from '../lib/avatarGlobalState';
 
 interface GamificationCenterProps {
   profile: UserProfile | null;
@@ -108,6 +109,21 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   // Celebration Modal State for New Medal or Level Up
   const [celebrationData, setCelebrationData] = useState<CelebrationModalData | null>(null);
 
+  // Floating reward particles state
+  const [particles, setParticles] = useState<Array<{ id: string; text: string; x: number; y: number }>>([]);
+
+  const spawnRewardParticles = (pointsDelta: number) => {
+    const id = crypto.randomUUID();
+    const x = window.innerWidth / 2 + (Math.random() * 140 - 70);
+    const y = window.innerHeight / 2 + (Math.random() * 100 - 50);
+    
+    setParticles(prev => [...prev, { id, text: `+${pointsDelta} XP`, x, y }]);
+    
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => p.id !== id));
+    }, 1500);
+  };
+
   // Points & Level Calculation
   const currentPoints = profile?.points || 0;
   const currentLevel = Math.max(1, profile?.level || Math.floor(currentPoints / 500) + 1);
@@ -119,6 +135,14 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   const prevPointsRef = useRef<number>(currentPoints);
   const prevLevelRef = useRef<number>(currentLevel);
   const prevBadgesCountRef = useRef<number>(userBadges.length);
+
+  useEffect(() => {
+    if (currentPoints > prevPointsRef.current) {
+      const delta = currentPoints - prevPointsRef.current;
+      spawnRewardParticles(delta);
+    }
+    prevPointsRef.current = currentPoints;
+  }, [currentPoints]);
 
   // List of all comprehensive badges with metadata
   const ALL_BADGES = [
@@ -254,17 +278,21 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
       // Fallback
     }
 
-    // Audio narration with Malu Aoede voice
+    // Trigger dynamic 3D avatar micro-expressions (smiles, winks, eyebrow lifts)
     if (data.type === 'level') {
+      avatarGlobalStore.triggerGamificationReaction('level_up');
       speak(
         `Parabéns extraordinário! Você acaba de subir para o Nível ${data.levelNumber}! Continue firme na sua evolução!`,
         { voice: 'Aoede', lang: 'pt-BR' }
       );
     } else if (data.type === 'medal') {
+      avatarGlobalStore.triggerGamificationReaction('badge_unlocked');
       speak(
         `Sensacional! Você desbloqueou uma nova medalha: ${data.badgeName}! Mais uma grande conquista adicionada ao seu perfil!`,
         { voice: 'Aoede', lang: 'pt-BR' }
       );
+    } else {
+      avatarGlobalStore.triggerGamificationReaction('goal_completed');
     }
   };
 
@@ -323,11 +351,12 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [tempTargetValue, setTempTargetValue] = useState<string>('');
 
-  // Daily goals confetti
+  // Daily goals confetti & avatar micro-expression reaction
   const triggerConfettiBurst = (goalTitle?: string) => {
     setShowConfetti(true);
     playSfx('confetti');
     vibrate([100, 50, 100, 50, 150]);
+    avatarGlobalStore.triggerGamificationReaction('goal_completed');
     if (goalTitle) {
       setCelebratedGoalTitle(goalTitle);
       setTimeout(() => setCelebratedGoalTitle(null), 6000);
@@ -1183,6 +1212,25 @@ export function GamificationCenter({ profile, onUpdateProfile }: GamificationCen
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Framer Motion Floating Reward Particles Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        <AnimatePresence>
+          {particles.map(p => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 1, scale: 0.5, y: p.y, x: p.x }}
+              animate={{ opacity: 0, scale: 1.5, y: p.y - 140, x: p.x + (Math.random() * 80 - 40) }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 text-slate-950 font-black text-sm md:text-base shadow-[0_0_30px_rgba(16,185,129,0.6)] border-2 border-white flex items-center gap-1.5"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
+              <span>{p.text}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

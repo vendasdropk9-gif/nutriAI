@@ -27,20 +27,30 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
 
   const isPrimary = (region: ReturnType<typeof mapMuscleToRegion>) => regions.has(region);
 
-  const getFill = (region: ReturnType<typeof mapMuscleToRegion>) => isPrimary(region) ? '#10b981' : '#334155';
-  const getOpacity = (region: ReturnType<typeof mapMuscleToRegion>) => isPrimary(region) ? 0.9 : 0.3;
+  const getFill = (region: ReturnType<typeof mapMuscleToRegion>) => isPrimary(region) ? 'url(#emeraldSSS)' : '#273449';
+  const getOpacity = (region: ReturnType<typeof mapMuscleToRegion>) => isPrimary(region) ? 0.95 : 0.35;
   const getSegmentClass = (region: ReturnType<typeof mapMuscleToRegion>) => {
     if (!isPrimary(region)) return '';
-    return isPlaying ? 'active-muscle-segment' : '';
+    return isPlaying ? 'active-muscle-segment animate-pulse' : '';
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-slate-900/60 rounded-xl overflow-hidden backdrop-blur-sm border-2 border-emerald-500/20 shadow-lg">
-      <svg viewBox="0 0 100 200" className="w-full h-full p-2 drop-shadow-xl">
+    <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-[#0B0F14] rounded-2xl overflow-hidden backdrop-blur-md border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+      <svg viewBox="0 0 100 200" className="w-full h-full p-2 drop-shadow-2xl">
         <defs>
-          <filter id="muscleGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          {/* Subsurface Scattering & Normal Shading Gradient */}
+          <linearGradient id="emeraldSSS" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#34d399" />
+            <stop offset="50%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#047857" />
+          </linearGradient>
+
+          <filter id="muscleGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feSpecularLighting in="blur" surfaceScale="5" specularConstant="1.2" specularExponent="20" lighting-color="#34d399" result="specOut">
+              <fePointLight x="50" y="50" z="100" />
+            </feSpecularLighting>
+            <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="1" k2="1" k3="1" k4="0" />
           </filter>
         </defs>
         
@@ -55,7 +65,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('shoulders'), opacity: getOpacity('shoulders') }}
           filter={isPrimary('shoulders') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('shoulders')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         
         {/* Chest */}
@@ -66,7 +76,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('chest'), opacity: getOpacity('chest') }}
           filter={isPrimary('chest') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('chest')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         
         {/* Core */}
@@ -77,7 +87,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('core'), opacity: getOpacity('core') }}
           filter={isPrimary('core') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('core')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         
         {/* Biceps/Triceps L */}
@@ -88,7 +98,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('biceps'), opacity: getOpacity('biceps') }}
           filter={isPrimary('biceps') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('biceps')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         {/* Biceps/Triceps R */}
         <motion.path 
@@ -98,7 +108,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('biceps'), opacity: getOpacity('biceps') }}
           filter={isPrimary('biceps') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('biceps')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
 
         {/* Forearms L */}
@@ -109,7 +119,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('forearms'), opacity: getOpacity('forearms') }}
           filter={isPrimary('forearms') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('forearms')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         {/* Forearms R */}
         <motion.path 
@@ -119,7 +129,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('forearms'), opacity: getOpacity('forearms') }}
           filter={isPrimary('forearms') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('forearms')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
 
         {/* Quads L */}
@@ -130,7 +140,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('quads'), opacity: getOpacity('quads') }}
           filter={isPrimary('quads') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('quads')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         {/* Quads R */}
         <motion.path 
@@ -140,7 +150,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('quads'), opacity: getOpacity('quads') }}
           filter={isPrimary('quads') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('quads')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
 
         {/* Calves L */}
@@ -151,7 +161,7 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('calves'), opacity: getOpacity('calves') }}
           filter={isPrimary('calves') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('calves')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
         {/* Calves R */}
         <motion.path 
@@ -161,19 +171,19 @@ export function MuscleOverlay({ activeMuscles, isPlaying = true }: MuscleOverlay
           animate={{ fill: getFill('calves'), opacity: getOpacity('calves') }}
           filter={isPrimary('calves') ? 'url(#muscleGlow)' : ''}
           className={getSegmentClass('calves')}
-          stroke="#0f172a" strokeWidth="0.5"
+          stroke="#0f172a" strokeWidth="0.8"
         />
       </svg>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
-        <span className="text-[10px] font-bold text-white bg-slate-900/80 px-2 py-1 rounded backdrop-blur">
-          Mapa Muscular
+        <span className="text-[10px] font-bold text-white bg-slate-900/90 px-2.5 py-1 rounded-full backdrop-blur border border-emerald-500/30 shadow-lg">
+          Anatomia 3D • SSS Ativado
         </span>
       </div>
 
       <div className="absolute bottom-2 left-2 flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 text-[9px] font-medium text-slate-300 bg-slate-950/50 px-1.5 py-0.5 rounded backdrop-blur-sm border border-slate-700/50">
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_4px_#10b981]"></div> Alvo
+        <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-300 bg-slate-950/80 px-2 py-0.5 rounded-full backdrop-blur-sm border border-emerald-500/30">
+          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_6px_#34d399] animate-pulse"></div> Foco Muscular
         </div>
       </div>
     </div>

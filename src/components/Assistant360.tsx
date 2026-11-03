@@ -24,7 +24,37 @@ import { GlucoseSmartSnacksCard } from './GlucoseSmartSnacksCard';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { VoiceShortcutsModal } from './VoiceShortcutsModal';
 import { NutritionalProgressRechartsRing } from './NutritionalProgressRechartsRing';
+import { DailyEnergyLevelCard } from './DailyEnergyLevelCard';
+import { DailyWorkoutTipCard } from './DailyWorkoutTipCard';
+import { QuickWaterLogger } from './QuickWaterLogger';
+import { EvolutionComparison } from './EvolutionComparison';
+import { NutritionTipsCarousel } from './NutritionTipsCarousel';
 
+
+const staggerContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.04
+    }
+  }
+} as const;
+
+const staggerCardVariants = {
+  hidden: { opacity: 0, y: 22, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 280,
+      damping: 24
+    }
+  }
+} as const;
 
 interface Assistant360Props {
   profile: UserProfile | null;
@@ -478,20 +508,29 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
     { id: 'smartplate', labelKey: 'feature_smartplate', descKey: 'desc_smartplate', defaultLabel: 'Restaurante Inteligente', defaultDesc: 'Combine opções de fora', icon: <Camera className="w-5 h-5 text-emerald-400" /> },
     { id: 'trainer', labelKey: 'feature_trainer', descKey: 'desc_trainer', defaultLabel: 'Treino Personalizado', defaultDesc: 'Exercícios guiados', icon: <Dumbbell className="w-5 h-5 text-emerald-500" /> },
     { id: 'fridge', labelKey: 'feature_fridge', descKey: 'desc_fridge', defaultLabel: 'Geladeira Inteligente', defaultDesc: 'Aproveitamento 100%', icon: <Sparkles className="w-5 h-5 text-emerald-400" /> },
-    { id: 'habits', labelKey: 'feature_habits', descKey: 'desc_habits', defaultLabel: 'Hábitos & Sono', defaultDesc: 'Ritmo circadiano', icon: <Moon className="w-5 h-5 text-indigo-400" /> },
+    { id: 'habits', labelKey: 'feature_habits', descKey: 'desc_habits', defaultLabel: 'Hábitos & Sono', defaultDesc: 'Ritmo circadiano', icon: <Moon className="w-5 h-5 text-[#38BDF8]" /> },
     { id: 'herbs', labelKey: 'feature_herbs', descKey: 'desc_herbs', defaultLabel: 'Ervas & Fitoterapia', defaultDesc: 'Infusões e remédios', icon: <Leaf className="w-5 h-5 text-emerald-500" /> },
     { id: 'market', labelKey: 'feature_market', descKey: 'desc_market', defaultLabel: 'Marketplace Orgânico', defaultDesc: 'Insumos selecionados', icon: <ShoppingBag className="w-5 h-5 text-amber-500" /> },
   ];
 
   return (
-    <div className="w-full max-w-full px-2 sm:px-4 space-y-8 pb-32 pt-2 animate-in fade-in duration-700 flex flex-col items-center">
+    <motion.div 
+      variants={staggerContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="w-full max-w-full px-2 sm:px-4 space-y-8 pb-32 pt-2 flex flex-col items-center"
+    >
       
       {/* 1. Hero AI Avatar Card */}
-      <div className={`relative w-full rounded-[32px] p-6 sm:p-10 overflow-hidden transition-all duration-500 mx-auto ${
-        isPremium 
-          ? 'bg-gradient-to-br from-[#151B23] via-[#1A222C] to-[#0F141A] border border-[#D8B14A]/40 shadow-[0_12px_40px_rgba(216,177,74,0.15)]' 
-          : 'bg-gradient-to-br from-[#151B23] via-[#1B232E] to-[#0B0F14] border border-[#232C39] shadow-[0_12px_36px_rgba(0,0,0,0.4)]'
-      }`}>
+      <motion.div 
+        variants={staggerCardVariants}
+        className={`relative w-full rounded-[32px] p-6 sm:p-10 overflow-hidden transition-all duration-500 mx-auto ${
+          isPremium 
+            ? 'bg-gradient-to-br from-[#151B23] via-[#1A222C] to-[#0F141A] border border-[#D8B14A]/40 shadow-[0_12px_40px_rgba(216,177,74,0.15)]' 
+            : 'bg-gradient-to-br from-[#151B23] via-[#1B232E] to-[#0B0F14] border border-[#232C39] shadow-[0_12px_36px_rgba(0,0,0,0.4)]'
+        }`}
+      >
+
         
         {/* Subtle Ambient Background Gradients */}
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none" />
@@ -570,10 +609,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             <span>{t('btn_talk_malu', 'Talk to NutriAI')}</span>
           </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* 1.5. Web Speech API Hands-Free Voice Control Card */}
-      <div className="w-full card-premium p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/30 mx-auto">
+      <motion.div 
+        variants={staggerCardVariants}
+        className="w-full card-premium p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/30 mx-auto"
+      >
         <div className="flex items-center gap-4">
           <div className={`p-3.5 rounded-2xl flex items-center justify-center transition-all ${
             isVoiceActive 
@@ -644,10 +686,11 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             <span>{isVoiceActive ? t('stop_listening', 'Parar Voz') : t('start_voice', 'Ativar Voz')}</span>
           </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. Featured Spotlight: GERAR PRATOS RÁPIDOS */}
-      <div 
+      <motion.div 
+        variants={staggerCardVariants}
         onClick={() => {
           playSfx('tap');
           vibrate(20);
@@ -655,6 +698,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         }}
         className="relative w-full overflow-hidden rounded-[32px] bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-teal-500/15 p-6 sm:p-7 border border-orange-500/30 hover:border-orange-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group backdrop-blur-md mx-auto"
       >
+
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/10 blur-2xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -685,10 +729,13 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2.5. Featured Spotlight: PLANO ALIMENTAR DE AMANHÃ (GEMINI API + DESPANSA & RESTRIÇÕES) */}
-      <div className="relative w-full overflow-hidden rounded-[32px] bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-cyan-500/15 p-6 sm:p-7 border border-teal-500/30 hover:border-teal-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 backdrop-blur-md mx-auto">
+      <motion.div 
+        variants={staggerCardVariants}
+        className="relative w-full overflow-hidden rounded-[32px] bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-cyan-500/15 p-6 sm:p-7 border border-teal-500/30 hover:border-teal-500/60 shadow-lg hover:shadow-2xl transition-all duration-300 backdrop-blur-md mx-auto"
+      >
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 rounded-full bg-gradient-to-br from-teal-500/20 to-emerald-500/10 blur-2xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -730,7 +777,8 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             )}
           </motion.button>
         </div>
-      </div>
+      </motion.div>
+
 
       {/* 2.7. INDICADOR VISUAL DE 'PRÓXIMO TREINO' (INTEGRAÇÃO PERSONAL TRAINER + NOTIFICAÇÕES) */}
       {todayWorkout && (
@@ -949,9 +997,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       {/* 3. Proactive AI Banner */}
       <motion.div 
         key={activeTip}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
+        variants={staggerCardVariants}
         className="card-premium w-full p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:border-emerald-500/40 transition-all mx-auto"
         onClick={() => onNavigate('habits')}
       >
@@ -974,16 +1020,21 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       </motion.div>
 
       {/* NOVO: Sistema de Dicas Rápidas Inteligentes Conectado ao Histórico */}
-      <div className="w-full mx-auto">
+      <motion.div variants={staggerCardVariants} className="w-full mx-auto">
         <DashboardQuickTips 
           profile={profile} 
           onNavigate={onNavigate} 
           onLogIntake={onLogIntake} 
         />
-      </div>
+      </motion.div>
+
+      {/* DICAS RÁPIDAS DE NUTRIÇÃO BASEADAS EM EVIDÊNCIAS (GEMINI API) */}
+      <motion.div variants={staggerCardVariants} className="w-full mx-auto">
+        <NutritionTipsCarousel profile={profile} />
+      </motion.div>
 
       {/* 3. Resumo do Dia / Daily Health Metrics Grid */}
-      <div className="space-y-4 w-full mx-auto">
+      <motion.div variants={staggerCardVariants} className="space-y-4 w-full mx-auto">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-[#16C784]" />
@@ -994,56 +1045,33 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          
-          {/* Water Metric */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+           <QuickWaterLogger profile={profile} onUpdateProfile={onUpdateProfile} />
+        </motion.div>
+
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Calories Metric */}
           <div className="card-premium p-5 flex flex-col justify-between space-y-4 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-500">
-                <Droplets className="w-5 h-5" />
+              <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 text-[#16C784]">
+                <Flame className="w-5 h-5" />
               </div>
-              <span className="text-xs font-bold text-blue-500 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
-                {waterPercent}%
+              <span className="text-xs font-bold text-[#16C784] bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                {caloriesPercent}%
               </span>
             </div>
             <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_water_goal', 'Meta de Água')}</span>
+              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_calories_goal', 'Meta de Calorias')}</span>
               <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
-                {waterCurrent} <span className="text-xs font-normal text-slate-400">/ {waterTarget}ml</span>
+                {caloriesCurrent} <span className="text-xs font-normal text-slate-400">/ {caloriesTarget} kcal</span>
               </div>
-            </div>
-            {/* Quick add water buttons */}
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                onClick={() => {
-                  if (!onUpdateProfile) return;
-                  const newLog = { id: crypto.randomUUID(), date: new Date().toISOString(), amount: 250 };
-                  onUpdateProfile(prev => prev ? { ...prev, hydrationLogs: [...(prev.hydrationLogs || []), newLog] } : null);
-                  playSfx('crystal');
-                  vibrate(40);
-                }}
-                className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition cursor-pointer"
-              >
-                +250ml
-              </button>
-              <button
-                onClick={() => {
-                  if (!onUpdateProfile) return;
-                  const newLog = { id: crypto.randomUUID(), date: new Date().toISOString(), amount: 500 };
-                  onUpdateProfile(prev => prev ? { ...prev, hydrationLogs: [...(prev.hydrationLogs || []), newLog] } : null);
-                  playSfx('crystal');
-                  vibrate(60);
-                }}
-                className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition cursor-pointer"
-              >
-                +500ml
-              </button>
             </div>
             {/* Progress Bar */}
             <div className="w-full bg-slate-100 dark:bg-[#232C39] h-2 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700"
-                style={{ width: `${waterPercent}%` }}
+                className="h-full bg-gradient-to-r from-[#10B981] via-[#16C784] to-[#34D399] transition-all duration-700"
+                style={{ width: `${caloriesPercent}%` }}
               />
             </div>
           </div>
@@ -1117,20 +1145,31 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
 
         </div>
 
+        {/* NÍVEL DE ENERGIA DIÁRIO & CHECK-IN EMOCIONAL */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <DailyEnergyLevelCard
+            profile={profile}
+            onUpdateProfile={onUpdateProfile}
+            onNavigate={onNavigate}
+          />
+        </motion.div>
+
         {/* PROGRESSO NUTRICIONAL DIÁRIO DE MACRONUTRIENTES COM ANÉIS CIRCULARES */}
-        <DailyNutritionProgressCard
-          profile={profile}
-          onNavigate={onNavigate}
-        />
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <DailyNutritionProgressCard
+            profile={profile}
+            onNavigate={onNavigate}
+          />
+        </motion.div>
 
         {/* RING CHART RECHARTS */}
-        <div className="card-premium p-6 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md">
+        <motion.div variants={staggerCardVariants} className="card-premium p-6 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-[#151B23]/90 dark:bg-slate-900/60 shadow-md">
            <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-2">Meta Nutricional</h3>
            <NutritionalProgressRechartsRing profile={profile} />
-        </div>
+        </motion.div>
 
         {/* RECHARTS MACRONUTRIENT PROGRESS CHART */}
-        <div className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md relative overflow-hidden">
+        <motion.div variants={staggerCardVariants} className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-[#151B23]/90 dark:bg-slate-900/60 shadow-md relative overflow-hidden">
           <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-6">
             {t('macro_chart_title', 'Progresso de Macronutrientes (Intake vs Meta)')}
           </h3>
@@ -1154,63 +1193,56 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
-
-        {/* RECHARTS MACRONUTRIENT PROGRESS CHART */}
-        <div className="card-premium p-6 sm:p-8 rounded-[32px] w-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-md relative overflow-hidden">
-          <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white mb-6">
-            {t('macro_chart_title', 'Progresso de Macronutrientes (Intake vs Meta)')}
-          </h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: 'Proteína', actual: currentProtein, goal: targetProtein, fill: '#10B981' },
-                  { name: 'Carbos', actual: currentCarbs, goal: targetCarbs, fill: '#F59E0B' },
-                  { name: 'Gorduras', actual: currentFat, goal: targetFat, fill: '#38BDF8' },
-                ]}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="actual" name="Consumido (g)" fill="#8884d8" />
-                <Bar dataKey="goal" name="Meta (g)" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
         {/* SUGESTÕES DE LANCHES RÁPIDOS BASEADOS EM GLICEMIA E HORÁRIO */}
-        <GlucoseSmartSnacksCard
-          profile={profile}
-          onNavigate={onNavigate}
-        />
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <GlucoseSmartSnacksCard
+            profile={profile}
+            onNavigate={onNavigate}
+          />
+        </motion.div>
 
         {/* WIDGET DE SAÚDE CONECTADA (Google Fit / Apple Health) */}
-        <ConnectedHealthWidget
-          profile={profile}
-          onNavigate={onNavigate}
-          onUpdateProfile={onUpdateProfile}
-        />
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <ConnectedHealthWidget
+            profile={profile}
+            onNavigate={onNavigate}
+            onUpdateProfile={onUpdateProfile}
+          />
+        </motion.div>
 
         {/* AJUSTE DINÂMICO NO PLANO DE REFEIÇÕES BASEADO EM DADOS DE SAÚDE */}
-        <AdaptiveMealAdjustmentCard
-          profile={profile}
-          onNavigate={onNavigate}
-          onLogIntake={onLogIntake}
-          onUpdateProfile={onUpdateProfile}
-        />
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <AdaptiveMealAdjustmentCard
+            profile={profile}
+            onNavigate={onNavigate}
+            onLogIntake={onLogIntake}
+            onUpdateProfile={onUpdateProfile}
+          />
+        </motion.div>
 
         {/* RELATÓRIO SEMANAL (METAS CALÓRICAS E MACRONUTRIENTES DOS ÚLTIMOS 7 DIAS) */}
-        <WeeklyReport profile={profile} onNavigate={onNavigate} />
-      </div>
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <WeeklyReport profile={profile} onNavigate={onNavigate} onUpdateProfile={onUpdateProfile} />
+        </motion.div>
+
+        {/* COMPARTIVO DE EVOLUÇÃO (PESO E MEDIDAS NOS ÚLTIMOS 30 DIAS) */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <EvolutionComparison profile={profile} />
+        </motion.div>
+
+        {/* DICA DE TREINO DO DIA BASEADA NO NÍVEL DE CONDICIONAMENTO FÍSICO */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <DailyWorkoutTipCard profile={profile} onNavigate={onNavigate} />
+        </motion.div>
+      </motion.div>
+
 
       {/* NOVO: BANNER DESTAQUE PARA O RESTAURANTE INTELIGENTE */}
       <motion.div
+        variants={staggerCardVariants}
         whileHover={{ y: -2, scale: 1.01 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => {
@@ -1250,7 +1282,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       </motion.div>
 
       {/* 4. Grid de Funcionalidades Principais */}
-      <div className="space-y-4 w-full mx-auto">
+      <motion.div variants={staggerCardVariants} className="space-y-4 w-full mx-auto">
         <h3 className="text-lg font-display font-bold text-slate-900 dark:text-white px-1">
           {t('smart_resources', 'Recursos Inteligentes')}
         </h3>
@@ -1287,14 +1319,17 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* RECIPE COLLECTIONS VIEW */}
-      <RecipeCollectionsView 
-        favoriteRecipes={(profile?.favorites || []) as any} 
-        savedRecipes={profile?.savedRecipes || []}
-        onRemoveFavorite={handleRemoveFavorite} 
-      />
+      <motion.div variants={staggerCardVariants} className="w-full">
+        <RecipeCollectionsView 
+          favoriteRecipes={(profile?.favorites || []) as any} 
+          savedRecipes={profile?.savedRecipes || []}
+          onRemoveFavorite={handleRemoveFavorite} 
+        />
+      </motion.div>
+
 
       {/* VOICE SHORTCUTS MODAL */}
       <VoiceShortcutsModal
@@ -1459,6 +1494,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         activeTab={activeTab}
       />
 
-    </div>
+    </motion.div>
   );
 }
+

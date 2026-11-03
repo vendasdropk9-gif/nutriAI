@@ -261,6 +261,24 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
   const [isVocalGuidanceEnabled, setIsVocalGuidanceEnabled] = useState(true);
   const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
   const [isBgMusicPlaying, setIsBgMusicPlaying] = useState(false);
+  const [isFocusedWorkoutActive, setIsFocusedWorkoutActive] = useState(false);
+  const [restSeconds, setRestSeconds] = useState(60);
+  const [restTimeLeft, setRestTimeLeft] = useState(60);
+  const [isRestTimerRunning, setIsRestTimerRunning] = useState(false);
+
+  useEffect(() => {
+    let t: any;
+    if (isRestTimerRunning && restTimeLeft > 0) {
+      t = setInterval(() => {
+        setRestTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (restTimeLeft === 0 && isRestTimerRunning) {
+      setIsRestTimerRunning(false);
+      playSfx('success');
+      vibrate([50, 50, 50]);
+    }
+    return () => clearInterval(t);
+  }, [isRestTimerRunning, restTimeLeft]);
   
   // Weather integration
   const [weatherInfo, setWeatherInfo] = useState<{ temp: number, condition: string } | null>(null);
@@ -1121,6 +1139,21 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   <span>Estúdio do Avatar 3D</span>
                 </button>
 
+                {/* Modo Treino Focado */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx('tap');
+                    vibrate(15);
+                    setIsFocusedWorkoutActive(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 backdrop-blur-md transition-all cursor-pointer shadow-lg active:scale-95 animate-pulse"
+                  title="Ativar Modo Treino Focado (Silencia Notificações & Timer de Descanso)"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Treino Focado ⚡</span>
+                </button>
+
                 {/* Detalhes do Exercício NutriAi (Card de Referência) */}
                 <button
                   type="button"
@@ -1611,6 +1644,182 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
           initialExerciseId={activeDetailedExercise?.id || 'seated-lateral-raises'}
         />
       </Suspense>
+
+      {/* MODO TREINO FOCADO (FULLSCREEN INTERACTIVE WORKOUT MODE WITH REST TIMER & NOTIFICATION MUTE) */}
+      <AnimatePresence>
+        {isFocusedWorkoutActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[#070A0F] text-white p-6 md:p-10 flex flex-col justify-between overflow-y-auto"
+          >
+            {/* Top Bar */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <Zap className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                      Modo Treino Focado Ativo
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase tracking-wider border border-purple-500/30">
+                      Notificações Silenciadas 🔕
+                    </span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-black font-display text-white mt-1">
+                    {workout?.title || 'Sessão de Treino'}
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(10);
+                  setIsFocusedWorkoutActive(false);
+                }}
+                className="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-all cursor-pointer border border-slate-700"
+              >
+                Sair do Modo Foco ✕
+              </button>
+            </div>
+
+            {/* Main Content: Active Exercise & Rest Timer */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center py-6">
+              {/* Exercise Details */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="bg-slate-900/90 border border-emerald-500/30 p-6 md:p-8 rounded-[32px] space-y-4 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
+                      Exercício {currentExerciseIndex + 1} de {workout?.exercises.length || 0}
+                    </span>
+                    <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-bold font-mono">
+                      {currentExercise?.duration ? `${currentExercise.duration}s` : currentExercise?.reps ? `${currentExercise.reps} Repetições` : 'Ativo'}
+                    </span>
+                  </div>
+
+                  <h1 className="text-3xl md:text-4xl font-black font-display text-white">
+                    {currentExercise?.name || 'Exercício Atual'}
+                  </h1>
+
+                  <p className="text-sm md:text-base text-slate-300 leading-relaxed">
+                    {currentExercise?.description || activeDetailedExercise?.description}
+                  </p>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Instruções Principais:</span>
+                    <ul className="text-xs md:text-sm text-slate-300 list-disc list-inside space-y-1">
+                      {currentExercise?.instructions?.map((ins, idx) => (
+                        <li key={idx}>{ins}</li>
+                      )) || <li>Mantenha a postura alinhada e respiração controlada.</li>}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => {
+                      playSfx('tap');
+                      vibrate(10);
+                      if (currentExerciseIndex > 0) setCurrentExerciseIndex(prev => prev - 1);
+                    }}
+                    disabled={currentExerciseIndex <= 0}
+                    className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-white font-bold rounded-2xl transition-all cursor-pointer"
+                  >
+                    ← Exercício Anterior
+                  </button>
+                  <button
+                    onClick={() => {
+                      playSfx('success');
+                      vibrate(20);
+                      if (workout && currentExerciseIndex < workout.exercises.length - 1) {
+                        setCurrentExerciseIndex(prev => prev + 1);
+                        setRestTimeLeft(60);
+                        setIsRestTimerRunning(true);
+                      } else {
+                        setIsFocusedWorkoutActive(false);
+                        setCurrentExerciseIndex(-2);
+                      }
+                    }}
+                    className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-all cursor-pointer shadow-lg shadow-emerald-500/30"
+                  >
+                    Concluir & Próximo ⚡
+                  </button>
+                </div>
+              </div>
+
+              {/* Integrated Rest Timer Column */}
+              <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-900/90 border border-slate-800 p-8 rounded-[32px] space-y-6 shadow-xl">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-widest">
+                  <Clock className="w-4 h-4" />
+                  <span>Timer de Descanso Integrado</span>
+                </div>
+
+                <div className="relative w-48 h-48 rounded-full border-4 border-emerald-500/30 flex flex-col items-center justify-center bg-slate-950/80 shadow-inner">
+                  <span className="text-4xl md:text-5xl font-black font-mono text-emerald-400">
+                    {Math.floor(restTimeLeft / 60)}:{String(restTimeLeft % 60).padStart(2, '0')}
+                  </span>
+                  <span className="text-[11px] text-slate-400 uppercase tracking-widest mt-1">
+                    {isRestTimerRunning ? 'Descansando...' : 'Pausado'}
+                  </span>
+                </div>
+
+                {/* Presets */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[30, 45, 60, 90].map(sec => (
+                    <button
+                      key={sec}
+                      onClick={() => {
+                        playSfx('tap');
+                        setRestSeconds(sec);
+                        setRestTimeLeft(sec);
+                        setIsRestTimerRunning(true);
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        restSeconds === sec
+                          ? 'bg-emerald-500 text-white shadow-md'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {sec}s
+                    </button>
+                  ))}
+                </div>
+
+                {/* Timer Controls */}
+                <div className="flex items-center gap-3 w-full">
+                  <button
+                    onClick={() => {
+                      playSfx('tap');
+                      setIsRestTimerRunning(!isRestTimerRunning);
+                    }}
+                    className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                      isRestTimerRunning ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    }`}
+                  >
+                    {isRestTimerRunning ? 'Pausar Descanso' : 'Iniciar Descanso'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      playSfx('tap');
+                      setIsRestTimerRunning(false);
+                      setRestTimeLeft(restSeconds);
+                    }}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Reiniciar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
