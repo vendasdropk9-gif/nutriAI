@@ -184,6 +184,8 @@ export interface UserProfile {
   healthIntegrations?: HealthIntegrationConfig;
   backupDestination?: 'google_drive' | 'dropbox' | 'onedrive';
   elevenLabsVoiceId?: string;
+  maluAvatarConfig?: { style: 'artistic' | 'photo' | 'cyber'; url?: string };
+  maluSpeechSpeed?: number;
   chronotype?: 'morning' | 'night' | 'intermediate';
   circadianNotificationConfig?: CircadianNotificationConfig;
   sleepGoalHours?: number;

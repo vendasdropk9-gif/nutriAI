@@ -458,9 +458,47 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
   const [biometricType, setBiometricType] = useState<'face' | 'fingerprint' | 'both' | null>(null);
   const [testScanProgress, setTestScanProgress] = useState(0);
 
-  // ElevenLabs Voice Selection
+  // ElevenLabs Voice Selection & Malu Customization
   const [voices, setVoices] = useState<{ voice_id: string; name: string }[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState(profile?.elevenLabsVoiceId || '');
+  const [selectedVoice, setSelectedVoice] = useState(profile?.elevenLabsVoiceId || 'Aoede');
+  const [maluAvatarStyle, setMaluAvatarStyle] = useState<'artistic' | 'photo' | 'cyber'>(() => {
+    return (profile as any)?.maluAvatarConfig?.style || 'artistic';
+  });
+  const [maluAvatarUrl, setMaluAvatarUrl] = useState<string>(() => {
+    return (profile as any)?.maluAvatarConfig?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300';
+  });
+  const [maluSpeechSpeed, setMaluSpeechSpeed] = useState<number>(() => {
+    return (profile as any)?.maluSpeechSpeed || 1.0;
+  });
+
+  const handleSaveMaluCustomization = (updates: { style?: 'artistic' | 'photo' | 'cyber'; url?: string; speed?: number; voiceId?: string }) => {
+    const nextStyle = updates.style !== undefined ? updates.style : maluAvatarStyle;
+    const nextUrl = updates.url !== undefined ? updates.url : maluAvatarUrl;
+    const nextSpeed = updates.speed !== undefined ? updates.speed : maluSpeechSpeed;
+    const nextVoice = updates.voiceId !== undefined ? updates.voiceId : selectedVoice;
+
+    if (updates.style !== undefined) setMaluAvatarStyle(updates.style);
+    if (updates.url !== undefined) setMaluAvatarUrl(updates.url);
+    if (updates.speed !== undefined) setMaluSpeechSpeed(updates.speed);
+    if (updates.voiceId !== undefined) setSelectedVoice(updates.voiceId);
+
+    playSfx('success');
+    vibrate([25, 35]);
+
+    const updatedProfile: UserProfile = {
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      ...(profile || {}),
+      name: formData.name || profile?.name || 'Usuário NutriAI',
+      maluAvatarConfig: { style: nextStyle, url: nextUrl },
+      maluSpeechSpeed: nextSpeed,
+      elevenLabsVoiceId: nextVoice
+    };
+    onSaveProfile(updatedProfile);
+    showInAppToast('Malu AI Customizada!', 'Aparência, tom de voz e velocidade de fala salvos com sucesso.');
+  };
 
   useEffect(() => {
     fetch('/api/elevenlabs/voices')
@@ -1599,6 +1637,146 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* ================================================================ */}
+        {/* DEDICATED MALU AI AVATAR & VOICE CUSTOMIZATION INTERFACE         */}
+        {/* ================================================================ */}
+        <div className="w-full bg-slate-900/95 dark:bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-teal-500/40 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+            <div>
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5">
+                <Sparkles className="w-6 h-6 text-teal-400 shrink-0" />
+                <span>Personalização do Avatar & Voz da IA Malu</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 font-sans mt-1">
+                Personalize a aparência visual da Malu (estilo artístico, foto ou cyber), o tom de voz integrado (via ElevenLabs / Aoede) e a velocidade de fala.
+              </p>
+            </div>
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/40 shadow-sm">
+              <Volume2 className="w-4 h-4 text-teal-300 animate-pulse" />
+              Voz Aoede / ElevenLabs
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. Visual Appearance Style */}
+            <div className="space-y-3 p-4 rounded-2xl bg-slate-950/85 border border-slate-800">
+              <label className="block text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4" />
+                <span>Aparência Visual da Malu</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'artistic' as const, label: '🎨 Artístico 3D' },
+                  { id: 'photo' as const, label: '📸 Foto Real' },
+                  { id: 'cyber' as const, label: '🤖 Cyber AI' }
+                ].map((s) => {
+                  const isSelected = maluAvatarStyle === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setMaluAvatarStyle(s.id);
+                        playSfx('tap');
+                        vibrate(10);
+                        handleSaveMaluCustomization({ style: s.id });
+                      }}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center active:scale-95 ${
+                        isSelected
+                          ? 'bg-teal-500 text-slate-950 font-black border-teal-300 shadow-md shadow-teal-500/25'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-1.5 pt-2">
+                <span className="text-[11px] text-slate-400 font-medium">URL da Imagem / Avatar da Malu:</span>
+                <input
+                  type="text"
+                  value={maluAvatarUrl}
+                  onChange={(e) => {
+                    setMaluAvatarUrl(e.target.value);
+                    handleSaveMaluCustomization({ url: e.target.value });
+                  }}
+                  placeholder="https://exemplo.com/malu-avatar.jpg"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:ring-2 focus:ring-teal-500/50"
+                />
+              </div>
+            </div>
+
+            {/* 2. ElevenLabs Voice Selection */}
+            <div className="space-y-3 p-4 rounded-2xl bg-slate-950/85 border border-slate-800">
+              <label className="block text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                <Volume2 className="w-4 h-4" />
+                <span>Tom de Voz (ElevenLabs API)</span>
+              </label>
+              <select
+                value={selectedVoice || 'Aoede'}
+                onChange={(e) => {
+                  setSelectedVoice(e.target.value);
+                  playSfx('tap');
+                  vibrate(10);
+                  handleSaveMaluCustomization({ voiceId: e.target.value });
+                }}
+                className="w-full p-3.5 bg-slate-900 border border-teal-500/40 rounded-xl text-xs font-medium text-white outline-none focus:ring-2 focus:ring-teal-500/50 cursor-pointer"
+              >
+                <option value="Aoede">Aoede (Padrão PT-BR / Feminina)</option>
+                <option value="rachel">Rachel (ElevenLabs - Calma & Profissional)</option>
+                <option value="domi">Domi (ElevenLabs - Enérgica)</option>
+                <option value="antoni">Antoni (ElevenLabs - Suave)</option>
+                {voices.map(v => (
+                  <option key={v.voice_id} value={v.voice_id}>{v.name} (ElevenLabs)</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400 leading-tight">
+                Utiliza a voz 'Aoede' por padrão para qualidade natural em Português do Brasil com integração ElevenLabs.
+              </p>
+            </div>
+
+            {/* 3. Speech Speed */}
+            <div className="space-y-3 p-4 rounded-2xl bg-slate-950/85 border border-slate-800">
+              <label className="block text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                <Sliders className="w-4 h-4" />
+                <span>Velocidade de Fala da Malu</span>
+              </label>
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {[0.75, 1.0, 1.25, 1.5].map((speed) => {
+                  const isSelected = maluSpeechSpeed === speed;
+                  return (
+                    <button
+                      key={speed}
+                      type="button"
+                      onClick={() => {
+                        setMaluSpeechSpeed(speed);
+                        playSfx('tap');
+                        vibrate(8);
+                        handleSaveMaluCustomization({ speed });
+                      }}
+                      className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer text-center ${
+                        isSelected
+                          ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                          : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+                      }`}
+                    >
+                      {speed}x
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[11px] text-slate-400">Velocidade Atual:</span>
+                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
+                  {maluSpeechSpeed}x normal
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
