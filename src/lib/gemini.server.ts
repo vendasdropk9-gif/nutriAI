@@ -239,6 +239,7 @@ JSON RESPONSE SCHEMA:
     properties: {
       text: { type: Type.STRING },
       action: { type: Type.STRING, enum: ['NONE', 'NAVIGATE', 'DEMO_EXERCISE', 'OPEN_MODAL', 'APPLY_FILTER', 'CONFIRM_ACTION', 'CHANGE_LANGUAGE'] },
+      emotion: { type: Type.STRING, enum: ['happy', 'thoughtful', 'motivating', 'neutral'] },
       actionData: {
         type: Type.OBJECT,
         nullable: true,
@@ -806,18 +807,67 @@ Responda APENAS com um objeto JSON.`;
     const text = response.text;
     if (!text) return null;
     
-    return JSON.parse(text) as Omit<Recipe, "id">;
+    const recipeData = JSON.parse(text) as Omit<Recipe, "id">;
+
+    // Automatically generate AI image for the new recipe using Gemini Image API
+    try {
+      const generatedImageUrl = await generateDishImage(recipeData.name, recipeData.description || '');
+      if (generatedImageUrl) {
+        recipeData.imageUrl = generatedImageUrl;
+        recipeData.image = generatedImageUrl;
+      }
+    } catch (e) {
+      console.warn("Notice: Dish image generation deferred to fallback:", e);
+    }
+
+    return recipeData;
   } catch (error) {
-    console.info("Fallback triggered");
+    console.info("Fallback triggered for generateRecipe");
     return {
       name: "Receita Rápida de Emergência",
       description: "Uma refeição versátil usando os ingredientes que você tem.",
       prepTime: "15 min",
       ingredients: ["1 porção de proteína rápida", "Vegetais sortidos", "Temperos a gosto"],
       instructions: ["Refogue tudo em fogo médio", "Tempere bem", "Sirva quente"],
-      nutrition: { calories: 300, protein: 20, carbs: 15, fat: 10 }
+      nutrition: { calories: 300, protein: 20, carbs: 15, fat: 10 },
+      imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
+      image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
     };
   }
+};
+
+export const generateDishImage = async (dishName: string, description: string = ''): Promise<string | null> => {
+  const ai = getGenAI();
+  if (!ai) return null;
+
+  const prompt = `Professional food photography of ${dishName}. ${description}. Gourmet presentation, studio lighting, appetizing close-up view, 4k resolution, high contrast, vibrant colors. No text, no logos.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite-image',
+      contents: {
+        parts: [
+          { text: prompt }
+        ]
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "4:3"
+        }
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts ?? []) {
+      if (part.inlineData?.data) {
+        const base64Data = part.inlineData.data;
+        const mime = part.inlineData.mimeType || 'image/png';
+        return `data:${mime};base64,${base64Data}`;
+      }
+    }
+  } catch (err) {
+    console.warn("Error generating dish image with Gemini image API:", err);
+  }
+  return null;
 };
 
 export const scanIngredients = async (base64Image: string, mimeType: string): Promise<string[]> => {

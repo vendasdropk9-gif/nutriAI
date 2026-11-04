@@ -29,6 +29,8 @@ import { DailyWorkoutTipCard } from './DailyWorkoutTipCard';
 import { QuickWaterLogger } from './QuickWaterLogger';
 import { EvolutionComparison } from './EvolutionComparison';
 import { NutritionTipsCarousel } from './NutritionTipsCarousel';
+import avatarGlobalStore, { useAvatarGlobalState, MaluEmotionType } from '../lib/avatarGlobalState';
+import { useNutritionGoals } from '../hooks/useNutritionGoals';
 
 
 const staggerContainerVariants = {
@@ -91,6 +93,15 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
     }, 6000);
     return () => clearInterval(interval);
   }, [proactiveTips.length]);
+
+  const globalAvatar = useAvatarGlobalState();
+  const currentMaluEmotion = globalAvatar.maluEmotion;
+
+  const handleSelectMaluMood = (mood: MaluEmotionType) => {
+    playSfx('crystal');
+    vibrate(15);
+    avatarGlobalStore.setMaluEmotion(mood);
+  };
 
   const isPremium = (profile as any)?.isPremium ?? false;
 
@@ -365,20 +376,24 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
     speak(summary, { voice: 'Aoede', lang: language });
   };
 
-  // Compute daily metrics safely
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Water
-  const waterLogs = profile?.hydrationLogs?.filter(l => l.date.startsWith(today)) || [];
-  const waterCurrent = waterLogs.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const waterTarget = profile?.waterGoal || 2500;
-  const waterPercent = Math.min(100, Math.round((waterCurrent / waterTarget) * 100));
+  // Compute daily metrics efficiently via custom useNutritionGoals hook
+  const nutritionSummary = useNutritionGoals(profile);
+  const {
+    currentCalories: caloriesCurrent,
+    targetCalories: caloriesTarget,
+    caloriesPercent,
+    currentProtein,
+    targetProtein,
+    currentCarbs,
+    targetCarbs,
+    currentFat,
+    targetFat,
+    currentWater: waterCurrent,
+    targetWater: waterTarget,
+    waterPercent
+  } = nutritionSummary;
 
-  // Calories
-  const intakeLogs = profile?.intakeLogs?.filter(l => l.date.startsWith(today)) || [];
-  const caloriesCurrent = intakeLogs.reduce((acc, curr) => acc + (curr.actual?.calories || curr.planned?.calories || 0), 0);
-  const caloriesTarget = profile?.masterPlan?.dailyCalories || 2000;
-  const caloriesPercent = Math.min(100, Math.round((caloriesCurrent / caloriesTarget) * 100));
+  const today = new Date().toISOString().split('T')[0];
 
   // Weight & BMI
   const currentWeight = profile?.weight || 70;
@@ -398,17 +413,6 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   // Mood
   const moodLogs = profile?.emotionalLogs?.filter(m => m.date.startsWith(today)) || [];
   const currentMood = moodLogs.length > 0 ? moodLogs[moodLogs.length - 1].mood : t('great', 'Ótimo');
-
-  // Macro calculation for charts
-  const currentProtein = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.protein || l.planned?.protein || 0), 0));
-  const currentCarbs = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.carbs || l.planned?.carbs || 0), 0));
-  const currentFat = Math.round(intakeLogs.reduce((acc, l) => acc + (l.actual?.fat || l.planned?.fat || 0), 0));
-
-  const weight = profile?.weight || 70;
-  const targetCalories = profile?.masterPlan?.dailyCalories || 2000;
-  const targetProtein = Math.round(profile?.masterPlan?.macros?.protein || (weight * 1.7));
-  const targetCarbs = Math.round(profile?.masterPlan?.macros?.carbs || ((targetCalories * 0.45) / 4));
-  const targetFat = Math.round(profile?.masterPlan?.macros?.fat || ((targetCalories * 0.25) / 9));
 
   // Next workout calculation from Personal Trainer & Notification System
   const todayDayKey = useMemo(() => {
@@ -549,31 +553,32 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center">
           
-          {/* Avatar Section with Idle Breathing & Glow */}
+          {/* Avatar Section */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-center sm:text-left w-full">
-            <div className="relative group cursor-pointer shrink-0" onClick={() => onNavigate('coach')}>
-              
-              {/* Breathing Glow Outer Ring */}
-              <div className={`absolute inset-0 rounded-full blur-md transition-all duration-1000 ${
-                isPremium 
-                  ? 'bg-gradient-to-tr from-[#D8B14A] to-[#16C784] opacity-60 animate-idle-breathe' 
-                  : 'bg-emerald-500/40 opacity-50 animate-idle-breathe'
-              }`} />
-              
-              {/* Outer Border Halo */}
-              <div className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full p-1 transition-all duration-500 ${
-                isPremium 
-                  ? 'bg-gradient-to-tr from-[#D8B14A] via-[#F3E5AB] to-[#16C784] shadow-[0_0_25px_rgba(216,177,74,0.3)]' 
-                  : 'bg-gradient-to-tr from-[#16C784] to-[#10B981] shadow-[0_0_25px_rgba(22,199,132,0.3)]'
-              }`}>
-                <div className="w-full h-full rounded-full bg-[#0B0F14] overflow-hidden flex items-center justify-center relative">
-                  <img 
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
-                    alt="NutriAI Assistant" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Status Indicator */}
-                  <span className="absolute bottom-2 right-2 w-4 h-4 rounded-full bg-[#16C784] border-2 border-[#0B0F14] shadow-md animate-pulse" />
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="relative group cursor-pointer shrink-0" onClick={() => onNavigate('coach')}>
+                {/* Breathing Glow Outer Ring */}
+                <div className={`absolute inset-0 rounded-full blur-md transition-all duration-1000 ${
+                  isPremium 
+                    ? 'bg-gradient-to-tr from-[#D8B14A] to-[#16C784] opacity-60 animate-idle-breathe' 
+                    : 'bg-emerald-500/40 opacity-50 animate-idle-breathe'
+                }`} />
+                
+                {/* Outer Border Halo */}
+                <div className={`relative w-32 h-32 sm:w-36 sm:h-36 rounded-full p-1 transition-all duration-500 ${
+                  isPremium 
+                    ? 'bg-gradient-to-tr from-[#D8B14A] via-[#F3E5AB] to-[#16C784] shadow-[0_0_25px_rgba(216,177,74,0.3)]' 
+                    : 'bg-gradient-to-tr from-[#16C784] to-[#10B981] shadow-[0_0_25px_rgba(22,199,132,0.3)]'
+                }`}>
+                  <div className="w-full h-full rounded-full bg-[#0B0F14] overflow-hidden flex items-center justify-center relative">
+                    <img 
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+                      alt="NutriAI Assistant" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {/* Status Indicator */}
+                    <span className="absolute bottom-2 right-2 w-4 h-4 rounded-full bg-[#16C784] border-2 border-[#0B0F14] shadow-md animate-pulse" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -596,6 +601,113 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
               <p className="text-base text-[#B5BDC9] max-w-xl leading-relaxed font-sans">
                 "{t('today_overview_quote', 'Your metabolism is operating at an optimal level today. Remember to maintain continuous hydration.')}"
               </p>
+
+              {/* Seletor Visual de Humor da Malu */}
+              <div className="pt-2 w-full flex flex-col items-center sm:items-start gap-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    Humor Atual da Malu:
+                  </span>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    (responde em tempo real no avatar 3D)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full max-w-xl">
+                  {/* Alegre */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMaluMood('alegre')}
+                    className={`relative p-2.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center gap-2.5 ${
+                      currentMaluEmotion === 'alegre' || currentMaluEmotion === 'happy'
+                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] ring-1 ring-emerald-400/50'
+                        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.08] text-slate-300'
+                    }`}
+                    title="Definir humor como Alegre"
+                  >
+                    <span className="text-xl">😊</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1">
+                        Alegre
+                        {(currentMaluEmotion === 'alegre' || currentMaluEmotion === 'happy') && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">Acolhedora</span>
+                    </div>
+                  </button>
+
+                  {/* Focada */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMaluMood('focada')}
+                    className={`relative p-2.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center gap-2.5 ${
+                      currentMaluEmotion === 'focada' || currentMaluEmotion === 'motivating'
+                        ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/50'
+                        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.08] text-slate-300'
+                    }`}
+                    title="Definir humor como Focada"
+                  >
+                    <span className="text-xl">🎯</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1">
+                        Focada
+                        {(currentMaluEmotion === 'focada' || currentMaluEmotion === 'motivating') && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">Metas & Treino</span>
+                    </div>
+                  </button>
+
+                  {/* Calma */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMaluMood('calma')}
+                    className={`relative p-2.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center gap-2.5 ${
+                      currentMaluEmotion === 'calma'
+                        ? 'bg-teal-500/20 border-teal-400 text-teal-300 shadow-[0_0_15px_rgba(20,184,166,0.3)] ring-1 ring-teal-400/50'
+                        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.08] text-slate-300'
+                    }`}
+                    title="Definir humor como Calma"
+                  >
+                    <span className="text-xl">🌿</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1">
+                        Calma
+                        {currentMaluEmotion === 'calma' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">Serenidade</span>
+                    </div>
+                  </button>
+
+                  {/* Pensativa */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMaluMood('pensativa')}
+                    className={`relative p-2.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center gap-2.5 ${
+                      currentMaluEmotion === 'pensativa' || currentMaluEmotion === 'thoughtful'
+                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400/50'
+                        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.08] text-slate-300'
+                    }`}
+                    title="Definir humor como Pensativa"
+                  >
+                    <span className="text-xl">💡</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold tracking-tight text-white flex items-center gap-1">
+                        Pensativa
+                        {(currentMaluEmotion === 'pensativa' || currentMaluEmotion === 'thoughtful') && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">Estratégica</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -623,22 +735,22 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       {/* 1.5. Web Speech API Hands-Free Voice Control Card */}
       <motion.div 
         variants={staggerCardVariants}
-        className="w-full card-premium p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/30 mx-auto"
+        className="w-full card-premium p-4 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/30 mx-auto overflow-hidden text-center sm:text-left"
       >
-        <div className="flex items-center gap-4">
-          <div className={`p-3.5 rounded-2xl flex items-center justify-center transition-all ${
+        <div className="flex flex-col sm:flex-row items-center gap-3.5 text-center sm:text-left w-full md:w-auto justify-center sm:justify-start">
+          <div className={`p-3.5 rounded-2xl flex items-center justify-center transition-all shrink-0 ${
             isVoiceActive 
               ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 animate-pulse' 
               : 'bg-emerald-500/20 text-emerald-500'
           }`}>
             {isVoiceActive ? <Mic className="w-6 h-6 animate-bounce" /> : <MicOff className="w-6 h-6" />}
           </div>
-          <div>
+          <div className="flex flex-col items-center sm:items-start">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">
               <Sparkles className="w-3 h-3" />
               <span>{t('hands_free_voice_nav', 'Navegação Hands-Free por Voz (Malu / Aoede)')}</span>
             </div>
-            <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
               {isVoiceActive ? t('listening_commands', 'Ouvindo comandos (Início, Receitas, Metas, Próximo)...') : t('voice_control_prompt', 'Fale com a Malu para navegar sem as mãos')}
             </h4>
             {lastTranscript && (
@@ -649,43 +761,45 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Centralized Action Buttons within the Tab Card */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full md:w-auto max-w-full pt-1 sm:pt-0">
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => {
               playSfx('tap');
               vibrate(15);
               speakDailySummary();
             }}
-            className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 border border-slate-700 shadow transition cursor-pointer"
+            className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-700 shadow-md transition cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-emerald-400" />
             <span>{t('voice_summary_btn', 'Resumo')}</span>
           </motion.button>
+
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => {
               playSfx('tap');
               vibrate(15);
               setIsShortcutsOpen(true);
             }}
-            className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center gap-2 border border-slate-700 shadow transition cursor-pointer"
+            className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-slate-700 shadow-md transition cursor-pointer"
           >
             <HelpCircle className="w-4 h-4 text-emerald-400" />
             <span>{t('voice_shortcuts_btn', 'Atalhos')}</span>
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => {
               playSfx('tap');
               vibrate(20);
               toggleVoiceRecognition();
             }}
-            className={`px-6 py-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer ${
+            className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
               isVoiceActive
                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30'
                 : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
@@ -1059,7 +1173,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         </motion.div>
 
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Calories Metric */}
           <div className="card-premium p-5 flex flex-col justify-between space-y-4 relative overflow-hidden group">
             <div className="flex items-center justify-between">
@@ -1078,34 +1192,11 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
             </div>
             {/* Progress Bar */}
             <div className="w-full bg-slate-100 dark:bg-[#232C39] h-2 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-[#10B981] via-[#16C784] to-[#34D399] transition-all duration-700"
-                style={{ width: `${caloriesPercent}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Calories Metric */}
-          <div className="card-premium p-5 flex flex-col justify-between space-y-4 relative overflow-hidden group">
-            <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 text-[#16C784]">
-                <Flame className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-[#16C784] bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                {caloriesPercent}%
-              </span>
-            </div>
-            <div>
-              <span className="text-xs font-medium text-slate-400 dark:text-[#B5BDC9]">{t('metric_calories_goal', 'Meta de Calorias')}</span>
-              <div className="text-xl font-display font-bold text-slate-900 dark:text-white mt-0.5">
-                {caloriesCurrent} <span className="text-xs font-normal text-slate-400">/ {caloriesTarget} kcal</span>
-              </div>
-            </div>
-            {/* Progress Bar */}
-            <div className="w-full bg-slate-100 dark:bg-[#232C39] h-2 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-[#10B981] via-[#16C784] to-[#34D399] transition-all duration-700"
-                style={{ width: `${caloriesPercent}%` }}
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${caloriesPercent}%` }}
+                transition={{ type: "spring", stiffness: 60, damping: 15 }}
+                className="h-full bg-gradient-to-r from-[#10B981] via-[#16C784] to-[#34D399]"
               />
             </div>
           </div>
@@ -1168,6 +1259,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           <DailyNutritionProgressCard
             profile={profile}
             onNavigate={onNavigate}
+            onUpdateProfile={onUpdateProfile}
           />
         </motion.div>
 

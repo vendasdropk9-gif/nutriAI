@@ -1,6 +1,12 @@
 import { textToSpeech } from './gemini';
 import { translateSpeechText } from './speechTranslator';
 import avatarGlobalStore from './avatarGlobalState';
+import { 
+  attachAudioLipSync, 
+  detachAudioLipSync, 
+  startSpeechUtteranceLipSync, 
+  detectMaluEmotionFromText 
+} from './audioLipSync';
 
 export interface SpeechOptions {
   voice?: string;
@@ -122,6 +128,7 @@ export const stopSpeech = () => {
       activeAudio = null;
     } catch (e) {}
   }
+  detachAudioLipSync();
   avatarGlobalStore.setSpeaking(false);
 };
 
@@ -188,9 +195,11 @@ export const speakWithWebSpeech = (text: string, options?: SpeechOptions): boole
       }
     };
 
+    startSpeechUtteranceLipSync(utterance);
     window.speechSynthesis.speak(utterance);
     return true;
   } catch (err) {
+    detachAudioLipSync();
     console.warn("Web Speech API speak exception:", err);
     options?.onError?.(err);
     options?.onEnded?.();
@@ -221,6 +230,10 @@ export const speak = async (text: string, options?: SpeechOptions) => {
   // Stop any previous speech immediately for instant interruption
   stopSpeech();
 
+  // Resolve and set Malu's emotional state
+  const detectedEmotion = (options?.emotion as any) || detectMaluEmotionFromText(textToSpeak);
+  avatarGlobalStore.setMaluEmotion(detectedEmotion);
+
   currentSpeechId++;
   const speechId = currentSpeechId;
 
@@ -247,7 +260,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
         model: options?.model || 'gemini-3.8-flash-tts',
         voiceName: voiceToUse || 'Aoede',
         isElevenLabs: !!storedVoice,
-        emotion: options?.emotion,
+        emotion: options?.emotion || detectedEmotion,
         style: options?.style
       });
     }
@@ -280,6 +293,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       }
 
       audio.onended = () => {
+        detachAudioLipSync();
         if (activeAudio === audio) {
           activeAudio = null;
         }
@@ -287,6 +301,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
 
       audio.onerror = (e) => {
+        detachAudioLipSync();
         console.warn("Gemini TTS audio playback error:", e);
         if (activeAudio === audio) {
           activeAudio = null;
@@ -296,9 +311,11 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       };
       
       try {
+        attachAudioLipSync(audio);
         await audio.play();
         return { method: 'gemini' as const, audio };
       } catch (playErr) {
+        detachAudioLipSync();
         console.warn("Audio play blocked or interrupted, attempting WebSpeech fallback:", playErr);
         if (activeAudio === audio) {
           activeAudio = null;
@@ -322,6 +339,7 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       return { method: 'none' as const };
     }
   } catch (error) {
+    detachAudioLipSync();
     if (speechId !== currentSpeechId) return { method: 'none' as const };
     console.warn("TTS playback encountered error:", error);
     options?.onError?.(error);
@@ -359,6 +377,7 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
     }
 
     audio.onended = () => {
+      detachAudioLipSync();
       if (activeAudio === audio) {
         activeAudio = null;
       }
@@ -366,6 +385,7 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
     };
 
     audio.onerror = (err) => {
+      detachAudioLipSync();
       console.warn("playAudioUrl error:", err);
       if (activeAudio === audio) {
         activeAudio = null;
@@ -373,6 +393,7 @@ export const playAudioUrl = async (urlOrBase64: string, options?: SpeechOptions)
       options?.onEnded?.();
     };
     
+    attachAudioLipSync(audio);
     await audio.play();
     return audio;
   } catch(e) {

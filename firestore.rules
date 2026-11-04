@@ -2,98 +2,185 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // --- Helpers ---
-    function isSignedIn() { return request.auth != null; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    // --- Security Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
     
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isNonNegativeNumber(val) {
+      return val is number && val >= 0;
+    }
+
+    // Prevents identity spoofing: new document's userId must match auth.uid
+    function createsOwnDoc() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+
+    // Prevents shadow update / transferring ownership: userId cannot be changed
+    function maintainsOwnership() {
+      return !('userId' in resource.data) || (
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.userId == request.auth.uid
+      );
+    }
+
+    // Prevents privilege escalation and ghost field injection on User document updates
+    function isValidUserUpdate() {
+      let isUnchangedPoints = !('points' in resource.data) || (
+        !('points' in request.resource.data) || request.resource.data.points == resource.data.points
+      );
+      let isUnchangedRole = !('role' in resource.data) || (
+        !('role' in request.resource.data) || request.resource.data.role == resource.data.role
+      );
+      let isUnchangedVerified = !('isVerified' in resource.data) || (
+        !('isVerified' in request.resource.data) || request.resource.data.isVerified == resource.data.isVerified
+      );
+      let isValidArraySize = !('restrictions' in request.resource.data) || (
+        request.resource.data.restrictions is list && request.resource.data.restrictions.size() <= 100
+      );
+      return isUnchangedPoints && isUnchangedRole && isUnchangedVerified && isValidArraySize;
+    }
+
+    // Prevents negative nutrition values
+    function isValidNutrition() {
+      let hasNutrition = 'nutrition' in request.resource.data;
+      return !hasNutrition || (
+        request.resource.data.nutrition is map &&
+        (!('calories' in request.resource.data.nutrition) || isNonNegativeNumber(request.resource.data.nutrition.calories)) &&
+        (!('protein' in request.resource.data.nutrition) || isNonNegativeNumber(request.resource.data.nutrition.protein)) &&
+        (!('carbs' in request.resource.data.nutrition) || isNonNegativeNumber(request.resource.data.nutrition.carbs)) &&
+        (!('fat' in request.resource.data.nutrition) || isNonNegativeNumber(request.resource.data.nutrition.fat))
+      );
+    }
+
     // --- Connection Test ---
     match /test/connection {
       allow read: if true;
     }
 
-    // --- User Collections (Strictly Secured to Owner) ---
+    // --- User Profiles and Subcollections (Strict Isolation) ---
     match /users/{userId} {
-      // Allow access if owner, OR if user is a guest (for direct access scenarios)
-      allow read, write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
+      allow read: if isValidId(userId) && isOwner(userId);
+      allow create: if isValidId(userId) && isOwner(userId) && createsOwnDoc();
+      allow update: if isValidId(userId) && isOwner(userId) && maintainsOwnership() && isValidUserUpdate();
+      allow delete: if isValidId(userId) && isOwner(userId);
       
-      // Subcollections (Secured to owner or guest)
+      // Subcollections under /users/{userId}/...
       match /{allSubcollections=**} {
-        allow read, write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
+        allow read: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isOwner(userId) && createsOwnDoc() && isValidNutrition();
+        allow update: if isValidId(userId) && isOwner(userId) && maintainsOwnership() && isValidNutrition();
+        allow delete: if isValidId(userId) && isOwner(userId);
       }
     }
 
-    // --- Pantry & Fridge Items (Explicit collection rules - Restricted to Auth) ---
-    // Note: These collections lack a userId field in their schema, preventing strict ownership enforcement.
-    match /pantryItems/{id} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-    match /fridgeItems/{id} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    // --- Profiles (Shared/Public read-only, unless it's the owner profile) ---
+    // --- Legacy / Alternative Profile Path ---
     match /profiles/{profileId} {
-      allow read: if isSignedIn();
-      allow write: if isValidId(profileId) && isOwner(profileId);
+      allow read, write: if isValidId(profileId) && isOwner(profileId);
     }
 
-    // --- Global / Public Collections (Read and Seedable) ---
-    match /medicinalHerbs/{herbId} {
-      allow read, write: if true;
+    // --- Pantry & Fridge Items (Scoped by User) ---
+    match /pantryItems/{id} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(id) && createsOwnDoc();
+      allow update: if isSignedIn() && isValidId(id) && isOwner(resource.data.userId) && maintainsOwnership();
+      allow delete: if isSignedIn() && isValidId(id) && isOwner(resource.data.userId);
     }
-    match /couriers/{courierId} {
-      allow read, write: if true;
+
+    match /fridgeItems/{id} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(id) && createsOwnDoc();
+      allow update: if isSignedIn() && isValidId(id) && isOwner(resource.data.userId) && maintainsOwnership();
+      allow delete: if isSignedIn() && isValidId(id) && isOwner(resource.data.userId);
     }
-    match /deliveries/{deliveryId} {
-      allow read, write: if true;
-    }
-    match /orders/{orderId} {
-      allow read, write: if true;
-    }
+
+    // --- Recipes (Public Read, Owner Write, Author Ownership Check) ---
     match /recipes/{recipeId} {
       allow read: if true;
-      allow write: if isSignedIn(); 
-    }
-    match /academies/{academyId} {
-      allow read: if true;
-      allow write: if isSignedIn(); 
+      allow create: if isSignedIn() && isValidId(recipeId) &&
+        ('authorId' in request.resource.data && request.resource.data.authorId == request.auth.uid) &&
+        isValidNutrition();
+      allow update: if isSignedIn() && isValidId(recipeId) &&
+        (resource.data.authorId == request.auth.uid) &&
+        (request.resource.data.authorId == resource.data.authorId) &&
+        isValidNutrition();
+      allow delete: if isSignedIn() && isValidId(recipeId) && resource.data.authorId == request.auth.uid;
     }
 
-    // --- Application Data & Interaction Collections ---
+    // --- Recipe Reviews & Feedbacks ---
     match /recipeReviews/{reviewId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-    match /feedbacks/{feedbackId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-    match /buttonStates/{buttonId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-    match /presence/{userId} {
-      allow read: if true;
-      allow write: if isValidId(userId) && (isOwner(userId) || userId == 'guest-direct-user');
+      allow create: if isSignedIn() && isValidId(reviewId) && createsOwnDoc();
+      allow update, delete: if isSignedIn() && isValidId(reviewId) && isOwner(resource.data.userId) && maintainsOwnership();
     }
 
-    // --- Price Alerts ---
-    match /users/{userId}/priceAlerts/{alertId} {
-      allow read, write: if isValidId(userId) && isOwner(userId);
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(feedbackId) && createsOwnDoc();
+      allow update, delete: if isSignedIn() && isValidId(feedbackId) && isOwner(resource.data.userId) && maintainsOwnership();
     }
-    
-    // --- Mail (Only for extension, can only write) ---
+
+    // --- Presence ---
+    match /presence/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isValidId(userId) && isOwner(userId);
+    }
+
+    // --- Medicinal Herbs & Academies ---
+    match /medicinalHerbs/{herbId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /academies/{academyId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(academyId);
+      allow delete: if false;
+    }
+
+    // --- Orders & Deliveries (Owner & Courier Access) ---
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && isValidId(orderId) && (
+        !('userId' in resource.data) || resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn() && isValidId(orderId) && createsOwnDoc();
+      allow update: if isSignedIn() && isValidId(orderId) && (
+        isOwner(resource.data.userId) || !('userId' in resource.data)
+      );
+      allow delete: if false;
+    }
+
+    match /couriers/{courierId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(courierId);
+    }
+
+    match /deliveries/{deliveryId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(deliveryId);
+      allow delete: if false;
+    }
+
+    // --- Button States ---
+    match /buttonStates/{buttonId} {
+      allow read, write: if isSignedIn() && isValidId(buttonId);
+    }
+
+    // --- Mail (Outgoing Emails - Create Only) ---
     match /mail/{mailId} {
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(mailId);
       allow read, update, delete: if false;
     }
 
-    // Default Deny Catch-All
+    // Catch-All Default Deny
     match /{document=**} {
       allow read, write: if false;
     }

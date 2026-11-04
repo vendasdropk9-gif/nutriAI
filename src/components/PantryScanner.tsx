@@ -14,6 +14,7 @@ import { PantryItem, PantryRecipeSuggestion, UserProfile, Recipe } from '../type
 import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
 import { PantryFreshness } from './PantryFreshness';
+import { PantryInsightsWidget } from './PantryInsightsWidget';
 import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '../lib/firebase';
 import { useTranslation } from '../contexts/LanguageContext';
 import { safeGet, safeSet } from '../lib/storage';
@@ -1501,7 +1502,11 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
       {/* TAB: INVENTORY LIST */}
       {activeTab === 'inventory' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <PantryInsightsWidget 
+            onNavigateToMarket={() => window.dispatchEvent(new CustomEvent('app:changeTab', { detail: 'market' }))} 
+          />
+
           {/* Proactive Push Notification Info Banner */}
           <div id="pantry-proactive-notifications-banner" className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-600/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-900/40 border border-emerald-300/40 dark:border-emerald-700/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-start sm:items-center gap-3">

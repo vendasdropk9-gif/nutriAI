@@ -185,15 +185,21 @@ export const ConnectedHealthWidget: React.FC<ConnectedHealthWidgetProps> = ({
             <span className="hidden sm:inline">{isSpeaking ? 'Parar Voz' : 'Ouvir Malu'}</span>
           </button>
 
-          {/* Sync Button */}
+          {/* Sync Button with Framer-Motion Spinning Animation */}
           <button
             type="button"
             onClick={handleQuickSync}
             disabled={isSyncing}
             title="Atualizar dados agora"
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 transition-all flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+            <motion.div
+              animate={isSyncing ? { rotate: 360 } : { rotate: 0 }}
+              transition={isSyncing ? { repeat: Infinity, duration: 1, ease: "linear" } : { duration: 0.2 }}
+              className="flex items-center justify-center shrink-0"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            </motion.div>
             <span className="hidden xs:inline">{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
           </button>
 

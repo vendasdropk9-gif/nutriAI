@@ -52,7 +52,7 @@ export const chatWithAssistant = async (
   profile: UserProfile,
   history: { role: 'user' | 'model', text: string }[],
   userMessage: string
-): Promise<{ text: string, action: string, actionData?: any }> => {
+): Promise<{ text: string, action: string, actionData?: any, emotion?: 'happy' | 'thoughtful' | 'motivating' | 'neutral' }> => {
   return callGeminiEndpoint('chatWithAssistant', [profile, history, userMessage]);
 };
 
@@ -81,6 +81,13 @@ export const generateRecipe = async (
   preferences: string = ""
 ): Promise<Omit<Recipe, "id"> | null> => {
   return callGeminiEndpoint('generateRecipe', [ingredients, profile, budgetMode, preferences]);
+};
+
+export const generateDishImage = async (
+  dishName: string,
+  description: string = ""
+): Promise<string | null> => {
+  return callGeminiEndpoint('generateDishImage', [dishName, description]);
 };
 
 export const scanIngredients = async (base64Image: string, mimeType: string): Promise<string[]> => {

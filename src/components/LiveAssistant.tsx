@@ -19,6 +19,8 @@ import { speak, stopSpeech, unlockAudio } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import avatarGlobalStore from '../lib/avatarGlobalState';
+import { detectMaluEmotionFromText } from '../lib/audioLipSync';
 
 export interface LiveAssistantProps {
   profile: UserProfile | null;
@@ -940,6 +942,7 @@ export function LiveAssistant({
       let replyText = "";
       let actionToRun = "NONE";
       let actionDataToRun: any = undefined;
+      let geminiRes: any = null;
 
       if (localMatch) {
         console.log(`[NutriAI Query] Local intent matched:`, localMatch);
@@ -972,14 +975,18 @@ export function LiveAssistant({
           language: currentLanguage
         };
 
-        const res = await chatWithAssistant(effectiveProfile, conversationHistory, cleanQuery);
-        console.log(`[NutriAI Query] Received response from Gemini backend:`, res);
-        replyText = res?.text || (isPt 
+        geminiRes = await chatWithAssistant(effectiveProfile, conversationHistory, cleanQuery);
+        console.log(`[NutriAI Query] Received response from Gemini backend:`, geminiRes);
+        replyText = geminiRes?.text || (isPt 
           ? "Estou aqui com você! Como posso te ajudar na sua alimentação hoje?" 
           : "I'm right here with you! How can I help you with your nutrition today?");
-        actionToRun = res?.action || "NONE";
-        actionDataToRun = res?.actionData;
+        actionToRun = geminiRes?.action || "NONE";
+        actionDataToRun = geminiRes?.actionData;
       }
+
+      // Detect emotional state from Gemini tone or semantic keywords
+      const detectedEmotion = geminiRes?.emotion || detectMaluEmotionFromText(replyText);
+      avatarGlobalStore.setMaluEmotion(detectedEmotion);
 
       // Execute action immediately in the app
       if (actionToRun && actionToRun !== 'NONE') {
@@ -996,6 +1003,7 @@ export function LiveAssistant({
             response: replyText,
             action: actionToRun,
             actionData: actionDataToRun,
+            emotion: detectedEmotion,
             timestamp: Date.now()
           }
         }));
@@ -1007,10 +1015,11 @@ export function LiveAssistant({
       isSessionActiveRef.current = true;
       showStatus(t('malu_speaking', locStrings.speaking), 'speaking', 0);
 
-      // Play voice in the current active language using Aoede
+      // Play voice in the current active language using Aoede and detected emotional tone
       await speak(replyText, {
         lang: currentLanguage,
         voice: 'Aoede',
+        emotion: detectedEmotion,
         onEnded: () => {
           console.log('[NutriAI Query] Malu voice playback completed. Session remains active. Opening microphone for next user response...');
           setIsSpeaking(false);

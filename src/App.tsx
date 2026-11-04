@@ -843,49 +843,40 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         ? 'w-full max-w-full px-2 sm:px-6 lg:px-8 py-0 md:py-12'
         : 'w-full max-w-full px-2 sm:px-6 lg:px-8 py-6 md:py-10'
       }`}>
-        <LayoutAnimationProvider animationKey={activeTab}>
-          <div key={`tab-view-${activeTab}-${currentAppLang}`} className="w-full flex-1 flex flex-col items-center">
-            <ErrorBoundary>
-              <Suspense fallback={<LazyTabLoader label={t('loading_module', 'Carregando módulo inteligente...')} />}>
-                {(activeTab === 'generator' || activeTab === 'plan') && (
-                  <FoodGalleryBanner 
-                    onNavigateToMarket={() => setActiveTab('market')} 
-                    isGenerating={isRecipesGenerating} 
-                    recipesCount={savedRecipes.length}
-                  />
-                )}
-                {activeTab === 'assistant360' && (
-                  <Assistant360 
-                    profile={profile} 
-                    onNavigate={(tab) => {
-                      if (tab === 'live') {
-                        window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
-                      } else {
-                        setActiveTab(tab as any);
-                      }
-                    }} 
-                    onLogIntake={handleLogIntake}
-                    onUpdateProfile={updateProfile}
-                    activeTab={activeTab}
-                    addNotification={addNotification}
-                  />
-                )}
-                {activeTab === 'quickdishes' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 28 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                    className="w-full animate-fade-in-up"
-                  >
-                    <QuickDishes
-                      profile={profile}
-                      onSaveRecipe={handleSaveRecipe}
-                      onAwardPoints={awardPoints}
-                      onUpdateProfile={updateProfile}
-                    />
-                  </motion.div>
-                )}
+        <LayoutAnimationProvider animationKey={`${activeTab}-${currentAppLang}`}>
+          <ErrorBoundary>
+            <Suspense fallback={<LazyTabLoader label={t('loading_module', 'Carregando módulo inteligente...')} />}>
+              {(activeTab === 'generator' || activeTab === 'plan') && (
+                <FoodGalleryBanner 
+                  onNavigateToMarket={() => setActiveTab('market')} 
+                  isGenerating={isRecipesGenerating} 
+                  recipesCount={savedRecipes.length}
+                />
+              )}
+              {activeTab === 'assistant360' && (
+                <Assistant360 
+                  profile={profile} 
+                  onNavigate={(tab) => {
+                    if (tab === 'live') {
+                      window.dispatchEvent(new CustomEvent('app:openLiveAssistant'));
+                    } else {
+                      setActiveTab(tab as any);
+                    }
+                  }} 
+                  onLogIntake={handleLogIntake}
+                  onUpdateProfile={updateProfile}
+                  activeTab={activeTab}
+                  addNotification={addNotification}
+                />
+              )}
+              {activeTab === 'quickdishes' && (
+                <QuickDishes
+                  profile={profile}
+                  onSaveRecipe={handleSaveRecipe}
+                  onAwardPoints={awardPoints}
+                  onUpdateProfile={updateProfile}
+                />
+              )}
                 {activeTab === 'generator' && (
                   <Generator initialIngredients={quickRecipeIngredient} 
                     onSaveRecipe={handleSaveRecipe} 
@@ -1099,7 +1090,6 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                 )}
               </Suspense>
             </ErrorBoundary>
-          </div>
         </LayoutAnimationProvider>
       </main>
 

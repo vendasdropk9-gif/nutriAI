@@ -57,49 +57,56 @@ export interface LayoutAnimationProviderProps {
 const slideVariants: Variants = {
   initial: (dir: number) => ({
     opacity: 0,
-    x: dir >= 0 ? 42 : -42,
-    filter: 'blur(2px)',
+    x: dir >= 0 ? 32 : -32,
+    scale: 0.985,
+    filter: 'blur(1px)',
   }),
   animate: {
     opacity: 1,
     x: 0,
+    scale: 1,
     filter: 'blur(0px)',
     transition: {
-      x: { type: 'spring' as const, stiffness: 320, damping: 30, mass: 0.7 },
-      opacity: { duration: 0.24, ease: [0.16, 1, 0.3, 1] },
+      x: { type: 'spring' as const, stiffness: 280, damping: 28, mass: 0.6 },
+      scale: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+      opacity: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
       filter: { duration: 0.2 },
     },
   },
   exit: (dir: number) => ({
     opacity: 0,
-    x: dir >= 0 ? -42 : 42,
-    filter: 'blur(2px)',
+    x: dir >= 0 ? -28 : 28,
+    scale: 0.985,
+    filter: 'blur(1px)',
     transition: {
       x: { duration: 0.18, ease: [0.25, 1, 0.5, 1] },
       opacity: { duration: 0.15, ease: 'easeIn' },
+      scale: { duration: 0.15 },
       filter: { duration: 0.15 },
     },
   }),
 };
 
 const fadeUpVariants: Variants = {
-  initial: { opacity: 0, y: 30 },
+  initial: { opacity: 0, y: 30, scale: 0.98 },
   animate: { 
     opacity: 1, 
     y: 0,
-    transition: { duration: 0.35, ease: 'easeOut' }
+    scale: 1,
+    transition: { duration: 0.32, ease: [0.16, 1, 0.3, 1] }
   },
   exit: { 
     opacity: 0, 
     y: -20,
-    transition: { duration: 0.2, ease: 'easeIn' }
+    scale: 0.98,
+    transition: { duration: 0.18, ease: 'easeIn' }
   }
 };
 
 export function LayoutAnimationProvider({ 
   children, 
   animationKey, 
-  className = "w-full flex-1 flex flex-col items-center min-h-[400px] overflow-x-hidden",
+  className = "w-full flex-1 flex flex-col items-center min-h-[400px] overflow-x-hidden transform-gpu",
   direction: explicitDirection,
   tabOrder = DEFAULT_TAB_ORDER,
   mode = 'slide'

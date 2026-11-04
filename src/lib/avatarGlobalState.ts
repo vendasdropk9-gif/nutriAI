@@ -43,7 +43,23 @@ export interface AvatarGlobalState {
     wristbands: boolean;
     liftingStraps: boolean;
   };
+  // Malu 3D Emotional Expression & Real-time TTS Lip-Sync
+  maluEmotion: MaluEmotionType;
+  maluLipSync: {
+    audioVolume: number;
+    mouthOpen: number;
+    mouthSpread: number;
+    isSpeaking: boolean;
+  };
 }
+
+export type MaluEmotionType = 
+  | 'alegre' | 'happy' 
+  | 'focada' | 'motivating' 
+  | 'calma' | 'neutral' 
+  | 'pensativa' | 'thoughtful';
+
+const STORAGE_MALU_MOOD_KEY = 'nutriai_malu_mood_pref';
 
 const STORAGE_GENDER_KEY = 'nutriai_avatar_gender_pref';
 const STORAGE_BODYFAT_KEY = 'nutriai_avatar_bodyfat';
@@ -160,6 +176,21 @@ class AvatarGlobalStateStore {
       smartwatch: true,
       wristbands: false,
       liftingStraps: false
+    },
+    maluEmotion: (() => {
+      if (typeof window !== 'undefined') {
+        try {
+          const saved = localStorage.getItem(STORAGE_MALU_MOOD_KEY) as MaluEmotionType;
+          if (saved) return saved;
+        } catch {}
+      }
+      return 'alegre';
+    })(),
+    maluLipSync: {
+      audioVolume: 0,
+      mouthOpen: 0,
+      mouthSpread: 0.1,
+      isSpeaking: false
     }
   };
 
@@ -463,6 +494,29 @@ class AvatarGlobalStateStore {
       eventType === 'goal_completed' ? 'smile' : 'joy_nod';
 
     this.triggerMicroExpression(exprType, duration, 1.0);
+  }
+
+  public setMaluEmotion(emotion: MaluEmotionType) {
+    if (this.state.maluEmotion !== emotion) {
+      this.state.maluEmotion = emotion;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(STORAGE_MALU_MOOD_KEY, emotion);
+        } catch {}
+      }
+      this.emitChange();
+    }
+  }
+
+  public setMaluLipSync(data: Partial<AvatarGlobalState['maluLipSync']>) {
+    this.state.maluLipSync = {
+      ...this.state.maluLipSync,
+      ...data
+    };
+    if (data.isSpeaking !== undefined && this.state.isSpeaking !== data.isSpeaking) {
+      this.state.isSpeaking = data.isSpeaking;
+    }
+    this.emitChange();
   }
 }
 
