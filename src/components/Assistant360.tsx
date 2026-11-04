@@ -29,7 +29,6 @@ import { DailyWorkoutTipCard } from './DailyWorkoutTipCard';
 import { QuickWaterLogger } from './QuickWaterLogger';
 import { EvolutionComparison } from './EvolutionComparison';
 import { NutritionTipsCarousel } from './NutritionTipsCarousel';
-import { Malu3DAvatar } from './Malu3DAvatar';
 
 
 const staggerContainerVariants = {

@@ -25,6 +25,33 @@ export function useProfileSync(
   useEffect(() => {
     if (!user) return;
 
+    // Check if user is in guest / demo test mode
+    if ((user as any)?.isGuest || user?.uid?.startsWith('guest-')) {
+      if (!localProfile) {
+        setLocalProfile({
+          id: user.uid,
+          name: user.displayName || 'Usuário de Teste (Demo)',
+          firstName: 'Usuário',
+          lastName: 'de Teste',
+          email: user.email || 'teste@nutriai.app',
+          goals: 'Alimentação saudável, hipertrofia e longevidade',
+          restrictions: [],
+          allergies: [],
+          equipment: ['Halteres', 'Elásticos'],
+          plan: 'Premium',
+          isPremium: true,
+          subscriptionStatus: 'active',
+          language: 'pt-BR',
+          country: 'Brasil',
+          points: 750,
+          streak: 5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+      return;
+    }
+
     // Check user ID - ensure valid document path segment
     const userId = user.uid || (user as any).id || 'current-user';
 
@@ -255,6 +282,9 @@ export function useProfileSync(
   // Sync profile changes back to Firestore AND Supabase
   const syncToFirestore = useCallback(async (newProfile: UserProfile) => {
     if (!user) return;
+    if ((user as any)?.isGuest || user?.uid?.startsWith('guest-')) {
+      return;
+    }
     const userId = user.uid || (user as any).id || 'current-user';
 
     setIsSyncing(true);

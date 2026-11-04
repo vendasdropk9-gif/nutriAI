@@ -21,7 +21,7 @@ import { doc, setDoc, serverTimestamp } from '../lib/firebase';
 
 export function Login() {
   const { t } = useTranslation();
-  const {  } = useAuth();
+  const { loginAsGuest } = useAuth();
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   
   // Login & Registration Fields
@@ -61,6 +61,15 @@ export function Login() {
       playSfx('tap');
       setTimeout(() => setCopiedDomain(false), 3000);
     }
+  };
+
+  const handleTestLogin = () => {
+    playSfx('tap');
+    setLoading(true);
+    setTimeout(() => {
+      loginAsGuest();
+      playSfx('success');
+    }, 150);
   };
 
   // Load remembered email on mount
@@ -260,7 +269,15 @@ export function Login() {
       console.warn("Auth operation failed", err);
       playSfx('scratch');
 
-      if (err.code === 'auth/email-already-in-use') {
+      const isUnauthorizedDomain = 
+        err?.code === 'auth/unauthorized-domain' || 
+        err?.message?.includes('unauthorized-domain') || 
+        err?.message?.includes('authorized for OAuth operations');
+
+      if (isUnauthorizedDomain) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
+        setError(`Domínio "${currentHost}" não autorizado no Firebase. Clique em "Entrar como Teste" abaixo para acessar agora sem restrições, ou adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
+      } else if (err.code === 'auth/email-already-in-use') {
         setError('Este endereço de e-mail já está cadastrado no NutriAI. Faça login ou recupere sua senha.');
       } else if (err.code === 'auth/operation-not-allowed') {
         setError('O login por E-mail/Senha não está ativado no Firebase. Ative em Firebase Console > Authentication > Sign-in method > Email/Password.');
@@ -277,7 +294,7 @@ export function Login() {
       } else if (err.code === 'auth/network-request-failed') {
         setError('Sem conexão com o servidor de autenticação. Verifique sua conexão com a internet.');
       } else {
-        setError('Ocorreu uma falha ao realizar a operação. Tente novamente em instantes.');
+        setError(err?.message || 'Ocorreu uma falha ao realizar a operação. Tente novamente em instantes.');
       }
     } finally {
       setLoading(false);
@@ -294,7 +311,17 @@ export function Login() {
     } catch (err: any) {
       console.warn("Google login failed", err);
       playSfx('scratch');
-      setError(err?.message || 'Não foi possível entrar com a conta do Google.');
+      const isUnauthorizedDomain = 
+        err?.code === 'auth/unauthorized-domain' || 
+        err?.message?.includes('unauthorized-domain') || 
+        err?.message?.includes('authorized for OAuth operations');
+
+      if (isUnauthorizedDomain) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
+        setError(`Domínio "${currentHost}" não autorizado no Firebase. Clique em "Entrar como Teste" abaixo para acessar agora, ou adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
+      } else {
+        setError(err?.message || 'Não foi possível entrar com a conta do Google.');
+      }
     } finally {
       setLoading(false);
     }
@@ -310,9 +337,9 @@ export function Login() {
     } catch (err: any) {
       console.warn("Facebook login failed", err);
       playSfx('scratch');
-      if (err.code === 'auth/unauthorized-domain' || err?.message?.includes('authorized for OAuth operations')) {
-        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio';
-        setError(`Domínio "${currentHost}" não autorizado no Firebase. Adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
+      if (err.code === 'auth/unauthorized-domain' || err?.message?.includes('authorized for OAuth operations') || err?.message?.includes('unauthorized-domain')) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio na Vercel';
+        setError(`Domínio "${currentHost}" não autorizado no Firebase. Clique em "Entrar como Teste" abaixo para acessar agora, ou adicione "${currentHost}" em Firebase Console > Authentication > Settings > Authorized domains.`);
       } else if (err.code === 'auth/popup-blocked') {
         setError('O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.');
       } else if (err.code === 'auth/popup-closed-by-user') {
@@ -431,25 +458,35 @@ export function Login() {
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
                     <span className="flex-1">{error}</span>
                   </div>
-                  {error.includes('não autorizado no Firebase') && typeof window !== 'undefined' && (
-                    <div className="mt-1 pt-2.5 border-t border-red-800/30 flex flex-wrap items-center gap-2">
+                  {(error.includes('não autorizado no Firebase') || error.includes('unauthorized-domain') || error.includes('Authorized domains')) && (
+                    <div className="mt-1 pt-2.5 border-t border-red-800/30 flex flex-col gap-2">
                       <button
                         type="button"
-                        onClick={handleCopyDomain}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 text-red-100 rounded-xl text-[11px] font-semibold transition border border-red-700/50 active:scale-95"
+                        onClick={handleTestLogin}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded-xl text-xs shadow-md transition active:scale-95 cursor-pointer"
                       >
-                        {copiedDomain ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copiedDomain ? 'Domínio Copiado!' : 'Copiar Domínio'}
+                        <Sparkles className="w-4 h-4 fill-slate-950" />
+                        <span>Entrar Agora no Modo de Teste</span>
                       </button>
-                      <a
-                        href="https://console.firebase.google.com/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[11px] font-semibold transition border border-slate-700/50"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Abrir Firebase Console
-                      </a>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyDomain}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800 text-red-100 rounded-xl text-[11px] font-semibold transition border border-red-700/50 active:scale-95 cursor-pointer"
+                        >
+                          {copiedDomain ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedDomain ? 'Domínio Copiado!' : 'Copiar Domínio'}
+                        </button>
+                        <a
+                          href="https://console.firebase.google.com/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[11px] font-semibold transition border border-slate-700/50"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Abrir Firebase Console
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -684,6 +721,38 @@ export function Login() {
                   </>
                 )}
               </button>
+
+              {/* Botão Entrar como Teste (Modo Demonstração) */}
+              {view !== 'forgot' && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleTestLogin}
+                    disabled={loading}
+                    className="w-full relative overflow-hidden group p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/40 via-teal-400/50 to-emerald-400/40 hover:from-emerald-400 hover:to-teal-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.3)] transition-all cursor-pointer active:scale-[0.99]"
+                  >
+                    <div className="w-full bg-[#0D131B] hover:bg-[#111A24] transition-colors rounded-[11px] px-3.5 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                          <Sparkles className="w-4 h-4 fill-emerald-400/30" />
+                        </div>
+                        <div className="text-left">
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                            Entrar como Teste
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                              DEMO / VERCEL
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            Acessar instantaneamente sem cadastro
+                          </p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                    </div>
+                  </button>
+                </div>
+              )}
             </form>
 
             {/* Social Logins & Switch Mode Links */}

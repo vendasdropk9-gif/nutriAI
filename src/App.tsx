@@ -617,9 +617,10 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
       return <Login />;
     }
 
-    // Enforce email verification (if not Google)
+    // Enforce email verification (if not Google and not Guest/Test)
     const isGoogleProvider = user?.providerData?.some(p => p.providerId === 'google.com');
-    if (!user.emailVerified && !isGoogleProvider) {
+    const isGuestUser = (user as any)?.isGuest || user?.uid?.startsWith('guest-');
+    if (!user.emailVerified && !isGoogleProvider && !isGuestUser) {
       return <VerifyEmailScreen user={user} onVerified={() => {}} />;
     }
 
@@ -701,6 +702,12 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                 <Utensils className="w-6 h-6 sm:w-7 sm:h-7" />
               </motion.div>
               <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">NutriAI</span>
+              {isGuestUser && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 uppercase tracking-wider hidden sm:inline-flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Modo Teste
+                </span>
+              )}
             </motion.div>
             
             {/* Global Search Bar (Desktop) */}
