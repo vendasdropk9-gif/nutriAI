@@ -19,60 +19,86 @@ import { presenceManager } from './lib/presenceService';
 import { prefetchMealImages } from './lib/mealImagePrefetcher';
 import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
 
-// Aggressive Code Splitting (React.lazy) to minimize main bundle & maximize splash screen response speed
-const Generator = lazy(() => import('./components/Generator').then(m => ({ default: m.Generator })));
-const Profile = lazy(() => import('./components/Profile').then(m => ({ default: m.Profile })));
-const FoodGalleryBanner = lazy(() => import('./components/FoodGalleryBanner').then(m => ({ default: m.FoodGalleryBanner })));
-const LiveAssistant = lazy(() => import('./components/LiveAssistant').then(m => ({ default: m.LiveAssistant })));
-const FeedbackSystem = lazy(() => import('./components/FeedbackSystem').then(m => ({ default: m.FeedbackSystem })));
-const WelcomeTour = lazy(() => import('./components/WelcomeTour').then(m => ({ default: m.WelcomeTour })));
-const MagicRecipeFAB = lazy(() => import('./components/MagicRecipeFAB').then(m => ({ default: m.MagicRecipeFAB })));
-const LanguageModal = lazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })));
-const AutoTranslator = lazy(() => import('./components/AutoTranslator').then(m => ({ default: m.AutoTranslator })));
-const GlobalSearch = lazy(() => import('./components/GlobalSearch').then(m => ({ default: m.GlobalSearch })));
-const PWAInstallButton = lazy(() => import('./components/PWAInstallButton').then(m => ({ default: m.PWAInstallButton })));
-const OfflineSyncResolver = lazy(() => import('./components/OfflineSyncResolver').then(m => ({ default: m.OfflineSyncResolver })));
-const SmartHydrationBanner = lazy(() => import('./components/SmartHydrationBanner').then(m => ({ default: m.SmartHydrationBanner })));
+function safeLazy<T extends React.ComponentType<any>>(
+  importFn: () => Promise<{ default: T } | { [key: string]: T }>,
+  exportName?: string
+): React.LazyExoticComponent<T> {
+  return lazy(async () => {
+    try {
+      const module = await importFn();
+      if (exportName && 'default' in module === false && exportName in module) {
+        return { default: (module as any)[exportName] };
+      }
+      return module as { default: T };
+    } catch (error) {
+      console.warn('Failed to load dynamic chunk, reloading application...', error);
+      const reloadFlagKey = 'app_chunk_reload_attempted';
+      if (!sessionStorage.getItem(reloadFlagKey)) {
+        sessionStorage.setItem(reloadFlagKey, 'true');
+        window.location.reload();
+      }
+      return {
+        default: (() => null) as unknown as T
+      };
+    }
+  });
+}
 
-const Assistant360 = lazy(() => import('./components/Assistant360').then(m => ({ default: m.Assistant360 })));
-const MealPlanView = lazy(() => import('./components/MealPlanCalendar').then(m => ({ default: m.MealPlanView })));
-const Marketplace = lazy(() => import('./components/Marketplace').then(m => ({ default: m.Marketplace })));
-const PersonalTrainer = lazy(() => import('./components/PersonalTrainer').then(m => ({ default: m.PersonalTrainer })));
-const AcademyPortal = lazy(() => import('./components/AcademyPortal').then(m => ({ default: m.AcademyPortal })));
-const ScientificLibraryAdmin = lazy(() => import('./components/ScientificLibraryAdmin').then(m => ({ default: m.ScientificLibraryAdmin })));
-const BodyAnalyzer = lazy(() => import('./components/BodyAnalyzer').then(m => ({ default: m.BodyAnalyzer })));
-const PlateAnalyzer = lazy(() => import('./components/PlateAnalyzer').then(m => ({ default: m.PlateAnalyzer })));
-const SmartFridge = lazy(() => import('./components/SmartFridge').then(m => ({ default: m.SmartFridge })));
-const PantryScanner = lazy(() => import('./components/PantryScanner').then(m => ({ default: m.PantryScanner })));
-const AiCookingAdvisor = lazy(() => import('./components/AiCookingAdvisor').then(m => ({ default: m.AiCookingAdvisor })));
-const SmartGarden = lazy(() => import('./components/SmartGarden').then(m => ({ default: m.SmartGarden })));
-const SmartSwaps = lazy(() => import('./components/SmartSwaps').then(m => ({ default: m.SmartSwaps })));
-const MedicinalHerbs = lazy(() => import('./components/MedicinalHerbs').then(m => ({ default: m.MedicinalHerbs })));
-const GamificationCenter = lazy(() => import('./components/GamificationCenter').then(m => ({ default: m.GamificationCenter })));
-const RankingView = lazy(() => import('./components/RankingView').then(m => ({ default: m.RankingView })));
-const FreshnessMap = lazy(() => import('./components/FreshnessMap').then(m => ({ default: m.FreshnessMap })));
-const PartnerPortal = lazy(() => import('./components/PartnerPortal').then(m => ({ default: m.PartnerPortal })));
-const DeliveryPartnerPortal = lazy(() => import('./components/DeliveryPartnerPortal').then(m => ({ default: m.DeliveryPartnerPortal })));
-const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const BloodPressureTracker = lazy(() => import('./components/BloodPressureTracker').then(m => ({ default: m.BloodPressureTracker })));
-const GlucoseTracker = lazy(() => import('./components/GlucoseTracker').then(m => ({ default: m.GlucoseTracker })));
-const BarcodeScanner = lazy(() => import('./components/BarcodeScanner').then(m => ({ default: m.BarcodeScanner })));
-const FoodAllergyDetector = lazy(() => import('./components/FoodAllergyDetector').then(m => ({ default: m.FoodAllergyDetector })));
-const ProductComparer = lazy(() => import('./components/ProductComparer').then(m => ({ default: m.ProductComparer })));
-const EmotionalTracker = lazy(() => import('./components/EmotionalTracker').then(m => ({ default: m.EmotionalTracker })));
-const HabitTracker = lazy(() => import('./components/HabitTracker').then(m => ({ default: m.HabitTracker })));
-const PhotoEvolution = lazy(() => import('./components/PhotoEvolution').then(m => ({ default: m.PhotoEvolution })));
-const ChallengeView = lazy(() => import('./components/ChallengeView').then(m => ({ default: m.ChallengeView })));
-const DiningOut = lazy(() => import('./components/DiningOut').then(m => ({ default: m.DiningOut })));
-const Pricing = lazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })));
-const AdaptiveCoach = lazy(() => import('./components/AdaptiveCoach').then(m => ({ default: m.AdaptiveCoach })));
-const WellnessHub = lazy(() => import('./components/WellnessHub').then(m => ({ default: m.WellnessHub })));
-const SmartPlateCombiner = lazy(() => import('./components/SmartPlateCombiner').then(m => ({ default: m.SmartPlateCombiner })));
-const JuiceGenerator = lazy(() => import('./components/JuiceGenerator').then(m => ({ default: m.JuiceGenerator })));
-const Notebook = lazy(() => import('./components/Notebook').then(m => ({ default: m.Notebook })));
-const ResultPrediction = lazy(() => import('./components/ResultPrediction').then(m => ({ default: m.ResultPrediction })));
-const QuickDishes = lazy(() => import('./components/QuickDishes').then(m => ({ default: m.QuickDishes })));
-const ShoppingListView = lazy(() => import('./components/ShoppingListView').then(m => ({ default: m.ShoppingListView })));
+
+// Aggressive Code Splitting (safeLazy) to minimize main bundle & handle chunk errors gracefully
+const Generator = safeLazy(() => import('./components/Generator').then(m => ({ default: m.Generator })));
+const Profile = safeLazy(() => import('./components/Profile').then(m => ({ default: m.Profile })));
+const FoodGalleryBanner = safeLazy(() => import('./components/FoodGalleryBanner').then(m => ({ default: m.FoodGalleryBanner })));
+const LiveAssistant = safeLazy(() => import('./components/LiveAssistant').then(m => ({ default: m.LiveAssistant })));
+const FeedbackSystem = safeLazy(() => import('./components/FeedbackSystem').then(m => ({ default: m.FeedbackSystem })));
+const WelcomeTour = safeLazy(() => import('./components/WelcomeTour').then(m => ({ default: m.WelcomeTour })));
+const MagicRecipeFAB = safeLazy(() => import('./components/MagicRecipeFAB').then(m => ({ default: m.MagicRecipeFAB })));
+const LanguageModal = safeLazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })));
+const AutoTranslator = safeLazy(() => import('./components/AutoTranslator').then(m => ({ default: m.AutoTranslator })));
+const GlobalSearch = safeLazy(() => import('./components/GlobalSearch').then(m => ({ default: m.GlobalSearch })));
+const PWAInstallButton = safeLazy(() => import('./components/PWAInstallButton').then(m => ({ default: m.PWAInstallButton })));
+const OfflineSyncResolver = safeLazy(() => import('./components/OfflineSyncResolver').then(m => ({ default: m.OfflineSyncResolver })));
+const SmartHydrationBanner = safeLazy(() => import('./components/SmartHydrationBanner').then(m => ({ default: m.SmartHydrationBanner })));
+
+const Assistant360 = safeLazy(() => import('./components/Assistant360').then(m => ({ default: m.Assistant360 })));
+const MealPlanView = safeLazy(() => import('./components/MealPlanCalendar').then(m => ({ default: m.MealPlanView })));
+const Marketplace = safeLazy(() => import('./components/Marketplace').then(m => ({ default: m.Marketplace })));
+const PersonalTrainer = safeLazy(() => import('./components/PersonalTrainer').then(m => ({ default: m.PersonalTrainer })));
+const AcademyPortal = safeLazy(() => import('./components/AcademyPortal').then(m => ({ default: m.AcademyPortal })));
+const ScientificLibraryAdmin = safeLazy(() => import('./components/ScientificLibraryAdmin').then(m => ({ default: m.ScientificLibraryAdmin })));
+const BodyAnalyzer = safeLazy(() => import('./components/BodyAnalyzer').then(m => ({ default: m.BodyAnalyzer })));
+const PlateAnalyzer = safeLazy(() => import('./components/PlateAnalyzer').then(m => ({ default: m.PlateAnalyzer })));
+const SmartFridge = safeLazy(() => import('./components/SmartFridge').then(m => ({ default: m.SmartFridge })));
+const PantryScanner = safeLazy(() => import('./components/PantryScanner').then(m => ({ default: m.PantryScanner })));
+const AiCookingAdvisor = safeLazy(() => import('./components/AiCookingAdvisor').then(m => ({ default: m.AiCookingAdvisor })));
+const SmartGarden = safeLazy(() => import('./components/SmartGarden').then(m => ({ default: m.SmartGarden })));
+const SmartSwaps = safeLazy(() => import('./components/SmartSwaps').then(m => ({ default: m.SmartSwaps })));
+const MedicinalHerbs = safeLazy(() => import('./components/MedicinalHerbs').then(m => ({ default: m.MedicinalHerbs })));
+const GamificationCenter = safeLazy(() => import('./components/GamificationCenter').then(m => ({ default: m.GamificationCenter })));
+const RankingView = safeLazy(() => import('./components/RankingView').then(m => ({ default: m.RankingView })));
+const FreshnessMap = safeLazy(() => import('./components/FreshnessMap').then(m => ({ default: m.FreshnessMap })));
+const PartnerPortal = safeLazy(() => import('./components/PartnerPortal').then(m => ({ default: m.PartnerPortal })));
+const DeliveryPartnerPortal = safeLazy(() => import('./components/DeliveryPartnerPortal').then(m => ({ default: m.DeliveryPartnerPortal })));
+const AdminDashboard = safeLazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const BloodPressureTracker = safeLazy(() => import('./components/BloodPressureTracker').then(m => ({ default: m.BloodPressureTracker })));
+const GlucoseTracker = safeLazy(() => import('./components/GlucoseTracker').then(m => ({ default: m.GlucoseTracker })));
+const BarcodeScanner = safeLazy(() => import('./components/BarcodeScanner').then(m => ({ default: m.BarcodeScanner })));
+const FoodAllergyDetector = safeLazy(() => import('./components/FoodAllergyDetector').then(m => ({ default: m.FoodAllergyDetector })));
+const ProductComparer = safeLazy(() => import('./components/ProductComparer').then(m => ({ default: m.ProductComparer })));
+const EmotionalTracker = safeLazy(() => import('./components/EmotionalTracker').then(m => ({ default: m.EmotionalTracker })));
+const HabitTracker = safeLazy(() => import('./components/HabitTracker').then(m => ({ default: m.HabitTracker })));
+const PhotoEvolution = safeLazy(() => import('./components/PhotoEvolution').then(m => ({ default: m.PhotoEvolution })));
+const ChallengeView = safeLazy(() => import('./components/ChallengeView').then(m => ({ default: m.ChallengeView })));
+const DiningOut = safeLazy(() => import('./components/DiningOut').then(m => ({ default: m.DiningOut })));
+const Pricing = safeLazy(() => import('./components/Pricing').then(m => ({ default: m.Pricing })));
+const AdaptiveCoach = safeLazy(() => import('./components/AdaptiveCoach').then(m => ({ default: m.AdaptiveCoach })));
+const WellnessHub = safeLazy(() => import('./components/WellnessHub').then(m => ({ default: m.WellnessHub })));
+const SmartPlateCombiner = safeLazy(() => import('./components/SmartPlateCombiner').then(m => ({ default: m.SmartPlateCombiner })));
+const JuiceGenerator = safeLazy(() => import('./components/JuiceGenerator').then(m => ({ default: m.JuiceGenerator })));
+const Notebook = safeLazy(() => import('./components/Notebook').then(m => ({ default: m.Notebook })));
+const ResultPrediction = safeLazy(() => import('./components/ResultPrediction').then(m => ({ default: m.ResultPrediction })));
+const QuickDishes = safeLazy(() => import('./components/QuickDishes').then(m => ({ default: m.QuickDishes })));
+const ShoppingListView = safeLazy(() => import('./components/ShoppingListView').then(m => ({ default: m.ShoppingListView })));
 import { IntakeLog } from './types';
 import { playSfx, vibrate } from './lib/sensory';
 import { changeLanguage as changeAppLanguage, normalizeToSupportedLocale } from './i18n';
@@ -989,7 +1015,11 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                   />
                 )}
                 {activeTab === 'analyzer' && (
-                  <PlateAnalyzer profile={profile} onAwardPoints={awardPoints} />
+                  <PlateAnalyzer 
+                    profile={profile} 
+                    onUpdateProfile={(updated) => updateProfile(prev => prev ? { ...prev, ...updated } : null)}
+                    onAwardPoints={awardPoints} 
+                  />
                 )}
                 {activeTab === 'body' && (
                   <BodyAnalyzer 

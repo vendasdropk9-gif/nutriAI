@@ -219,7 +219,7 @@ export function PantryInsightsWidget({ onNavigateToMarket, addNotification }: Pa
           </div>
           <div>
             <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">Vencimento Próximo</span>
-            <span className="text-lg font-mono font-bold text-amber-300">{expiringCount} itens (<= 3 dias)</span>
+            <span className="text-lg font-mono font-bold text-amber-300">{expiringCount} itens (até 3 dias)</span>
           </div>
         </div>
 

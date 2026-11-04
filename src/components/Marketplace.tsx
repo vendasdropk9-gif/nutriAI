@@ -16,6 +16,7 @@ import {
   Volume2,
   Heart,
   TrendingDown,
+  TrendingUp,
   Store,
   ShoppingCart,
   MessageSquare,
@@ -39,6 +40,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { DeliveryTracking } from './DeliveryTracking';
 import { DailyTips } from './DailyTips';
 import { SmartMarketListOrganizer } from './SmartMarketListOrganizer';
+import { SmartShoppingHistory } from './SmartShoppingHistory';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 import { useTranslation } from '../contexts/LanguageContext';
 import { db, auth } from '../lib/firebase';
@@ -151,7 +153,7 @@ interface MarketplaceProps {
 
 export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPartner, onOpenMap, addNotification }: MarketplaceProps) {
   const { t } = useTranslation();
-  const [marketViewMode, setMarketViewMode] = useState<'catalog' | 'organizer'>('catalog');
+  const [marketViewMode, setMarketViewMode] = useState<'catalog' | 'organizer' | 'history'>('catalog');
   const [activeCategory, setActiveCategory] = useState<string>('Tudo');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('all');
   const [saleTypeFilter, setSaleTypeFilter] = useState<'all' | 'kg' | 'unidade'>('all');
@@ -681,7 +683,19 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                <span>Organizador Inteligente de Listas</span>
+                <span>Organizador</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMarketViewMode('history'); vibrate(5); }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                  marketViewMode === 'history'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Histórico & IA</span>
               </button>
             </div>
 
@@ -714,8 +728,10 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
         </div>
       </div>
 
-      {/* Conditional View: Smart List Organizer OR Catalog */}
-      {marketViewMode === 'organizer' ? (
+      {/* Conditional View: Smart Shopping History OR Smart List Organizer OR Catalog */}
+      {marketViewMode === 'history' ? (
+        <SmartShoppingHistory profile={profile} addNotification={addNotification} />
+      ) : marketViewMode === 'organizer' ? (
         <SmartMarketListOrganizer
           profile={profile}
           cart={cart}

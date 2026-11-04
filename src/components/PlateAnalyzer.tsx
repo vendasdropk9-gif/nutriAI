@@ -10,7 +10,7 @@ import {
 import { analyzePlate } from '../lib/gemini';
 import { speak } from '../lib/speech';
 import { VoicePlayButton } from './VoicePlayButton';
-import { PlateAnalysisResult, UserProfile } from '../types';
+import { PlateAnalysisResult, UserProfile, IntakeLog } from '../types';
 import { exportElementAsImage, downloadBlobUrl, copyBlobToClipboard, shareFileOrBlob } from '../lib/cardExport';
 import { FoodPhotoSalesFeedback } from './FoodPhotoSalesFeedback';
 import { LabelHistory } from './LabelHistory';
@@ -18,13 +18,14 @@ import { addDoc, collection, serverTimestamp, db, auth } from '../lib/firebase';
 
 interface PlateAnalyzerProps {
   profile?: UserProfile | null;
+  onUpdateProfile?: (updated: Partial<UserProfile>) => void;
   onAwardPoints?: (amount: number, reason: string) => void;
 }
 
 type CardTheme = 'emerald' | 'obsidian' | 'sunset' | 'clean';
 type CardFormat = 'card' | 'story' | 'square';
 
-export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwardPoints?: (points: number, reason: string) => void }) {
+export function PlateAnalyzer({ profile, onUpdateProfile, onAwardPoints }: PlateAnalyzerProps) {
   const { t } = useTranslation();
   // Main sub-tabs: 'scanner' (analysis), 'share' (dedicated social card studio), or 'history' (label history)
   const [activeSubTab, setActiveSubTab] = useState<'scanner' | 'share' | 'history'>('scanner');
@@ -202,6 +203,54 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
     } finally {
       setIsExportingCard(false);
     }
+  };
+
+  const handleLogToIntake = () => {
+    if (!analysisResult || !profile || !onUpdateProfile) {
+      window.dispatchEvent(new CustomEvent('app:notification', {
+        detail: {
+          title: "Aviso",
+          message: "Realize a análise do prato primeiro para registrar no diário.",
+          type: "info"
+        }
+      }));
+      return;
+    }
+    const newLog: IntakeLog = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: new Date().toISOString(),
+      mealId: `dish-${Date.now()}`,
+      recipeName: analysisResult.foods?.[0] || 'Prato Capturado por IA',
+      planned: {
+        calories: analysisResult.nutrition.calories,
+        protein: analysisResult.nutrition.protein,
+        carbs: analysisResult.nutrition.carbs,
+        fat: analysisResult.nutrition.fat,
+      },
+      actual: {
+        calories: analysisResult.nutrition.calories,
+        protein: analysisResult.nutrition.protein,
+        carbs: analysisResult.nutrition.carbs,
+        fat: analysisResult.nutrition.fat,
+      },
+      adjusted: false,
+      mealType: 'lunch'
+    };
+
+    const currentLogs = profile.intakeLogs || [];
+    onUpdateProfile({
+      intakeLogs: [newLog, ...currentLogs]
+    });
+
+    if (onAwardPoints) onAwardPoints(50, 'Prato capturado e registrado no diário');
+
+    window.dispatchEvent(new CustomEvent('app:notification', {
+      detail: {
+        title: "Dish Capture Concluído! 📸🥗",
+        message: `${analysisResult.nutrition.calories} kcal e macronutrientes estimados adicionados ao seu IntakeLog.`,
+        type: "success"
+      }
+    }));
   };
 
   const handleCopyCard = async () => {
@@ -989,6 +1038,17 @@ export function PlateAnalyzer({ profile, onAwardPoints }: { profile: any; onAwar
                 </div>
               </div>
             </div>
+
+              {/* Dish Capture: Register to IntakeLog Action Button */}
+              <div className="pt-2">
+                <button
+                  onClick={handleLogToIntake}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2.5 border border-emerald-400/30 active:scale-98 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  <span>Registrar no Diário de Ingestão (IntakeLog)</span>
+                </button>
+              </div>
 
               {/* Alimentos e Sugestões */}
               <div className="grid md:grid-cols-2 gap-6">

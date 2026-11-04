@@ -13,6 +13,7 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { speak, stopSpeech } from '../lib/speech';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useLanguage } from '../contexts/LanguageContext';
+import { PrintRecipe } from './PrintRecipe';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -800,6 +801,8 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
               >
                 Salvar Receita
               </button>
+
+              <PrintRecipe recipe={generatedRecipe} variant="secondary" />
             </div>
           </div>
 
