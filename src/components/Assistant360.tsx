@@ -29,6 +29,7 @@ import { DailyWorkoutTipCard } from './DailyWorkoutTipCard';
 import { QuickWaterLogger } from './QuickWaterLogger';
 import { EvolutionComparison } from './EvolutionComparison';
 import { NutritionTipsCarousel } from './NutritionTipsCarousel';
+import { SmartSubstitutionTipWidget } from './SmartSubstitutionTipWidget';
 import avatarGlobalStore, { useAvatarGlobalState, MaluEmotionType } from '../lib/avatarGlobalState';
 import { useNutritionGoals } from '../hooks/useNutritionGoals';
 
@@ -1154,6 +1155,15 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
       {/* DICAS RÁPIDAS DE NUTRIÇÃO BASEADAS EM EVIDÊNCIAS (GEMINI API) */}
       <motion.div variants={staggerCardVariants} className="w-full mx-auto">
         <NutritionTipsCarousel profile={profile} />
+      </motion.div>
+
+      {/* SMART SUBSTITUTION TIP WIDGET */}
+      <motion.div variants={staggerCardVariants} className="w-full mx-auto">
+        <SmartSubstitutionTipWidget 
+          profile={profile} 
+          onNavigateToMarket={() => onNavigate('market')} 
+          addNotification={addNotification} 
+        />
       </motion.div>
 
       {/* 3. Resumo do Dia / Daily Health Metrics Grid */}

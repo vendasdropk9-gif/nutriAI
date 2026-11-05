@@ -14,6 +14,7 @@ import { speak, stopSpeech } from '../lib/speech';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useLanguage } from '../contexts/LanguageContext';
 import { PrintRecipe } from './PrintRecipe';
+import { RewardingCheck } from './RewardingCheck';
 
 interface GeneratorProps {
   onSaveRecipe: (recipe: Recipe) => void;
@@ -1340,22 +1341,20 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                           <li
                             key={idx}
                             onClick={() => {
-                              playSfx(isChecked ? 'pop' : 'success');
-                              vibrate(15);
                               setCheckedIngredients(prev => ({ ...prev, [idx]: !prev[idx] }));
                             }}
-                            className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                            className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
                               isChecked
                                 ? 'bg-emerald-950/30 border-emerald-500/40 text-slate-400 line-through'
                                 : 'bg-slate-950/60 border-slate-800 text-slate-100 hover:border-slate-700'
                             }`}
                           >
-                            <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
-                              isChecked ? 'bg-emerald-500 border-emerald-400 text-slate-950 font-black' : 'border-slate-700 bg-slate-900'
-                            }`}>
-                              {isChecked && <Check className="w-3.5 h-3.5" />}
-                            </div>
                             <span className="text-sm font-medium leading-relaxed select-none">{scaledIng}</span>
+                            <RewardingCheck
+                              checked={isChecked}
+                              onChange={(val) => setCheckedIngredients(prev => ({ ...prev, [idx]: val }))}
+                              size="sm"
+                            />
                           </li>
                         );
                       })}

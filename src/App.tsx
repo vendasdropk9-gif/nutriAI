@@ -17,7 +17,8 @@ import { saveProfileToIndexedDB, loadProfileFromIndexedDB } from './lib/profileS
 import { initPeriodicBackupScheduler } from './lib/backupService';
 import { presenceManager } from './lib/presenceService';
 import { prefetchMealImages } from './lib/mealImagePrefetcher';
-import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle } from 'lucide-react';
+import { Utensils, CalendarDays, ShoppingBasket, User, Camera, Sparkles, Moon, Sun, GlassWater, Barcode, Brain, Trophy, Droplet, RefreshCw, ChefHat, Medal, TrendingUp, Dumbbell, Store, Crown, Map as MapIcon, Zap, MessageSquare, Globe, BookOpen, Sliders, HelpCircle, Database } from 'lucide-react';
+import { ManualBackupSchedulerModal } from './components/ManualBackupSchedulerModal';
 
 function safeLazy<T extends React.ComponentType<any>>(
   importFn: () => Promise<{ default: T } | { [key: string]: T }>,
@@ -317,6 +318,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [recipeToImport, setRecipeToImport] = useState<Recipe | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
   const addNotification = (notif: Omit<AppNotification, 'id'>) => {
     const id = Math.random().toString(36).substring(7);
@@ -1176,6 +1178,13 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
           });
           setActiveTab('generator');
         }}
+      />
+
+      <ManualBackupSchedulerModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        profile={profile}
+        addNotification={addNotification}
       />
       </motion.div>
     </div>

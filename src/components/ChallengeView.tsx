@@ -16,6 +16,7 @@ import { VoicePlayButton } from './VoicePlayButton';
 import { speak } from '../lib/speech';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useTranslation } from '../contexts/LanguageContext';
+import { RewardingCheck } from './RewardingCheck';
 
 interface ChallengeViewProps {
   profile: UserProfile | null;
@@ -521,11 +522,11 @@ export function ChallengeView({
                             <span className="px-2 py-0.5 rounded-md bg-black/25 text-[10px] font-bold tracking-wider uppercase text-emerald-200">
                               Dia {mission.day}
                             </span>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-                              isDone ? 'bg-amber-400 text-slate-900 shadow-sm' : 'border border-white/40 text-transparent group-hover:border-white'
-                            }`}>
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            </div>
+                            <RewardingCheck
+                              checked={isDone}
+                              onChange={() => handleToggleMission(mission.day)}
+                              size="sm"
+                            />
                           </div>
 
                           <div>

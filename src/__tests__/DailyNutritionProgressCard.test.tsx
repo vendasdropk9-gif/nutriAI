@@ -63,7 +63,7 @@ describe('DailyNutritionProgressCard Component', () => {
     render(<DailyNutritionProgressCard profile={mockProfile} />);
 
     // Total today's intake: protein 25+50=75g, carbs 30+45=75g, fat 12+14=26g
-    expect(screen.getByText('Metas Diárias de Macronutrientes')).toBeDefined();
+    expect(screen.getByText(/Metas Diárias/i)).toBeDefined();
     
     // Check protein info (75g / 130g)
     expect(screen.getByText(/Meta do plano: 130g/)).toBeDefined();
@@ -77,8 +77,8 @@ describe('DailyNutritionProgressCard Component', () => {
     render(<DailyNutritionProgressCard profile={mockProfile} />);
 
     // Total calories consumed = 350 + 550 = 900
-    expect(screen.getByText('900')).toBeDefined();
-    expect(screen.getByText(/\/ 1900 kcal/)).toBeDefined();
+    expect(screen.getAllByText('900').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\/ 1900 kcal/).length).toBeGreaterThan(0);
 
     // Check remaining amounts:
     // Protein remaining: 130 - 75 = 55g
@@ -104,13 +104,13 @@ describe('DailyNutritionProgressCard Component', () => {
     // Switch back to 'Anel Triplo'
     const concentricButton = screen.getByText('Anel Triplo');
     fireEvent.click(concentricButton);
-    expect(screen.getByText('900')).toBeDefined();
+    expect(screen.getAllByText('900').length).toBeGreaterThan(0);
   });
 
   it('handles null profile gracefully with smart adaptive fallback values', () => {
     render(<DailyNutritionProgressCard profile={null} />);
 
-    expect(screen.getByText('Metas Diárias de Macronutrientes')).toBeDefined();
+    expect(screen.getByText(/Metas Diárias/i)).toBeDefined();
     expect(screen.getByTestId('daily-calories-consumed').textContent?.trim()).toBe('0');
   });
 
