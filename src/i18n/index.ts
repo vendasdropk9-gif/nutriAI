@@ -78,7 +78,7 @@ export const normalizeToSupportedLocale = (input?: string | null): SupportedLoca
   }
 
   // 2. Portuguese
-  if (clean.startsWith('pt')) {
+  if (clean.startsWith('pt') || clean.startsWith('portug')) {
     return 'pt-BR';
   }
 
