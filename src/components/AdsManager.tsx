@@ -67,12 +67,12 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
 
   const uploadToStorage = async (file: File, userId: string): Promise<string> => {
     try {
+      setUploadStatusText('Enviando imagem para o Firebase Storage...');
+      setUploadProgress(40);
+
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const uniqueFileName = `${Date.now()}_${sanitizedName}`;
       const fileRef = storageRef(storage, `products/${userId}/${uniqueFileName}`);
-
-      setUploadStatusText('Enviando imagem para o Firebase Storage...');
-      setUploadProgress(40);
 
       const metadata = {
         contentType: file.type,
@@ -82,16 +82,24 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
         }
       };
 
-      await uploadBytes(fileRef, file, metadata);
-      setUploadProgress(75);
-      setUploadStatusText('Obtendo link de acesso seguro...');
+      const uploadTask = async () => {
+        await uploadBytes(fileRef, file, metadata);
+        setUploadProgress(75);
+        setUploadStatusText('Obtendo link de acesso seguro...');
+        return await getDownloadURL(fileRef);
+      };
 
-      const downloadUrl = await getDownloadURL(fileRef);
+      // 3-second timeout race to prevent indefinite loading in guest or restricted network mode
+      const timeoutTask = new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase Storage timeout')), 3000)
+      );
+
+      const downloadUrl = await Promise.race([uploadTask(), timeoutTask]);
       setUploadProgress(100);
       return downloadUrl;
     } catch (storageErr) {
-      console.warn('[AdsManager] Falha ao enviar para o Firebase Storage, usando URL local:', storageErr);
-      // Fallback to local blob URL if storage bucket is unreachable or in mock mode
+      console.warn('[AdsManager] Usando URL local / fallback para o produto:', storageErr);
+      setUploadProgress(100);
       return URL.createObjectURL(file);
     }
   };
@@ -107,11 +115,24 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
     playSfx('tap');
 
     try {
-      // 1. Upload real product photo to Firebase Storage
+      // 1. Upload real product photo to Firebase Storage (with safe timeout fallback)
       const permanentStorageUrl = await uploadToStorage(selectedFile, currentUserId);
+
+      // Convert selected product image to base64 for multimodal AI processing
+      const fileBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = reader.result as string;
+          const base64 = res.split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(selectedFile);
+      });
 
       // 2. Call real AI generation API
       setUploadStatusText(`Gerando anúncio inteligente com ${type === 'photo' ? 'Nano Banana' : 'Google Veo'}...`);
+      setUploadProgress(60);
       
       const endpoint = type === 'photo' ? '/api/generate-image' : '/api/generate-video';
       const prompt = `Crie um anúncio ${type === 'photo' ? 'de uma foto' : 'de um vídeo'} baseado nestes detalhes: ${productInfo}. Ação: ${videoAction}.`;
@@ -119,15 +140,26 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ 
+          prompt,
+          image: fileBase64,
+          mimeType: selectedFile.type,
+          videoAction,
+          productInfo
+        })
       });
       
       if (!response.ok) throw new Error('Falha na geração pela IA');
       const data = await response.json();
       
-      // For photo, data.imageUrl; for video, we might need a status check or polling.
-      // For now, assume it returns the URL or URI directly for demonstration
-      const finalUrl = type === 'photo' ? `data:image/jpeg;base64,${data.imageUrl}` : data.imageUrl; // simplified assumption
+      setUploadProgress(95);
+
+      // Extract result: support direct data URL, videoUrl, or imageUrl
+      const generatedUrl = type === 'video' 
+        ? (data.videoUrl || data.imageUrl) 
+        : (data.imageUrl?.startsWith('data:') ? data.imageUrl : `data:image/jpeg;base64,${data.imageUrl}`);
+      
+      const finalUrl = generatedUrl || permanentStorageUrl;
 
       const newAd = {
         type,
@@ -404,11 +436,16 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
                   {ad.type === 'photo' ? (
                     <img src={ad.url} alt="Anúncio gerado" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      <img src={ad.url} alt="Frame de vídeo" className="w-full h-full object-cover opacity-70" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Video className="w-12 h-12 text-white animate-pulse" />
-                      </div>
+                    <div className="relative w-full h-full flex items-center justify-center bg-black">
+                      <video
+                        src={ad.url}
+                        controls
+                        playsInline
+                        autoPlay
+                        muted
+                        loop
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
                   <div className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest text-white border border-white/10">
