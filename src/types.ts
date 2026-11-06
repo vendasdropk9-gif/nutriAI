@@ -93,6 +93,8 @@ export interface UserProfile {
   level?: number;
   points?: number;
   streak?: number;
+  highestStreak?: number;
+  lastStreakDate?: string;
   email?: string;
   phone?: string;
   birthDate?: string;

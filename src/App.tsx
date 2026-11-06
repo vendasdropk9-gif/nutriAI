@@ -60,6 +60,7 @@ const GlobalSearch = safeLazy(() => import('./components/GlobalSearch').then(m =
 const PWAInstallButton = safeLazy(() => import('./components/PWAInstallButton').then(m => ({ default: m.PWAInstallButton })));
 const OfflineSyncResolver = safeLazy(() => import('./components/OfflineSyncResolver').then(m => ({ default: m.OfflineSyncResolver })));
 const SmartHydrationBanner = safeLazy(() => import('./components/SmartHydrationBanner').then(m => ({ default: m.SmartHydrationBanner })));
+const AdPlacement = safeLazy(() => import('./components/AdPlacement').then(m => ({ default: m.AdPlacement })));
 
 const Assistant360 = safeLazy(() => import('./components/Assistant360').then(m => ({ default: m.Assistant360 })));
 const MealPlanView = safeLazy(() => import('./components/MealPlanCalendar').then(m => ({ default: m.MealPlanView })));
@@ -107,12 +108,12 @@ import { LanguageProvider, useLanguage, LanguageContext } from './contexts/Langu
 
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { OfflineSyncBanner } from './components/OfflineSyncBanner';
+import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { useMealPushNotifications } from './hooks/useMealPushNotifications';
 import { useMealReminders } from './hooks/useMealReminders';
 import { useSolarCircadianNotification } from './hooks/useSolarCircadianNotification';
 import { LayoutAnimationProvider } from './components/LayoutAnimationProvider';
-import { usePantrySpoilageChecker } from './hooks/usePantrySpoilageChecker';
 
 import { bootManager } from './lib/bootManager';
 import { decodeRecipeFromShareLink } from './lib/recipeShareLink';
@@ -303,6 +304,9 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
 
   const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'admin' | 'analyzer' | 'body' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
 
+  // Activate automated pantry spoilage checker & push notifications
+  usePantrySpoilageChecker(profile);
+
   // Real-time user presence tracking in NutriAI
   useEffect(() => {
     presenceManager.setUser(user, profile, activeTab);
@@ -369,6 +373,17 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     };
     window.addEventListener('app:openLanguageModal', handleOpenLanguage);
     window.addEventListener('app:openLanguage', handleOpenLanguage);
+
+    const handlePantryAlert = (e: any) => {
+      if (e.detail?.title && e.detail?.body) {
+        addNotification({
+          title: e.detail.title,
+          message: e.detail.body,
+          type: 'warning'
+        });
+      }
+    };
+    window.addEventListener('app:pantryExpiringAlert', handlePantryAlert);
 
     // Automatic detection and modal prompt for recipe shared via link
     try {
@@ -459,6 +474,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
       window.removeEventListener('app:notification', handleNotification);
       window.removeEventListener('app:openLanguageModal', handleOpenLanguage);
       window.removeEventListener('app:openLanguage', handleOpenLanguage);
+      window.removeEventListener('app:pantryExpiringAlert', handlePantryAlert);
       clearInterval(checkRemindersInterval);
     };
   }, []);
@@ -1119,6 +1135,16 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                 )}
                 {activeTab === 'garden' && (
                   <SmartGarden />
+                )}
+
+                {/* Non-intrusive Sponsored Wellness Ad Unit (Google AdSense / AdMob & Resilient Fallback) */}
+                {['market', 'generator', 'plan', 'feed', 'habits'].includes(activeTab) && (
+                  <div className="max-w-6xl mx-auto w-full px-2 sm:px-4 mt-6">
+                    <AdPlacement 
+                      placementId={`nutri-tab-${activeTab}`}
+                      format={activeTab === 'market' ? 'video' : 'banner'}
+                    />
+                  </div>
                 )}
               </Suspense>
             </ErrorBoundary>

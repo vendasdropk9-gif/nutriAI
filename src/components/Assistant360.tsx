@@ -32,6 +32,7 @@ import { NutritionTipsCarousel } from './NutritionTipsCarousel';
 import { SmartSubstitutionTipWidget } from './SmartSubstitutionTipWidget';
 import avatarGlobalStore, { useAvatarGlobalState, MaluEmotionType } from '../lib/avatarGlobalState';
 import { useNutritionGoals } from '../hooks/useNutritionGoals';
+import { PantryInsightsCard } from './PantryInsightsCard';
 
 
 const staggerContainerVariants = {
@@ -72,6 +73,10 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
   const { language, t } = useLanguage();
   const [activeTip, setActiveTip] = useState(0);
   const [isMaluSpeaking, setIsMaluSpeaking] = useState(false);
+
+  const handleCookRecipe = (recipe: any) => {
+    onNavigate('generator');
+  };
 
   const handleRemoveFavorite = (recipeId: string) => {
     if (!profile || !onUpdateProfile) return;
@@ -551,6 +556,8 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         {isPremium && (
           <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#D8B14A]/10 blur-[90px] pointer-events-none" />
         )}
+
+        <PantryInsightsCard profile={profile} onCookRecipe={handleCookRecipe} />
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center">
           

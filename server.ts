@@ -513,7 +513,7 @@ async function startServer() {
 
       let videoUrl: string | null = null;
 
-      // 1. Try Gemini Omni Flash / Interactions API if configured
+      // 1. Try Gemini Omni Flash / Interactions API with fast 3.5s timeout race
       if (process.env.GEMINI_API_KEY && (ai as any).interactions) {
         try {
           const inputParts: any[] = [];
@@ -529,7 +529,7 @@ async function startServer() {
             text: `Crie um vídeo comercial para redes sociais: ${motionPrompt}. Detalhes do produto: ${productInfo || ''}`
           });
 
-          const interaction = await (ai as any).interactions.create({
+          const omniTask = (ai as any).interactions.create({
             model: 'gemini-omni-1.2-flash',
             input: inputParts,
             background: false,
@@ -540,9 +540,14 @@ async function startServer() {
               aspect_ratio: '16:9',
               duration: '10s'
             }
-          }, { timeout: 45000 });
+          });
 
-          const videoPart = interaction.output_video;
+          const timeoutTask = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Omni Flash video synthesis timeout')), 3500)
+          );
+
+          const interaction: any = await Promise.race([omniTask, timeoutTask]);
+          const videoPart = interaction?.output_video;
           if (videoPart && videoPart.data) {
             videoUrl = `data:${videoPart.mime_type || 'video/mp4'};base64,${videoPart.data}`;
           }
@@ -642,7 +647,7 @@ async function startServer() {
             text: `Crie uma arte publicitária profissional e atraente para divulgação em redes sociais deste produto: ${effectivePrompt}. Composição limpa, visual premium e atraente.`
           });
 
-          const response = await ai.models.generateContent({
+          const geminiTask = ai.models.generateContent({
             model: 'gemini-3.1-flash-lite-image',
             contents: { parts },
             config: {
@@ -651,6 +656,12 @@ async function startServer() {
               }
             }
           });
+
+          const timeoutTask = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Gemini image generation timeout')), 3500)
+          );
+
+          const response: any = await Promise.race([geminiTask, timeoutTask]);
 
           for (const part of response.candidates?.[0]?.content?.parts ?? []) {
             if (part.inlineData?.data) {

@@ -12,6 +12,7 @@ import {
 import { RecipeCard } from './RecipeCard';
 import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
+import { SmartMealPlannerModal } from './SmartMealPlannerModal';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -74,6 +75,7 @@ export function MealPlanView({
   const [viewRecipeContext, setViewRecipeContext] = useState<{ day: string; mealType: string; mealLabel?: string } | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSmartPlannerOpen, setIsSmartPlannerOpen] = useState(false);
 
   // Drag & Drop Functionality States
   const [draggedMeal, setDraggedMeal] = useState<{
@@ -1165,6 +1167,18 @@ export function MealPlanView({
                 {isListening ? <MicOff /> : <Mic />}
               </button>
               <button
+                onClick={() => {
+                  playSfx('crystal');
+                  vibrate(30);
+                  setIsSmartPlannerOpen(true);
+                }}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-4 py-2.5 rounded-full transition-all flex items-center justify-center gap-2 text-sm shadow-md cursor-pointer hover:scale-105 active:scale-95 border border-emerald-400/30 shrink-0"
+                title="Abrir o Smart Meal Planner com grade semanal completa e arrastar e soltar"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                <span>Smart Meal Planner (Drag & Drop) 🎯</span>
+              </button>
+              <button
                 onClick={handleOpenSyncModal}
                 className="bg-teal-50 dark:bg-teal-900/40 hover:bg-teal-100 dark:hover:bg-teal-800/60 text-teal-700 dark:text-teal-300 font-semibold px-4 py-2.5 rounded-full transition-colors flex items-center justify-center gap-2 text-sm border border-teal-500/20 shadow-sm cursor-pointer"
                 title="Sincronizar ingredientes faltantes com a Lista de Compras checando a Despensa"
@@ -1803,9 +1817,23 @@ export function MealPlanView({
             <div className="bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-[32px] clay-card p-6 md:p-8 border border-white/60 dark:border-slate-700/50 shadow-xl space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>{t('saved_recipes_hub', 'Banco de Receitas Salvas')}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>{t('saved_recipes_hub', 'Banco de Receitas Salvas')}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSfx('crystal');
+                        vibrate(30);
+                        setIsSmartPlannerOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow hover:scale-105 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Arraste Receitas na Grade 🎯</span>
+                    </button>
                   </div>
                   <h4 className="font-serif text-2xl font-medium text-slate-800 dark:text-slate-100">
                     {savedRecipesViewMode === 'collections' ? 'Coleções e Pastas Personalizadas' : t('filter_by_category', 'Filtrar por Categoria')}
@@ -2721,6 +2749,15 @@ export function MealPlanView({
             </div>
           )}
         </AnimatePresence>
+        {/* Smart Meal Planner Modal (Drag & Drop) */}
+        <SmartMealPlannerModal
+          isOpen={isSmartPlannerOpen}
+          onClose={() => setIsSmartPlannerOpen(false)}
+          savedRecipes={savedRecipes}
+          mealPlan={mealPlan}
+          onUpdatePlan={onUpdatePlan}
+          profile={profile}
+        />
       </div>
   );
 }

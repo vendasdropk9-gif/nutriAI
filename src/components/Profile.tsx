@@ -1574,6 +1574,80 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
           </div>
         </div>
 
+        {/* Prominent Streak Counter Claymorphic Card */}
+        <div 
+          data-testid="profile-streak-banner"
+          className="w-full mb-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/15 to-rose-500/10 dark:from-amber-950/40 dark:via-orange-950/40 dark:to-rose-950/30 border-2 border-orange-500/30 shadow-[0_12px_28px_-6px_rgba(249,115,22,0.25),_inset_0_2px_4px_rgba(255,255,255,0.7)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.6)] relative overflow-hidden transition-all"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+            {/* Left: Flame Icon & Active Counter */}
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="relative shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-[0_8px_20px_rgba(249,115,22,0.4),_inset_0_2px_4px_rgba(255,255,255,0.4)] animate-pulse">
+                  <Flame className="w-10 h-10 sm:w-12 sm:h-12 text-amber-100 fill-amber-200" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider shadow">
+                  🔥 Streak
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <span className="text-xs font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                    Sequência Diária Ativa
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-700 dark:text-orange-300 text-[10px] font-bold">
+                    +{Math.min((profile?.streak || 1) * 10, 100)} XP/Dia
+                  </span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-serif font-black text-slate-900 dark:text-white">
+                  {profile?.streak || 0} {(profile?.streak || 0) === 1 ? 'Dia Seguido' : 'Dias Seguidos'}
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Recorde pessoal: <strong className="text-orange-600 dark:text-orange-400 font-bold">{Math.max(profile?.streak || 0, profile?.highestStreak || 0)} dias</strong> • Bônus de multiplicador acumulado no perfil!
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Milestone Progress & Quick CTA */}
+            <div className="w-full sm:w-auto flex flex-col items-center sm:items-end gap-3 shrink-0">
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-orange-500/20 text-center sm:text-right space-y-1 w-full sm:w-auto">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between sm:justify-end gap-2">
+                  <span>Meta do Próximo Marco:</span>
+                  <span className="text-orange-600 dark:text-orange-400 font-black">
+                    {(profile?.streak || 0) >= 30 ? '30/30 (Lenda)' : `${profile?.streak || 0} / ${(profile?.streak || 0) >= 14 ? 30 : (profile?.streak || 0) >= 7 ? 14 : 7} Dias`}
+                  </span>
+                </div>
+                <div className="w-full sm:w-48 h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-700"
+                    style={{ 
+                      width: `${Math.min(
+                        100, 
+                        ((profile?.streak || 0) / ((profile?.streak || 0) >= 30 ? 30 : (profile?.streak || 0) >= 7 ? 14 : 7)) * 100
+                      )}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx('tap');
+                  vibrate(30);
+                  const event = new CustomEvent('nutri-navigate-tab', { detail: { tab: 'habits' } });
+                  window.dispatchEvent(event);
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Manter Streak no Habit Tracker</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* 3D Interactive Avatar with Micro-Animations */}
         <div className="w-full mb-6">
           <Profile3DAvatar

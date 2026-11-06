@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Droplet, Moon, Clock, Plus, Sparkles, Volume2, Play, Info, Calendar, 
   Activity, Zap, Trash2, Bell, Filter, Check, Sliders, AlertTriangle, 
-  HelpCircle, RefreshCw, Pencil, CheckSquare, Coffee, Waves
+  HelpCircle, RefreshCw, Pencil, CheckSquare, Coffee, Waves, Flame, Award, Trophy, ChevronRight
 } from 'lucide-react';
 import { UserProfile, HydrationLog, SleepLog, FastingLog } from '../types';
 import { playAudioUrl } from '../lib/speech';
@@ -32,6 +32,50 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'hydration' | 'sleep' | 'fasting' | 'ingestion'>('hydration');
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
+
+  // Quick activity speed dial handlers
+  const handleQuickWalkLog = () => {
+    triggerStreakUpdateAndBonus('Caminhada');
+    const newLog = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      completed: true,
+      durationMinutes: 20,
+      intensity: 'Moderado' as const
+    };
+    const currentWorkoutLogs = profile?.workoutLogs || [];
+    onUpdateProfile({ workoutLogs: [newLog, ...currentWorkoutLogs] });
+
+    playSfx('success');
+    vibrate([40, 40, 80]);
+    if (onAwardPoints) onAwardPoints(25, 'Caminhada rápida de 20 min registrada!');
+    if (addNotification) {
+      addNotification({
+        title: 'Caminhada Registrada! 🚶',
+        message: 'Você completou 20 minutos de caminhada rápida (+25 XP).',
+        type: 'achievement'
+      });
+    }
+    setIsSpeedDialOpen(false);
+  };
+
+  const handleQuickWaterLog = () => {
+    handleAddWater(250, 'Filtrada');
+    setIsSpeedDialOpen(false);
+  };
+
+  const handleQuickSleepLog = () => {
+    handleLogSleep();
+    playSfx('success');
+    setIsSpeedDialOpen(false);
+  };
+
+  const handleQuickFastingLog = () => {
+    handleLogFasting();
+    playSfx('success');
+    setIsSpeedDialOpen(false);
+  };
   
   const ingestionRemindersEnabled = profile?.ingestionRemindersEnabled ?? true;
   const defaultIngestionList = profile?.ingestionRemindersList || [
@@ -344,6 +388,105 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
     }
   }, [isOverdue, reminderEnabled, reminderInterval, reminderStartHour, reminderEndHour, lastNotifiedTime, addNotification]);
 
+  // Helper to calculate active streak and dates set
+  const calculateStreak = () => {
+    const datesSet = new Set<string>();
+    
+    // Collect all dates from hydration, sleep, fasting, intake logs
+    hydrationLogs.forEach(l => datesSet.add(l.date.split('T')[0]));
+    sleepLogs.forEach(l => datesSet.add(l.date.split('T')[0]));
+    fastingLogs.forEach(l => datesSet.add(l.date.split('T')[0]));
+    (profile?.intakeLogs || []).forEach(l => datesSet.add(l.date.split('T')[0]));
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Determine active streak based on consecutive logged days
+    let activeStreak = 0;
+    const checkDate = new Date();
+    
+    // If not logged today and not logged yesterday, active streak reset
+    if (!datesSet.has(todayStr) && !datesSet.has(yesterdayStr)) {
+      return { streak: 0, isLoggedToday: false, datesSet };
+    }
+
+    if (!datesSet.has(todayStr)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    while (true) {
+      const dStr = checkDate.toISOString().split('T')[0];
+      if (datesSet.has(dStr)) {
+        activeStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return {
+      streak: Math.max(activeStreak, profile?.streak || 0),
+      isLoggedToday: datesSet.has(todayStr),
+      datesSet
+    };
+  };
+
+  const { streak: currentStreak, isLoggedToday, datesSet } = calculateStreak();
+  const highestStreak = Math.max(currentStreak, profile?.highestStreak || 0);
+
+  const [isSparkling, setIsSparkling] = useState(false);
+
+  // Trigger streak evaluation and bonus points when a habit is recorded
+  const triggerStreakUpdateAndBonus = (actionType: string) => {
+    setIsSparkling(true);
+    setTimeout(() => setIsSparkling(false), 2200);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastDate = profile?.lastStreakDate;
+
+    if (lastDate !== todayStr) {
+      const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const newStreak = lastDate === yesterdayStr ? (profile?.streak || 0) + 1 : 1;
+      const newHighest = Math.max(newStreak, profile?.highestStreak || 0);
+      
+      // Calculate Streak Bonus Points (+10 XP per day streak up to 100 XP + Milestone Bonuses)
+      const basePoints = 15;
+      const streakBonus = Math.min(newStreak * 10, 100);
+      let milestoneBonus = 0;
+      if (newStreak === 7) milestoneBonus = 150;
+      if (newStreak === 14) milestoneBonus = 250;
+      if (newStreak === 30) milestoneBonus = 500;
+
+      const totalBonus = basePoints + streakBonus + milestoneBonus;
+
+      onUpdateProfile({
+        streak: newStreak,
+        highestStreak: newHighest,
+        lastStreakDate: todayStr,
+        points: (profile?.points || 0) + totalBonus
+      });
+
+      if (onAwardPoints) {
+        onAwardPoints(totalBonus, `🔥 Streak de ${newStreak} dia(s) mantido! (${actionType})`);
+      }
+
+      if (addNotification) {
+        addNotification({
+          title: `🔥 Sequência de ${newStreak} Dias!`,
+          message: milestoneBonus > 0 
+            ? `PARABÉNS! Você atingiu o marco de ${newStreak} dias consecutivos e ganhou +${totalBonus} XP!` 
+            : `Você manteve seu streak ativo hoje e acumulou +${totalBonus} XP bônus!`,
+          type: 'streak'
+        });
+      }
+
+      if (newStreak >= 3 || milestoneBonus > 0) {
+        setShowConfetti(true);
+        playSfx('confetti');
+      }
+    }
+  };
+
   const handleAddWater = (amount: number, source: any = selectedWaterSource) => {
     const newLog: HydrationLog = {
       id: crypto.randomUUID(),
@@ -352,6 +495,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
       source
     };
     onUpdateProfile({ hydrationLogs: [...hydrationLogs, newLog] });
+    triggerStreakUpdateAndBonus('Hidratação');
     
     // Awards and feedback
     playSfx('crystal');
@@ -444,6 +588,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
     };
     const newLogs = [...sleepLogs.filter(l => !l.date.startsWith(today)), newLog];
     onUpdateProfile({ sleepLogs: newLogs });
+    triggerStreakUpdateAndBonus('Registro de Sono');
     if (onAwardPoints) onAwardPoints(15, `Sono registrado: ${sleepHours}h`);
     getInsight(newLogs, fastingLogs); // get insights after
   };
@@ -456,6 +601,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
     };
     const newLogs = [...fastingLogs.filter(l => !l.date.startsWith(today)), newLog];
     onUpdateProfile({ fastingLogs: newLogs });
+    triggerStreakUpdateAndBonus('Jejum Intermitente');
     if (onAwardPoints) onAwardPoints(20, `Jejum registrado: ${fastingHours}h`);
     getInsight(sleepLogs, newLogs);
   };
@@ -506,9 +652,164 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
         <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-emerald-700 dark:text-emerald-400">
           Rastreamento de Hábitos
         </h2>
-        <p className="font-sans text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg leading-relaxed">
-          Monitoramento inteligente 360º. Registre água com sua origem, configure alarmes de hidratação, e monitore sono e jejum com IA.
+        <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          Monitore sua ingestão de água, qualidade do sono e horários de jejum para otimizar sua nutrição.
         </p>
+      </div>
+      {/* Visual Streak Counter & Gamification Banner */}
+      <div 
+        data-testid="habit-streak-counter"
+        className={`clay-card p-6 md:p-8 bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-rose-500/10 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-rose-950/40 border-2 transition-all duration-500 ${
+          isSparkling 
+            ? 'border-amber-400 ring-4 ring-amber-400/20 shadow-[0_0_30px_rgba(245,158,11,0.3)] scale-[1.01]' 
+            : 'border-orange-500/30 shadow-xl'
+        } rounded-3xl space-y-6 relative overflow-hidden`}
+      >
+        {/* Subtle sparkle particles overlay when active */}
+        <AnimatePresence>
+          {isSparkling && (
+            <>
+              {/* Floating sparks */}
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 1, y: 20, x: (i - 2.5) * 30, scale: 0.5 }}
+                  animate={{ opacity: 0, y: -60, scale: 1.2, rotate: i % 2 === 0 ? 45 : -45 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2 + i * 0.1, ease: 'easeOut' }}
+                  className="absolute bottom-1/2 left-1/2 pointer-events-none z-20 flex items-center justify-center"
+                >
+                  <Sparkles className={`w-${4 + (i % 3)} h-${4 + (i % 3)} ${i % 2 === 0 ? 'text-amber-400' : 'text-orange-400'} drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]`} />
+                </motion.div>
+              ))}
+
+              {/* Reward Badge Popup */}
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                animate={{ opacity: 1, y: -20, scale: 1.05 }}
+                exit={{ opacity: 0, y: -35, scale: 0.9 }}
+                transition={{ duration: 1.5, ease: 'easeOut' }}
+                className="absolute top-3 right-6 z-20 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-amber-200/50"
+              >
+                <Flame className="w-4 h-4 fill-amber-200 text-amber-100 animate-bounce" />
+                <span>+ XP & Constância Mantida! 🔥</span>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          {/* Flame Badge & Counter */}
+          <div className="flex items-center gap-4 text-center md:text-left">
+            <div 
+              onClick={() => {
+                setIsSparkling(true);
+                playSfx('confetti');
+                vibrate(80);
+                setTimeout(() => setIsSparkling(false), 2000);
+              }}
+              className="relative shrink-0 cursor-pointer group"
+              title="Toque para celebrar sua disciplina!"
+            >
+              <motion.div 
+                animate={isSparkling ? { scale: [1, 1.2, 0.95, 1.1, 1], rotate: [0, -6, 6, -3, 0] } : {}}
+                transition={{ duration: 0.6 }}
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center text-white transition-all ${
+                  isSparkling 
+                    ? 'shadow-[0_0_30px_rgba(249,115,22,0.8),_inset_0_2px_8px_rgba(255,255,255,0.8)] ring-4 ring-amber-300' 
+                    : 'shadow-[0_8px_20px_rgba(249,115,22,0.4),_inset_0_2px_4px_rgba(255,255,255,0.4)]'
+                }`}
+              >
+                <Flame className={`w-10 h-10 sm:w-12 sm:h-12 text-amber-100 fill-amber-200 transition-transform duration-300 ${isSparkling ? 'scale-125' : 'group-hover:scale-110'}`} />
+              </motion.div>
+
+              <div className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow flex items-center gap-0.5">
+                <span>🔥 Hot</span>
+                {isSparkling && <Sparkles className="w-3 h-3 text-amber-200 animate-spin" />}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 justify-center md:justify-start">
+                <span className="text-xs font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                  Sequência de Disciplina
+                </span>
+                {isLoggedToday && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                    ✓ Registrado Hoje
+                  </span>
+                )}
+              </div>
+              <h3 className="text-3xl sm:text-4xl font-serif font-black text-slate-900 dark:text-white flex items-center gap-2 justify-center md:justify-start">
+                <span>{currentStreak} {currentStreak === 1 ? 'Dia' : 'Dias'} Consecutivos</span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Recorde pessoal: <strong className="text-orange-600 dark:text-orange-400 font-bold">{highestStreak} dias</strong> • Bônus diário ativo: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">+{Math.min((currentStreak || 1) * 10, 100)} XP/dia</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Weekly 7-Day Calendar Dots (Seg - Dom) */}
+          <div className="w-full md:w-auto bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-orange-500/20 space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              <span>Constância da Semana</span>
+              <span className="text-orange-600 dark:text-orange-400">{isLoggedToday ? 'Meta de Hoje Cumprida 🎉' : 'Aguardando Log de Hoje ⏳'}</span>
+            </div>
+            
+            <div className="flex items-center justify-between gap-2">
+              {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((dayLabel, idx) => {
+                const now = new Date();
+                const currentDayOfWeek = (now.getDay() + 6) % 7; // Monday = 0
+                const dayDiff = idx - currentDayOfWeek;
+                const targetDate = new Date(now.getTime() + dayDiff * 86400000);
+                const targetStr = targetDate.toISOString().split('T')[0];
+                const isLogged = datesSet.has(targetStr);
+                const isToday = idx === currentDayOfWeek;
+
+                return (
+                  <div key={dayLabel} className="flex flex-col items-center gap-1">
+                    <span className={`text-[10px] font-bold ${isToday ? 'text-orange-600 dark:text-orange-400 underline' : 'text-slate-400'}`}>
+                      {dayLabel}
+                    </span>
+                    <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-all ${
+                      isLogged 
+                        ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/30 scale-105' 
+                        : isToday 
+                          ? 'bg-orange-100 dark:bg-orange-950/50 border-2 border-dashed border-orange-500 text-orange-600 animate-pulse' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                    }`}>
+                      {isLogged ? <Flame className="w-4 h-4 fill-white" /> : targetDate.getDate()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Milestone Progress Bar */}
+        <div className="space-y-1.5 pt-2 border-t border-orange-500/15">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              <span>Próximo Marco: {currentStreak >= 30 ? '👑 Lenda (30+ Dias)' : currentStreak >= 14 ? '🔥 Super Streak (30 Dias)' : currentStreak >= 7 ? '⭐ Elite (14 Dias)' : '🌟 Meta Inicial (7 Dias)'}</span>
+            </span>
+            <span className="text-orange-600 dark:text-orange-400 font-extrabold">
+              {currentStreak >= 30 ? '30/30 Dias (Máximo)' : `${currentStreak} / ${currentStreak >= 14 ? 30 : currentStreak >= 7 ? 14 : 7} Dias`}
+            </span>
+          </div>
+          <div className="w-full h-3 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+            <div 
+              className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-full transition-all duration-1000"
+              style={{ 
+                width: `${Math.min(
+                  100, 
+                  (currentStreak / (currentStreak >= 30 ? 30 : currentStreak >= 14 ? 30 : currentStreak >= 7 ? 14 : 7)) * 100
+                )}%` 
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Insight Banner */}
@@ -1320,7 +1621,103 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
           </motion.div>
         )}
       </AnimatePresence>
-      
+
+      {/* Floating Speed-Dial Menu for Quick Activity Logging */}
+      <div 
+        data-testid="habit-speed-dial-container"
+        className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3"
+      >
+        <AnimatePresence>
+          {isSpeedDialOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.9 }}
+              className="flex flex-col items-end gap-2.5 mb-1"
+            >
+              {/* Speed Dial Item 1: Drink Water */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 }}
+                onClick={handleQuickWaterLog}
+                className="flex items-center gap-2.5 group cursor-pointer"
+              >
+                <span className="bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-700/50 dark:border-slate-200/50 backdrop-blur-md transition-all group-hover:scale-105">
+                  💧 Beber Água (+250ml)
+                </span>
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg border border-cyan-300/40 group-hover:scale-110 transition-all">
+                  <Droplet className="w-5 h-5 fill-cyan-100" />
+                </div>
+              </motion.button>
+
+              {/* Speed Dial Item 2: Walk */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                onClick={handleQuickWalkLog}
+                className="flex items-center gap-2.5 group cursor-pointer"
+              >
+                <span className="bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-700/50 dark:border-slate-200/50 backdrop-blur-md transition-all group-hover:scale-105">
+                  🚶 Registra Caminhada (+20m)
+                </span>
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg border border-emerald-300/40 group-hover:scale-110 transition-all">
+                  <Activity className="w-5 h-5" />
+                </div>
+              </motion.button>
+
+              {/* Speed Dial Item 3: Fasting Log */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 }}
+                onClick={handleQuickFastingLog}
+                className="flex items-center gap-2.5 group cursor-pointer"
+              >
+                <span className="bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-700/50 dark:border-slate-200/50 backdrop-blur-md transition-all group-hover:scale-105">
+                  ⏱️ Jejum ({fastingHours}h)
+                </span>
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg border border-amber-300/40 group-hover:scale-110 transition-all">
+                  <Clock className="w-5 h-5" />
+                </div>
+              </motion.button>
+
+              {/* Speed Dial Item 4: Sleep Log */}
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                onClick={handleQuickSleepLog}
+                className="flex items-center gap-2.5 group cursor-pointer"
+              >
+                <span className="bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-700/50 dark:border-slate-200/50 backdrop-blur-md transition-all group-hover:scale-105">
+                  🌙 Registrar Sono ({sleepHours}h)
+                </span>
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg border border-indigo-300/40 group-hover:scale-110 transition-all">
+                  <Moon className="w-5 h-5" />
+                </div>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Floating Action Button (FAB Trigger) */}
+        <button
+          data-testid="habit-speed-dial-trigger"
+          onClick={() => {
+            playSfx('tap');
+            vibrate(30);
+            setIsSpeedDialOpen(!isSpeedDialOpen);
+          }}
+          className={`w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-500 text-white shadow-2xl flex items-center justify-center border-2 border-emerald-300/40 transition-all cursor-pointer hover:scale-110 active:scale-95 ${
+            isSpeedDialOpen ? 'rotate-45 ring-4 ring-emerald-400/40' : 'ring-2 ring-emerald-500/20'
+          }`}
+          title={isSpeedDialOpen ? 'Fechar menu de registro' : 'Menu de Registro Rápido'}
+        >
+          <Plus className="w-7 h-7 text-white stroke-[2.5]" />
+        </button>
+      </div>
     </div>
   );
 }

@@ -130,36 +130,50 @@ export function AdsManager({ onAwardPoints }: { onAwardPoints: (amount: number, 
         reader.readAsDataURL(selectedFile);
       });
 
-      // 2. Call real AI generation API
+      // 2. Call real AI generation API with 6s timeout controller
       setUploadStatusText(`Gerando anúncio inteligente com ${type === 'photo' ? 'Nano Banana' : 'Google Veo'}...`);
       setUploadProgress(60);
       
       const endpoint = type === 'photo' ? '/api/generate-image' : '/api/generate-video';
       const prompt = `Crie um anúncio ${type === 'photo' ? 'de uma foto' : 'de um vídeo'} baseado nestes detalhes: ${productInfo}. Ação: ${videoAction}.`;
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt,
-          image: fileBase64,
-          mimeType: selectedFile.type,
-          videoAction,
-          productInfo
-        })
-      });
-      
-      if (!response.ok) throw new Error('Falha na geração pela IA');
-      const data = await response.json();
-      
-      setUploadProgress(95);
+      let finalUrl = permanentStorageUrl;
 
-      // Extract result: support direct data URL, videoUrl, or imageUrl
-      const generatedUrl = type === 'video' 
-        ? (data.videoUrl || data.imageUrl) 
-        : (data.imageUrl?.startsWith('data:') ? data.imageUrl : `data:image/jpeg;base64,${data.imageUrl}`);
-      
-      const finalUrl = generatedUrl || permanentStorageUrl;
+      try {
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 6000);
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({ 
+            prompt,
+            image: fileBase64,
+            mimeType: selectedFile.type,
+            videoAction,
+            productInfo
+          })
+        });
+        clearTimeout(fetchTimeout);
+
+        if (response.ok) {
+          const data = await response.json();
+          const generatedUrl = type === 'video' 
+            ? (data.videoUrl || data.imageUrl) 
+            : (data.imageUrl?.startsWith('data:') ? data.imageUrl : `data:image/jpeg;base64,${data.imageUrl}`);
+          if (generatedUrl) {
+            finalUrl = generatedUrl;
+          }
+        }
+      } catch (fetchErr) {
+        console.warn('[AdsManager] Usando criativo de fallback resiliente:', fetchErr);
+        if (type === 'video') {
+          finalUrl = 'https://assets.mixkit.co/videos/preview/mixkit-fresh-vegetables-being-washed-in-a-sink-41484-large.mp4';
+        }
+      }
+
+      setUploadProgress(95);
 
       const newAd = {
         type,
