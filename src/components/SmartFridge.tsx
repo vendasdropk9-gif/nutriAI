@@ -9,7 +9,7 @@ import {
   Camera, Upload, Sparkles, Trash2, Edit2, Plus, Search, Calendar, 
   AlertTriangle, ShieldCheck, CheckSquare, Square, ShoppingBag, 
   ChevronRight, RefreshCw, Loader2, Utensils, AlertOctagon, ListFilter,
-  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell, Package, ChefHat, Scale
+  CheckCircle2, ArrowRight, Save, Clock, BookOpen, X, Bell, Package, ChefHat, Scale, TrendingUp
 } from 'lucide-react';
 import { analyzeFridgeContents, FridgeAnalysisResult } from '../lib/gemini';
 import { playSfx, vibrate } from '../lib/sensory';
@@ -19,6 +19,7 @@ import { FoodWasteCalculator } from './FoodWasteCalculator';
 import { ExpirationTracker } from './ExpirationTracker';
 import { RecipeStepTimer } from './RecipeStepTimer';
 import { PantryTimeline } from './PantryTimeline';
+import { AntiWasteSavingsChart } from './AntiWasteSavingsChart';
 
 export interface FridgeItem {
   id: string;
@@ -69,7 +70,7 @@ interface SmartFridgeProps { onGenerateRecipeWithIngredient?: (ingredient: strin
 export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor' | 'expiration'>('fridge');
+  const [activeSubTab, setActiveSubTab] = useState<'fridge' | 'scan' | 'recipes' | 'shopping' | 'pantry' | 'waste' | 'advisor' | 'expiration' | 'savings'>('fridge');
   
   // Fridge items state
   const [fridgeItems, setFridgeItems] = useState<FridgeItem[]>([]);
@@ -685,6 +686,18 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
           <AlertTriangle className="w-4 h-4 text-emerald-500" />
           {t('expiration_tracker', 'Rastreador de Validade')}
         </button>
+        <button
+          id="subtab-anti-waste-savings-btn"
+          onClick={() => { setActiveSubTab('savings'); playSfx('tap'); }}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all flex items-center gap-2 ${
+            activeSubTab === 'savings' 
+              ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-md' 
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/30'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 text-emerald-500" />
+          {t('anti_waste_savings', 'Economia Anti-Desperdício')}
+        </button>
       </div>
 
       {/* Main Content Areas */}
@@ -719,6 +732,10 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
               status: item.status as any,
               addedAt: item.addedAt
             }))} />
+
+            {/* Gráfico de Economia em R$ e kg nos últimos 30 dias (Receitas Anti-Desperdício) */}
+            <AntiWasteSavingsChart />
+
             {/* Threshold-based Consumption & Low Stock Alerts */}
             {frequentAlerts.length > 0 && (
 
@@ -1559,6 +1576,19 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
             className="pt-2 max-w-4xl mx-auto"
           >
             <AiCookingAdvisor />
+          </motion.div>
+        )}
+
+        {/* VIEW 8: ANTI-WASTE SAVINGS */}
+        {activeSubTab === 'savings' && (
+          <motion.div
+            key="savings-tab"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="pt-2 max-w-5xl mx-auto"
+          >
+            <AntiWasteSavingsChart />
           </motion.div>
         )}
       </AnimatePresence>
