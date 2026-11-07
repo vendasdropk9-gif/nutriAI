@@ -16,21 +16,68 @@ export function calculatePantryDaysRemaining(expDateStr?: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export const DEFAULT_PANTRY_SPOILAGE_DAYS_THRESHOLD = 3;
+export const PANTRY_LEAD_TIME_STORAGE_KEY = 'nutri_pantry_spoilage_lead_days';
+
 /**
- * Dispatches a native push notification and service worker notification for expiring pantry items
+ * Gets configured lead time threshold in days (default 3, user can choose 1, 2, 3, 5, etc.)
+ */
+export function getPantrySpoilageLeadDays(): number {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem(PANTRY_LEAD_TIME_STORAGE_KEY);
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed > 0 && parsed <= 15) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {}
+  return DEFAULT_PANTRY_SPOILAGE_DAYS_THRESHOLD;
+}
+
+/**
+ * Saves configured lead time threshold in days (e.g. 1, 3, or 5 days)
+ */
+export function setPantrySpoilageLeadDays(days: number): void {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(PANTRY_LEAD_TIME_STORAGE_KEY, String(days));
+      window.dispatchEvent(new CustomEvent('nutri-pantry-lead-days-changed', { detail: { days } }));
+    }
+  } catch (e) {}
+}
+
+/**
+ * Dispatches a native push notification and service worker notification for expiring pantry items,
+ * recommending a specific recipe from the QuickDishes catalog to avoid food waste.
  */
 export async function sendPantryExpirationNotification(
   expiringItems: PantryItem[], 
-  options: { force?: boolean } = {}
+  options: { force?: boolean; leadDays?: number } = {}
 ): Promise<boolean> {
   if (!expiringItems || expiringItems.length === 0) return false;
 
   const count = expiringItems.length;
   const firstItem = expiringItems[0]?.name || 'Item da cozinha';
-  const title = `Alerta de Validade (${count} ${count > 1 ? 'itens' : 'item'}) ⚠️`;
+  const leadDays = options.leadDays || getPantrySpoilageLeadDays();
+  const minDaysRemaining = Math.min(...expiringItems.map(i => calculatePantryDaysRemaining(i.expirationDate)));
+
+  // Pick or recommend a specific Quick Dish recipe from curated catalog
+  const suggestedRecipeName = expiringItems.length > 0 && expiringItems[0]?.category?.toLowerCase().includes('carne')
+    ? 'Wrap Fit Integral de Frango Desfiado'
+    : expiringItems.length > 0 && (expiringItems[0]?.category?.toLowerCase().includes('laticínio') || expiringItems[0]?.name?.toLowerCase().includes('ovo'))
+    ? 'Omelete Proteico Gourmet com Vegetais'
+    : 'Bowl Colorido com Legumes e Quinoa Real';
+
+  const title = minDaysRemaining <= 0
+    ? `⚠️ Atenção: ${firstItem} vence hoje!`
+    : `Alerta de Validade (${count} ${count > 1 ? 'itens' : 'item'} a vencer em ≤${leadDays}d) ⏳`;
+
   const body = count === 1
-    ? `"${firstItem}" vence em breve! Consuma ou prepare uma receita para evitar o desperdício.`
-    : `"${firstItem}" e mais ${count - 1} item(ns) estão prestes a vencer na sua despensa.`;
+    ? `"${firstItem}" vence ${minDaysRemaining <= 0 ? 'hoje' : `em ${minDaysRemaining}d`}. Sugestão de receita rápida: prepare "${suggestedRecipeName}" para evitar o desperdício!`
+    : `"${firstItem}" e mais ${count - 1} alimento(s) vencem em breve. Prepare "${suggestedRecipeName}" para aproveitá-los!`;
 
   // Check rate limiting (at most once every 6 hours unless forced)
   const lastAlertTime = Number(localStorage.getItem('nutri_last_pantry_alert_time') || 0);
@@ -56,7 +103,9 @@ export async function sendPantryExpirationNotification(
         items: expiringItems,
         count,
         title,
-        body
+        body,
+        recommendedRecipe: suggestedRecipeName,
+        actionLabel: 'Cozinhar Prato Rápido 🍳'
       }
     }));
   }
@@ -118,9 +167,21 @@ export async function sendPantryExpirationNotification(
  * Performs a comprehensive pantry spoilage check across Firestore and localStorage
  */
 export async function checkPantrySpoilage(
-  profile: UserProfile | null, 
-  options: { force?: boolean } = {}
+  profileOrOptions?: UserProfile | null | { force?: boolean; leadDays?: number }, 
+  maybeOptions?: { force?: boolean; leadDays?: number }
 ): Promise<PantryItem[]> {
+  let profile: UserProfile | null = null;
+  let options: { force?: boolean; leadDays?: number } = {};
+
+  if (profileOrOptions && ('force' in (profileOrOptions as any) || 'leadDays' in (profileOrOptions as any))) {
+    options = profileOrOptions as { force?: boolean; leadDays?: number };
+  } else if (profileOrOptions) {
+    profile = profileOrOptions as UserProfile;
+    options = maybeOptions || {};
+  } else {
+    options = maybeOptions || {};
+  }
+
   const userId = auth.currentUser?.uid || profile?.id;
   let items: PantryItem[] = [];
 
@@ -157,16 +218,18 @@ export async function checkPantrySpoilage(
 
   if (items.length === 0) return [];
 
-  // Filter items expiring in <= 3 days (and not already expired > 1 day ago)
+  const leadDays = options.leadDays || getPantrySpoilageLeadDays();
+
+  // Filter items expiring in <= leadDays (and not already expired > 1 day ago)
   const expiringItems = items.filter(item => {
     if (!item.expirationDate) return false;
     const days = calculatePantryDaysRemaining(item.expirationDate);
-    // Include items expiring between today and in 3 days, or expired today
-    return days >= -1 && days <= 3;
+    // Include items expiring between today and leadDays, or expired today
+    return days >= -1 && days <= leadDays;
   });
 
   if (expiringItems.length > 0) {
-    await sendPantryExpirationNotification(expiringItems, options);
+    await sendPantryExpirationNotification(expiringItems, { ...options, leadDays });
   }
 
   return expiringItems;
@@ -193,12 +256,20 @@ export const usePantrySpoilageChecker = (profile: UserProfile | null) => {
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
-    // 3. Periodic check every 45 minutes
+    // 3. Listen to lead days changes from Pantry configuration panel
+    const handleLeadDaysChanged = () => {
+      runCheck();
+    };
+    window.addEventListener('nutri-pantry-lead-days-changed', handleLeadDaysChanged);
+
+    // 4. Periodic check every 45 minutes
     const interval = setInterval(runCheck, 45 * 60 * 1000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('nutri-pantry-lead-days-changed', handleLeadDaysChanged);
       clearInterval(interval);
     };
   }, [runCheck]);
 };
+

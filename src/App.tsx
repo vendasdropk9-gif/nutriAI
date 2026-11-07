@@ -304,9 +304,6 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
 
   const [activeTab, setActiveTab] = useState<'generator' | 'quickdishes' | 'plan' | 'shopping' | 'profile' | 'admin' | 'analyzer' | 'body' | 'evolution' | 'juice' | 'barcode' | 'allergy' | 'comparer' | 'emotional' | 'challenge' | 'habits' | 'notes' | 'bloodpressure' | 'glucose' | 'swaps' | 'dining' | 'ranking' | 'prediction' | 'trainer' | 'market' | 'pricing' | 'partner' | 'delivery' | 'frescor' | 'coach' | 'gamification' | 'academies' | 'herbs' | 'fridge' | 'pantry' | 'cooking_advisor' | 'garden' | 'wellness' | 'smartplate' | 'assistant360' | 'admin_library'>('assistant360');
 
-  // Activate automated pantry spoilage checker & push notifications
-  usePantrySpoilageChecker(profile);
-
   // Real-time user presence tracking in NutriAI
   useEffect(() => {
     presenceManager.setUser(user, profile, activeTab);
@@ -379,7 +376,12 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
         addNotification({
           title: e.detail.title,
           message: e.detail.body,
-          type: 'warning'
+          type: 'warning',
+          actionLabel: e.detail.actionLabel || 'Ver Prato Rápido 🍳',
+          onAction: () => {
+            setActiveTab('quickdishes');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         });
       }
     };

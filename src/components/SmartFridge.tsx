@@ -18,6 +18,7 @@ import { AiCookingAdvisor } from './AiCookingAdvisor';
 import { FoodWasteCalculator } from './FoodWasteCalculator';
 import { ExpirationTracker } from './ExpirationTracker';
 import { RecipeStepTimer } from './RecipeStepTimer';
+import { PantryTimeline } from './PantryTimeline';
 
 export interface FridgeItem {
   id: string;
@@ -708,8 +709,19 @@ export function SmartFridge({ onGenerateRecipeWithIngredient }: SmartFridgeProps
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
+            <PantryTimeline items={fridgeItems.map(item => ({
+              ...item,
+              daysRemaining: 0,
+              storageLocation: 'geladeira',
+              expirationDate: item.expirationDate,
+              quantity: item.quantity,
+              category: item.category,
+              status: item.status as any,
+              addedAt: item.addedAt
+            }))} />
             {/* Threshold-based Consumption & Low Stock Alerts */}
             {frequentAlerts.length > 0 && (
+
               <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 dark:from-amber-950/40 dark:to-rose-950/40 border border-amber-200 dark:border-amber-900 rounded-[28px] p-6 shadow-xl backdrop-blur-xl">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">

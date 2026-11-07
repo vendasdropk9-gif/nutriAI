@@ -24,7 +24,8 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { 
   calculatePantryDaysRemaining, 
   sendPantryExpirationNotification, 
-  checkPantrySpoilage 
+  checkPantrySpoilage,
+  getPantrySpoilageLeadDays
 } from '../hooks/usePantrySpoilageChecker';
 import { requestNotificationPermission, getNotificationPermission } from '../lib/pushScheduler';
 
@@ -245,9 +246,10 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
     setFeedbackMessage(`"${newItem.name}" adicionado com validade monitorada!`);
     setTimeout(() => setFeedbackMessage(null), 3500);
 
-    // If item is already nearing expiration (<= 3 days), trigger notification check
-    if (days <= 3) {
-      sendPantryExpirationNotification([newItem], { force: true });
+    // If item is already nearing expiration (<= leadDays), trigger notification check
+    const currentLeadDays = getPantrySpoilageLeadDays();
+    if (days <= currentLeadDays) {
+      sendPantryExpirationNotification([newItem], { force: true, leadDays: currentLeadDays });
     }
   };
 
@@ -301,7 +303,8 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
       setFeedbackMessage('🔔 Notificações ativadas! Você será avisado quando os alimentos estiverem perto de vencer.');
       setTimeout(() => setFeedbackMessage(null), 4000);
       // Run immediate check
-      checkPantrySpoilage(profile, { force: true });
+      const leadDays = getPantrySpoilageLeadDays();
+      checkPantrySpoilage(profile, { force: true, leadDays });
     } else {
       setFeedbackMessage('Permissão de notificação negada ou não autorizada no navegador.');
       setTimeout(() => setFeedbackMessage(null), 3500);
@@ -313,14 +316,15 @@ export const PantryFreshness: React.FC<PantryFreshnessProps> = ({
     playSfx('tap');
     vibrate(12);
 
-    const urgentItems = items.filter(i => i.daysRemaining <= 3 && i.daysRemaining >= 0);
+    const leadDays = getPantrySpoilageLeadDays();
+    const urgentItems = items.filter(i => i.daysRemaining <= leadDays && i.daysRemaining >= 0);
     const targetItems = urgentItems.length > 0 ? urgentItems : items.slice(0, 2);
 
-    const sent = await sendPantryExpirationNotification(targetItems, { force: true });
+    const sent = await sendPantryExpirationNotification(targetItems, { force: true, leadDays });
     setIsTestingNotification(false);
 
     if (sent) {
-      setFeedbackMessage('🔔 Notificação enviada com sucesso! Verifique a barra de notificações do seu sistema.');
+      setFeedbackMessage(`🔔 Notificação enviada (limite: ${leadDays} dias)! Verifique a barra de notificações do seu sistema.`);
     } else {
       setFeedbackMessage('Aviso gerado na tela! Para push nativo no sistema, permita as notificações no botão acima.');
     }

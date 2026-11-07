@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Droplet, Sparkles, X, Check, Bell, Flame, Sun, CloudRain, Sliders, CheckCircle2 } from 'lucide-react';
+import { 
+  Droplet, Sparkles, X, Check, Bell, Flame, Sun, CloudRain, 
+  Sliders, CheckCircle2, ThermometerSun, Thermometer, MapPin, 
+  AlertCircle, ArrowUpRight, ShieldAlert 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, HydrationLog } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
-import { analyzeSmartHydration, HydrationAnalysis } from '../lib/smartHydrationEngine';
+import { 
+  analyzeSmartHydration, 
+  HydrationAnalysis, 
+  setTestHighHeatTemperature, 
+  getTestHighHeatTemperature 
+} from '../lib/smartHydrationEngine';
+import { speak } from '../lib/speech';
 
 interface SmartHydrationBannerProps {
   profile: UserProfile | null;
@@ -26,11 +36,29 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
   const [tempGoal, setTempGoal] = useState<number>(() => profile?.waterGoal || 2500);
   const [tempInterval, setTempInterval] = useState<number>(() => profile?.waterReminderIntervalMinutes || 60);
   const [tempReminderEnabled, setTempReminderEnabled] = useState<boolean>(() => profile?.waterReminderEnabled ?? true);
+  const [heatBonusApplied, setHeatBonusApplied] = useState(false);
+  const [isRefreshingWeather, setIsRefreshingWeather] = useState(false);
+
+  const refreshWeatherAnalysis = async () => {
+    setIsRefreshingWeather(true);
+    try {
+      const res = await analyzeSmartHydration(profile);
+      setSmartAnalysis(res);
+    } finally {
+      setIsRefreshingWeather(false);
+    }
+  };
 
   useEffect(() => {
-    analyzeSmartHydration(profile).then(res => {
-      setSmartAnalysis(res);
-    });
+    refreshWeatherAnalysis();
+  }, [profile]);
+
+  useEffect(() => {
+    const handleHeatChange = () => {
+      refreshWeatherAnalysis();
+    };
+    window.addEventListener('nutri:heat-temperature-changed', handleHeatChange);
+    return () => window.removeEventListener('nutri:heat-temperature-changed', handleHeatChange);
   }, [profile]);
 
   useEffect(() => {
@@ -80,20 +108,47 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
     return () => clearInterval(checkInterval);
   }, [latestLog, reminderEnabled, intervalMinutes, dismissed, todayHydration.length]);
 
-  // Auto-dismiss after 8 seconds whenever the banner is shown, paused if modal is open
+  // Auto-dismiss: if high heat is active (>30°C), extend display duration to 16s so user can read recommendation
   useEffect(() => {
     const isVisible = showPrompt || (!dismissed && currentTotalWater < goalWater);
-    if (!isVisible || showGoalModal) return;
+    if (!isVisible || showGoalModal || showReminderModal) return;
 
     const autoDismissTimer = setTimeout(() => {
       setShowPrompt(false);
       setDismissed(true);
-    }, 8000);
+    }, smartAnalysis?.isHighHeat ? 16000 : 9000);
 
     return () => clearTimeout(autoDismissTimer);
-  }, [showPrompt, dismissed, currentTotalWater, goalWater, showGoalModal]);
+  }, [showPrompt, dismissed, currentTotalWater, goalWater, showGoalModal, showReminderModal, smartAnalysis?.isHighHeat]);
 
   const [animatingIntake, setAnimatingIntake] = useState<number | null>(null);
+
+  const handleApplyHeatWaterBonus = (bonus: number = 500) => {
+    const currentGoal = profile?.waterGoal || recommendedWater;
+    const newGoal = currentGoal + bonus;
+    onUpdateProfile({ waterGoal: newGoal });
+    setTempGoal(newGoal);
+    setHeatBonusApplied(true);
+    playSfx('crystal');
+    vibrate([40, 60]);
+    if (onAwardPoints) onAwardPoints(15, `Adaptação ao calor (>30°C): meta de água aumentada em +${bonus}ml!`);
+
+    speak(`Meta diária de hidratação aumentada em ${bonus} mililitros devido à previsão de temperatura acima de 30 graus na sua região.`, {
+      lang: 'pt-BR',
+      voice: 'Aoede'
+    });
+
+    window.dispatchEvent(new CustomEvent('app:notification', {
+      detail: {
+        id: `heat-goal-${Date.now()}`,
+        title: "☀️ Meta de Água Ajustada para o Calor",
+        message: `Sua meta foi elevada para ${newGoal}ml (+${bonus}ml) para repor a transpiração no calor acima de 30°C!`,
+        type: 'success'
+      }
+    }));
+
+    setTimeout(() => setHeatBonusApplied(false), 5000);
+  };
 
   const handleQuickLog = (amount: number) => {
     setAnimatingIntake(amount);
@@ -192,12 +247,32 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Sun className="w-3 h-3" /> Clima: {smartAnalysis?.temperature ?? 28}°C ({smartAnalysis?.climateCondition || 'quente'})
+                    <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs ${
+                      smartAnalysis?.isHighHeat 
+                        ? 'bg-amber-400 text-slate-950 font-extrabold ring-1 ring-amber-300 animate-pulse'
+                        : 'bg-white/20 text-white'
+                    }`}>
+                      {smartAnalysis?.isHighHeat ? (
+                        <ThermometerSun className="w-3.5 h-3.5 text-slate-950" />
+                      ) : (
+                        <Sun className="w-3 h-3 text-amber-200" />
+                      )}
+                      <span>
+                        {smartAnalysis?.isHighHeat ? '🔥 Calor >30°C: ' : 'Clima: '}
+                        {smartAnalysis?.temperature ?? 28}°C
+                        {smartAnalysis?.maxTemperatureToday ? ` (Máx ${smartAnalysis.maxTemperatureToday}°C)` : ''}
+                      </span>
                     </span>
+
+                    <span className="text-xs font-semibold text-cyan-100 flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full">
+                      <MapPin className="w-3 h-3 text-cyan-300" />
+                      <span>{smartAnalysis?.locationName || 'GPS Ativo'}</span>
+                    </span>
+
                     <span className="text-xs font-medium text-cyan-100">
                       Hoje: {currentTotalWater}ml / {goalWater}ml
                     </span>
+
                     {smartAnalysis?.hasWorkoutToday && (
                       <span className="text-xs font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <Flame className="w-3 h-3" /> Treino Ativo ({smartAnalysis.workoutIntensity})
@@ -254,6 +329,72 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Dedicated Geolocation High Heat Advisory Banner (>30°C) */}
+            {smartAnalysis?.isHighHeat && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                id="smart-hydration-heat-advisory-card"
+                className="bg-gradient-to-r from-amber-500/35 via-orange-500/30 to-rose-500/35 border-2 border-amber-300/80 rounded-2xl p-3 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-lg backdrop-blur-md"
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-amber-300 to-orange-500 text-slate-950 shrink-0 shadow-sm animate-bounce">
+                    <ThermometerSun className="w-5 h-5 text-slate-950 fill-amber-200" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-white text-xs sm:text-sm flex items-center gap-1.5 drop-shadow-xs">
+                        <Flame className="w-4 h-4 text-amber-300 fill-amber-300" />
+                        Alerta de Calor por Geolocalização: Temperatura &gt; 30°C
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 flex items-center gap-1 shadow-xs">
+                        <MapPin className="w-3 h-3 text-slate-950" />
+                        {smartAnalysis.locationName}: {smartAnalysis.temperature}°C {smartAnalysis.maxTemperatureToday ? `(Máxima: ${smartAnalysis.maxTemperatureToday}°C)` : ''}
+                      </span>
+                    </div>
+                    <p className="text-amber-100 text-[11px] sm:text-xs leading-relaxed max-w-2xl font-medium">
+                      A previsão meteorológica para sua região indica calor intenso de <strong>{smartAnalysis.temperature}°C</strong> (com máxima de {smartAnalysis.maxTemperatureToday ?? smartAnalysis.temperature}°C). Para prevenir estresse térmico e desidratação, sugerimos um aumento de <strong>+{smartAnalysis.suggestedHeatWaterBonus || 500}ml</strong> na sua meta diária de água!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-center flex-wrap">
+                  <button
+                    type="button"
+                    id="btn-apply-heat-water-increase"
+                    onClick={() => handleApplyHeatWaterBonus(smartAnalysis.suggestedHeatWaterBonus || 500)}
+                    disabled={heatBonusApplied}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md cursor-pointer ${
+                      heatBonusApplied
+                        ? 'bg-emerald-400 text-slate-950 ring-2 ring-emerald-300'
+                        : 'bg-gradient-to-r from-amber-300 via-amber-200 to-orange-400 hover:from-amber-100 hover:to-orange-300 text-slate-950 active:scale-95'
+                    }`}
+                  >
+                    {heatBonusApplied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>+{(smartAnalysis.suggestedHeatWaterBonus || 500)}ml Adicionados!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Droplet className="w-3.5 h-3.5 fill-slate-950" />
+                        <span>Aumentar Meta (+{smartAnalysis.suggestedHeatWaterBonus || 500}ml)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLog(250)}
+                    className="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <Droplet className="w-3 h-3" />
+                    <span>+250ml Copo</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             {/* Bottom Row: Visual Hydration Progress Bar & Goal Adjuster */}
             <div className="w-full pt-2 border-t border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -370,6 +511,69 @@ export const SmartHydrationBanner: React.FC<SmartHydrationBannerProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Geolocation Weather & Heat Advisory Section in Goal Modal */}
+            <div className={`p-3.5 rounded-2xl border transition-all text-xs space-y-2 ${
+              smartAnalysis?.isHighHeat
+                ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800'
+                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold flex items-center gap-1.5 text-slate-900 dark:text-white">
+                  <ThermometerSun className={`w-4 h-4 ${smartAnalysis?.isHighHeat ? 'text-amber-500' : 'text-cyan-500'}`} />
+                  <span>Previsão Térmica por GPS</span>
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                  smartAnalysis?.isHighHeat
+                    ? 'bg-amber-200 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200'
+                    : 'bg-cyan-100 text-cyan-900 dark:bg-cyan-950/60 dark:text-cyan-200'
+                }`}>
+                  <MapPin className="w-2.5 h-2.5" />
+                  {smartAnalysis?.locationName || 'Detectando...'}: {smartAnalysis?.temperature ?? 28}°C
+                  {smartAnalysis?.maxTemperatureToday ? ` (Máx ${smartAnalysis.maxTemperatureToday}°C)` : ''}
+                </span>
+              </div>
+
+              <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                {smartAnalysis?.isHighHeat
+                  ? `☀️ Previsão acima de 30°C! Sugerimos aumentar sua meta em +${smartAnalysis.suggestedHeatWaterBonus || 500}ml para compensar a perda hídrica por transpiração.`
+                  : `Em dias com temperaturas acima de 30°C, o sistema detecta automaticamente o calor via geolocalização e sugere aumentar sua meta em +500ml.`}
+              </p>
+
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                {smartAnalysis?.isHighHeat && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempGoal(prev => prev + (smartAnalysis.suggestedHeatWaterBonus || 500));
+                      playSfx('tap');
+                    }}
+                    className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl text-[11px] transition shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <Droplet className="w-3.5 h-3.5 fill-white" />
+                    <span>Adicionar +{smartAnalysis.suggestedHeatWaterBonus || 500}ml ao Campo</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  id="btn-toggle-simulate-heat"
+                  onClick={() => {
+                    const currentTest = getTestHighHeatTemperature();
+                    if (currentTest !== null) {
+                      setTestHighHeatTemperature(null);
+                    } else {
+                      setTestHighHeatTemperature(33);
+                    }
+                    playSfx('tap');
+                  }}
+                  className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[11px] border border-slate-300 dark:border-slate-600 transition cursor-pointer"
+                  title="Testar recomendação para dias quentes acima de 30°C"
+                >
+                  {getTestHighHeatTemperature() !== null ? 'Restaurar GPS Real' : 'Simular Calor >30°C (33°C)'}
+                </button>
+              </div>
+            </div>
 
             {/* Number Input with Increment / Decrement */}
             <div className="space-y-1.5">

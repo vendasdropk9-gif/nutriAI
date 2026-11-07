@@ -8,6 +8,8 @@ export interface AppNotification {
   title: string;
   message: string;
   type: 'achievement' | 'point' | 'streak' | 'info' | 'success' | 'warning' | 'error';
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 interface NotificationSystemProps {
@@ -89,6 +91,22 @@ export function NotificationSystem({ notifications, onDismiss }: NotificationSys
                 }`}>
                   {t(notif.message, notif.message)}
                 </p>
+                {notif.actionLabel && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (notif.onAction) notif.onAction();
+                      onDismiss(notif.id);
+                    }}
+                    className={`mt-2 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                      isEmergency
+                        ? 'bg-white text-rose-900 hover:bg-rose-50 active:scale-95'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
+                    }`}
+                  >
+                    <span>{t(notif.actionLabel, notif.actionLabel)}</span>
+                  </button>
+                )}
               </div>
 
               <button 

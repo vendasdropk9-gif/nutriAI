@@ -5,7 +5,7 @@ import {
   Upload, Search, Filter, RefreshCw, Layers, ShieldAlert,
   ArrowRight, Utensils, Check, HelpCircle, Package, ArrowDownUp, Scale,
   PackagePlus, FolderInput, ClipboardPaste, ShoppingCart, RefreshCcw, Plus, X,
-  MoveRight, CheckCheck, ListPlus, Mic, MicOff, Volume2, Bell
+  MoveRight, CheckCheck, ListPlus, Mic, MicOff, Volume2, Bell, Sliders, Settings2
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { analyzeBarcodeProduct, generatePantryExpiringRecipes } from '../lib/gemini';
@@ -19,6 +19,12 @@ import { auth, db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from '.
 import { useTranslation } from '../contexts/LanguageContext';
 import { safeGet, safeSet } from '../lib/storage';
 import { playSfx, vibrate } from '../lib/sensory';
+import { 
+  getPantrySpoilageLeadDays, 
+  setPantrySpoilageLeadDays, 
+  checkPantrySpoilage,
+  sendPantryExpirationNotification 
+} from '../hooks/usePantrySpoilageChecker';
 
 interface PantryScannerProps {
   profile?: UserProfile | null;
@@ -160,6 +166,9 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
   const [loading, setLoading] = useState(false);
   const [filterLocation, setFilterLocation] = useState<string>('todos');
   const [filterUrgentOnly, setFilterUrgentOnly] = useState(false);
+  const [leadDays, setLeadDays] = useState<number>(() => getPantrySpoilageLeadDays());
+  const [showConfigPanel, setShowConfigPanel] = useState<boolean>(false);
+  const [leadDaysSavedNotice, setLeadDaysSavedNotice] = useState<boolean>(false);
 
   // Scan History State
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
@@ -216,12 +225,36 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
     if (localHist) {
       try { setScanHistory(JSON.parse(localHist)); } catch (e) {}
     }
+
+    const handleLeadDaysSync = (e: any) => {
+      if (typeof e.detail?.leadDays === 'number') {
+        setLeadDays(e.detail.leadDays);
+      }
+    };
+    window.addEventListener('nutri-pantry-lead-days-changed', handleLeadDaysSync);
+
     return () => {
+      window.removeEventListener('nutri-pantry-lead-days-changed', handleLeadDaysSync);
       if (voiceRecognitionRef.current) {
         try { voiceRecognitionRef.current.abort(); } catch (e) {}
       }
     };
   }, []);
+
+  const handleUpdateLeadDays = (newDays: number) => {
+    const clamped = Math.max(1, Math.min(14, newDays));
+    setPantrySpoilageLeadDays(clamped);
+    setLeadDays(clamped);
+    setLeadDaysSavedNotice(true);
+    playSfx('tap');
+    vibrate(30);
+    setTimeout(() => setLeadDaysSavedNotice(false), 3000);
+
+    // Re-verify immediately with the newly selected lead time
+    checkAndNotifyExpiringStaples(pantryItems);
+    checkPantrySpoilage(profile, { force: true, leadDays: clamped });
+    speak(`Alerta de validade configurado para ${clamped} ${clamped === 1 ? 'dia' : 'dias'} de antecedência.`, { lang: 'pt-BR', voice: 'Aoede' });
+  };
 
   const recordScanHistory = (item: Omit<ScanHistoryItem, 'id' | 'scannedAt'>) => {
     const newItem: ScanHistoryItem = {
@@ -275,25 +308,32 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
     const newNotifiedKeys = { ...notifiedKeys };
     let newCount = 0;
+    const currentLeadDays = leadDays || getPantrySpoilageLeadDays();
 
     items.forEach(it => {
       const days = calculateDaysRemaining(it.expirationDate);
       const key = `${it.id}_${it.expirationDate}_${todayStr}`;
 
-      if (days <= 3 && !notifiedKeys[key]) {
+      if (days <= currentLeadDays && !notifiedKeys[key]) {
         newNotifiedKeys[key] = true;
         newCount++;
 
         const isExpired = days < 0;
+        const suggestedRecipe = it.category?.toLowerCase().includes('carne')
+          ? 'Wrap Fit Integral de Frango Desfiado'
+          : it.category?.toLowerCase().includes('laticínio') || it.name?.toLowerCase().includes('ovo')
+          ? 'Omelete Proteico Gourmet com Vegetais'
+          : 'Bowl Colorido com Legumes e Quinoa Real';
+
         const title = isExpired 
           ? "⚠️ Validade Expirada na Despensa" 
           : days === 0 
           ? "⏳ Vence Hoje na Despensa!" 
-          : `⏳ Vence em ${days} ${days === 1 ? 'dia' : 'dias'}`;
+          : `⏳ Vence em ${days} ${days === 1 ? 'dia' : 'dias'} (alerta de ≤${currentLeadDays}d)`;
 
         const message = isExpired
           ? `O item "${it.name}" (${it.storageLocation || 'despensa'}) venceu em ${it.expirationDate}. Verifique antes do preparo.`
-          : `O item "${it.name}" (${it.storageLocation || 'despensa'}) vence em breve (${it.expirationDate}). Clique para gerar receita de resgate!`;
+          : `O item "${it.name}" vence em breve. Sugestão: prepare "${suggestedRecipe}" do catálogo de Pratos Rápidos para evitar desperdício!`;
 
         // Proactive Push Notification via CustomEvent for NotificationSystem
         window.dispatchEvent(new CustomEvent('app:notification', {
@@ -1507,57 +1547,339 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
             onNavigateToMarket={() => window.dispatchEvent(new CustomEvent('app:changeTab', { detail: 'market' }))} 
           />
 
-          {/* Proactive Push Notification Info Banner */}
-          <div id="pantry-proactive-notifications-banner" className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-600/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-900/40 border border-emerald-300/40 dark:border-emerald-700/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0">
-                <Bell className="w-5 h-5 animate-bounce" />
+          {/* Proactive Push Notification Info Banner with usePantrySpoilageChecker Configuration */}
+          <div id="pantry-proactive-notifications-banner" className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-600/10 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-900/40 border border-emerald-300/40 dark:border-emerald-700/40 rounded-2xl p-4 flex flex-col gap-3 text-xs shadow-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0">
+                  <Bell className="w-5 h-5 animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 flex-wrap">
+                    <span>Notificações Proativas de Validade Ativas</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                      usePantrySpoilageChecker
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800">
+                      <Clock className="w-2.5 h-2.5" />
+                      Antecedência: {leadDays} {leadDays === 1 ? 'dia' : 'dias'}
+                    </span>
+                  </h4>
+                  <p className="text-zinc-600 dark:text-zinc-400 mt-0.5">
+                    O serviço monitora ingredientes da despensa e sugere receitas do catálogo de <strong>Pratos Rápidos</strong> para usar itens a vencer em até <strong>{leadDays} {leadDays === 1 ? 'dia' : 'dias'}</strong>.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                  Notificações Proativas de Validade Ativas
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
-                    Automático
+
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end flex-wrap">
+                <button
+                  id="btn-toggle-pantry-config-panel"
+                  type="button"
+                  onClick={() => setShowConfigPanel(prev => !prev)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border cursor-pointer ${
+                    showConfigPanel
+                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
+                      : 'bg-white dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-zinc-700 border-emerald-300/60 dark:border-zinc-700 text-emerald-800 dark:text-emerald-300'
+                  }`}
+                  title="Configurar tempo de antecedência dos alertas (1, 3 ou 5 dias)"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{showConfigPanel ? 'Ocultar Ajustes' : 'Configurar Alerta'}</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-bold">
+                    {leadDays}d
                   </span>
-                </h4>
-                <p className="text-zinc-600 dark:text-zinc-400 mt-0.5">
-                  O sistema analisa continuamente o banco de validades e dispara alertas no aplicativo e Web Push quando mantimentos chegam a 3 dias do vencimento.
-                </p>
+                </button>
+
+                <button
+                  id="btn-check-expiring-pantry-now"
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && 'Notification' in window) {
+                      if (window.Notification.permission === 'granted') {
+                        checkAndNotifyExpiringStaples(pantryItems);
+                        checkPantrySpoilage(profile, { force: true, leadDays });
+                        window.dispatchEvent(new CustomEvent('app:notification', {
+                          detail: {
+                            id: `test-exp-${Date.now()}`,
+                            title: "🔔 Notificações da Despensa Verificadas",
+                            message: `Checagem proativa com limite de ${leadDays} ${leadDays === 1 ? 'dia' : 'dias'} executada para ${pantryItems.length} itens.`,
+                            type: "info"
+                          }
+                        }));
+                        speak(`Checagem com antecedência de ${leadDays} dias realizada!`, { lang: 'pt-BR', voice: 'Aoede' });
+                      } else {
+                        window.Notification.requestPermission().then(perm => {
+                          if (perm === 'granted') {
+                            checkAndNotifyExpiringStaples(pantryItems);
+                            checkPantrySpoilage(profile, { force: true, leadDays });
+                          }
+                        });
+                      }
+                    } else {
+                      checkAndNotifyExpiringStaples(pantryItems);
+                      checkPantrySpoilage(profile, { force: true, leadDays });
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold transition shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Verificar Validades Agora</span>
+                </button>
               </div>
             </div>
-            <button
-              id="btn-check-expiring-pantry-now"
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && 'Notification' in window) {
-                  if (window.Notification.permission === 'granted') {
-                    checkAndNotifyExpiringStaples(pantryItems);
-                    window.dispatchEvent(new CustomEvent('app:notification', {
-                      detail: {
-                        id: `test-exp-${Date.now()}`,
-                        title: "🔔 Notificações da Despensa Verificadas",
-                        message: `Checagem proativa executada para ${pantryItems.length} itens da despensa.`,
-                        type: "info"
-                      }
-                    }));
-                    speak("Verificação proativa de validade executada!", { lang: 'pt-BR', voice: 'Aoede' });
-                  } else {
-                    window.Notification.requestPermission().then(perm => {
-                      if (perm === 'granted') {
-                        checkAndNotifyExpiringStaples(pantryItems);
-                      }
-                    });
-                  }
-                } else {
-                  checkAndNotifyExpiringStaples(pantryItems);
-                }
-              }}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold transition shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
-            >
-              <Bell className="w-3.5 h-3.5" />
-              <span>Verificar Validades Agora</span>
-            </button>
+
+            {/* Quick preset chips inline in banner */}
+            <div className="pt-2 border-t border-emerald-200/40 dark:border-emerald-800/40 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
+                  Antecedência rápida de alerta:
+                </span>
+                <button
+                  id="btn-quick-lead-1d"
+                  type="button"
+                  onClick={() => handleUpdateLeadDays(1)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                    leadDays === 1
+                      ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/40'
+                      : 'bg-white/80 dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                >
+                  {leadDays === 1 && <Check className="w-3 h-3" />}
+                  <span>1 dia (Urgência)</span>
+                </button>
+                <button
+                  id="btn-quick-lead-3d"
+                  type="button"
+                  onClick={() => handleUpdateLeadDays(3)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                    leadDays === 3
+                      ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/40'
+                      : 'bg-white/80 dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                >
+                  {leadDays === 3 && <Check className="w-3 h-3" />}
+                  <span>3 dias (Padrão)</span>
+                </button>
+                <button
+                  id="btn-quick-lead-5d"
+                  type="button"
+                  onClick={() => handleUpdateLeadDays(5)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer ${
+                    leadDays === 5
+                      ? 'bg-teal-600 text-white shadow-xs ring-2 ring-teal-400/40'
+                      : 'bg-white/80 dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700'
+                  }`}
+                >
+                  {leadDays === 5 && <Check className="w-3 h-3" />}
+                  <span>5 dias (Semanal)</span>
+                </button>
+              </div>
+
+              {leadDaysSavedNotice && (
+                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full animate-fadeIn">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Antecedência atualizada para {leadDays} {leadDays === 1 ? 'dia' : 'dias'}!</span>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* PAINEL DE CONFIGURAÇÃO DEDICADO DO usePantrySpoilageChecker */}
+          {showConfigPanel && (
+            <div
+              id="pantry-spoilage-checker-config-panel"
+              className="bg-white dark:bg-zinc-800/90 rounded-2xl border-2 border-emerald-500/30 dark:border-emerald-600/30 p-5 shadow-lg space-y-4 animate-fadeIn transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-700/60 pb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <Settings2 className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                      Painel de Configuração do usePantrySpoilageChecker
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                      Ativo: {leadDays} {leadDays === 1 ? 'dia' : 'dias'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Defina com quanto tempo de antecedência o serviço inteligente deve alertar você sobre alimentos vencendo na despensa e acionar recomendações automáticas de <strong>Pratos Rápidos</strong>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfigPanel(false)}
+                  className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 self-start sm:self-center cursor-pointer"
+                  title="Fechar painel de configuração"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* 3 Preset Option Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Preset 1: 1 Dia */}
+                <div
+                  id="panel-preset-lead-1"
+                  onClick={() => handleUpdateLeadDays(1)}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    leadDays === 1
+                      ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 shadow-xs'
+                      : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-zinc-50/40 dark:bg-zinc-800/40'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <Flame className="w-4 h-4 text-rose-500" />
+                        1 Dia de Antecedência
+                      </span>
+                      {leadDays === 1 && (
+                        <span className="p-0.5 rounded-full bg-rose-500 text-white">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300">
+                      Urgência Máxima
+                    </span>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Dispara alertas apenas para itens vencendo hoje ou amanhã. Ideal para preparos imediatos de última hora.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                    Alerta: itens com ≤ 1 dia restante
+                  </div>
+                </div>
+
+                {/* Preset 2: 3 Dias (Padrão Recomendado) */}
+                <div
+                  id="panel-preset-lead-3"
+                  onClick={() => handleUpdateLeadDays(3)}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    leadDays === 3
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs ring-1 ring-emerald-500/30'
+                      : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-zinc-50/40 dark:bg-zinc-800/40'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-emerald-500" />
+                        3 Dias de Antecedência
+                      </span>
+                      {leadDays === 3 && (
+                        <span className="p-0.5 rounded-full bg-emerald-500 text-white">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                      Recomendado pelo Nutri AI
+                    </span>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Equilíbrio ideal entre frescor e planejamento. Dá tempo hábil para encaixar receitas saudáveis no almoço ou jantar.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                    Alerta: itens com ≤ 3 dias restantes
+                  </div>
+                </div>
+
+                {/* Preset 3: 5 Dias */}
+                <div
+                  id="panel-preset-lead-5"
+                  onClick={() => handleUpdateLeadDays(5)}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                    leadDays === 5
+                      ? 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/20 shadow-xs'
+                      : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-zinc-50/40 dark:bg-zinc-800/40'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-teal-500" />
+                        5 Dias de Antecedência
+                      </span>
+                      {leadDays === 5 && (
+                        <span className="p-0.5 rounded-full bg-teal-500 text-white">
+                          <Check className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300">
+                      Planejamento Semanal
+                    </span>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Maior margem para incluir mantimentos no cardápio da semana ou no congelamento antes do vencimento.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[11px] font-medium text-teal-600 dark:text-teal-400">
+                    Alerta: itens com ≤ 5 dias restantes
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Fine-Tuning Stepper & Direct Testing */}
+              <div className="bg-zinc-50 dark:bg-zinc-900/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    Ajuste personalizado:
+                  </span>
+                  <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 rounded-lg p-1 border border-zinc-200 dark:border-zinc-700 shadow-xs">
+                    <button
+                      id="btn-lead-days-decrement"
+                      type="button"
+                      onClick={() => handleUpdateLeadDays(leadDays - 1)}
+                      disabled={leadDays <= 1}
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-bold text-sm"
+                    >
+                      -
+                    </button>
+                    <span className="w-12 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                      {leadDays} {leadDays === 1 ? 'dia' : 'dias'}
+                    </span>
+                    <button
+                      id="btn-lead-days-increment"
+                      type="button"
+                      onClick={() => handleUpdateLeadDays(leadDays + 1)}
+                      disabled={leadDays >= 14}
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer font-bold text-sm"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    (de 1 a 14 dias de antecedência)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {leadDaysSavedNotice && (
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Configuração salva!
+                    </span>
+                  )}
+                  <button
+                    id="btn-test-spoilage-checker"
+                    type="button"
+                    onClick={() => {
+                      checkAndNotifyExpiringStaples(pantryItems);
+                      checkPantrySpoilage(profile, { force: true, leadDays });
+                      speak(`Testando alerta do usePantrySpoilageChecker com antecedência de ${leadDays} dias.`, { lang: 'pt-BR', voice: 'Aoede' });
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Disparar Varredura com {leadDays}d</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {filteredItems.length === 0 ? (
             <div className="text-center py-12 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 p-8 space-y-3">
