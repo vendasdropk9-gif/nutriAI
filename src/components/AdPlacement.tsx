@@ -10,7 +10,11 @@ import {
   ShieldCheck, 
   Leaf,
   Apple,
-  Dumbbell
+  Dumbbell,
+  Video,
+  Image as ImageIcon,
+  Settings,
+  Check
 } from 'lucide-react';
 
 export interface SponsoredAdData {
@@ -33,6 +37,12 @@ export interface AdPlacementControls {
   toggleMute: (e: React.MouseEvent) => void;
   infoOpen: boolean;
   setInfoOpen: (open: boolean) => void;
+  isVideoMode: boolean;
+  setIsVideoMode: (videoMode: boolean | ((prev: boolean) => boolean)) => void;
+  settingsOpen?: boolean;
+  setSettingsOpen?: (open: boolean) => void;
+  preferredFormat?: 'video' | 'banner' | null;
+  onSelectPreference?: (format: 'video' | 'banner') => void;
 }
 
 export interface AdPlacementProps {
@@ -164,6 +174,92 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     const baseAd = SPONSORED_FALLBACK_ADS[index];
     return customAdData ? { ...baseAd, ...customAdData } : baseAd;
   }, [placementId, customAdData]);
+
+  // Persistent Format Preference ('video' | 'banner') stored in localStorage
+  const [preferredFormat, setPreferredFormat] = useState<'video' | 'banner' | null>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('nutri_ad_format_preference');
+        if (stored === 'video' || stored === 'banner') return stored;
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Explicit Mutual Exclusion State: exactly one visual mode at a time (Video OR Product Photo)
+  const [isVideoMode, setIsVideoMode] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('nutri_ad_format_preference');
+        if (stored === 'video') return Boolean(selectedAd.videoUrl && !videoError);
+        if (stored === 'banner') return false;
+      }
+    } catch (e) {}
+    return Boolean(
+      (format === 'video' || effectiveFormat === 'video') &&
+      selectedAd.videoUrl &&
+      !videoError
+    );
+  });
+
+  // Handler to select and persist user preference in localStorage for consistency across sessions
+  const handleSelectFormatPreference = (mode: 'video' | 'banner') => {
+    try {
+      localStorage.setItem('nutri_ad_format_preference', mode);
+      setPreferredFormat(mode);
+      window.dispatchEvent(new CustomEvent('nutri-ad-preference-changed', { detail: { mode } }));
+    } catch (e) {}
+    if (mode === 'video') {
+      setVideoError(false);
+      setIsVideoMode(true);
+    } else {
+      setIsVideoMode(false);
+    }
+  };
+
+  // Cross-placement synchronization when preference changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePrefChange = (e: any) => {
+      const mode = e.detail?.mode;
+      if (mode === 'video') {
+        setPreferredFormat('video');
+        setVideoError(false);
+        setIsVideoMode(true);
+      } else if (mode === 'banner') {
+        setPreferredFormat('banner');
+        setIsVideoMode(false);
+      }
+    };
+    window.addEventListener('nutri-ad-preference-changed', handlePrefChange);
+    return () => window.removeEventListener('nutri-ad-preference-changed', handlePrefChange);
+  }, []);
+
+  // Keep isVideoMode in sync with format changes and error states
+  useEffect(() => {
+    if (videoError || !selectedAd.videoUrl) {
+      setIsVideoMode(false);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('nutri_ad_format_preference');
+      if (stored === 'video') {
+        setIsVideoMode(true);
+        return;
+      }
+      if (stored === 'banner') {
+        setIsVideoMode(false);
+        return;
+      }
+    } catch (e) {}
+    if (format === 'video' || effectiveFormat === 'video') {
+      setIsVideoMode(true);
+    } else {
+      setIsVideoMode(false);
+    }
+  }, [format, effectiveFormat, selectedAd.videoUrl, videoError]);
 
   // Conditional Preloading State Management
   const [isNearViewport, setIsNearViewport] = useState<boolean>(() => {
@@ -312,7 +408,8 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     if (onAdDismiss) onAdDismiss(placementId);
   };
 
-  const handleImageError = () => {
+  const handleImageError = (e?: any) => {
+    console.error(`[AdPlacement Error] Falha ao carregar a imagem do produto (${currentImageSrc}) para o anúncio "${selectedAd?.title || 'Anúncio'}":`, e);
     if (imageRetryCount === 0) {
       // Try secondary CDN fallback image
       setImageRetryCount(1);
@@ -322,9 +419,11 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     }
   };
 
-  const handleVideoError = () => {
-    // If video stream fails to load or codec is not supported, seamlessly fallback to image
+  const handleVideoError = (e?: any) => {
+    console.error(`[AdPlacement Error] Falha ao carregar o vídeo comercial (${selectedAd?.videoUrl}) para o anúncio "${selectedAd?.title || 'Anúncio'}":`, e);
+    // If video stream fails to load or codec is not supported, seamlessly switch to product photo mode
     setVideoError(true);
+    setIsVideoMode(false);
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -394,7 +493,6 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
 
   // Curated Fallback Ad Creative
   const currentImageSrc = imageRetryCount === 0 ? selectedAd.image : selectedAd.secondaryImage;
-  const isVideoMode = effectiveFormat === 'video' && selectedAd.videoUrl && !videoError;
 
   // Claymorphic visual container class generator
   const containerStyle = isClayMode
@@ -417,7 +515,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
           aria-label="Conteúdo Patrocinado"
         >
           {/* Top Compliance Header & User Controls */}
-          <div className="flex items-center justify-between px-3 sm:px-6 pt-2.5 sm:pt-3.5 pb-1.5 text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/60">
+          <div className="flex flex-wrap items-center justify-between px-3 sm:px-6 pt-2.5 sm:pt-3.5 pb-2 text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800/60 gap-2">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
                 isClayMode 
@@ -430,7 +528,65 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
               <span className="font-medium text-slate-600 dark:text-slate-300 truncate max-w-[120px] sm:max-w-none">{selectedAd.brand}</span>
             </div>
 
+            {/* PREFERENCE SELECTOR: Vídeo vs Banner */}
+            <div
+              role="tablist"
+              aria-label="Seletor de Preferências de Formato (Vídeo ou Banner)"
+              className="inline-flex items-center p-0.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700/60 shadow-inner"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isVideoMode}
+                data-testid="ad-mode-video-btn"
+                onClick={() => {
+                  handleSelectFormatPreference('video');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isVideoMode
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm shadow-indigo-600/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Definir Vídeo como formato padrão"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span>Vídeo</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isVideoMode}
+                data-testid="ad-mode-photo-btn"
+                onClick={() => {
+                  handleSelectFormatPreference('banner');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  !isVideoMode
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm shadow-emerald-600/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Definir Banner como formato padrão"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>Banner</span>
+              </button>
+            </div>
+
             <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                data-testid="ad-settings-toggle-btn"
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className={`p-1.5 rounded-full transition cursor-pointer ${
+                  settingsOpen
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+                }`}
+                title="Seletor de Preferências: Vídeo ou Banner"
+                aria-label="Configurar preferências de anúncios"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
               <button
                 type="button"
                 onClick={() => setInfoOpen(!infoOpen)}
@@ -452,6 +608,123 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Settings Panel: Choose Default Format Preference */}
+          {settingsOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-3 sm:px-6 py-3.5 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 space-y-3"
+              data-testid="ad-settings-panel"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-emerald-500" />
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">
+                    Formato Padrão de Anúncios (Vídeo ou Banner)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer text-xs"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+                Escolha o formato que prefere ver por padrão nos anúncios do NutriAI (<strong>Vídeo</strong> ou <strong>Banner</strong>). Sua escolha é salva no <code>localStorage</code> e aplicada automaticamente ao carregar o aplicativo:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* Option 1: Vídeo */}
+                <button
+                  type="button"
+                  data-testid="pref-format-video-btn"
+                  onClick={() => handleSelectFormatPreference('video')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    isVideoMode
+                      ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 shadow-sm ring-1 ring-indigo-500/30'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    isVideoMode
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  }`}>
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                        Vídeo (IA Comercial)
+                      </span>
+                      {isVideoMode && (
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> Padrão Ativo
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                      Vídeo dinâmico de 15 segundos com áudio e movimento
+                    </span>
+                  </div>
+                </button>
+
+                {/* Option 2: Banner */}
+                <button
+                  type="button"
+                  data-testid="pref-format-banner-btn"
+                  onClick={() => handleSelectFormatPreference('banner')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    !isVideoMode
+                      ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 shadow-sm ring-1 ring-emerald-500/30'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    !isVideoMode
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  }`}>
+                    <ImageIcon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white block">
+                        Banner (Foto de Produto)
+                      </span>
+                      {!isVideoMode && (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> Padrão Ativo
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                      Imagem estática nítida em alta definição do produto
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                <span className="flex items-center gap-1 font-medium">
+                  <Check className="w-3 h-3 text-emerald-500" />
+                  Salvo no localStorage: <strong>{isVideoMode ? 'Vídeo' : 'Banner'}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(false)}
+                  className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                >
+                  Concluir
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Informative Popover */}
           {infoOpen && (
@@ -477,7 +750,13 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                 isMuted, 
                 toggleMute, 
                 infoOpen, 
-                setInfoOpen 
+                setInfoOpen,
+                isVideoMode,
+                setIsVideoMode,
+                settingsOpen,
+                setSettingsOpen,
+                preferredFormat,
+                onSelectPreference: handleSelectFormatPreference
               })}
             </div>
           ) : templateSlot === 'badge' ? (
@@ -537,53 +816,83 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                   ? 'w-16 h-16 sm:w-20 sm:h-20 rounded-2xl' 
                   : 'w-full md:w-56 h-36 md:h-32 rounded-2xl sm:rounded-3xl'
               }`}>
-                {isVideoMode ? (
-                  <div className="relative w-full h-full">
-                    <video
-                      ref={videoRef}
-                      src={selectedAd.videoUrl}
-                      poster={currentImageSrc}
-                      autoPlay
-                      muted={isMuted}
-                      loop
-                      playsInline
-                      onError={handleVideoError}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={toggleMute}
-                      className="absolute bottom-1.5 right-1.5 p-1 rounded-xl bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition cursor-pointer"
-                      title={isMuted ? "Ativar som" : "Silenciar"}
+                {/* STRICT MUTUAL EXCLUSION with Framer Motion AnimatePresence Fade */}
+                <AnimatePresence>
+                  {isVideoMode ? (
+                    <motion.div
+                      key="ad-exclusive-video"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute inset-0 w-full h-full bg-black"
                     >
-                      {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
-                    </button>
-                  </div>
-                ) : !imageError ? (
-                  <img
-                    src={currentImageSrc}
-                    alt={selectedAd.title}
-                    loading="lazy"
-                    onError={handleImageError}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-600 to-teal-800 flex flex-col items-center justify-center p-2 text-white text-center">
-                    {selectedAd.category === 'organic' && <Leaf className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
-                    {selectedAd.category === 'fitness' && <Dumbbell className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
-                    {selectedAd.category === 'nutrition' && <Apple className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
-                    {!isCompactMobile && (
-                      <>
-                        <span className="font-serif font-bold text-xs tracking-wide">{selectedAd.brand}</span>
-                        <span className="text-[10px] text-emerald-100 opacity-90">{selectedAd.badge}</span>
-                      </>
-                    )}
-                  </div>
-                )}
+                      <video
+                        ref={videoRef}
+                        src={selectedAd.videoUrl}
+                        autoPlay
+                        muted={isMuted}
+                        loop
+                        playsInline
+                        onError={handleVideoError}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={toggleMute}
+                        className="absolute bottom-1.5 right-1.5 p-1 rounded-xl bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition cursor-pointer z-10"
+                        title={isMuted ? "Ativar som" : "Silenciar"}
+                      >
+                        {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="ad-exclusive-photo"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute inset-0 w-full h-full bg-slate-900"
+                    >
+                      {!imageError ? (
+                        <img
+                          src={currentImageSrc}
+                          alt={selectedAd.title}
+                          loading="lazy"
+                          onError={handleImageError}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-600 to-teal-800 flex flex-col items-center justify-center p-2 text-white text-center">
+                          {selectedAd.category === 'organic' && <Leaf className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
+                          {selectedAd.category === 'fitness' && <Dumbbell className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
+                          {selectedAd.category === 'nutrition' && <Apple className="w-5 h-5 sm:w-8 sm:h-8 text-emerald-200 mb-0.5" />}
+                          {!isCompactMobile && (
+                            <>
+                              <span className="font-serif font-bold text-xs tracking-wide">{selectedAd.brand}</span>
+                              <span className="text-[10px] text-emerald-100 opacity-90">{selectedAd.badge}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {!isCompactMobile && (
-                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white tracking-wider uppercase">
-                    {selectedAd.badge}
+                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white tracking-wider uppercase flex items-center gap-1.5 border border-white/10">
+                    {isVideoMode ? (
+                      <>
+                        <Video className="w-3 h-3 text-indigo-400" />
+                        <span>Vídeo IA • {selectedAd.badge}</span>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="w-3 h-3 text-emerald-400" />
+                        <span>{selectedAd.badge}</span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AdPlacement } from '../components/AdPlacement';
 
@@ -200,5 +200,113 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     expect(screen.getByTestId('custom-ad-slot-html')).toBeDefined();
     expect(screen.getByText(/Custom Action/i)).toBeDefined();
     expect(customTemplateSpy).toHaveBeenCalled();
+  });
+
+  it('allows user to switch cleanly between Gerador de Vídeo IA and Banner de Produto via visual selector', async () => {
+    render(
+      <AdPlacement
+        placementId="selector-test-unit"
+        format="banner"
+        forceFallback={true}
+      />
+    );
+
+    const videoTabBtn = screen.getByTestId('ad-mode-video-btn');
+    const photoTabBtn = screen.getByTestId('ad-mode-photo-btn');
+
+    expect(videoTabBtn).toBeDefined();
+    expect(photoTabBtn).toBeDefined();
+
+    // Default for banner is photo mode
+    expect(photoTabBtn.getAttribute('aria-selected')).toBe('true');
+    expect(videoTabBtn.getAttribute('aria-selected')).toBe('false');
+    expect(document.querySelector('img')).not.toBeNull();
+    expect(document.querySelector('video')).toBeNull();
+
+    // Click to switch to Gerador de Vídeo IA
+    act(() => {
+      fireEvent.click(videoTabBtn);
+    });
+
+    expect(videoTabBtn.getAttribute('aria-selected')).toBe('true');
+    expect(photoTabBtn.getAttribute('aria-selected')).toBe('false');
+    await waitFor(() => {
+      expect(document.querySelector('video')).not.toBeNull();
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    // Click to switch back to Banner de Produto
+    act(() => {
+      fireEvent.click(photoTabBtn);
+    });
+
+    expect(photoTabBtn.getAttribute('aria-selected')).toBe('true');
+    expect(videoTabBtn.getAttribute('aria-selected')).toBe('false');
+    await waitFor(() => {
+      expect(document.querySelector('img')).not.toBeNull();
+      expect(document.querySelector('video')).toBeNull();
+    });
+  });
+
+  it('allows user to configure default format preference in settings panel and saves to localStorage', async () => {
+    render(
+      <AdPlacement
+        placementId="settings-test-unit"
+        format="banner"
+        forceFallback={true}
+      />
+    );
+
+    // Settings panel starts closed
+    expect(screen.queryByTestId('ad-settings-panel')).toBeNull();
+
+    // Open settings panel
+    const settingsToggleBtn = screen.getByTestId('ad-settings-toggle-btn');
+    fireEvent.click(settingsToggleBtn);
+
+    expect(screen.getByTestId('ad-settings-panel')).toBeDefined();
+    expect(screen.getByText(/Formato Padrão de Anúncios/i)).toBeDefined();
+
+    // Select Video as preferred default format
+    const prefVideoBtn = screen.getByTestId('pref-format-video-btn');
+    act(() => {
+      fireEvent.click(prefVideoBtn);
+    });
+
+    // Verifies preference is saved in localStorage
+    expect(localStorage.getItem('nutri_ad_format_preference')).toBe('video');
+    await waitFor(() => {
+      expect(document.querySelector('video')).not.toBeNull();
+      expect(document.querySelector('img')).toBeNull();
+    });
+
+    // Select Banner as preferred default format
+    const prefBannerBtn = screen.getByTestId('pref-format-banner-btn');
+    act(() => {
+      fireEvent.click(prefBannerBtn);
+    });
+
+    // Verifies preference is updated in localStorage
+    expect(localStorage.getItem('nutri_ad_format_preference')).toBe('banner');
+    await waitFor(() => {
+      expect(document.querySelector('img')).not.toBeNull();
+      expect(document.querySelector('video')).toBeNull();
+    });
+  });
+
+  it('initializes respecting pre-saved format preference from localStorage', () => {
+    localStorage.setItem('nutri_ad_format_preference', 'video');
+
+    render(
+      <AdPlacement
+        placementId="stored-pref-unit"
+        format="banner"
+        forceFallback={true}
+      />
+    );
+
+    // Even though format="banner", localStorage preference 'video' takes priority
+    expect(document.querySelector('video')).not.toBeNull();
+    expect(document.querySelector('img')).toBeNull();
   });
 });

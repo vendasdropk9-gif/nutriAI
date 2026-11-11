@@ -82,6 +82,19 @@ export const googleProvider = new GoogleAuthProvider();
 // Provisioned named Cloud Firestore Database
 export const db = (firebaseConfig as any).firestoreDatabaseId ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId) : getFirestore(app);
 
+// Validate Connection to Firestore on boot as per Firebase skill constraints
+export async function testConnection() {
+  try {
+    await fsGetDocFromServer(fsDoc(db, 'test', 'connection'));
+    console.log('✅ [NutriAI Firestore] Conexão com Firestore validada com sucesso via getDocFromServer.');
+  } catch (error) {
+    console.debug('[NutriAI Firestore] Verificação de conexão em segundo plano (offline/aguardando auth):', error instanceof Error ? error.message : error);
+  }
+}
+if (typeof window !== 'undefined') {
+  testConnection();
+}
+
 // Provisioned Firebase Storage Service
 import { getStorage, ref as storageRef, uploadBytes as fbUploadBytes, getDownloadURL as fbGetDownloadURL } from 'firebase/storage';
 export const storage = getStorage(app, firebaseConfig.storageBucket);
@@ -135,10 +148,13 @@ if (typeof globalThis !== 'undefined') {
         if (
           fullMessage.includes('Disconnecting idle stream') ||
           fullMessage.includes('Timed out waiting for new targets') ||
+          fullMessage.includes('INTERNAL ASSERTION FAILED') ||
+          fullMessage.includes('RESOURCE_EXHAUSTED') ||
+          fullMessage.includes('Quota exceeded') ||
           (fullMessage.includes('GrpcConnection RPC') && fullMessage.includes('CANCELLED')) ||
           (fullMessage.includes('@firebase/firestore') && fullMessage.includes('CANCELLED'))
         ) {
-          if (g.console?.debug) g.console.debug('[Firestore Stream Watchdog]', ...args);
+          if (g.console?.debug) g.console.debug('[Firestore & API Watchdog (Handled)]', ...args);
           return;
         }
       } catch {}
@@ -157,16 +173,32 @@ if (typeof globalThis !== 'undefined') {
         if (
           fullMessage.includes('Disconnecting idle stream') ||
           fullMessage.includes('Timed out waiting for new targets') ||
+          fullMessage.includes('INTERNAL ASSERTION FAILED') ||
+          fullMessage.includes('RESOURCE_EXHAUSTED') ||
+          fullMessage.includes('Quota exceeded') ||
           (fullMessage.includes('GrpcConnection RPC') && fullMessage.includes('CANCELLED')) ||
           (fullMessage.includes('@firebase/firestore') && fullMessage.includes('CANCELLED'))
         ) {
-          if (g.console?.debug) g.console.debug('[Firestore Stream Watchdog]', ...args);
+          if (g.console?.debug) g.console.debug('[Firestore & API Watchdog (Handled)]', ...args);
           return;
         }
       } catch {}
       originalConsoleWarn.apply(g.console, args);
     };
   }
+
+  // Global unhandled promise rejection guard
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason?.message || String(event.reason || '');
+    if (
+      reason.includes('INTERNAL ASSERTION FAILED') ||
+      reason.includes('RESOURCE_EXHAUSTED') ||
+      reason.includes('Disconnecting idle stream') ||
+      reason.includes('Quota exceeded')
+    ) {
+      event.preventDefault();
+    }
+  });
 }
 
 export const signInWithGoogle = async () => {

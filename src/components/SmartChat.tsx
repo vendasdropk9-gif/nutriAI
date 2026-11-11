@@ -24,6 +24,21 @@ interface SmartChatProps {
   onNavigate?: (tab: string) => void;
 }
 
+
+const TypewriterText = ({ text }: { text: string }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  useEffect(() => {
+    let i = 0;
+    const timer = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(timer);
+    }, 20); // Adjust speed
+    return () => clearInterval(timer);
+  }, [text]);
+  return <span>{displayedText}</span>;
+};
+
 export function SmartChat({ profile, onNavigate }: SmartChatProps) {
   const { language, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -333,7 +348,13 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                         ? 'bg-emerald-500 text-white rounded-br-sm shadow-[inset_2px_2px_4px_rgba(255,255,255,0.3),inset_-2px_-2px_4px_rgba(0,0,0,0.1),4px_4px_8px_rgba(16,185,129,0.2)]' 
                         : 'bg-[#f8fafc] dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-sm shadow-[inset_2px_2px_6px_rgba(255,255,255,0.8),inset_-2px_-2px_6px_rgba(0,0,0,0.02),6px_6px_16px_rgba(0,0,0,0.04)] dark:shadow-[inset_2px_2px_4px_rgba(255,255,255,0.05),inset_-2px_-2px_4px_rgba(0,0,0,0.2),4px_4px_12px_rgba(0,0,0,0.2)]'
                     }`}>
-                      <p className="text-sm font-medium leading-relaxed">{message.text}</p>
+                      <p className="text-sm font-medium leading-relaxed">
+                        {message.sender === 'assistant' ? (
+                          <TypewriterText text={message.text} />
+                        ) : (
+                          message.text
+                        )}
+                      </p>
                       
                       {/* Render action buttons if any */}
                       {message.sender === 'assistant' && message.action && message.action !== 'NONE' && (

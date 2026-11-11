@@ -634,45 +634,29 @@ async function startServer() {
 
       if (process.env.GEMINI_API_KEY) {
         try {
-          const parts: any[] = [];
-          if (image) {
-            parts.push({
-              inlineData: {
-                data: image,
-                mimeType: mimeType || 'image/jpeg'
-              }
-            });
-          }
-          parts.push({
-            text: `Crie uma arte publicitária profissional e atraente para divulgação em redes sociais deste produto: ${effectivePrompt}. Composição limpa, visual premium e atraente.`
-          });
+          const promptText = `Fotografia publicitária profissional e atraente de produto saudável e premium para redes sociais: ${effectivePrompt}. Composição limpa, iluminação de estúdio profissional 4K, foco nítido e visual comercial de alta conversão.`;
 
-          const geminiTask = ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite-image',
-            contents: { parts },
+          const imgTask = ai.models.generateImages({
+            model: 'imagen-3.0-generate-002',
+            prompt: promptText,
             config: {
-              imageConfig: {
-                aspectRatio: "1:1"
-              }
+              numberOfImages: 1,
+              aspectRatio: '1:1',
+              outputMimeType: 'image/jpeg',
             }
           });
 
           const timeoutTask = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Gemini image generation timeout')), 3500)
+            setTimeout(() => reject(new Error('Imagen timeout')), 3500)
           );
 
-          const response: any = await Promise.race([geminiTask, timeoutTask]);
-
-          for (const part of response.candidates?.[0]?.content?.parts ?? []) {
-            if (part.inlineData?.data) {
-              const base64EncodeString: string = part.inlineData.data;
-              const mime = part.inlineData.mimeType ?? "image/jpeg";
-              imageUrl = `data:${mime};base64,${base64EncodeString}`;
-              break;
-            }
+          const response: any = await Promise.race([imgTask, timeoutTask]);
+          const base64Bytes = response?.generatedImages?.[0]?.image?.imageBytes;
+          if (base64Bytes) {
+            imageUrl = `data:image/jpeg;base64,${base64Bytes}`;
           }
         } catch (geminiImgErr: any) {
-          console.warn("[Server] Gemini image generation attempt note:", geminiImgErr?.message || geminiImgErr);
+          console.warn("[Server] Imagen generation attempt note:", geminiImgErr?.message || geminiImgErr);
         }
       }
 

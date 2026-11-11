@@ -112,6 +112,7 @@ export interface UserProfile {
   address?: string;
   preferences?: string;
   role?: 'client' | 'merchant' | 'buyer' | 'seller' | 'admin' | 'courier';
+  defaultAdFormat?: 'video' | 'banner';
   restrictions: string[];
   allergies: string[];
   goals: string;

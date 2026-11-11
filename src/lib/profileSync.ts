@@ -6,6 +6,7 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   collection, 
   getDocs, 
   onSnapshot, 
@@ -56,11 +57,59 @@ export function useProfileSync(
     const userId = user.uid || (user as any).id || 'current-user';
 
     let unsubscribeSnapshot: (() => void) | null = null;
+    let unsubscribeIntakeLogs: (() => void) | null = null;
 
     const fetchProfileAndLogs = async () => {
       try {
         setIsSyncing(true);
         const userDocRef = doc(db, 'users', userId);
+
+        // Listen to live intakeLogs subcollection updates for instant cross-device calorie synchronization
+        const intakeLogsColRef = collection(db, 'users', userId, 'intakeLogs');
+        unsubscribeIntakeLogs = onSnapshot(intakeLogsColRef, (colSnap) => {
+          if (colSnap && colSnap.docs) {
+            const liveLogs: IntakeLog[] = colSnap.docs.map((d: any) => {
+              const data = d.data();
+              return {
+                id: d.id,
+                date: data.date || data.createdAt || new Date().toISOString(),
+                mealId: data.mealId || '',
+                recipeName: data.recipeName || 'Refeição Registrada',
+                photoURL: data.photoURL || undefined,
+                planned: data.planned || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                actual: data.actual || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                adjusted: Boolean(data.adjusted),
+                mealType: data.mealType || 'lunch',
+                userId: data.userId || userId,
+                createdAt: data.createdAt || data.date || new Date().toISOString()
+              };
+            });
+            liveLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            
+            setLocalProfile((prev) => {
+              if (!prev) return prev;
+              const prevLogs = prev.intakeLogs || [];
+              if (prevLogs.length === liveLogs.length && prevLogs.every((l, idx) => l.id === liveLogs[idx]?.id)) {
+                return prev;
+              }
+              return {
+                ...prev,
+                intakeLogs: liveLogs
+              };
+            });
+          }
+        }, (err) => {
+          const msg = err?.message || String(err);
+          if (
+            msg.includes('Disconnecting idle stream') ||
+            msg.includes('Timed out waiting for new targets') ||
+            msg.includes('CANCELLED')
+          ) {
+            console.debug("Firestore intakeLogs stream cycle (handled):", err);
+          } else {
+            console.warn("Firestore intakeLogs onSnapshot error:", err);
+          }
+        });
         
         // Listen to live profile updates
         unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
@@ -175,7 +224,16 @@ export function useProfileSync(
               notes: (notes && notes.length > 0 ? notes : data.notes || []) as Note[]
             };
 
-            setLocalProfile(remoteProfile);
+            // Conflict Resolution: compare local vs remote updatedAt timestamps (Last-Write-Wins)
+            const remoteUpdatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().getTime() : (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localUpdatedAt = localProfile?.updatedAt ? new Date(localProfile.updatedAt).getTime() : 0;
+
+            if (localProfile && remoteUpdatedAt > 0 && localUpdatedAt > remoteUpdatedAt + 10000) {
+              console.log('[NutriAI Sync] Conflito resolvido: Perfil local possui alterações mais recentes que o Firestore. Sincronizando local para remoto.');
+              syncToFirestore(localProfile);
+            } else {
+              setLocalProfile(remoteProfile);
+            }
           } else {
             // Profile does not exist in Firestore yet, create it!
             const names = (user.displayName || '').split(' ');
@@ -275,6 +333,9 @@ export function useProfileSync(
     return () => {
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
+      }
+      if (unsubscribeIntakeLogs) {
+        unsubscribeIntakeLogs();
       }
     };
   }, [user]);
@@ -378,7 +439,21 @@ export function useProfileSync(
         for (const item of items) {
           const itemId = item.id || crypto.randomUUID();
           const itemRef = doc(db, 'users', user.uid, subName, itemId);
-          await setDoc(itemRef, { ...item, id: itemId, userId: user.uid, updatedAt: serverTimestamp() }, { merge: true });
+          const sanitizedPayload: any = {
+            ...item,
+            id: itemId,
+            userId: user.uid,
+            createdAt: item.createdAt || item.date || new Date().toISOString(),
+            updatedAt: serverTimestamp()
+          };
+          if (subName === 'intakeLogs') {
+            sanitizedPayload.recipeName = item.recipeName || 'Refeição Registrada';
+            sanitizedPayload.date = item.date || new Date().toISOString();
+            sanitizedPayload.planned = item.planned || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+            sanitizedPayload.actual = item.actual || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+            sanitizedPayload.adjusted = Boolean(item.adjusted);
+          }
+          await setDoc(itemRef, sanitizedPayload, { merge: true });
         }
       };
 
@@ -402,5 +477,40 @@ export function useProfileSync(
     }
   }, [user]);
 
-  return { isSyncing, syncToFirestore };
+  // Direct single-log mutations for immediate cross-device broadcast
+  const logIntakeToFirestore = useCallback(async (log: IntakeLog) => {
+    if (!user) return;
+    if ((user as any)?.isGuest || user?.uid?.startsWith('guest-')) {
+      return;
+    }
+    const userId = user.uid || (user as any).id || 'current-user';
+    const logId = log.id || `intake_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const logRef = doc(db, 'users', userId, 'intakeLogs', logId);
+
+    const payload = {
+      id: logId,
+      date: log.date || new Date().toISOString(),
+      mealId: log.mealId || '',
+      recipeName: log.recipeName || 'Refeição Registrada',
+      photoURL: (log as any).photoURL || '',
+      planned: log.planned || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      actual: log.actual || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      adjusted: Boolean(log.adjusted),
+      mealType: log.mealType || 'lunch',
+      userId,
+      createdAt: (log as any).createdAt || log.date || new Date().toISOString(),
+      updatedAt: serverTimestamp()
+    };
+
+    await setDoc(logRef, payload, { merge: true });
+  }, [user]);
+
+  const deleteIntakeFromFirestore = useCallback(async (logId: string) => {
+    if (!user || (user as any)?.isGuest || user?.uid?.startsWith('guest-')) return;
+    const userId = user.uid || (user as any).id || 'current-user';
+    const logRef = doc(db, 'users', userId, 'intakeLogs', logId);
+    await deleteDoc(logRef);
+  }, [user]);
+
+  return { isSyncing, syncToFirestore, logIntakeToFirestore, deleteIntakeFromFirestore };
 }

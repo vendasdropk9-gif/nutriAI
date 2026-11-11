@@ -224,7 +224,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     }
   }, [profile]);
 
-  const { syncToFirestore } = useProfileSync(user, profile, setProfile);
+  const { syncToFirestore, logIntakeToFirestore } = useProfileSync(user, profile, setProfile);
 
   // Auto-detect navigation events
   useEffect(() => {
@@ -525,14 +525,24 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   }, [profile?.sleepLogs]);
 
   const handleLogIntake = (log: IntakeLog) => {
+    const logWithId: IntakeLog = {
+      ...log,
+      id: log.id || `intake_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    };
     const newProfile = profile ? {
       ...profile,
-      intakeLogs: [...(profile.intakeLogs || []), log]
+      intakeLogs: [...(profile.intakeLogs || []).filter(l => l.id !== logWithId.id), logWithId]
     } : null;
     
     if (newProfile) {
       updateProfile(newProfile);
       awardPoints(15, 'Refeição registrada no plano');
+    }
+
+    if (user && !((user as any)?.isGuest || user?.uid?.startsWith('guest-'))) {
+      logIntakeToFirestore(logWithId).catch(err => {
+        console.warn('Syncing intake log directly to Firestore warning:', err);
+      });
     }
   };
 

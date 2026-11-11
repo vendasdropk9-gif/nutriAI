@@ -37,6 +37,7 @@ vi.mock('firebase/firestore', () => ({
   setDoc: (...args: any[]) => mockSetDoc(...args),
   addDoc: (...args: any[]) => mockAddDoc(...args),
   updateDoc: vi.fn().mockResolvedValue(undefined),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
   onSnapshot: vi.fn((_ref, onNext, onError) => {
     onSnapshotCallback = onNext;
     onSnapshotErrorCallback = onError;
@@ -53,6 +54,7 @@ vi.mock('../lib/firebase', () => ({
   setDoc: (...args: any[]) => mockSetDoc(...args),
   addDoc: (...args: any[]) => mockAddDoc(...args),
   updateDoc: vi.fn().mockResolvedValue(undefined),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
   onSnapshot: vi.fn((_ref, onNext, onError) => {
     onSnapshotCallback = onNext;
     onSnapshotErrorCallback = onError;
@@ -330,5 +332,46 @@ describe('ProfileSync - Data Integrity & Offline-to-Online Transitions', () => {
       const remaining = await getPendingOfflineActions();
       expect(remaining.find(a => a.id === actionId)).toBeUndefined();
     });
+
+    it('synchronizes calorie intake logs directly to Firestore subcollection for cross-device consistency', async () => {
+      let currentProfile: UserProfile | null = { ...mockLocalProfile };
+      const setProfileMock = vi.fn((val) => {
+        currentProfile = typeof val === 'function' ? val(currentProfile) : val;
+      });
+
+      const { result } = renderHook(() =>
+        useProfileSync(mockUser, currentProfile, setProfileMock)
+      );
+
+      expect(result.current.logIntakeToFirestore).toBeDefined();
+
+      const testLog = {
+        id: 'intake-cross-device-456',
+        date: '2026-11-10T12:00:00.000Z',
+        mealId: 'lunch-1',
+        recipeName: 'Salmão Grelhado com Legumes',
+        planned: { calories: 520, protein: 42, carbs: 18, fat: 22 },
+        actual: { calories: 540, protein: 44, carbs: 20, fat: 24 },
+        adjusted: false,
+        mealType: 'lunch'
+      };
+
+      await act(async () => {
+        await result.current.logIntakeToFirestore(testLog);
+      });
+
+      expect(mockSetDoc).toHaveBeenCalled();
+      const callsForIntake = mockSetDoc.mock.calls.filter(call =>
+        call[0]?.path?.includes('intakeLogs')
+      );
+      expect(callsForIntake.length).toBeGreaterThanOrEqual(1);
+
+      const targetCall = callsForIntake[callsForIntake.length - 1];
+      expect(targetCall[1].id).toBe('intake-cross-device-456');
+      expect(targetCall[1].recipeName).toBe('Salmão Grelhado com Legumes');
+      expect(targetCall[1].actual.calories).toBe(540);
+      expect(targetCall[1].userId).toBe('user-transition-123');
+    });
   });
 });
+

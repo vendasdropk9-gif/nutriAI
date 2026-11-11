@@ -3550,6 +3550,46 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                 </select>
               </div>
 
+              {/* Default Ad Format Preference */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">Formato Padrão de Anúncios</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Defina se prefere visualizar Vídeos Comerciais (Google Veo) ou Banners de Produto por padrão.
+                    </p>
+                  </div>
+                </div>
+                <select 
+                  value={(() => {
+                    try {
+                      if (typeof window !== 'undefined') {
+                        return localStorage.getItem('nutri_ad_format_preference') || 'video';
+                      }
+                    } catch (e) {}
+                    return 'video';
+                  })()} 
+                  onChange={(e) => {
+                    const mode = e.target.value as 'video' | 'banner';
+                    try {
+                      localStorage.setItem('nutri_ad_format_preference', mode);
+                      window.dispatchEvent(new CustomEvent('nutri-ad-preference-changed', { detail: { mode } }));
+                    } catch (e) {}
+                    if (profile) {
+                      onSaveProfile({ ...profile, defaultAdFormat: mode });
+                    }
+                    playSfx('tap');
+                  }}
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="video">Vídeo (Google Veo)</option>
+                  <option value="banner">Banner (Foto de Produto)</option>
+                </select>
+              </div>
+
               {/* High Contrast */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex items-start gap-4">
