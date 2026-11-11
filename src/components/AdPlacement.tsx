@@ -643,6 +643,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                 <button
                   type="button"
                   data-testid="pref-format-video-btn"
+                  style={{ backgroundColor: '#232428' }}
                   onClick={() => handleSelectFormatPreference('video')}
                   className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
                     isVideoMode
@@ -678,6 +679,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                 <button
                   type="button"
                   data-testid="pref-format-banner-btn"
+                  style={{ backgroundColor: '#26282a' }}
                   onClick={() => handleSelectFormatPreference('banner')}
                   className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
                     !isVideoMode
