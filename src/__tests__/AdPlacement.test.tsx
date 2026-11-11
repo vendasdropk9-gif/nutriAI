@@ -11,7 +11,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
   });
 
   it('renders sponsored placement container with compliance disclosure', () => {
-    render(<AdPlacement placementId="test-unit-1" forceFallback={true} />);
+    render(<AdPlacement placementId="test-unit-1" forceFallback={true} profile={null} />);
 
     expect(screen.getByTestId('ad-placement-test-unit-1')).toBeDefined();
     expect(screen.getByText(/Patrocinado/i)).toBeDefined();
@@ -23,7 +23,8 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
       <AdPlacement 
         placementId="test-unit-2" 
         format="banner" 
-        forceFallback={true} 
+        forceFallback={true}
+        profile={null}
       />
     );
 
@@ -31,17 +32,24 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     expect(screen.getByText(/Garantir Cesta|Aproveitar|Ver Garrafa/i)).toBeDefined();
   });
 
-  it('handles video error gracefully by falling back to image', () => {
+  it('handles video error gracefully by falling back to image', async () => {
     render(
       <AdPlacement 
         placementId="test-video-unit" 
         format="video" 
-        forceFallback={true} 
+        forceFallback={true}
+        profile={null}
+        customAdData={{ videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-fresh-vegetables-being-washed-in-a-sink-41484-large.mp4' }}
       />
     );
 
+    // Wait for video mode to initialize
+    await waitFor(() => {
+      const videoEl = screen.queryByRole('video') || document.querySelector('video');
+      expect(videoEl).not.toBeNull();
+    });
+
     const videoEl = screen.queryByRole('video') || document.querySelector('video');
-    expect(videoEl).not.toBeNull();
 
     // Trigger video error
     if (videoEl) {
@@ -58,7 +66,8 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
       <AdPlacement 
         placementId="test-img-fallback" 
         format="banner" 
-        forceFallback={true} 
+        forceFallback={true}
+        profile={null}
       />
     );
 
@@ -87,6 +96,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         placementId="test-dismiss-unit" 
         forceFallback={true} 
         onAdDismiss={onDismissMock}
+        profile={null}
       />
     );
 
@@ -101,7 +111,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     const futureTimestamp = Date.now() + 1000 * 60 * 60 * 12; // 12 hours ahead
     localStorage.setItem('nutri_ad_dismissed_pre-dismissed-unit', String(futureTimestamp));
 
-    render(<AdPlacement placementId="pre-dismissed-unit" forceFallback={true} />);
+    render(<AdPlacement placementId="pre-dismissed-unit" forceFallback={true} profile={null} />);
 
     expect(screen.queryByTestId('ad-placement-pre-dismissed-unit')).toBeNull();
   });
@@ -120,7 +130,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
       dispatchEvent: vi.fn(),
     }));
 
-    render(<AdPlacement placementId="mobile-test-unit" format="banner" forceFallback={true} />);
+    render(<AdPlacement placementId="mobile-test-unit" format="banner" forceFallback={true} profile={null} />);
 
     const placement = screen.getByTestId('ad-placement-mobile-test-unit');
     expect(placement).toBeDefined();
@@ -144,7 +154,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     }
     window.IntersectionObserver = MockIntersectionObserver as any;
 
-    const { rerender } = render(<AdPlacement placementId="intersection-test-unit" forceFallback={true} />);
+    const { rerender } = render(<AdPlacement placementId="intersection-test-unit" forceFallback={true} profile={null} />);
 
     // Initially when IntersectionObserver is present and entry has not intersected, skeleton renders
     expect(screen.getByTestId('ad-placement-skeleton-intersection-test-unit')).toBeDefined();
@@ -156,7 +166,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     }
 
     // Force re-render to reflect state change
-    rerender(<AdPlacement placementId="intersection-test-unit" forceFallback={true} />);
+    rerender(<AdPlacement placementId="intersection-test-unit" forceFallback={true} profile={null} />);
 
     // Ad placement creative is now rendered and preloading initiated
     expect(screen.getByTestId('ad-placement-intersection-test-unit')).toBeDefined();
@@ -173,6 +183,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         format="native" 
         claymorphic={true} 
         forceFallback={true} 
+        profile={null}
       />
     );
 
@@ -194,6 +205,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         placementId="custom-slot-unit"
         forceFallback={true}
         renderTemplate={customTemplateSpy}
+        profile={null}
       />
     );
 
@@ -208,6 +220,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         placementId="selector-test-unit"
         format="banner"
         forceFallback={true}
+        profile={null}
       />
     );
 
@@ -254,6 +267,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         placementId="settings-test-unit"
         format="banner"
         forceFallback={true}
+        profile={null}
       />
     );
 
@@ -294,7 +308,7 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
     });
   });
 
-  it('initializes respecting pre-saved format preference from localStorage', () => {
+  it('initializes respecting pre-saved format preference from localStorage', async () => {
     localStorage.setItem('nutri_ad_format_preference', 'video');
 
     render(
@@ -302,11 +316,14 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
         placementId="stored-pref-unit"
         format="banner"
         forceFallback={true}
+        profile={null}
       />
     );
 
     // Even though format="banner", localStorage preference 'video' takes priority
-    expect(document.querySelector('video')).not.toBeNull();
-    expect(document.querySelector('img')).toBeNull();
+    await waitFor(() => {
+      expect(document.querySelector('video')).not.toBeNull();
+      expect(document.querySelector('img')).toBeNull();
+    });
   });
 });

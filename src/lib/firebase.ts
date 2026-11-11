@@ -26,6 +26,7 @@ import {
   limit as fsLimit, 
   orderBy as fsOrderBy, 
   serverTimestamp as fsServerTimestamp,
+  increment as fsIncrement,
   Timestamp as fsTimestamp,
   writeBatch as fsWriteBatch,
   getDocFromServer as fsGetDocFromServer,
@@ -612,6 +613,10 @@ export function serverTimestamp() {
   } catch {
     return new Date().toISOString();
   }
+}
+
+export function increment(n: number) {
+  return fsIncrement(n);
 }
 
 export const Timestamp = fsTimestamp;

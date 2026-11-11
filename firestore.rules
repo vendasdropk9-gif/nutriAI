@@ -180,6 +180,11 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
+    // --- Ad Telemetry ---
+    match /adTelemetry/{telemetryId} {
+      allow read, write: if isSignedIn() && isValidId(telemetryId);
+    }
+
     // Catch-All Default Deny
     match /{document=**} {
       allow read, write: if false;

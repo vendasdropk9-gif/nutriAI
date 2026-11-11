@@ -1155,6 +1155,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                     <AdPlacement 
                       placementId={`nutri-tab-${activeTab}`}
                       format={activeTab === 'market' ? 'video' : 'banner'}
+                      profile={profile}
                     />
                   </div>
                 )}

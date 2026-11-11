@@ -568,6 +568,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "productId", "type", "url", "createdAt"]
+    },
+    "AdTelemetry": {
+      "title": "Ad Telemetry",
+      "description": "Counter for video and banner ad loads for engagement analysis",
+      "type": "object",
+      "properties": {
+        "videoLoads": { "type": "number" },
+        "bannerLoads": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["videoLoads", "bannerLoads", "updatedAt"]
     }
   },
   "firestore": {
@@ -710,6 +721,10 @@
     "/users/{userId}/advertisements/{adId}": {
       "schema": "Advertisement",
       "description": "User generated advertisements"
+    },
+    "/adTelemetry/{telemetryId}": {
+      "schema": "AdTelemetry",
+      "description": "Global ad engagement counter for video and banner loads"
     }
   }
 }

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { UserProfile } from '../types';
+import { useProfileSync } from '../lib/profileSync';
+import { useAdPreference } from '../hooks/useAdPreference';
+import { db, doc, setDoc, increment, serverTimestamp } from '../lib/firebase';
 import { 
   Sparkles, 
   X, 
@@ -59,6 +63,7 @@ export interface AdPlacementProps {
   claymorphic?: boolean;
   customAdData?: Partial<SponsoredAdData>;
   renderTemplate?: (ad: SponsoredAdData, controls: AdPlacementControls) => React.ReactNode;
+  profile: UserProfile | null;
 }
 
 const SPONSORED_FALLBACK_ADS: SponsoredAdData[] = [
@@ -114,7 +119,8 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
   templateSlot = 'default',
   claymorphic = false,
   customAdData,
-  renderTemplate
+  renderTemplate,
+  profile
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [useFallback, setUseFallback] = useState(forceFallback);
@@ -175,42 +181,27 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     return customAdData ? { ...baseAd, ...customAdData } : baseAd;
   }, [placementId, customAdData]);
 
-  // Persistent Format Preference ('video' | 'banner') stored in localStorage
-  const [preferredFormat, setPreferredFormat] = useState<'video' | 'banner' | null>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('nutri_ad_format_preference');
-        if (stored === 'video' || stored === 'banner') return stored;
-      }
-    } catch (e) {}
-    return null;
-  });
-
+  // Persistent Format Preference ('video' | 'banner') handled by useAdPreference
+  const { format: prefFormat, updateFormat, initialized: prefInitialized, isVideoMode: prefIsVideoMode } = useAdPreference(profile);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Explicit Mutual Exclusion State: exactly one visual mode at a time (Video OR Product Photo)
-  const [isVideoMode, setIsVideoMode] = useState<boolean>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('nutri_ad_format_preference');
-        if (stored === 'video') return Boolean(selectedAd.videoUrl && !videoError);
-        if (stored === 'banner') return false;
-      }
-    } catch (e) {}
-    return Boolean(
-      (format === 'video' || effectiveFormat === 'video') &&
-      selectedAd.videoUrl &&
-      !videoError
-    );
-  });
+  const [isVideoMode, setIsVideoMode] = useState<boolean>(false);
+  
+  // Sync internal state with preference hook
+  useEffect(() => {
+    if (!prefInitialized) return;
+    
+    if (prefFormat === 'video' && selectedAd.videoUrl && !videoError) {
+      setIsVideoMode(true);
+    } else {
+      setIsVideoMode(false);
+    }
+  }, [prefFormat, prefInitialized, selectedAd.videoUrl, videoError]);
 
   // Handler to select and persist user preference in localStorage for consistency across sessions
   const handleSelectFormatPreference = (mode: 'video' | 'banner') => {
-    try {
-      localStorage.setItem('nutri_ad_format_preference', mode);
-      setPreferredFormat(mode);
-      window.dispatchEvent(new CustomEvent('nutri-ad-preference-changed', { detail: { mode } }));
-    } catch (e) {}
+    updateFormat(mode);
     if (mode === 'video') {
       setVideoError(false);
       setIsVideoMode(true);
@@ -219,47 +210,6 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     }
   };
 
-  // Cross-placement synchronization when preference changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handlePrefChange = (e: any) => {
-      const mode = e.detail?.mode;
-      if (mode === 'video') {
-        setPreferredFormat('video');
-        setVideoError(false);
-        setIsVideoMode(true);
-      } else if (mode === 'banner') {
-        setPreferredFormat('banner');
-        setIsVideoMode(false);
-      }
-    };
-    window.addEventListener('nutri-ad-preference-changed', handlePrefChange);
-    return () => window.removeEventListener('nutri-ad-preference-changed', handlePrefChange);
-  }, []);
-
-  // Keep isVideoMode in sync with format changes and error states
-  useEffect(() => {
-    if (videoError || !selectedAd.videoUrl) {
-      setIsVideoMode(false);
-      return;
-    }
-    try {
-      const stored = localStorage.getItem('nutri_ad_format_preference');
-      if (stored === 'video') {
-        setIsVideoMode(true);
-        return;
-      }
-      if (stored === 'banner') {
-        setIsVideoMode(false);
-        return;
-      }
-    } catch (e) {}
-    if (format === 'video' || effectiveFormat === 'video') {
-      setIsVideoMode(true);
-    } else {
-      setIsVideoMode(false);
-    }
-  }, [format, effectiveFormat, selectedAd.videoUrl, videoError]);
 
   // Conditional Preloading State Management
   const [isNearViewport, setIsNearViewport] = useState<boolean>(() => {
@@ -271,6 +221,20 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
   });
   const [isPreloaded, setIsPreloaded] = useState(false);
   const [preloadStatus, setPreloadStatus] = useState<'idle' | 'preloading' | 'ready' | 'error'>('idle');
+
+  // Ad Load Telemetry
+  useEffect(() => {
+    if (!isNearViewport) return;
+
+    const telemetryDocRef = doc(db, 'adTelemetry', 'global');
+    const field = isVideoMode ? 'videoLoads' : 'bannerLoads';
+    
+    // Increment telemetry
+    setDoc(telemetryDocRef, {
+      [field]: increment(1),
+      updatedAt: serverTimestamp()
+    }, { merge: true }).catch(err => console.error('Failed to log ad telemetry', err));
+  }, [isNearViewport, isVideoMode]);
 
   // Check 24h dismissal state from localStorage
   useEffect(() => {
@@ -319,8 +283,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     let isMounted = true;
     setPreloadStatus('preloading');
 
-    // 1. Smart Preload of creative image assets to browser cache before full render
-    const preloadImages = async () => {
+    const preloadAssets = async () => {
       try {
         const loadImg = (url: string) =>
           new Promise<void>((resolve, reject) => {
@@ -329,11 +292,27 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
             img.onerror = () => reject();
             img.src = url;
           });
+        
+        const loadVideo = (url: string) =>
+          new Promise<void>((resolve) => {
+            const video = document.createElement('video');
+            video.onloadedmetadata = () => resolve();
+            video.onerror = () => resolve(); // Don't block preloading if video fails
+            video.src = url;
+            video.preload = 'metadata';
+            video.load();
+          });
 
-        await Promise.allSettled([
+        const assets = [
           loadImg(selectedAd.image),
           loadImg(selectedAd.secondaryImage)
-        ]);
+        ];
+        
+        if (selectedAd.videoUrl) {
+          assets.push(loadVideo(selectedAd.videoUrl));
+        }
+
+        await Promise.allSettled(assets);
 
         if (isMounted) {
           setIsPreloaded(true);
@@ -346,7 +325,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
       }
     };
 
-    preloadImages();
+    preloadAssets();
 
     // 2. Initialize Google AdSense / AdMob SDK conditionally on viewport approach
     if (forceFallback) {
@@ -436,14 +415,14 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
 
   if (isDismissed) return null;
 
-  // Lightweight skeleton placeholder reserving DOM layout space (0 CLS) without fetching network assets until near viewport
-  if (!isNearViewport) {
+  // Lightweight skeleton placeholder reserving DOM layout space (0 CLS)
+  if (!isNearViewport || preloadStatus === 'preloading') {
     return (
       <div 
         ref={containerRef}
         data-testid={`ad-placement-skeleton-${placementId}`}
         className={`w-full overflow-hidden rounded-2xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/40 p-4 my-3 animate-pulse min-h-[90px] flex items-center justify-between gap-4 ${className}`}
-        aria-label="Aguardando rolagem para carregar anúncio"
+        aria-label="Carregando anúncio..."
       >
         <div className="flex items-center gap-3 flex-1">
           <div className="w-16 h-16 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
@@ -757,7 +736,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                 setIsVideoMode,
                 settingsOpen,
                 setSettingsOpen,
-                preferredFormat,
+                preferredFormat: prefFormat,
                 onSelectPreference: handleSelectFormatPreference
               })}
             </div>
@@ -836,6 +815,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                         muted={isMuted}
                         loop
                         playsInline
+                        preload="none"
                         onError={handleVideoError}
                         className="w-full h-full object-cover"
                       />
@@ -923,7 +903,8 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                   href={selectedAd.ctaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     try {
                       const event = new CustomEvent('nutri-award-points', { detail: { amount: 10, reason: 'Explorou anúncio de parceiro' } });
                       window.dispatchEvent(event);

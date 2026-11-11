@@ -3564,14 +3564,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                   </div>
                 </div>
                 <select 
-                  value={(() => {
-                    try {
-                      if (typeof window !== 'undefined') {
-                        return localStorage.getItem('nutri_ad_format_preference') || 'video';
-                      }
-                    } catch (e) {}
-                    return 'video';
-                  })()} 
+                  value={profile?.defaultAdFormat || localStorage.getItem('nutri_ad_format_preference') || 'video'} 
                   onChange={(e) => {
                     const mode = e.target.value as 'video' | 'banner';
                     try {
