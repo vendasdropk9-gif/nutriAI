@@ -91,4 +91,38 @@ describe('WaterRemindersModal Component', () => {
     fireEvent.click(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('provides 1-touch snooze buttons for 15 and 30 minutes with Aoede voice ID inside the modal', () => {
+    const handleUpdateConfig = vi.fn();
+    const handleUpdateProfile = vi.fn();
+    const handleAddNotification = vi.fn();
+
+    render(
+      <WaterRemindersModal
+        isOpen={true}
+        onClose={vi.fn()}
+        profile={mockProfile}
+        onUpdateConfig={handleUpdateConfig}
+        addNotification={handleAddNotification}
+        updateProfile={handleUpdateProfile}
+      />
+    );
+
+    const snooze15 = screen.getByTitle('Adiar próximo lembrete de água em 15 minutos com um toque');
+    const snooze30 = screen.getByTitle('Adiar próximo lembrete de água em 30 minutos com um toque');
+
+    expect(snooze15).toBeDefined();
+    expect(snooze30).toBeDefined();
+    expect(snooze15.getAttribute('data-malu-voice-id')).toBe('Aoede');
+    expect(snooze30.getAttribute('data-malu-voice-id')).toBe('Aoede');
+
+    fireEvent.click(snooze15);
+    expect(handleUpdateConfig).toHaveBeenCalled();
+    expect(handleUpdateProfile).toHaveBeenCalled();
+    expect(handleAddNotification).toHaveBeenCalledWith(expect.objectContaining({
+      title: '⏰ Lembrete de Água Adiado!',
+      message: expect.stringContaining('15 minutos'),
+      type: 'info',
+    }));
+  });
 });

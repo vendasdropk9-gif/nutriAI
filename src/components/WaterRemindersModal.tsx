@@ -8,6 +8,13 @@ import { playSfx, vibrate } from '../lib/sensory';
 import { speak } from '../lib/speech';
 import { MALU_VOICE_ID } from '../lib/maluVoice';
 
+import { 
+  computeCircadianWaterSchedule, 
+  resolveWaterPushConfig, 
+  snoozeWaterReminder, 
+  cancelWaterReminderSnooze 
+} from '../lib/waterPushScheduler';
+
 interface WaterRemindersModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +36,50 @@ export const WaterRemindersModal: React.FC<WaterRemindersModalProps> = ({
   useSolarCircadianNotification(profile, addNotification, updateProfile);
 
   const [savedToast, setSavedToast] = useState(false);
+
+  const currentConfig = resolveWaterPushConfig(profile);
+  const isSnoozed = Boolean(
+    currentConfig.snoozeUntil && new Date(currentConfig.snoozeUntil).getTime() > Date.now()
+  );
+  const snoozeTime = currentConfig.snoozeUntil
+    ? new Date(currentConfig.snoozeUntil).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : '';
+
+  const handleSnooze = (minutes: 15 | 30) => {
+    playSfx('crystal');
+    vibrate([20, 40]);
+    const { nextConfig, snoozeTimeStr } = snoozeWaterReminder(profile, minutes);
+    onUpdateConfig(nextConfig);
+    updateProfile((prev) => (prev ? { ...prev, waterPushSchedule: nextConfig } : null));
+
+    addNotification({
+      title: '⏰ Lembrete de Água Adiado!',
+      message: `Próximo lembrete foi adiado em ${minutes} minutos (para as ${snoozeTimeStr}).`,
+      type: 'info',
+    });
+
+    speak(`Lembrete de água adiado em ${minutes} minutos com sucesso. Te aviso às ${snoozeTimeStr}!`, {
+      voice: MALU_VOICE_ID,
+      lang: 'pt-BR',
+    });
+
+    setSavedToast(true);
+    setTimeout(() => setSavedToast(false), 3000);
+  };
+
+  const handleCancelSnooze = () => {
+    playSfx('tap');
+    vibrate(15);
+    const nextConfig = cancelWaterReminderSnooze(profile);
+    onUpdateConfig(nextConfig);
+    updateProfile((prev) => (prev ? { ...prev, waterPushSchedule: nextConfig } : null));
+
+    addNotification({
+      title: '⏰ Adiamento Cancelado',
+      message: 'O cronograma normal de lembretes foi restaurado.',
+      type: 'info',
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -118,6 +169,64 @@ export const WaterRemindersModal: React.FC<WaterRemindersModalProps> = ({
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
                 Personalize a frequência, horários de início e término dos alertas de hidratação. O sistema sincroniza automaticamente com o nascer e pôr do sol para otimizar sua absorção celular.
               </p>
+            </div>
+
+            {/* Quick Snooze 1-Touch Bar inside Modal */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 via-slate-50 to-teal-50 dark:from-sky-950/40 dark:via-slate-900/80 dark:to-teal-950/40 border border-sky-300/60 dark:border-sky-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                    <span>Adiar Próximo Lembrete (1 Toque)</span>
+                    {isSnoozed && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono font-bold border border-amber-500/30">
+                        Até {snoozeTime} ⏰
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                    Precisa de uma pausa agora? Adie o próximo alerta com apenas um toque.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  data-malu-voice-id={MALU_VOICE_ID}
+                  onClick={() => handleSnooze(15)}
+                  className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-600/20 active:scale-95 transition-all cursor-pointer"
+                  title="Adiar próximo lembrete de água em 15 minutos com um toque"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Adiar +15 min</span>
+                </button>
+
+                <button
+                  type="button"
+                  data-malu-voice-id={MALU_VOICE_ID}
+                  onClick={() => handleSnooze(30)}
+                  className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-teal-600/20 active:scale-95 transition-all cursor-pointer"
+                  title="Adiar próximo lembrete de água em 30 minutos com um toque"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Adiar +30 min</span>
+                </button>
+
+                {isSnoozed && (
+                  <button
+                    type="button"
+                    data-malu-voice-id={MALU_VOICE_ID}
+                    onClick={handleCancelSnooze}
+                    className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer"
+                    title="Restaurar cronograma normal de lembretes"
+                  >
+                    Restaurar
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Embedded Scheduler Panel */}

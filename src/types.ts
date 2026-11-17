@@ -288,6 +288,8 @@ export interface WaterPushScheduleConfig {
   targetSipMl?: number;
   lastWaterPushAt?: string;
   lastSolarWindow?: WaterPushSolarWindow;
+  snoozeUntil?: string;
+  snoozedMinutes?: number;
   updatedAt?: string;
 }
 

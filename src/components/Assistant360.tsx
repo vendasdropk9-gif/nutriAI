@@ -20,6 +20,7 @@ import { AdaptiveMealAdjustmentCard } from './AdaptiveMealAdjustmentCard';
 import { WeeklyReport } from './WeeklyReport';
 import { WeeklyNutritionChart } from './WeeklyNutritionChart';
 import { DailyNutritionProgressCard } from './DailyNutritionProgressCard';
+import { DailyNutritionalTipCard } from './DailyNutritionalTipCard';
 import { GlucoseSmartSnacksCard } from './GlucoseSmartSnacksCard';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { VoiceShortcutsModal } from './VoiceShortcutsModal';
@@ -33,6 +34,7 @@ import { SmartSubstitutionTipWidget } from './SmartSubstitutionTipWidget';
 import avatarGlobalStore, { useAvatarGlobalState, MaluEmotionType } from '../lib/avatarGlobalState';
 import { useNutritionGoals } from '../hooks/useNutritionGoals';
 import { PantryInsightsCard } from './PantryInsightsCard';
+import { WeeklyWaterIntakeBarChart } from './WeeklyWaterIntakeBarChart';
 
 
 const staggerContainerVariants = {
@@ -1192,6 +1194,15 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
            <QuickWaterLogger profile={profile} onUpdateProfile={onUpdateProfile} />
         </motion.div>
 
+        {/* GRÁFICO DE BARRAS RECHARTS DE INGESTÃO DE ÁGUA SEMANAL */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+           <WeeklyWaterIntakeBarChart 
+             profile={profile} 
+             onUpdateProfile={onUpdateProfile}
+             addNotification={addNotification}
+           />
+        </motion.div>
+
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Calories Metric */}
@@ -1270,6 +1281,14 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           <DailyEnergyLevelCard
             profile={profile}
             onUpdateProfile={onUpdateProfile}
+            onNavigate={onNavigate}
+          />
+        </motion.div>
+
+        {/* DICA NUTRICIONAL DO DIA (PERSONALIZADA COM DADOS DO FIRESTORE & MACRONUTRIENTES) */}
+        <motion.div variants={staggerCardVariants} className="w-full">
+          <DailyNutritionalTipCard
+            profile={profile}
             onNavigate={onNavigate}
           />
         </motion.div>

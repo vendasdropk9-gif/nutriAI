@@ -15,6 +15,7 @@ import { AnimatedCounter } from './AnimatedCounter';
 import { playSfx, vibrate } from '../lib/sensory';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { WeeklyWaterIntakeBarChart } from './WeeklyWaterIntakeBarChart';
 
 interface NutritionalDashboardProps {
   profile?: UserProfile | null;
@@ -1359,6 +1360,24 @@ export function NutritionalDashboard({ profile, onUpdateProfile }: NutritionalDa
             />
           ))}
         </div>
+      </motion.div>
+
+      {/* GRÁFICO DE BARRAS RECHARTS DE INGESTÃO DE ÁGUA SEMANAL */}
+      <motion.div 
+        key={`weekly-water-chart-section-${animationKey}`}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <WeeklyWaterIntakeBarChart 
+          profile={profile} 
+          onUpdateProfile={(updater) => {
+            if (onUpdateProfile && profile) {
+              const updated = updater(profile);
+              if (updated) onUpdateProfile(updated);
+            }
+          }}
+        />
       </motion.div>
 
       {/* GOAL CONFIGURATION & SMART NOTIFICATIONS MODAL */}

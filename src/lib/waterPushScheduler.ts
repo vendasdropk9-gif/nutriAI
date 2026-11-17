@@ -200,6 +200,8 @@ export function resolveWaterPushConfig(profile: UserProfile | null): WaterPushSc
     ),
     targetSipMl:
       profileConfig?.targetSipMl ?? localConfig?.targetSipMl ?? DEFAULT_WATER_PUSH_CONFIG.targetSipMl,
+    snoozeUntil: profileConfig?.snoozeUntil ?? localConfig?.snoozeUntil,
+    snoozedMinutes: profileConfig?.snoozedMinutes ?? localConfig?.snoozedMinutes,
   };
 }
 
@@ -482,6 +484,14 @@ export function findDueWaterSlot(
     return null;
   }
 
+  // Snooze suppression: if user snoozed the reminder, don't trigger until snoozeUntil passes
+  if (config.snoozeUntil) {
+    const snoozeMs = new Date(config.snoozeUntil).getTime();
+    if (!Number.isNaN(snoozeMs) && snoozeMs > now.getTime()) {
+      return null;
+    }
+  }
+
   // Cooldown check against lastWaterPushAt to prevent double fires within same trigger window
   if (config.lastWaterPushAt) {
     const lastMs = new Date(config.lastWaterPushAt).getTime();
@@ -511,4 +521,77 @@ export function findDueWaterSlot(
   }
 
   return null;
+}
+
+export function getNextWaterReminderSlot(
+  slots: WaterPushScheduleSlot[],
+  config: WaterPushScheduleConfig,
+  now: Date = new Date()
+): { slot: WaterPushScheduleSlot | null; timeStr: string; isSnoozed: boolean; snoozeMinutesLeft: number } {
+  const isSnoozed = Boolean(
+    config.snoozeUntil && new Date(config.snoozeUntil).getTime() > now.getTime()
+  );
+
+  let snoozeMinutesLeft = 0;
+  let effectiveTimeStr = '';
+
+  if (isSnoozed && config.snoozeUntil) {
+    const snoozeDate = new Date(config.snoozeUntil);
+    snoozeMinutesLeft = Math.max(1, Math.round((snoozeDate.getTime() - now.getTime()) / 60000));
+    const h = String(snoozeDate.getHours()).padStart(2, '0');
+    const m = String(snoozeDate.getMinutes()).padStart(2, '0');
+    effectiveTimeStr = `${h}:${m}`;
+  }
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const upcoming = slots.find((s) => parseTimeToMinutes(s.time) > nowMinutes);
+  const nextSlot = upcoming || slots[0] || null;
+
+  if (!effectiveTimeStr && nextSlot) {
+    effectiveTimeStr = nextSlot.time;
+  }
+
+  return {
+    slot: nextSlot,
+    timeStr: effectiveTimeStr || '09:00',
+    isSnoozed,
+    snoozeMinutesLeft,
+  };
+}
+
+export function snoozeWaterReminder(
+  profile: UserProfile | null,
+  minutes: 15 | 30
+): { nextConfig: WaterPushScheduleConfig; snoozeDate: Date; snoozeTimeStr: string } {
+  const currentConfig = resolveWaterPushConfig(profile);
+  const now = new Date();
+  const snoozeDate = new Date(now.getTime() + minutes * 60 * 1000);
+  const hours = String(snoozeDate.getHours()).padStart(2, '0');
+  const mins = String(snoozeDate.getMinutes()).padStart(2, '0');
+  const snoozeTimeStr = `${hours}:${mins}`;
+
+  const nextConfig: WaterPushScheduleConfig = {
+    ...currentConfig,
+    snoozeUntil: snoozeDate.toISOString(),
+    snoozedMinutes: minutes,
+    updatedAt: now.toISOString(),
+  };
+
+  saveLocalWaterPushConfig(nextConfig);
+  return { nextConfig, snoozeDate, snoozeTimeStr };
+}
+
+export function cancelWaterReminderSnooze(
+  profile: UserProfile | null
+): WaterPushScheduleConfig {
+  const currentConfig = resolveWaterPushConfig(profile);
+  const nextConfig: WaterPushScheduleConfig = {
+    ...currentConfig,
+    snoozeUntil: undefined,
+    snoozedMinutes: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveLocalWaterPushConfig(nextConfig);
+  return nextConfig;
 }
