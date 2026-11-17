@@ -684,6 +684,7 @@ Contexto do usuário:
             </button>
 
             <button
+              data-malu-voice-id="Aoede"
               onClick={handleSpeakWellnessSupport}
               className="p-2.5 bg-indigo-900/50 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-500/30 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
               title="Ouvir mensagem de apoio da Malu"
@@ -830,6 +831,7 @@ Contexto do usuário:
               </div>
 
               <button
+                data-malu-voice-id="Aoede"
                 onClick={handleToggleSpeak}
                 className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold cursor-pointer ${
                   isSpeaking 

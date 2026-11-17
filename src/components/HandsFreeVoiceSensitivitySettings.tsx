@@ -191,6 +191,7 @@ export const HandsFreeVoiceSensitivitySettings: React.FC<HandsFreeVoiceSensitivi
                 <button
                   key={p.id}
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSensitivityChange(p.value)}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 active:scale-95 ${
                     isSelected
@@ -273,6 +274,7 @@ export const HandsFreeVoiceSensitivitySettings: React.FC<HandsFreeVoiceSensitivi
         <div className="flex items-center justify-between pt-1 text-xs">
           <button
             type="button"
+            data-malu-voice-id="Aoede"
             onClick={() => onSensitivityChange(35)}
             className="flex items-center gap-1.5 text-[11px] text-amber-300/80 hover:text-amber-200 transition-colors cursor-pointer"
           >
@@ -285,6 +287,7 @@ export const HandsFreeVoiceSensitivitySettings: React.FC<HandsFreeVoiceSensitivi
               <span className="text-[10px] text-slate-400">Testar comando:</span>
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => onSimulateCommand('pausa')}
                 className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer transition-all active:scale-95"
               >

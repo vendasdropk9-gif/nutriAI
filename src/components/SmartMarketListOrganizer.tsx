@@ -265,6 +265,7 @@ export function SmartMarketListOrganizer({
     const speechText = `Olá! Analisei sua lista de compras. Você possui ${itemsInStockCount} itens já estocados na sua despensa para economizar. Encontrei ${localOffersCount} ofertas locais nos mercados parceiros mais próximos, garantindo uma economia estimada de R$ ${potentialSavings.toFixed(2).replace('.', ',')}. Deseja montar a cesta com um clique?`;
 
     speak(speechText, {
+      voice: 'Aoede',
       onEnded: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
     });
@@ -387,6 +388,7 @@ export function SmartMarketListOrganizer({
             {/* Chef Malu Voice Narration Button */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={handleVoiceSummary}
               className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shadow-lg shrink-0 ${
                 isSpeaking

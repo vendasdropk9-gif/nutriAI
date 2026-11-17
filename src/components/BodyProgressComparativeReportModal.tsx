@@ -332,6 +332,7 @@ ${report.keyAchievements.map((c) => `- ${c}`).join('\n')}
           <div className="flex items-center gap-2 flex-wrap no-export print:hidden">
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={handleToggleVoiceReport}
               className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 isPlayingAudio

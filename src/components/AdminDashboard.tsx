@@ -644,6 +644,7 @@ export function AdminDashboard({ profile, onNavigateTab }: AdminDashboardProps) 
         </button>
 
         <button
+          data-malu-voice-id="Aoede"
           onClick={() => { setActiveSubTab('malu_voice'); playSfx('tap'); }}
           className={`px-4 py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'malu_voice'

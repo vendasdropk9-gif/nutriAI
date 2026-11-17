@@ -592,6 +592,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     setIsNarratingIngredients(true);
     const text = `Lista de ingredientes para ${recipe.name}: ` + ingredients.map((ing, i) => `Item ${i + 1}: ${ing}`).join('. ');
     speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsNarratingIngredients(false),
       onError: () => setIsNarratingIngredients(false)
     });
@@ -611,6 +612,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     const text = `Receita: ${recipe.name}. ${recipe.description}. Tempo de preparo: ${recipe.prepTime}. Calorias: ${nutrition.calories} calorias. Ingredientes: ${ingredients.join(', ')}. Modo de preparo: ` + recipe.instructions.map((step, idx) => `Passo ${idx + 1}: ${step}`).join('. ');
     
     speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsNarratingFull(false),
       onError: () => setIsNarratingFull(false)
     });
@@ -2069,6 +2071,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             {/* Hands-Free Button in Reading Mode */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={() => handleToggleHandsFree()}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer font-bold ${
                 isHandsFreeActive
@@ -2239,6 +2242,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             <div className="flex items-center gap-3">
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={handleToggleNarrateFullRecipe}
                 className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm transition-all cursor-pointer ${
                   isNarratingFull ? 'bg-rose-600 text-white font-black animate-pulse' : activeContrast.buttonPrimary
@@ -2278,6 +2282,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={handleToggleNarrateIngredients}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer ${
                   isNarratingIngredients ? 'bg-rose-600 text-white font-bold' : activeContrast.buttonSecondary
@@ -2353,6 +2358,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   const next = !isAutoReadEnabled;
                   setIsAutoReadEnabled(next);
@@ -2483,6 +2489,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   <div className={`flex flex-wrap items-center justify-between gap-3 pt-3 border-t ${activeContrast.divider}`}>
                     <button
                       type="button"
+                      data-malu-voice-id="Aoede"
                       onClick={() => handlePlaySingleStep(idx)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                         isSpeakingThis
@@ -2884,6 +2891,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
           {!isSchedulingOpen && (
             <button
+              data-malu-voice-id="Aoede"
               onClick={() => handleToggleHandsFree()}
               className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer border shadow-sm ${
                 isHandsFreeActive
@@ -3060,6 +3068,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
             <div className="flex flex-wrap items-center gap-2">
               <button
                 id="toggle-hands-free-recipe-btn"
+                data-malu-voice-id="Aoede"
                 onClick={() => handleToggleHandsFree()}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 border shadow-sm cursor-pointer ${
                   isHandsFreeActive
@@ -3074,6 +3083,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
               <button
                 id="toggle-kitchen-mode-maximized-btn"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   stopSpeech();
                   setIsKitchenModalOpen(true);
@@ -3088,6 +3098,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
               <button
                 id="toggle-voice-guided-mode-btn"
+                data-malu-voice-id="Aoede"
                 aria-label="Voice Guided Mode"
                 onClick={() => {
                   stopSpeech();
@@ -3108,6 +3119,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               </button>
 
               <button
+                data-malu-voice-id="Aoede"
                 onClick={handleToggleSpeak}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 border ${
                   isPlaying
@@ -3197,6 +3209,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
                     <div className="flex items-center gap-2">
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setIsCommandsPanelOpen((prev) => !prev);
                           playSfx('tap');
@@ -3213,6 +3226,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </button>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => handleToggleHandsFree()}
                         className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
                         title="Encerrar Modo Hands-Free"
@@ -3323,6 +3337,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                             <Clock className="w-3.5 h-3.5 animate-spin" />
                             <span>Próximo passo em {autoAdvanceCountdown}s...</span>
                             <button
+                              data-malu-voice-id="Aoede"
                               onClick={handleHandsFreeNext}
                               className="underline text-white font-bold ml-1 hover:text-amber-200 cursor-pointer"
                             >
@@ -3395,6 +3410,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10 relative z-10">
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={handleHandsFreePrev}
                         disabled={handsFreeStepIndex === 0}
                         className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
@@ -3405,6 +3421,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </button>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={handlePauseResumeHandsFree}
                         className={`px-5 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2.5 cursor-pointer transition-all active:scale-95 border shadow-lg ${
                           handsFreeSpeaking
@@ -3427,6 +3444,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </button>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={handleHandsFreeRepeat}
                         className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                         title="Repetir o passo atual"
@@ -3436,6 +3454,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </button>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={handleReadIngredients}
                         className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                         title="Malu lê em voz alta a lista completa de ingredientes"
@@ -3445,6 +3464,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </button>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={handleHandsFreeNext}
                         disabled={handsFreeStepIndex === recipe.instructions.length - 1}
                         className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-lg shadow-amber-500/20 border border-amber-400/30"
@@ -3462,6 +3482,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         {[0.8, 1.0, 1.2].map((r) => (
                           <button
                             key={r}
+                            data-malu-voice-id="Aoede"
                             onClick={() => handleChangeSpeechRate(r)}
                             className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold cursor-pointer transition-all ${
                               handsFreeRate === r ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'text-slate-400 hover:text-white'
@@ -3473,6 +3494,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                       </div>
 
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           const next = !handsFreeAutoAdvance;
                           setHandsFreeAutoAdvance(next);
@@ -3492,6 +3514,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
                       {/* Voice Sensitivity Slider / Settings Button */}
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setIsVoiceSettingsOpen((prev) => !prev);
                           playSfx('tap');
@@ -3509,6 +3532,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
                       {/* Voice Commands Guide Button */}
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setIsCommandsPanelOpen((prev) => !prev);
                           playSfx('tap');
@@ -3564,6 +3588,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
 
                     <div className="flex items-center gap-2">
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => setVoiceHelpOpen(!voiceHelpOpen)}
                         className="p-1 hover:bg-indigo-500/10 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-500 hover:text-indigo-600 dark:text-slate-400"
                         title="Ajuda de comandos"
@@ -3571,6 +3596,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         <HelpCircle className="w-4 h-4" />
                       </button>
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setIsVoiceModeActive(false);
                           stopSpeech();
@@ -3633,6 +3659,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                     <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 block uppercase">Simulador de Comando Culinário (Mãos Livres)</span>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setVoiceTranscript('Simulado: Next / Próximo');
                           handleVoiceCommand('next');
@@ -3643,6 +3670,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setVoiceTranscript('Simulado: Back / Voltar');
                           handleVoiceCommand('back');
@@ -3653,6 +3681,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         <span>Voltar / Back</span>
                       </button>
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setVoiceTranscript('Simulado: Repeat / Repetir');
                           handleVoiceCommand('repeat');
@@ -3663,6 +3692,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                         <Volume2 className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => {
                           setVoiceTranscript('Simulado: Stop / Silenciar');
                           handleVoiceCommand('stop');
@@ -3693,6 +3723,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
               {/* Listen to Instructions Voice Toggle */}
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   const next = !isAutoReadEnabled;
                   setIsAutoReadEnabled(next);
@@ -3791,6 +3822,7 @@ _Gerado com NutriPlate App - Seu Guia Saudável_ 💚`;
                   }`}
                 >
                   <button
+                    data-malu-voice-id="Aoede"
                     onClick={() => handlePlaySingleStep(idx)}
                     title="Ouvir este passo"
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-serif text-sm flex-shrink-0 transition-all cursor-pointer ${

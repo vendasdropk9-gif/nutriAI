@@ -337,6 +337,7 @@ export const HandsFreeGestureDetector: React.FC<HandsFreeGestureDetectorProps> =
           {/* Quick Simulation Button for Immediate Testing */}
           <button
             type="button"
+            data-malu-voice-id="Aoede"
             onClick={() => triggerGesture('wave')}
             className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shadow-sm"
             title="Simular aceno de mão para pausar a leitura imediatamente"
@@ -348,6 +349,7 @@ export const HandsFreeGestureDetector: React.FC<HandsFreeGestureDetectorProps> =
           {/* Camera Sensor On/Off Toggle */}
           <button
             type="button"
+            data-malu-voice-id="Aoede"
             onClick={() => onToggleEnabled(!isEnabled)}
             className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
               isEnabled

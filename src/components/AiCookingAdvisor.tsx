@@ -125,7 +125,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
     if (verbosityLevel === 'minimal') {
       stepText = `Passo ${idx + 1}`;
     }
-    speak(stepText, { lang: 'pt-BR', rate: voiceSpeed });
+    speak(stepText, { voice: 'Aoede', lang: 'pt-BR', rate: voiceSpeed });
   };
 
   const handleNextStepVoice = () => {
@@ -296,7 +296,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
         const textToSpeak = verbosityLevel === 'minimal' 
           ? advice.directAnswer 
           : `${advice.directAnswer}. ${advice.answer}`;
-        speak(textToSpeak, { lang: 'pt-BR', rate: voiceSpeed });
+        speak(textToSpeak, { voice: 'Aoede', lang: 'pt-BR', rate: voiceSpeed });
       }
     } catch (err) {
       console.warn("Erro ao consultar Chef Malu:", err);
@@ -337,7 +337,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
     if (verbosityLevel === 'minimal') {
       speechText = result.directAnswer;
     }
-    speak(speechText, { lang: 'pt-BR', rate: voiceSpeed });
+    speak(speechText, { voice: 'Aoede', lang: 'pt-BR', rate: voiceSpeed });
     setTimeout(() => setIsSpeaking(false), 4000);
   };
 
@@ -418,6 +418,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
                   <button
                     key={speed}
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => setVoiceSpeed(speed)}
                     className={`flex-1 py-2 rounded-lg font-bold transition text-xs cursor-pointer ${
                       voiceSpeed === speed
@@ -492,6 +493,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
 
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={() => setIsHandsFreeActive(!isHandsFreeActive)}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${
                 isHandsFreeActive
@@ -531,6 +533,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={handlePrevStepVoice}
                     disabled={currentStepIdx === 0}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-emerald-100 dark:hover:bg-zinc-600 disabled:opacity-40 transition flex items-center gap-1 cursor-pointer"
@@ -541,6 +544,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
 
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={handleRepeatStepVoice}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 transition flex items-center gap-1 cursor-pointer"
                   >
@@ -550,6 +554,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
 
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={handleNextStepVoice}
                     disabled={currentStepIdx >= instructionsList.length - 1}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition flex items-center gap-1 cursor-pointer shadow-sm"
@@ -586,6 +591,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
               <button
                 type="button"
                 id="voice-dictation-btn"
+                data-malu-voice-id="Aoede"
                 onClick={handleVoiceInput}
                 disabled={loading}
                 title="Falar com a Chef Malu"
@@ -666,6 +672,7 @@ export const AiCookingAdvisor: React.FC<AiCookingAdvisorProps> = ({
 
                 <button
                   id="play-malu-voice-btn"
+                  data-malu-voice-id="Aoede"
                   onClick={playVoiceResponse}
                   title="Ouvir a voz da Chef Malu (Aoede)"
                   className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/50 transition shadow-sm cursor-pointer"

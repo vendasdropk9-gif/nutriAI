@@ -66,7 +66,7 @@ export const PostureAnalyzer: React.FC<PostureAnalyzerProps> = ({ exerciseId, is
   useEffect(() => {
     if (!isActive) return;
     const intervalId = setInterval(() => {
-      speak("Não esqueça de verificar sua postura!");
+      speak("Não esqueça de verificar sua postura!", { voice: 'Aoede', lang: 'pt-BR' });
     }, settings.interval * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [isActive, settings.interval]);

@@ -525,6 +525,7 @@ export function WorkoutCalendarComponent({ profile, onUpdateProfile, onStartWork
 
                             <button
                               type="button"
+                              data-malu-voice-id="Aoede"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleTestReminderSpeech(day, dayReminderTime);

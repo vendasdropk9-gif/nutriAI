@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, BellRing, Sparkles, CheckCircle2, AlertCircle, Droplets, Utensils, X } from 'lucide-react';
-import { UserProfile } from '../types';
+import { UserProfile, WaterPushScheduleConfig, WaterPushScheduleSlot } from '../types';
 import { playSfx, vibrate } from '../lib/sensory';
-import { requestNotificationPermission, getNotificationPermission, syncSchedulesToServiceWorker } from '../lib/pushScheduler';
+import {
+  requestNotificationPermission,
+  getNotificationPermission,
+  syncSchedulesToServiceWorker,
+  triggerWaterIntakePushNotification,
+} from '../lib/pushScheduler';
+import { WaterPushSchedulerPanel } from './WaterPushSchedulerPanel';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface PushNotificationManagerModalProps {
@@ -17,6 +23,12 @@ export function PushNotificationManagerModal({ isOpen, onClose, profile, onUpdat
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [mealReminders, setMealReminders] = useState(profile?.mealRemindersEnabled ?? true);
   const [challengeReminders, setChallengeReminders] = useState(profile?.challengeRemindersEnabled ?? true);
+  const [waterReminders, setWaterReminders] = useState(
+    profile?.waterPushSchedule?.enabled ??
+      profile?.hydrationRemindersEnabled ??
+      profile?.waterReminderEnabled ??
+      true
+  );
 
   useEffect(() => {
     setPermission(getNotificationPermission());
@@ -61,7 +73,7 @@ export function PushNotificationManagerModal({ isOpen, onClose, profile, onUpdat
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg bg-[#131920] rounded-[32px] border border-emerald-500/40 shadow-2xl p-6 sm:p-8 space-y-6 text-white"
+          className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#131920] rounded-[32px] border border-emerald-500/40 shadow-2xl p-6 sm:p-8 space-y-6 text-white"
         >
           <button
             onClick={() => {
@@ -164,14 +176,56 @@ export function PushNotificationManagerModal({ isOpen, onClose, profile, onUpdat
                 checked={challengeReminders}
                 onChange={(e) => {
                   setChallengeReminders(e.target.checked);
+                  setWaterReminders(e.target.checked);
                   playSfx('tap');
                   if (profile && onUpdateProfile) {
-                    onUpdateProfile(prev => prev ? { ...prev, challengeRemindersEnabled: e.target.checked } : null);
+                    onUpdateProfile(prev => prev ? {
+                      ...prev,
+                      challengeRemindersEnabled: e.target.checked,
+                      hydrationRemindersEnabled: e.target.checked,
+                      waterReminderEnabled: e.target.checked,
+                    } : null);
                   }
                 }}
                 className="w-5 h-5 accent-emerald-500 cursor-pointer"
               />
             </div>
+
+            {waterReminders && (
+              <WaterPushSchedulerPanel
+                compact
+                profile={profile}
+                onUpdateConfig={(nextConfig: WaterPushScheduleConfig) => {
+                  setWaterReminders(nextConfig.enabled);
+                  if (onUpdateProfile) {
+                    onUpdateProfile((prev) => {
+                      const nextProfile = prev
+                        ? {
+                            ...prev,
+                            hydrationRemindersEnabled: nextConfig.enabled,
+                            waterReminderEnabled: nextConfig.enabled,
+                            hydrationInterval: String(nextConfig.intervalMinutes),
+                            waterReminderIntervalMinutes: nextConfig.intervalMinutes,
+                            waterPushSchedule: nextConfig,
+                          }
+                        : null;
+                      if (nextProfile) {
+                        syncSchedulesToServiceWorker(nextProfile);
+                      }
+                      return nextProfile;
+                    });
+                  }
+                }}
+                onTestWaterPush={(previewSlot?: WaterPushScheduleSlot) => {
+                  triggerWaterIntakePushNotification(
+                    previewSlot?.title || '💧 Push Circadiano de Água',
+                    previewSlot?.message || 'Teste de hidratação sincronizada com seu ritmo circadiano!',
+                    previewSlot?.targetMl || 250,
+                    previewSlot?.phase || 'active_day'
+                  );
+                }}
+              />
+            )}
           </div>
 
           <div className="pt-2">

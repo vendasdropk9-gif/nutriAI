@@ -273,6 +273,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
     setIsPlaying(true);
     
     await speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsPlaying(false),
       onError: () => setIsPlaying(false)
     });
@@ -608,6 +609,7 @@ export function BarcodeScanner({ profile }: BarcodeScannerProps) {
             {/* Smart Assistant Message / Voice Play */}
             <div className="clay-card p-6 flex items-start gap-4 bg-emerald-50/50 dark:bg-emerald-990/20 border border-emerald-100/50 dark:border-emerald-900/30 rounded-3xl">
               <button
+                data-malu-voice-id="Aoede"
                 onClick={() => playTTS(analysis.assistantMessage)}
                 className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse ring-4 ring-emerald-500/30' : 'hover:scale-105 shadow-md'}`}
               >

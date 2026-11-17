@@ -624,7 +624,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      const base64Audio = await textToSpeech(text);
+      const base64Audio = await textToSpeech(text, undefined, { voiceName: 'Aoede' });
       if (base64Audio) {
         setAudioUrl(base64Audio);
         await playAudioUrl(base64Audio, { onEnded: () => setIsPlaying(false) });
@@ -817,6 +817,7 @@ export function HabitTracker({ profile, onUpdateProfile, onAwardPoints, addNotif
         <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         
         <button
+          data-malu-voice-id="Aoede"
           onClick={() => insight ? playTTS(insight) : getInsight()}
           disabled={isProcessing}
           className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center bg-white text-emerald-600 font-bold focus:outline-none transition-all ${isProcessing ? 'animate-pulse opacity-80' : 'hover:scale-105 shadow-xl shadow-emerald-900/50'} ${isPlaying ? 'ring-4 ring-emerald-300 ring-offset-2 ring-offset-emerald-600' : ''}`}

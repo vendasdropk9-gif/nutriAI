@@ -238,6 +238,7 @@ export const HandsFreeVoiceCommandsPanel: React.FC<HandsFreeVoiceCommandsPanelPr
                 {onSimulateCommand && (
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => onSimulateCommand(cmd.primary.toLowerCase())}
                     className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-amber-500 hover:text-slate-950 text-slate-200 text-[11px] font-bold transition-all cursor-pointer active:scale-95 border border-white/10 flex items-center gap-1 shadow-sm"
                     title={`Simular comando: "${cmd.primary}"`}

@@ -1041,6 +1041,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
     vibrate(10);
     setSpeakingPromoId(promo.id);
     await speak(promo.voiceIntro, {
+      voice: 'Aoede',
       onEnded: () => setSpeakingPromoId(null),
       onError: () => setSpeakingPromoId(null)
     });
@@ -1307,6 +1308,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 />
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={isListening ? stopVoiceListening : startVoiceListening}
                   className={`p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center shrink-0 border-none ${
                     isListening 
@@ -1636,6 +1638,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
                 />
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={isListening ? stopVoiceListening : startVoiceListening}
                   className={`p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center shrink-0 border-none ${
                     isListening 
@@ -2287,6 +2290,7 @@ export function ShoppingListView({ mealPlan }: ShoppingListViewProps) {
 
                         <div className="flex items-center gap-1.5">
                           <button
+                            data-malu-voice-id="Aoede"
                             onClick={() => handleHearPromo(promo)}
                             className={`p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center transition-all cursor-pointer ${
                               isSpeaking 

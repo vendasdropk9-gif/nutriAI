@@ -717,6 +717,7 @@ export function NutriAiExerciseDetailCard({
         {/* BUTTON 2: VER VÍDEO / EXPLICAÇÃO DE VOZ */}
         <button
           type="button"
+          data-malu-voice-id="Aoede"
           onClick={handleToggleVoiceVideo}
           className={`flex items-center justify-center gap-1.5 py-3 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 border ${
             isSpeaking

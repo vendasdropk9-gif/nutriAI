@@ -772,6 +772,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
         {/* Centralized Action Buttons within the Tab Card */}
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full md:w-auto max-w-full pt-1 sm:pt-0">
           <motion.button
+            data-malu-voice-id="Aoede"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => {
@@ -800,6 +801,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
           </motion.button>
 
           <motion.button
+            data-malu-voice-id="Aoede"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => {
@@ -1035,6 +1037,7 @@ export function Assistant360({ profile, onNavigate, onLogIntake, onUpdateProfile
                 {/* Button to test notification & listen with Malu Aoede voice */}
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={handleTriggerWorkoutNotification}
                   className="p-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-600 dark:text-purple-300 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer shadow-sm flex items-center justify-center shrink-0"
                   title="Testar notificação no sistema e ouvir lembrete da Malu"

@@ -243,6 +243,7 @@ export function FreshnessMap({ onBack }: { onBack: () => void }) {
     if (isPlaying) return;
     setIsPlaying(true);
     await speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsPlaying(false),
       onError: () => setIsPlaying(false)
     });

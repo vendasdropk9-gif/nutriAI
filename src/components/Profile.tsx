@@ -15,6 +15,7 @@ import {
   Calendar, Sun, Moon
 } from 'lucide-react';
 import { playSfx, vibrate } from '../lib/sensory';
+import { speak as speakWithMalu } from '../lib/speech';
 import { auth, db, doc, deleteDoc } from '../lib/firebase';
 import { deleteUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,9 +28,12 @@ import {
   syncSchedulesToServiceWorker, 
   triggerNativeTestNotification, 
   triggerUpcomingMealNotification,
+  triggerWaterIntakePushNotification,
   requestNotificationPermission, 
   getNotificationPermission 
 } from '../lib/pushScheduler';
+import { resolveWaterPushConfig, saveLocalWaterPushConfig } from '../lib/waterPushScheduler';
+import { WaterPushScheduleConfig, WaterPushScheduleSlot } from '../types';
 
 import { NutritionalReportPDF } from './NutritionalReportPDF';
 import { HealthReportExportModal } from './HealthReportExportModal';
@@ -40,7 +44,9 @@ import { SavedRecipesSwipeList } from './SavedRecipesSwipeList';
 import { Profile3DAvatar } from './Profile3DAvatar';
 import { WorkoutCategoryNotificationSettings } from './WorkoutCategoryNotificationSettings';
 import { PushNotificationManagerModal } from './PushNotificationManagerModal';
+import { WaterPushSchedulerPanel } from './WaterPushSchedulerPanel';
 import { ThemePaletteSelector } from './ThemePaletteSelector';
+import { HealthFocusSettingsSection } from './HealthFocusSettingsSection';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 
@@ -125,16 +131,75 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
     safeSet('nutri-hydration-reminders', String(next));
     playSfx('tap');
     vibrate(15);
+    const currentWaterCfg = resolveWaterPushConfig(profile);
+    const nextWaterCfg: WaterPushScheduleConfig = {
+      ...currentWaterCfg,
+      enabled: next,
+      intervalMinutes: Number(hydrationInterval) || currentWaterCfg.intervalMinutes,
+      updatedAt: new Date().toISOString(),
+    };
+    saveLocalWaterPushConfig(nextWaterCfg);
     if (profile) {
-      onSaveProfile({ ...profile, hydrationRemindersEnabled: next, hydrationInterval });
+      const updatedProfile: UserProfile = {
+        ...profile,
+        hydrationRemindersEnabled: next,
+        waterReminderEnabled: next,
+        hydrationInterval,
+        waterReminderIntervalMinutes: nextWaterCfg.intervalMinutes,
+        waterPushSchedule: nextWaterCfg,
+      };
+      onSaveProfile(updatedProfile);
+      syncSchedulesToServiceWorker(updatedProfile);
     }
     if (next && addNotification) {
       addNotification({
         title: 'Hidratação Ativada',
-        message: 'Lembretes periódicos de água ativados com sucesso!',
+        message: 'Lembretes periódicos de água sincronizados ao ciclo circadiano!',
         type: 'success'
       });
     }
+  };
+
+  const handleWaterPushConfigUpdate = (nextConfig: WaterPushScheduleConfig) => {
+    setHydrationRemindersEnabled(nextConfig.enabled);
+    setHydrationInterval(String(nextConfig.intervalMinutes));
+    saveLocalWaterPushConfig(nextConfig);
+
+    const updatedProfile: UserProfile = {
+      ...(profile || {}),
+      name: formData.name.trim() || profile?.name || 'Usuário NutriAI',
+      restrictions: profile?.restrictions || [],
+      allergies: profile?.allergies || [],
+      goals: profile?.goals || '',
+      equipment: profile?.equipment || [],
+      hydrationRemindersEnabled: nextConfig.enabled,
+      waterReminderEnabled: nextConfig.enabled,
+      hydrationInterval: String(nextConfig.intervalMinutes),
+      waterReminderIntervalMinutes: nextConfig.intervalMinutes,
+      waterPushSchedule: nextConfig,
+    };
+    onSaveProfile(updatedProfile);
+    syncSchedulesToServiceWorker(updatedProfile);
+  };
+
+  const handleTestCircadianWaterPush = async (previewSlot?: WaterPushScheduleSlot) => {
+    playSfx('crystal');
+    vibrate([20, 40]);
+    const title = previewSlot?.title || '💧 Lembrete Circadiano de Água';
+    const message =
+      previewSlot?.message ||
+      'Mantenha-se hidratado(a)! Seu lembrete circadiano de água está sincronizado com o Service Worker.';
+    const targetMl = previewSlot?.targetMl || 250;
+    const phase = previewSlot?.phase || 'active_day';
+
+    if (addNotification) {
+      addNotification({
+        title,
+        message,
+        type: 'info',
+      });
+    }
+    await triggerWaterIntakePushNotification(title, message, targetMl, phase);
   };
 
   const handleToggleWorkoutReminders = () => {
@@ -167,6 +232,12 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
     } else {
       alert('💧 Hora de Beber Água! Mantenha-se hidratado(a)!');
     }
+    triggerWaterIntakePushNotification(
+      '💧 Hora de Beber Água!',
+      'Mantenha-se hidratado(a)! Beba um copo d\'água agora para manter seu metabolismo em alta.',
+      250,
+      'active_day'
+    ).catch(() => {});
   };
 
   const handleTestWorkoutNotification = () => {
@@ -319,13 +390,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
   }, []);
 
   const speak = (text: string) => {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = synth.getVoices();
-    const aoede = voices.find(v => v.name.includes('Aoede'));
-    if (aoede) utterance.voice = aoede;
-    utterance.lang = 'pt-BR';
-    synth.speak(utterance);
+    speakWithMalu(text, { voice: 'Aoede', lang: 'pt-BR' });
   };
 
   const toggleListening = async () => {
@@ -1364,6 +1429,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
             {/* Voice Control Button */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={toggleListening}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer ${
                 isListening
@@ -1910,6 +1976,7 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
                     <button
                       key={speed}
                       type="button"
+                      data-malu-voice-id="Aoede"
                       onClick={() => {
                         setMaluSpeechSpeed(speed);
                         playSfx('tap');
@@ -3032,26 +3099,50 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
               </div>
 
               {hydrationRemindersEnabled && (
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-sky-500" />
-                    Frequência de Alertas de Hidratação
-                  </span>
-                  <select
-                    value={hydrationInterval}
-                    onChange={(e) => {
-                      setHydrationInterval(e.target.value);
-                      safeSet('nutri-hydration-interval', e.target.value);
-                      if (profile) onSaveProfile({ ...profile, hydrationInterval: e.target.value });
-                    }}
-                    className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-sky-800/80 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300 outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                  >
-                    <option value="45">A cada 45 minutos</option>
-                    <option value="60">A cada 1 hora</option>
-                    <option value="90">A cada 1h30 (Recomendado)</option>
-                    <option value="120">A cada 2 horas</option>
-                    <option value="180">A cada 3 horas</option>
-                  </select>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-sky-500" />
+                      Frequência de Alertas de Hidratação
+                    </span>
+                    <select
+                      value={hydrationInterval}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setHydrationInterval(val);
+                        safeSet('nutri-hydration-interval', val);
+                        const nextCfg: WaterPushScheduleConfig = {
+                          ...resolveWaterPushConfig(profile),
+                          intervalMinutes: Number(val) || 90,
+                          updatedAt: new Date().toISOString(),
+                        };
+                        saveLocalWaterPushConfig(nextCfg);
+                        if (profile) {
+                          const updatedProfile: UserProfile = {
+                            ...profile,
+                            hydrationInterval: val,
+                            waterReminderIntervalMinutes: Number(val) || 90,
+                            waterPushSchedule: nextCfg,
+                          };
+                          onSaveProfile(updatedProfile);
+                          syncSchedulesToServiceWorker(updatedProfile);
+                        }
+                      }}
+                      className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-sky-800/80 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300 outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                    >
+                      <option value="45">A cada 45 minutos</option>
+                      <option value="60">A cada 1 hora</option>
+                      <option value="90">A cada 1h30 (Recomendado)</option>
+                      <option value="120">A cada 2 horas</option>
+                      <option value="180">A cada 3 horas</option>
+                    </select>
+                  </div>
+
+                  <WaterPushSchedulerPanel
+                    profile={profile}
+                    onUpdateConfig={handleWaterPushConfigUpdate}
+                    onTestWaterPush={handleTestCircadianWaterPush}
+                  />
                 </div>
               )}
             </div>
@@ -3655,6 +3746,13 @@ export function Profile({ profile, onSaveProfile, addNotification }: ProfileProp
               )}
             </div>
           </div>
+
+          {/* Foco em Saúde & Categorias de Anúncios Silenciadas */}
+          <HealthFocusSettingsSection
+            profile={profile}
+            onSaveProfile={onSaveProfile}
+            onShowToast={showInAppToast}
+          />
 
           {/* Minhas Receitas Salvas com Gestos de Deslize (Framer Motion) */}
           <SavedRecipesSwipeList profile={profile} onSaveProfile={onSaveProfile} />

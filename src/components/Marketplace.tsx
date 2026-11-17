@@ -588,6 +588,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
     if (isPlaying) return;
     setIsPlaying(true);
     await speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsPlaying(false),
       onError: () => setIsPlaying(false)
     });
@@ -930,6 +931,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                          {t(cur.price)}
                       </div>
                       <button 
+                        data-malu-voice-id="Aoede"
                         onClick={() => handleSpeak(t(cur.tip))}
                         className="w-6 h-6 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/40 flex-shrink-0"
                         style={{ color: '#ffffff' }}
@@ -1038,6 +1040,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
             {/* Voice Command Filter Button */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={handleToggleVoiceFilter}
               className={`absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isVoiceListening
@@ -1125,6 +1128,7 @@ export function Marketplace({ profile, onUpdateCart, onUpdateFavorites, onOpenPa
                 <button
                   key={dietKey}
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => {
                     playSfx('tap');
                     vibrate(10);

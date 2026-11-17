@@ -239,6 +239,33 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
     return () => window.removeEventListener("navigate", handleNav);
   }, []);
 
+  // Silently update user's Health Focus profile asynchronously when ads are muted or hidden
+  useEffect(() => {
+    const handleHealthFocusUpdate = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (!detail?.healthFocus) return;
+      Promise.resolve().then(() => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const updated: UserProfile = {
+            ...prev,
+            healthFocus: detail.healthFocus,
+            mutedAdCategories: Array.isArray(detail.mutedAdCategories)
+              ? detail.mutedAdCategories
+              : prev.mutedAdCategories,
+            updatedAt: new Date().toISOString(),
+          };
+          if (user) {
+            setTimeout(() => syncToFirestore(updated), 0);
+          }
+          return updated;
+        });
+      });
+    };
+    window.addEventListener('nutri-health-focus-updated', handleHealthFocusUpdate);
+    return () => window.removeEventListener('nutri-health-focus-updated', handleHealthFocusUpdate);
+  }, [user, syncToFirestore, setProfile]);
+
   // Synchronize language changes seamlessly with Profile & Firestore from Context
   const prevLangRef = useRef(language);
   useEffect(() => {

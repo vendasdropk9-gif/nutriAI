@@ -186,6 +186,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
     try {
       setIsSpeaking(true);
       await speak(text, {
+        voice: 'Aoede',
         lang: language,
         onEnded: () => setIsSpeaking(false)
       });
@@ -446,6 +447,7 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
 
               <div className="flex items-end gap-3">
                 <motion.button
+                  data-malu-voice-id="Aoede"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
@@ -476,7 +478,8 @@ export function SmartChat({ profile, onNavigate }: SmartChatProps) {
                 />
                 
                 {(!input.trim() && !transcript.trim() && !isListening) || isListening ? (
-                  <motion.button 
+                  <motion.button
+                    data-malu-voice-id="Aoede"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={toggleListening}

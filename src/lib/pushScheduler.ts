@@ -3,9 +3,30 @@
  * Comunicação entre a interface React e o Service Worker para agendamento de refeições e desafios
  */
 
-import { UserProfile, MealNotificationTimes } from '../types';
+import {
+  UserProfile,
+  MealNotificationTimes,
+  WaterPushPhase,
+  WaterPushScheduleConfig,
+  WaterPushScheduleSlot,
+} from '../types';
 import { safeGet, safeSet } from './storage';
 import { playSfx, vibrate } from './sensory';
+import {
+  computeCircadianWaterSchedule,
+  resolveWaterPushConfig,
+  resolveSolarWindow,
+  findDueWaterSlot,
+  PHASE_LABELS,
+} from './waterPushScheduler';
+
+export {
+  computeCircadianWaterSchedule,
+  resolveWaterPushConfig,
+  resolveSolarWindow,
+  findDueWaterSlot,
+  PHASE_LABELS,
+};
 
 export const DEFAULT_MEAL_TIMES: Required<MealNotificationTimes> = {
   breakfast: '08:00',
@@ -57,15 +78,27 @@ export interface ScheduledExercisePayload {
   body: string;
 }
 
+export interface ScheduledWaterPayload {
+  id: string;
+  time: string;
+  phase: WaterPushPhase;
+  title: string;
+  body: string;
+  targetMl: number;
+}
+
 export interface NotificationSchedulePayload {
   mealAlertsEnabled: boolean;
   mealPrepAlertsEnabled?: boolean;
   exerciseAlertsEnabled?: boolean;
   challengeAlertsEnabled: boolean;
+  waterAlertsEnabled?: boolean;
   prepLeadTimeMinutes?: number;
   meals: ScheduledMealPayload[];
   exercises?: ScheduledExercisePayload[];
   challenges: ScheduledChallengePayload[];
+  waterSchedule?: ScheduledWaterPayload[];
+  waterPushConfig?: WaterPushScheduleConfig;
 }
 
 /**
@@ -221,13 +254,26 @@ export function buildSchedulePayload(profile: UserProfile | null): NotificationS
     }
   ];
 
+  const waterComputed = computeCircadianWaterSchedule(profile);
+  const waterSchedule: ScheduledWaterPayload[] = waterComputed.slots.map((slot: WaterPushScheduleSlot) => ({
+    id: slot.id,
+    time: slot.time,
+    phase: slot.phase,
+    title: slot.title,
+    body: slot.message,
+    targetMl: slot.targetMl,
+  }));
+
   return {
     mealAlertsEnabled,
     mealPrepAlertsEnabled: true,
     prepLeadTimeMinutes: 15,
     challengeAlertsEnabled,
+    waterAlertsEnabled: waterComputed.config.enabled,
     meals,
-    challenges
+    challenges,
+    waterSchedule,
+    waterPushConfig: waterComputed.config,
   };
 }
 
@@ -408,6 +454,77 @@ export async function triggerUpcomingMealNotification(
       return true;
     } catch (e) {
       console.warn('[PushScheduler] Fallback Notification falhou:', e);
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Dispara notificação push nativa de hidratação sincronizada com o ritmo circadiano
+ */
+export async function triggerWaterIntakePushNotification(
+  title: string = '💧 Hora de Beber Água!',
+  body: string = 'Mantenha seu metabolismo e energia equilibrados com 250ml de água.',
+  targetMl: number = 250,
+  phase: WaterPushPhase = 'active_day',
+  tagSuffix?: string
+): Promise<boolean> {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return false;
+    } catch {
+      return false;
+    }
+  } else if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+    return false;
+  }
+
+  playSfx('crystal');
+  vibrate([100, 50, 100]);
+
+  const tag = `water-circadian-${phase}-${tagSuffix || Date.now()}`;
+
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration && registration.showNotification) {
+        await registration.showNotification(title, {
+          body,
+          icon: '/pwa-192x192.png',
+          badge: '/icon-192.png',
+          vibrate: [120, 60, 120],
+          tag,
+          renotify: true,
+          data: {
+            url: '/?tab=habits',
+            type: 'water_circadian',
+            targetMl,
+            phase,
+          },
+          actions: [
+            { action: 'open_water', title: `Registrar ${targetMl}ml 💧` },
+            { action: 'dismiss', title: 'Mais tarde' },
+          ],
+        } as any);
+        return true;
+      }
+    } catch (swErr) {
+      console.warn('[PushScheduler] Fallback de hidratação fora do Service Worker:', swErr);
+    }
+  }
+
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/pwa-192x192.png',
+        tag,
+      });
+      return true;
+    } catch (e) {
+      console.warn('[PushScheduler] Fallback Water Notification falhou:', e);
     }
   }
 

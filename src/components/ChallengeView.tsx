@@ -155,7 +155,7 @@ export function ChallengeView({
     setCelebrationTitle(`Desafio "${challenge.title}" Iniciado!`);
 
     const welcomeSpeech = `Maravilha! Você iniciou o desafio culinário ${challenge.title}. Vamos preparar pratos deliciosos e transformadores!`;
-    speak(welcomeSpeech).catch(console.warn);
+    speak(welcomeSpeech, { voice: 'Aoede', lang: 'pt-BR' }).catch(console.warn);
   };
 
   // Toggle mission completion
@@ -202,11 +202,11 @@ export function ChallengeView({
         onAwardPoints(activeCulinaryChallenge.rewardPoints, `Conquista do Selo: ${activeCulinaryChallenge.badgeName}`);
       }
       const finishSpeech = `Parabéns espetacular! Você concluiu todos os dias do desafio ${activeCulinaryChallenge.title} e desbloqueou o selo ${activeCulinaryChallenge.badgeName}!`;
-      speak(finishSpeech).catch(console.warn);
+      speak(finishSpeech, { voice: 'Aoede', lang: 'pt-BR' }).catch(console.warn);
     } else {
       // Short feedback for the day
       const feedback = await generateChallengeFeedback(completedCount, activeCulinaryChallenge.totalDays, profile);
-      speak(feedback).catch(console.warn);
+      speak(feedback, { voice: 'Aoede', lang: 'pt-BR' }).catch(console.warn);
     }
   };
 
@@ -327,7 +327,7 @@ export function ChallengeView({
     setIsProcessingHabit(false);
     setShowConfetti(true);
     setCelebrationTitle(`Dia ${nextDay} Concluído com Sucesso!`);
-    speak(feedback).catch(console.warn);
+    speak(feedback, { voice: 'Aoede', lang: 'pt-BR' }).catch(console.warn);
   };
 
   // Filtered challenges list

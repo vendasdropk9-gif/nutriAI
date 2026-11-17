@@ -122,6 +122,7 @@ export const ConnectedHealthWidget: React.FC<ConnectedHealthWidgetProps> = ({
     const speechText = `Olá! Pelo seu ${sourceName}, você já completou ${currentMetrics.steps.toLocaleString('pt-BR')} passos hoje e queimou ${currentMetrics.activeCalories} calorias ativas em ${currentMetrics.distanceKm} quilômetros percorridos. Com base nisso, eu calibrei ${extraKcalAllowed} calorias adicionais com segurança no seu plano de hoje para você manter o gasto equilibrado!`;
 
     speak(speechText, {
+      voice: 'Aoede',
       onEnded: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
     });
@@ -173,6 +174,7 @@ export const ConnectedHealthWidget: React.FC<ConnectedHealthWidgetProps> = ({
           {/* Aoede Voice Narration */}
           <button
             type="button"
+            data-malu-voice-id="Aoede"
             onClick={handleVoiceSummary}
             title={isSpeaking ? "Parar narração da Malu" : "Ouvir resumo da Chef Malu (Voz Aoede)"}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${

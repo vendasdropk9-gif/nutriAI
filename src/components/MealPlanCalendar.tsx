@@ -1165,7 +1165,7 @@ export function MealPlanView({
               <p className="text-slate-500 dark:text-slate-400 text-sm">{t('mealplan_plan_hint', 'Planeje suas 3 principais refeições.')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <button onClick={toggleListening} className={`p-3 rounded-full ${isListening ? 'bg-red-500' : 'bg-emerald-500'} text-white`}>
+              <button data-malu-voice-id="Aoede" onClick={toggleListening} className={`p-3 rounded-full ${isListening ? 'bg-red-500' : 'bg-emerald-500'} text-white`}>
                 {isListening ? <MicOff /> : <Mic />}
               </button>
               <button

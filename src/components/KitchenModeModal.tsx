@@ -566,6 +566,7 @@ export function KitchenModeModal({
           )}
 
           <button
+            data-malu-voice-id="Aoede"
             onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
               isVoiceSettingsOpen
@@ -580,6 +581,7 @@ export function KitchenModeModal({
           </button>
 
           <button
+            data-malu-voice-id="Aoede"
             onClick={() => setIsCommandsPanelOpen(!isCommandsPanelOpen)}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
               isCommandsPanelOpen
@@ -827,6 +829,7 @@ export function KitchenModeModal({
               {/* Audio Playback State Pill */}
               <div className="mt-8 flex items-center justify-between border-t border-slate-800/80 pt-6">
                 <button
+                  data-malu-voice-id="Aoede"
                   onClick={() => isSpeaking ? handleStopSpeech() : speakCurrentStep(currentStepIndex)}
                   className={`flex items-center gap-3 px-5 py-3 rounded-2xl text-xs font-bold transition-all border ${
                     isSpeaking
@@ -848,6 +851,7 @@ export function KitchenModeModal({
                 </button>
 
                 <button
+                  data-malu-voice-id="Aoede"
                   onClick={handleRepeatStep}
                   className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all"
                 >
@@ -928,6 +932,7 @@ export function KitchenModeModal({
       {/* Bottom Giant Action Bar */}
       <footer className="p-6 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-4 shrink-0">
         <button
+          data-malu-voice-id="Aoede"
           onClick={handlePrevStep}
           disabled={currentStepIndex === 0}
           className="flex-1 py-4 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-3 transition-all border disabled:opacity-30 disabled:cursor-not-allowed bg-slate-800 hover:bg-slate-700 border-slate-700 text-white"
@@ -937,6 +942,7 @@ export function KitchenModeModal({
         </button>
 
         <button
+          data-malu-voice-id="Aoede"
           onClick={handleRepeatStep}
           className="py-4 px-6 rounded-2xl font-bold text-sm bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hidden sm:flex items-center gap-2 transition-all active:scale-95"
         >
@@ -945,6 +951,7 @@ export function KitchenModeModal({
         </button>
 
         <button
+          data-malu-voice-id="Aoede"
           onClick={handleNextStep}
           disabled={currentStepIndex === totalSteps - 1}
           className="flex-1 py-4 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-3 transition-all border disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black shadow-lg shadow-emerald-500/20 active:scale-95"

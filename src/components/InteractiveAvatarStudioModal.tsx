@@ -410,6 +410,7 @@ export function InteractiveAvatarStudioModal({
             {/* Malu Voice Guide Button */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={() => {
                 if (isSpeaking) {
                   stopSpeech();

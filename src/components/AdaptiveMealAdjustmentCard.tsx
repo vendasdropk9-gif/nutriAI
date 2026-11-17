@@ -120,6 +120,7 @@ export const AdaptiveMealAdjustmentCard: React.FC<AdaptiveMealAdjustmentCardProp
     const text = `Olá! Como você queimou ${activeCalories} calorias a mais hoje através do ${sourceLabel} em ${stepsToday.toLocaleString('pt-BR')} passos, seu corpo precisa de suporte para recuperação muscular. Sugiro adicionar ${selectedProtein.portion} de ${selectedProtein.name} ao seu jantar. Isso acrescenta ${selectedProtein.protein} gramas de proteína de alto valor biológico sem comprometer seu déficit calórico!`;
 
     speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
     });
@@ -175,6 +176,7 @@ export const AdaptiveMealAdjustmentCard: React.FC<AdaptiveMealAdjustmentCardProp
 
     // Voice confirmation from Malu
     speak(`Excelente! Adicionei ${selectedProtein.name} ao seu jantar de hoje. Seu corpo terá todos os aminoácidos necessários para se recuperar.`, {
+      voice: 'Aoede',
       onEnded: () => {},
       onError: () => {}
     });
@@ -213,6 +215,7 @@ export const AdaptiveMealAdjustmentCard: React.FC<AdaptiveMealAdjustmentCardProp
         {/* Audio Button with Malu Aoede */}
         <button
           type="button"
+          data-malu-voice-id="Aoede"
           onClick={handleVoiceNarration}
           title={isSpeaking ? "Parar áudio" : "Ouvir recomendação da Chef Malu"}
           className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all self-start sm:self-auto ${

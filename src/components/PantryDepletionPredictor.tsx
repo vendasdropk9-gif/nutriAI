@@ -78,6 +78,7 @@ export function PantryDepletionPredictor({
 
     setIsSpeaking(true);
     speak(summary.aiVoiceSummary, {
+      voice: 'Aoede',
       onEnded: () => {
         setIsSpeaking(false);
       }
@@ -124,6 +125,7 @@ export function PantryDepletionPredictor({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            data-malu-voice-id="Aoede"
             onClick={handleToggleVoice}
             className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 outline-none ${
               isSpeaking

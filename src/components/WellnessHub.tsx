@@ -127,12 +127,12 @@ export function WellnessHub({ profile }: WellnessHubProps) {
           setTimeLeftInStep(activeSession.steps[nextIndex].durationSeconds);
           
           // Speak instruction
-          speak(activeSession.steps[nextIndex].instruction);
+          speak(activeSession.steps[nextIndex].instruction, { voice: 'Aoede', lang: 'pt-BR' });
           vibrate(20);
         } else {
           setIsFinished(true);
           setIsPlaying(false);
-          speak('Sessão concluída. Bom trabalho!');
+          speak('Sessão concluída. Bom trabalho!', { voice: 'Aoede', lang: 'pt-BR' });
           playSfx('success');
           vibrate([30, 50, 30]);
         }
@@ -147,7 +147,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
     setTimeLeftInStep(session.steps[0].durationSeconds);
     setIsPlaying(true);
     setIsFinished(false);
-    speak(session.steps[0].instruction);
+    speak(session.steps[0].instruction, { voice: 'Aoede', lang: 'pt-BR' });
     playSfx('tap');
     vibrate(15);
   };
@@ -162,7 +162,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
   const handleResume = () => {
     setIsPlaying(true);
     if (activeSession) {
-      speak(activeSession.steps[currentStepIndex].instruction);
+      speak(activeSession.steps[currentStepIndex].instruction, { voice: 'Aoede', lang: 'pt-BR' });
     }
     playSfx('tap');
     vibrate(10);
@@ -269,6 +269,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
                     {session.durationMinutes} min
                   </span>
                   <button
+                    data-malu-voice-id="Aoede"
                     onClick={() => handleStart(session)}
                     className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors border-none outline-none cursor-pointer"
                   >
@@ -302,6 +303,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
 
             <div className="relative z-10">
               <button 
+                data-malu-voice-id="Aoede"
                 onClick={handleStop}
                 className="absolute -top-2 -left-2 p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors border-none outline-none cursor-pointer backdrop-blur-md"
               >
@@ -365,6 +367,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
               <div className="mt-8">
                 {!isFinished ? (
                   <button
+                    data-malu-voice-id="Aoede"
                     onClick={isPlaying ? handlePause : handleResume}
                     className="w-16 h-16 mx-auto bg-white rounded-full flex items-center justify-center text-slate-800 hover:scale-105 transition-all shadow-lg border-none outline-none cursor-pointer"
                   >
@@ -376,6 +379,7 @@ export function WellnessHub({ profile }: WellnessHubProps) {
                   </button>
                 ) : (
                   <button
+                    data-malu-voice-id="Aoede"
                     onClick={handleStop}
                     className="px-8 py-3 bg-white text-slate-800 font-bold rounded-full hover:bg-slate-50 transition-colors shadow-lg border-none outline-none cursor-pointer"
                   >

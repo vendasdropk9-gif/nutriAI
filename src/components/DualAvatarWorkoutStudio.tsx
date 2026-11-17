@@ -975,6 +975,7 @@ export function DualAvatarWorkoutStudio() {
               {currentExercise.targetMuscleHead}
             </div>
             <button
+              data-malu-voice-id="Aoede"
               onClick={() => handlePlayVoice(currentExercise.audioCue)}
               className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md ${
                 isSpeaking
@@ -1260,6 +1261,7 @@ export function DualAvatarWorkoutStudio() {
           </div>
 
           <button
+            data-malu-voice-id="Aoede"
             onClick={() => handlePlayVoice(currentExercise.audioCue)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-colors cursor-pointer"
           >

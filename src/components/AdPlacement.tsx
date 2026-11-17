@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { UserProfile } from '../types';
+import { UserProfile, HealthFocusMuteEvent, HealthFocusProfile } from '../types';
 import { useProfileSync } from '../lib/profileSync';
 import { useAdPreference } from '../hooks/useAdPreference';
 import {
@@ -9,6 +9,11 @@ import {
   getCategoryLabel,
   getCategoryEmoji
 } from '../hooks/useMutedAdCategories';
+import {
+  recordHiddenAdCategoryEvent,
+  loadLocalHealthFocusProfile,
+  getAdHealthFocusPriorityFactor
+} from '../lib/healthFocusEngine';
 import {
   useAdABTest,
   evaluateABPerformance,
@@ -96,6 +101,10 @@ export interface AdPlacementProps {
   abTestMode?: ABTestMode;
   forceVariant?: ABVariantId;
   abVariants?: Partial<Record<ABVariantId, Partial<AdABVariantConfig>>>;
+
+  // Hidden Health Focus Tracking Extensions
+  onHiddenCategoryTrack?: (event: HealthFocusMuteEvent, updatedHealthFocus: HealthFocusProfile) => void;
+  onHealthFocusChange?: (healthFocus: HealthFocusProfile) => void;
 }
 
 export interface ContextualSponsoredAd extends SponsoredAdData {
@@ -246,7 +255,8 @@ function normalizeInterestTerm(value: string): string {
 export function selectContextualAdForProfile(
   profile: UserProfile | null | undefined,
   placementId: string,
-  mutedCategories: string[] = []
+  mutedCategories: string[] = [],
+  healthFocusOverride?: HealthFocusProfile | null
 ): { ad: ContextualSponsoredAd; matchedInterest: string | null; allMuted?: boolean } {
   let hash = 0;
   for (let i = 0; i < placementId.length; i++) {
@@ -258,7 +268,15 @@ export function selectContextualAdForProfile(
     ? profile.interests.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     : [];
 
-  const isCategoryAllowed = (ad: ContextualSponsoredAd) => !mutedCategories.includes(ad.category);
+  const effectiveHealthFocus = healthFocusOverride || loadLocalHealthFocusProfile(profile);
+  const allExplicitMuted = Array.from(
+    new Set([
+      ...mutedCategories,
+      ...(Array.isArray(profile?.mutedAdCategories) ? profile.mutedAdCategories : []),
+    ])
+  );
+
+  const isCategoryAllowed = (ad: ContextualSponsoredAd) => !allExplicitMuted.includes(ad.category);
   const eligibleContextualAds = [...INTEREST_CONTEXTUAL_ADS, ...SPONSORED_FALLBACK_ADS].filter(isCategoryAllowed);
   const eligibleFallbackAds = SPONSORED_FALLBACK_ADS.filter(isCategoryAllowed);
 
@@ -300,11 +318,14 @@ export function selectContextualAdForProfile(
       }
 
       if (score > 0 && firstMatchedInterest) {
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatches = [{ ad: candidateAd, score, matchedInterest: firstMatchedInterest }];
-        } else if (score === bestScore) {
-          bestMatches.push({ ad: candidateAd, score, matchedInterest: firstMatchedInterest });
+        const priorityFactor = getAdHealthFocusPriorityFactor(candidateAd, effectiveHealthFocus);
+        const weightedScore = score * priorityFactor;
+
+        if (weightedScore > bestScore) {
+          bestScore = weightedScore;
+          bestMatches = [{ ad: candidateAd, score: weightedScore, matchedInterest: firstMatchedInterest }];
+        } else if (weightedScore === bestScore) {
+          bestMatches.push({ ad: candidateAd, score: weightedScore, matchedInterest: firstMatchedInterest });
         }
       }
     }
@@ -315,7 +336,12 @@ export function selectContextualAdForProfile(
     }
   }
 
-  const pool = eligibleFallbackAds.length > 0 ? eligibleFallbackAds : eligibleContextualAds;
+  const basePool = eligibleFallbackAds.length > 0 ? eligibleFallbackAds : eligibleContextualAds;
+  // Deprioritize fallback categories flagged in Health Focus when healthier alternatives exist
+  const preferredPool = basePool.filter(
+    (ad) => getAdHealthFocusPriorityFactor(ad, effectiveHealthFocus) >= 0.5
+  );
+  const pool = preferredPool.length > 0 ? preferredPool : basePool;
   const fallbackIndex = Math.abs(hash) % pool.length;
   return { ad: pool[fallbackIndex], matchedInterest: null, allMuted: false };
 }
@@ -425,7 +451,9 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
   abTestEnabled = true,
   abTestMode = 'style',
   forceVariant,
-  abVariants
+  abVariants,
+  onHiddenCategoryTrack,
+  onHealthFocusChange
 }) => {
   const isAdFreeUser = profile?.isPremium === true;
   const [isDismissed, setIsDismissed] = useState(false);
@@ -504,15 +532,79 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
     knownCategories
   } = useMutedAdCategories(profile);
 
-  // Query profile.interests for contextual ad relevance, falling back to placementId hash and respecting mutedCategories
+  // Silent Local Health Focus State: dynamically refined on mute/hide events
+  const [localHealthFocus, setLocalHealthFocus] = useState<HealthFocusProfile>(() =>
+    loadLocalHealthFocusProfile(profile)
+  );
+
+  useEffect(() => {
+    setLocalHealthFocus(loadLocalHealthFocusProfile(profile));
+  }, [profile?.healthFocus, profile?.goals]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleHealthFocusUpdated = (e: Event) => {
+      const updated = (e as CustomEvent)?.detail?.healthFocus as HealthFocusProfile | undefined;
+      if (updated) {
+        setLocalHealthFocus(updated);
+      }
+    };
+    window.addEventListener('nutri-health-focus-updated', handleHealthFocusUpdated);
+    return () => {
+      window.removeEventListener('nutri-health-focus-updated', handleHealthFocusUpdated);
+    };
+  }, []);
+
+  // Query profile.interests for contextual ad relevance, falling back to placementId hash and respecting mutedCategories & Health Focus
   const { ad: contextualAd, matchedInterest, allMuted } = React.useMemo(
-    () => selectContextualAdForProfile(profile, placementId, mutedCategories),
-    [profile?.interests, placementId, mutedCategories]
+    () => selectContextualAdForProfile(profile, placementId, mutedCategories, localHealthFocus),
+    [profile?.interests, placementId, mutedCategories, localHealthFocus]
   );
 
   const selectedAd = React.useMemo(() => {
     return customAdData ? { ...contextualAd, ...customAdData } : contextualAd;
   }, [contextualAd, customAdData]);
+
+  // Hidden Tracking Callback: captures 'mute' or 'hide' events silently and refines Health Focus asynchronously
+  const hiddenTrackAdCategory = React.useCallback(
+    async (category: string, action: 'mute' | 'hide' | 'unmute', adId?: string) => {
+      try {
+        const event: HealthFocusMuteEvent = {
+          category,
+          action,
+          adId: adId || selectedAd?.id,
+          placementId,
+          timestamp: new Date().toISOString(),
+        };
+        const updatedFocus = await recordHiddenAdCategoryEvent({
+          category,
+          action,
+          adId: event.adId,
+          placementId,
+          profile,
+        });
+        setLocalHealthFocus(updatedFocus);
+        if (onHiddenCategoryTrack) {
+          onHiddenCategoryTrack(event, updatedFocus);
+        }
+        if (onHealthFocusChange) {
+          onHealthFocusChange(updatedFocus);
+        }
+      } catch {
+        // Silent background tracking: never interrupt user flow
+      }
+    },
+    [placementId, selectedAd?.id, profile, onHiddenCategoryTrack, onHealthFocusChange]
+  );
+
+  const handleToggleMuteCategoryWithTracking = React.useCallback(
+    (categoryKey: string) => {
+      const willMute = !isCategoryMuted(categoryKey);
+      toggleMuteCategory(categoryKey);
+      void hiddenTrackAdCategory(categoryKey, willMute ? 'mute' : 'unmute', selectedAd?.id);
+    },
+    [isCategoryMuted, toggleMuteCategory, hiddenTrackAdCategory, selectedAd?.id]
+  );
 
   const activeConversionContext = React.useMemo(() => {
     if (conversionContext && conversionContext.trim().length > 0) {
@@ -1333,6 +1425,9 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
       // Dismiss for 24 hours
       localStorage.setItem(`nutri_ad_dismissed_${placementId}`, String(Date.now() + 24 * 60 * 60 * 1000));
     } catch (e) {}
+    if (selectedAd?.category) {
+      void hiddenTrackAdCategory(selectedAd.category, 'hide', selectedAd.id);
+    }
     if (onAdDismiss) onAdDismiss(placementId);
   };
 
@@ -1464,7 +1559,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                     <button
                       type="button"
                       data-testid={`mute-category-${cat.key}`}
-                      onClick={() => toggleMuteCategory(cat.key)}
+                      onClick={() => handleToggleMuteCategoryWithTracking(cat.key)}
                       className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition shrink-0 cursor-pointer flex items-center gap-1 ${
                         isMuted
                           ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
@@ -1887,7 +1982,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                     <button
                       type="button"
                       data-testid="mute-current-category-btn"
-                      onClick={() => toggleMuteCategory(selectedAd.category)}
+                      onClick={() => handleToggleMuteCategoryWithTracking(selectedAd.category)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 shrink-0 ${
                         isCategoryMuted(selectedAd.category)
                           ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -1939,7 +2034,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                         <button
                           type="button"
                           data-testid={`mute-category-${cat.key}`}
-                          onClick={() => toggleMuteCategory(cat.key)}
+                          onClick={() => handleToggleMuteCategoryWithTracking(cat.key)}
                           className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition shrink-0 cursor-pointer flex items-center gap-1 ${
                             isMuted
                               ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
@@ -2082,7 +2177,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                 preferredFormat: prefFormat,
                 onSelectPreference: handleSelectFormatPreference,
                 mutedCategories,
-                toggleMuteCategory,
+                toggleMuteCategory: handleToggleMuteCategoryWithTracking,
                 isCategoryMuted
               })}
             </div>
@@ -2168,6 +2263,7 @@ export const AdPlacement: React.FC<AdPlacementProps> = ({
                       <button
                         type="button"
                         data-ad-control="true"
+                        data-malu-voice-id="Aoede"
                         onClick={toggleMute}
                         className="absolute bottom-1.5 right-1.5 p-1 rounded-xl bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition cursor-pointer z-10"
                         title={isMuted ? "Ativar som" : "Silenciar"}

@@ -180,6 +180,7 @@ export function DiningOut({ profile, onAwardPoints }: DiningOutProps) {
             {/* Microfone Trigger Button */}
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={toggleRecording}
               className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center relative cursor-pointer select-none transition-all duration-300 ${
                 isRecording 

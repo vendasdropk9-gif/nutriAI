@@ -577,6 +577,7 @@ export function QuickDishes({
           {/* Modo de Ditado Toggle Button */}
           <button
             id="btn-toggle-dictation-mode"
+            data-malu-voice-id="Aoede"
             onClick={() => {
               const next = !isVoiceActive;
               setIsVoiceActive(next);
@@ -630,6 +631,7 @@ export function QuickDishes({
               </div>
             </div>
             <button
+              data-malu-voice-id="Aoede"
               onClick={() => {
                 setIsVoiceActive(false);
                 playSfx('tap');
@@ -1194,6 +1196,7 @@ export function QuickDishes({
               <div className="absolute top-5 right-5 z-20 flex items-center gap-2">
                 <button
                   id="btn-toggle-modal-dictation"
+                  data-malu-voice-id="Aoede"
                   onClick={() => {
                     const next = !isVoiceActive;
                     setIsVoiceActive(next);
@@ -1385,6 +1388,7 @@ export function QuickDishes({
                   {modalVisibleSteps < selectedDishForModal.instructions.length ? (
                     <button
                       type="button"
+                      data-malu-voice-id="Aoede"
                       onClick={() => {
                         const nextStep = modalVisibleSteps + 1;
                         setModalVisibleSteps(nextStep);

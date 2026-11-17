@@ -268,7 +268,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
   const handleSpeak = async () => {
     if (!insight || isPlaying) return;
     setIsPlaying(true);
-    await speak(insight, { onEnded: () => setIsPlaying(false) });
+    await speak(insight, { voice: 'Aoede', onEnded: () => setIsPlaying(false) });
   };
 
   const getDailyTotals = () => {
@@ -502,6 +502,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
             </div>
             
             <button 
+              data-malu-voice-id="Aoede"
               onClick={handleSpeak}
               disabled={isPlaying || loading}
               className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[24px] flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-lg ${
@@ -648,6 +649,7 @@ export const AdaptiveCoach: React.FC<AdaptiveCoachProps> = ({ profile, onUpdateP
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <button
+              data-malu-voice-id="Aoede"
               onClick={handleStartCoachMic}
               disabled={isCoachListening}
               className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl transition-all cursor-pointer border ${

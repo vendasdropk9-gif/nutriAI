@@ -1,5 +1,6 @@
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, FoodNutritionComparison, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule, ComparativeProgressReport } from "../types";
 import { generateFallbackComparison } from "../data/foodNutritionDatabase";
+import { loadLocalHealthFocusProfile } from "./healthFocusEngine";
 
 const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: number = 20000) => {
   const controller = new AbortController();
@@ -8,9 +9,11 @@ const callGeminiEndpoint = async (functionName: string, args: any[], timeoutMs: 
   const currentLang = (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'en-US';
 
   const processedArgs = (args || []).map(arg => {
-    if (arg && typeof arg === 'object' && !Array.isArray(arg) && ('goals' in arg || 'restrictions' in arg || 'language' in arg || 'bodyType' in arg)) {
+    if (arg && typeof arg === 'object' && !Array.isArray(arg) && ('goals' in arg || 'restrictions' in arg || 'language' in arg || 'bodyType' in arg || 'healthFocus' in arg)) {
+      const localFocus = loadLocalHealthFocusProfile(arg as UserProfile);
       return {
         ...arg,
+        healthFocus: (arg as UserProfile).healthFocus || (localFocus.deprioritizedCategories.length > 0 ? localFocus : undefined),
         language: currentLang,
         preferred_language: currentLang
       };
@@ -120,6 +123,9 @@ export const generateQuickDishes = async (
 };
 
 import { safeGet, safeSet } from './storage';
+import { MALU_VOICE_ID, MALU_VOICE_ATTR } from './maluVoice';
+
+export { MALU_VOICE_ID, MALU_VOICE_ATTR };
 
 export interface TtsOptions {
   model?: string;
@@ -132,8 +138,9 @@ export interface TtsOptions {
 export const textToSpeech = async (text: string, language?: string, options?: TtsOptions): Promise<string | null> => {
   if (!text || !text.trim()) return null;
   const currentLang = language || (typeof localStorage !== 'undefined' ? localStorage.getItem('nutriai_language') || localStorage.getItem('i18nextLng') : null) || 'en-US';
+  const resolvedVoiceName = options?.voiceName || MALU_VOICE_ID;
   const cleanKey = text.replace(/[^a-zA-Z0-9]/g, '').substring(0, 40);
-  const cacheKey = `tts_v5_${currentLang}_${options?.voiceName || 'Aoede'}_${cleanKey}`;
+  const cacheKey = `tts_v5_${currentLang}_${resolvedVoiceName}_${cleanKey}`;
   
   if (!options) {
     try {
@@ -156,7 +163,7 @@ export const textToSpeech = async (text: string, language?: string, options?: Tt
         text, 
         language: currentLang,
         model: options?.model,
-        voiceName: options?.voiceName,
+        voiceName: resolvedVoiceName,
         isElevenLabs: options?.isElevenLabs,
         emotion: options?.emotion,
         style: options?.style
@@ -176,7 +183,7 @@ export const textToSpeech = async (text: string, language?: string, options?: Tt
 
   // 2. Try /api/gemini proxy fallback
   try {
-    const res = await callGeminiEndpoint('textToSpeech', [text, currentLang, options]);
+    const res = await callGeminiEndpoint('textToSpeech', [text, currentLang, { ...(options || {}), voiceName: resolvedVoiceName }]);
     const audioData = typeof res === 'string' ? res : res?.audio || null;
     if (audioData) {
       if (!options) safeSet(cacheKey, audioData);

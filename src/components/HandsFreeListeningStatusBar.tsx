@@ -112,6 +112,7 @@ export const HandsFreeListeningStatusBar: React.FC<HandsFreeListeningStatusBarPr
               {onOpenCommandsGuide ? (
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={onOpenCommandsGuide}
                   className="text-[10px] font-mono text-emerald-300 hover:text-white bg-emerald-950/70 hover:bg-emerald-900/90 px-2 py-0.5 rounded-md border border-emerald-500/30 inline-flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm"
                   title="Ver lista de frases e comandos reconhecidos"
@@ -197,6 +198,7 @@ export const HandsFreeListeningStatusBar: React.FC<HandsFreeListeningStatusBarPr
           {onOpenCommandsGuide && (
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={onOpenCommandsGuide}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm ${
                 isCommandsGuideOpen
@@ -214,6 +216,7 @@ export const HandsFreeListeningStatusBar: React.FC<HandsFreeListeningStatusBarPr
           {onOpenSettings && (
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={onOpenSettings}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm ${
                 isSettingsOpen

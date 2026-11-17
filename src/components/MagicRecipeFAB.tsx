@@ -127,7 +127,7 @@ export function MagicRecipeFAB({ profile }: MagicRecipeFABProps) {
                       className="w-full bg-slate-50 dark:bg-slate-800 rounded-2xl py-4 pl-5 pr-14 outline-none text-sm border-2 border-slate-100 dark:border-slate-700 focus:border-amber-500 transition-colors shadow-inner"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <button className="p-2 text-slate-400 hover:text-emerald-500 transition-colors">
+                      <button data-malu-voice-id="Aoede" className="p-2 text-slate-400 hover:text-emerald-500 transition-colors">
                          <Mic className="w-4 h-4" />
                       </button>
                       <button 

@@ -528,6 +528,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                     Ingredientes Disponíveis
                   </label>
                   <motion.button
+                    data-malu-voice-id="Aoede"
                     type="button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -1178,6 +1179,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
 
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => handleToggleNarrateRecipe(generatedRecipe)}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                     isNarrating
@@ -1403,6 +1405,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
+                                  data-malu-voice-id="Aoede"
                                   onClick={() => {
                                     stopSpeech();
                                     playSfx('pop');
@@ -1511,6 +1514,7 @@ export function Generator({ onSaveRecipe, profile, onAwardPoints, onGeneratingCh
 
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => handleToggleNarrateRecipe(generatedRecipe)}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all cursor-pointer whitespace-nowrap"
                 >

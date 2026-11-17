@@ -872,6 +872,7 @@ export function AnatomyWorkoutGuide() {
     try {
       setIsAudioPlaying(true);
       await speak(currentExercise.audioCue, {
+        voice: 'Aoede',
         onEnded: () => setIsAudioPlaying(false)
       });
     } catch (e) {
@@ -1248,6 +1249,7 @@ export function AnatomyWorkoutGuide() {
 
             {/* Audio Explanation Button (Malu Aoede) */}
             <motion.button
+              data-malu-voice-id="Aoede"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handlePlayAudioCue}

@@ -351,6 +351,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
     setIsSpeaking(true);
     const text = `Olá! Com a integração do Google Fit e Apple Health ativada, eu leio automaticamente seus passos e calorias ativas. Hoje você já queimou ${activeCaloriesBurned} calorias em ${dailyMetrics.steps.toLocaleString('pt-BR')} passos. Com o fator de compensação em ${(factor * 100).toFixed(0)} por cento, seu plano alimentar recebeu um acréscimo seguro de ${extraCaloriesAllowed} calorias para apoiar sua recuperação muscular e manter o déficit no nível perfeito!`;
     speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
     });
@@ -707,6 +708,7 @@ export const HealthIntegrationSettings: React.FC<HealthIntegrationSettingsProps>
               {/* Malu Voice Feedback */}
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={handleSpeakMaluExplanation}
                 disabled={isSpeaking}
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 transition-colors w-full sm:w-auto text-center shrink-0"

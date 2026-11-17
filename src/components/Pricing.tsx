@@ -190,7 +190,7 @@ export function Pricing({ profile, onUpgradeSuccess, onPremiumStatusChange }: Pr
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      await speak(text, { onEnded: () => setIsPlaying(false) });
+      await speak(text, { voice: 'Aoede', onEnded: () => setIsPlaying(false) });
     } catch (e) {
       setIsPlaying(false);
     }
@@ -401,6 +401,7 @@ export function Pricing({ profile, onUpgradeSuccess, onPremiumStatusChange }: Pr
                 </span>
 
                 <button 
+                  data-malu-voice-id="Aoede"
                   onClick={() => handleSpeak(plan.tip)}
                   disabled={isPlaying}
                   className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#B5BDC9] hover:text-white hover:bg-white/10 transition-colors"

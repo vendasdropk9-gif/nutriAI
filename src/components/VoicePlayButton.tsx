@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Volume2, Loader2 } from 'lucide-react';
 import { speak, stopSpeech } from '../lib/speech';
+import { MALU_VOICE_ID } from '../lib/maluVoice';
 import { playSfx, vibrate } from '../lib/sensory';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translateSpeechText } from '../lib/speechTranslator';
@@ -63,6 +64,7 @@ export function VoicePlayButton({
       setIsPlaying(true);
       const textToSpeak = translateSpeechText(text, activeLang);
       await speak(textToSpeak, {
+        voice: MALU_VOICE_ID,
         lang: activeLang,
         onEnded: () => {
           setIsPlaying(false);
@@ -99,6 +101,7 @@ export function VoicePlayButton({
   return (
     <button
       type="button"
+      data-malu-voice-id={MALU_VOICE_ID}
       onClick={handleToggle}
       title={isPlaying ? 'Pausar reprodução' : title}
       className={`relative shrink-0 rounded-full flex items-center justify-center text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all shadow-md shadow-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900 cursor-pointer ${

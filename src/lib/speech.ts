@@ -1,12 +1,15 @@
 import { textToSpeech } from './gemini';
 import { translateSpeechText } from './speechTranslator';
 import avatarGlobalStore from './avatarGlobalState';
-import { 
-  attachAudioLipSync, 
-  detachAudioLipSync, 
-  startSpeechUtteranceLipSync, 
-  detectMaluEmotionFromText 
+import {
+  attachAudioLipSync,
+  detachAudioLipSync,
+  startSpeechUtteranceLipSync,
+  detectMaluEmotionFromText
 } from './audioLipSync';
+import { MALU_VOICE_ID, MALU_VOICE_ATTR } from './maluVoice';
+
+export { MALU_VOICE_ID, MALU_VOICE_ATTR };
 
 export interface SpeechOptions {
   voice?: string;
@@ -246,20 +249,20 @@ export const speak = async (text: string, options?: SpeechOptions) => {
       audioUrl = '/audio/nutri_ai_malu.wav';
     } else {
       // Synthesize through centralized Gemini 3.8 TTS engine
-      // Check for custom ElevenLabs voice in localStorage
-      let voiceToUse = options?.voice;
+      // Prioritize explicit voice (defaulting to Malu's canonical 'Aoede' voice ID)
+      let voiceToUse = options?.voice || MALU_VOICE_ID;
       let storedVoice: string | null = null;
       try {
         storedVoice = localStorage.getItem('nutriai_elevenlabs_voice');
-        if (storedVoice) {
+        if (!options?.voice && storedVoice) {
           voiceToUse = storedVoice;
         }
       } catch (e) {}
 
       audioUrl = await textToSpeech(textToSpeak, activeLang, {
         model: options?.model || 'gemini-3.8-flash-tts',
-        voiceName: voiceToUse || 'Aoede',
-        isElevenLabs: !!storedVoice,
+        voiceName: voiceToUse || MALU_VOICE_ID,
+        isElevenLabs: !!storedVoice && voiceToUse === storedVoice && voiceToUse !== MALU_VOICE_ID,
         emotion: options?.emotion || detectedEmotion,
         style: options?.style
       });

@@ -103,7 +103,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       // Voz da Malu parabenizando o assinante VIP
       try {
         const welcomeText = `Parabéns ${userName ? userName.split(' ')[0] : ''}! Seu plano ${plan.name} foi ativado com sucesso. Agora você tem acesso a todos os recursos de inteligência artificial sem limites!`;
-        speak(welcomeText);
+        speak(welcomeText, { voice: 'Aoede', lang: 'pt-BR' });
       } catch (e) {}
 
       setTimeout(() => {
@@ -162,7 +162,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         setIsApproved(true);
         try {
           const welcomeText = `Assinatura confirmada com sucesso! Bem-vindo ao plano ${plan.name}. Aproveite todas as funcionalidades exclusivas!`;
-          speak(welcomeText);
+          speak(welcomeText, { voice: 'Aoede', lang: 'pt-BR' });
         } catch (e) {}
 
         setTimeout(() => {

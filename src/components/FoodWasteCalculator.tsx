@@ -163,7 +163,7 @@ export function FoodWasteCalculator({
       const recipes = await generatePantryExpiringRecipes(processedItems, profile || undefined);
       setZeroWasteRecipes(recipes);
       if (recipes.length > 0) {
-        speak(`Geradas ${recipes.length} receitas focadas no resgate de alimentos com maior prioridade.`, { lang: 'pt-BR' });
+        speak(`Geradas ${recipes.length} receitas focadas no resgate de alimentos com maior prioridade.`, { lang: 'pt-BR', voice: 'Aoede' });
       }
     } catch (e) {
       console.warn("Erro ao gerar receitas zero desperdício:", e);
@@ -193,7 +193,7 @@ export function FoodWasteCalculator({
     } catch (e) {}
 
     setConsumedSuccessId(recipe.id);
-    speak("Ingredientes resgatados! Seu Índice de Desperdício diminuiu.", { lang: 'pt-BR' });
+    speak("Ingredientes resgatados! Seu Índice de Desperdício diminuiu.", { lang: 'pt-BR', voice: 'Aoede' });
 
     if (onItemsUpdated) {
       onItemsUpdated();

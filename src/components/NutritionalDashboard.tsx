@@ -381,7 +381,9 @@ export function NutritionalDashboard({ profile, onUpdateProfile }: NutritionalDa
   // Dynamic AI Tips derived from user real intake metrics and targets
   const dynamicAiTips = useMemo(() => {
     const tips = [];
-    const goalName = profile?.goals || 'Hipertrofia Muscular';
+    const goalName = profile?.healthFocus?.focusLabel || profile?.goals || 'Hipertrofia Muscular';
+    const deprioritizedCats = profile?.healthFocus?.deprioritizedCategories || profile?.mutedAdCategories || [];
+    const avoidSupplements = deprioritizedCats.includes('supplements');
 
     // 1. Protein Intake Tip
     if (currentIntakeStats.proteinRemaining > 15) {
@@ -394,7 +396,9 @@ export function NutritionalDashboard({ profile, onUpdateProfile }: NutritionalDa
         title: 'Déficit Proteico Identificado no Intake Atual',
         metricBadge: `${currentIntakeStats.currentProtein}g / ${targets.protein}g (${currentIntakeStats.proteinCompliance}%)`,
         content: `Você consumiu ${currentIntakeStats.currentProtein}g de proteína até agora. Faltam ${currentIntakeStats.proteinRemaining}g para bater sua meta diária de ${targets.protein}g para ${goalName}.`,
-        recommendedAction: 'Adicione 3 ovos mexidos, 120g de frango grelhado ou 1 scoop de whey protein ao próximo lanche.'
+        recommendedAction: avoidSupplements
+          ? 'Adicione 3 ovos mexidos, 120g de frango grelhado ou 170g de iogurte grego natural ao próximo lanche.'
+          : 'Adicione 3 ovos mexidos, 120g de frango grelhado ou 1 scoop de whey protein ao próximo lanche.'
       });
     } else {
       tips.push({

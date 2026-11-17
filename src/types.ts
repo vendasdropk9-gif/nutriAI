@@ -86,6 +86,27 @@ export interface MacroTargets {
   updatedAt?: string;
 }
 
+export interface HealthFocusMuteEvent {
+  category: string;
+  action: 'mute' | 'hide' | 'unmute';
+  adId?: string;
+  placementId?: string;
+  similarCategories?: string[];
+  timestamp: string;
+}
+
+export interface HealthFocusProfile {
+  focusLabel?: string;
+  deprioritizedCategories: string[];
+  deprioritizedKeywords: string[];
+  categoryWeights: Record<string, number>;
+  muteHistory: HealthFocusMuteEvent[];
+  aiDirective?: string;
+  strictnessMode?: 'strict' | 'balanced' | 'flexible';
+  manualOverrideAt?: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   name: string;
   firstName?: string;
@@ -114,6 +135,7 @@ export interface UserProfile {
   role?: 'client' | 'merchant' | 'buyer' | 'seller' | 'admin' | 'courier';
   defaultAdFormat?: 'video' | 'banner';
   mutedAdCategories?: string[];
+  healthFocus?: HealthFocusProfile;
   restrictions: string[];
   allergies: string[];
   goals: string;
@@ -200,6 +222,7 @@ export interface UserProfile {
   hydrationRemindersEnabled?: boolean;
 
   hydrationInterval?: string | number;
+  waterPushSchedule?: WaterPushScheduleConfig;
   anatomicalMarkers?: AnatomicalMarker[];
   fitnessLevel?: string;
   experienceLevel?: string;
@@ -223,6 +246,49 @@ export interface CircadianNotificationConfig {
   intensityAdjustmentEnabled: boolean;
   reminderEnabled: boolean;
   lastNotifiedDate?: string;
+  goldenHourStart?: string;
+  goldenHourEnd?: string;
+  waterSyncEnabled?: boolean;
+}
+
+export type WaterPushPhase = 'morning_boost' | 'active_day' | 'evening_taper';
+export type WaterPushScheduleMode = 'circadian_adaptive' | 'interval' | 'custom_times';
+
+export interface WaterPushSolarWindow {
+  date: string;
+  sunrise: string; // "HH:MM"
+  sunset: string; // "HH:MM"
+  source: 'geolocation_api' | 'circadian_config' | 'chronotype_fallback';
+}
+
+export interface WaterPushScheduleSlot {
+  id: string;
+  time: string; // "HH:MM"
+  phase: WaterPushPhase;
+  title: string;
+  message: string;
+  targetMl: number;
+}
+
+export interface WaterPushScheduleConfig {
+  enabled: boolean;
+  circadianSyncEnabled: boolean;
+  mode: WaterPushScheduleMode;
+  intervalMinutes: number;
+  customTimes: string[];
+  startHour: string;
+  endHour: string;
+  sunriseOffsetMinutes: number;
+  sunsetTaperMinutes: number;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  customTitle?: string;
+  customMessage?: string;
+  targetSipMl?: number;
+  lastWaterPushAt?: string;
+  lastSolarWindow?: WaterPushSolarWindow;
+  updatedAt?: string;
 }
 
 export interface HealthIntegrationConfig {

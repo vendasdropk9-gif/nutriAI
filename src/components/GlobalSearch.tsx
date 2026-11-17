@@ -972,6 +972,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
 
             <motion.button
               data-testid="global-search-voice-btn"
+              data-malu-voice-id="Aoede"
               aria-label={
                 isListening
                   ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")
@@ -1043,6 +1044,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
           <motion.button
             type="button"
             data-testid="global-search-voice-btn-mobile"
+            data-malu-voice-id="Aoede"
             aria-label={
               isListening
                 ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")
@@ -1377,6 +1379,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
                 <motion.button
                   type="button"
                   data-testid="global-search-voice-btn-overlay"
+                  data-malu-voice-id="Aoede"
                   aria-label={
                     isListening
                       ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")

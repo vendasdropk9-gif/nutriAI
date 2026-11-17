@@ -187,6 +187,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
             {typeof voiceSensitivity === 'number' && (
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={onOpenVoiceSettings}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 hover:bg-black/70 border border-white/10 text-[10px] font-mono text-slate-300 transition-all cursor-pointer shadow-sm active:scale-95"
                 title="Configurar sensibilidade de detecção de voz"
@@ -323,6 +324,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
             {onSimulateCommand && (
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => onSimulateCommand('pausa')}
                 className="px-2.5 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
                 title="Simular palavra-chave de pausa imediata: 'PAUSA'"
@@ -349,6 +351,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
               <>
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSimulateCommand('continuar')}
                   className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1"
                   title="Simular comando de voz: Continuar / Retomar"
@@ -358,6 +361,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSimulateCommand('próximo')}
                   className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-slate-200 transition-all active:scale-95 cursor-pointer"
                   title="Simular comando de voz: Próximo"
@@ -366,6 +370,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSimulateCommand('repetir')}
                   className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-slate-200 transition-all active:scale-95 cursor-pointer"
                   title="Simular comando de voz: Repetir"
@@ -374,6 +379,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSimulateCommand('voltar')}
                   className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-bold text-slate-200 transition-all active:scale-95 cursor-pointer"
                   title="Simular comando de voz: Voltar"
@@ -382,6 +388,7 @@ export const HandsFreeWaveIndicator: React.FC<HandsFreeWaveIndicatorProps> = ({
                 </button>
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => onSimulateCommand('repetir ingrediente')}
                   className="px-2 py-0.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 text-[11px] font-bold transition-all active:scale-95 cursor-pointer"
                   title="Simular comando de voz: Repetir Ingredientes"

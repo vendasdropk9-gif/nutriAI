@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { UserProfile } from "../types";
 import { getGeminiApiKey } from "./gemini.server";
+import { formatHealthFocusPromptContext } from "./healthFocusEngine";
 
 export const generateNutritionalTip = async (profile: UserProfile | null): Promise<string> => {
   const ai = new GoogleGenAI({
@@ -13,7 +14,7 @@ Forneça uma curiosidade curta, fascinante e baseada em ciência sobre hábitos 
 Perfil do Usuário:
 Objetivo: ${profile?.goals || "Saúde"}
 Estilo de vida: ${profile?.activityLevel || "Moderado"}
-Restrições: ${profile?.restrictions?.join(', ') || "Nenhuma"}
+Restrições: ${profile?.restrictions?.join(', ') || "Nenhuma"}${formatHealthFocusPromptContext(profile)}
 
 A curiosidade deve ter no máximo 2 frases e ser escrita em português brasileiro, motivadora e informativa.
 Responda APENAS com o texto da curiosidade.`;

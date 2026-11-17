@@ -231,6 +231,7 @@ export function SmartShoppingScheduler({
 
     setIsPlayingAudio(true);
     speak(scheduleData.aiVoiceSummary, {
+      voice: 'Aoede',
       onEnded: () => setIsPlayingAudio(false),
       onError: () => setIsPlayingAudio(false)
     });
@@ -268,6 +269,7 @@ export function SmartShoppingScheduler({
 
             {scheduleData?.aiVoiceSummary && (
               <button
+                data-malu-voice-id="Aoede"
                 onClick={handleSpeakSummary}
                 className={`p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                   isPlayingAudio

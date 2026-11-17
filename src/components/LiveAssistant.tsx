@@ -851,6 +851,7 @@ export function LiveAssistant({
       showStatus(goodbyeMsg, 'speaking', 4000);
       speak(goodbyeMsg, {
         lang: currentLanguage,
+        voice: 'Aoede',
         onEnded: () => {
           showStatus("Malu", 'idle', 2000);
         }
@@ -1077,6 +1078,7 @@ export function LiveAssistant({
       showStatus(goodbyeMsg, 'speaking', 3500);
       speak(goodbyeMsg, {
         lang: currentLanguage,
+        voice: 'Aoede',
         onEnded: () => {
           showStatus('Malu', 'idle', 1500);
         }
@@ -1385,7 +1387,7 @@ export function LiveAssistant({
         if (micResult.isDeviceNotFound) {
           const noMicMsg = t('malu_no_mic', locStrings.noMic);
           showStatus(noMicMsg, 'error', 5000);
-          speak(noMicMsg, { lang: currentLanguage });
+          speak(noMicMsg, { lang: currentLanguage, voice: 'Aoede' });
         } else {
           showStatus(t('malu_mic_error', locStrings.micError), 'error', 5000);
         }
@@ -1590,6 +1592,7 @@ export function LiveAssistant({
         {/* Main Floating Voice Button with Framer Motion Breathing & Real-Time Voice Volume Reaction */}
         <motion.button
           id="malu-voice-assistant-central-btn"
+          data-malu-voice-id="Aoede"
           role="button"
           tabIndex={0}
           aria-label={isActive ? "Desativar Malu" : "Ativar Malu"}

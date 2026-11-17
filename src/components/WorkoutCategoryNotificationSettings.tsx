@@ -365,6 +365,7 @@ export function WorkoutCategoryNotificationSettings({
                   {/* Test notification button */}
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => handleTestCategoryNotification(catMeta.key)}
                     disabled={!setting.enabled || testingCategory === catMeta.key}
                     className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-sm transition-all cursor-pointer disabled:opacity-40"

@@ -211,6 +211,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               {/* Botão sutil caso o autoplay esteja aguardando interação do navegador */}
               {needsGesture && (
                 <motion.button
+                  data-malu-voice-id="Aoede"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={(e) => {

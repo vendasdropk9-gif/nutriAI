@@ -194,6 +194,7 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
     if (isPlaying) return;
     setIsPlaying(true);
     await speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsPlaying(false),
       onError: () => setIsPlaying(false)
     });
@@ -378,6 +379,7 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
                 <ChevronRight className="w-6 h-6" />
               </button>
               <button 
+                data-malu-voice-id="Aoede"
                 onClick={() => handleSpeak("Com a NutriAI, você poderá vender direto para clientes da sua região que buscam uma alimentação mais saudável.")}
                 className="px-8 py-5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
               >
@@ -786,6 +788,7 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
                   </div>
                 </div>
                 <button 
+                  data-malu-voice-id="Aoede"
                   onClick={() => handleSpeak("Olha a dica de hoje! Clientes buscam mais Cestas de Frutas nas quartas à tarde. Aumente seu estoque de abacaxis e laranjas para faturar mais.")}
                   className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all cursor-pointer shadow-md shadow-emerald-500/10 shrink-0 flex items-center gap-1.5"
                 >
@@ -1687,6 +1690,7 @@ export function PartnerPortal({ onAwardPoints }: { onAwardPoints: (amount: numbe
                  </div>
               </div>
               <button 
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   let text = "Vou te ajudar nesta etapa.";
                   if (step === 'plans') text = "O NutriAI oferece três modelos de monetização para estabelecimentos parceiros: Assinatura Mensal, Assinatura Anual com desconto e destaque em banner, ou Comissão por venda realizada.";

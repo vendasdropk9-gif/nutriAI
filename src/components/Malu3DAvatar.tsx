@@ -929,6 +929,7 @@ export function Malu3DAvatar({
           {onTalkClick && (
             <button
               type="button"
+              data-malu-voice-id="Aoede"
               onClick={onTalkClick}
               className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center shadow-lg transition-transform active:scale-90 cursor-pointer"
               title="Falar com a Malu"
@@ -950,6 +951,7 @@ export function Malu3DAvatar({
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => handleTestVoice('alegre')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 cursor-pointer ${
                   maluEmotion === 'alegre' || maluEmotion === 'happy'
@@ -962,6 +964,7 @@ export function Malu3DAvatar({
               </button>
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => handleTestVoice('focada')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 cursor-pointer ${
                   maluEmotion === 'focada' || maluEmotion === 'motivating'
@@ -974,6 +977,7 @@ export function Malu3DAvatar({
               </button>
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => handleTestVoice('calma')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 cursor-pointer ${
                   maluEmotion === 'calma'
@@ -986,6 +990,7 @@ export function Malu3DAvatar({
               </button>
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => handleTestVoice('pensativa')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 cursor-pointer ${
                   maluEmotion === 'pensativa' || maluEmotion === 'thoughtful'

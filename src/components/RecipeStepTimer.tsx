@@ -207,6 +207,7 @@ export function RecipeStepTimer({ stepText, stepIndex, recipeName }: RecipeStepT
             </div>
             <div className="flex items-center gap-1">
               <button
+                data-malu-voice-id="Aoede"
                 onClick={() => setIsMuted(!isMuted)}
                 title={isMuted ? "Ativar som" : "Desativar som"}
                 className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"

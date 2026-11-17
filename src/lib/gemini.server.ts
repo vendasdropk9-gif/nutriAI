@@ -2,6 +2,7 @@ import { searchScientificLibrary } from "./libraryController.ts";
 import { GoogleGenAI, Type, Schema, Modality } from "@google/genai";
 import * as https from "https";
 import { analyzeShoppingListBudget } from "./priceMonitor";
+import { formatHealthFocusPromptContext } from "./healthFocusEngine";
 import { Recipe, UserProfile, MealPlanDay, EmotionalLog, SmartSwap, DiningOutAnalysis, GoalPrediction, WorkoutSession, Exercise, MasterPlanStrategy, IntakeLog, WorkoutLog, AdaptiveInsight, WeeklyChallenge, BloodPressureLog, BodyMonitorLog, WeeklyWorkoutPlan, WeeklyWorkoutDay, RecipePreparationTips, QuickDish, QuickDishGoal, CulinaryChallenge, CulinaryChallengeRecipe, CulinaryChallengeTip, CulinaryChallengeDailyMission, FoodNutritionComparison, FoodNutrientProfile, CookingAdviceResult, PantryItem, PantryRecipeSuggestion, ContextualRecipeAdvice, MealPlan, SmartShoppingSchedule, ComparativeProgressReport } from "../types";
 
 // Safe btoa and atob for server environment (Node.js)
@@ -222,7 +223,7 @@ USER CONTEXT:
 - Name: ${profile?.name || 'Friend'}
 - Goals: ${profile?.goals || 'Healthy nutrition & wellness'}
 - Body Type: ${profile?.bodyType || 'Not specified'}
-- Restrictions: ${safeJoin(profile?.restrictions) || 'None'}
+- Restrictions: ${safeJoin(profile?.restrictions) || 'None'}${formatHealthFocusPromptContext(profile)}
 - Allergies: ${safeJoin(profile?.allergies) || 'None'}
 - Water Goal: ${profile?.waterGoal || 2000} ml/day
 - Points: ${profile?.points || 0} pts
@@ -933,7 +934,7 @@ Metabolismo: ${profile.metabolism || 'Não informado'}
 Rotina: ${profile.routine || 'Não informada'}
 Restrições: ${safeJoin(profile.restrictions)}
 Alergias: ${safeJoin(profile.allergies)}
-Objetivo: ${profile.goals || "Nenhum específico"}
+Objetivo: ${profile.goals || "Nenhum específico"}${formatHealthFocusPromptContext(profile)}
 `;
 
     if (profile.macroTargets && (profile.macroTargets.carbs > 0 || profile.macroTargets.protein > 0 || profile.macroTargets.fat > 0)) {
@@ -4300,7 +4301,7 @@ Objetivo: ${profile.goals || "Não informado"}
 Biotipo: ${profile.bodyType || "Não informado"}
 Restrições: ${safeJoin(profile.restrictions)}
 Alergias: ${safeJoin(profile.allergies)}
-Atividade Física: ${profile.activityLevel || "Não informada"}
+Atividade Física: ${profile.activityLevel || "Não informada"}${formatHealthFocusPromptContext(profile)}
 `;
   }
 
@@ -5945,7 +5946,7 @@ DADOS DO PERFIL DO USUÁRIO (PERSONALIZAÇÃO OBRIGATÓRIA):
 - Alergias cadastradas: ${safeJoin(profile.allergies)}
 - Preferências / Desgostos: ${profile.preferences || 'Nenhuma restrição adicional'}
 - Nível de Atividade: ${profile.activityLevel || 'Moderado'}
-- Meta geral: ${profile.goals || goalLabel}
+- Meta geral: ${profile.goals || goalLabel}${formatHealthFocusPromptContext(profile)}
 ` : 'Perfil padrão saudável sem restrições informadas.';
 
   const previousContext = previousDishes && previousDishes.length > 0 

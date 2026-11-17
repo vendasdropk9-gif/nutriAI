@@ -118,6 +118,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
     setIsPlayingTestVoice(true);
     const testText = "Olá! Este é o nível de volume da minha voz no NutriAI. Como está o som para você?";
     speak(testText, {
+      voice: 'Aoede',
       volume: voiceVolume,
       onEnded: () => setIsPlayingTestVoice(false),
       onError: () => setIsPlayingTestVoice(false),
@@ -449,6 +450,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                 {/* Voice Volume Indicator / Quick Toggle */}
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => {
                     playSfx('tap');
                     setShowVoiceSettings(prev => !prev);
@@ -508,6 +510,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        data-malu-voice-id="Aoede"
                         onClick={() => handleVolumeChange(voiceVolume === 0 ? 0.7 : 0)}
                         className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                         title={voiceVolume === 0 ? "Desmutar" : "Silenciar"}
@@ -526,6 +529,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                       <Volume2 className="w-3.5 h-3.5 text-slate-400" />
                       <button
                         type="button"
+                        data-malu-voice-id="Aoede"
                         onClick={handleTestVoice}
                         className="ml-2 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition cursor-pointer"
                       >
@@ -596,6 +600,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                       </label>
                       <button
                         type="button"
+                        data-malu-voice-id="Aoede"
                         onClick={isRecordingVoice ? stopVoiceRecording : startVoiceRecording}
                         className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                           isRecordingVoice
@@ -629,6 +634,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                         </div>
                         <button
                           type="button"
+                          data-malu-voice-id="Aoede"
                           onClick={stopVoiceRecording}
                           className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 transition cursor-pointer"
                         >
@@ -668,6 +674,7 @@ export function FeedbackSystem({ profile, isOpen, onClose, addNotification }: Fe
                     </button>
                     <motion.button
                       type="submit"
+                      data-malu-voice-id="Aoede"
                       disabled={isSubmitting}
                       onClick={activateSpeechSynthesis}
                       onPointerDown={activateSpeechSynthesis}

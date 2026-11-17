@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2, Sparkles } from 'lucide-react';
 import { speak } from '../lib/speech';
+import { MALU_VOICE_ID } from '../lib/maluVoice';
 
 export function MaluVoiceTestView() {
   const testPhrases = [
@@ -26,7 +27,8 @@ export function MaluVoiceTestView() {
           <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
             <p className="text-slate-700 dark:text-slate-300 text-sm font-medium flex-1 mr-4">{phrase}</p>
             <button
-              onClick={() => speak(phrase)}
+              data-malu-voice-id={MALU_VOICE_ID}
+              onClick={() => speak(phrase, { voice: MALU_VOICE_ID, lang: 'pt-BR' })}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-emerald-600/20"
             >
               <Volume2 className="w-4 h-4" />

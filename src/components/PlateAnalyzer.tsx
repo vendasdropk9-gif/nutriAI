@@ -86,6 +86,7 @@ export function PlateAnalyzer({ profile, onUpdateProfile, onAwardPoints }: Plate
     try {
       setIsPlaying(true);
       const result = await speak(text, {
+        voice: 'Aoede',
         onEnded: () => setIsPlaying(false),
         onError: () => setIsPlaying(false)
       });

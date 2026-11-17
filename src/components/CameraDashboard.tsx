@@ -265,6 +265,7 @@ export const CameraDashboard: React.FC = () => {
 
           {/* Sound Toggle */}
           <button
+            data-malu-voice-id="Aoede"
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`min-h-[40px] min-w-[40px] p-2 rounded-xl border transition-colors flex items-center justify-center ${
               soundEnabled

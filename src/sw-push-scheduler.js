@@ -33,7 +33,9 @@ let localSchedules = {
   mealPrepAlertsEnabled: true,
   exerciseAlertsEnabled: true,
   challengeAlertsEnabled: true,
+  waterAlertsEnabled: true,
   prepLeadTimeMinutes: 30, // Notificar 30 min antes de preparar a refeição
+  waterSchedule: [],
   meals: [
     { id: 'breakfast', label: 'Café da Manhã', time: '08:00', prepTime: '07:30', defaultTip: 'Comece o dia com energia e proteínas nutritivas!' },
     { id: 'morningSnack', label: 'Lanche da Manhã', time: '10:30', prepTime: '10:15', defaultTip: 'Hora de um snack leve ou fruta fresca.' },
@@ -418,6 +420,36 @@ async function registerNativeTimestampTriggers() {
       }
     }
 
+    // 3. Triggers Circadianos de Ingestão de Água
+    if (localSchedules.waterAlertsEnabled && Array.isArray(localSchedules.waterSchedule)) {
+      for (const slot of localSchedules.waterSchedule) {
+        if (!slot || !slot.time) continue;
+        const nextTime = getNextTimestampForTime(slot.time);
+        if (!nextTime || nextTime <= Date.now()) continue;
+
+        const targetMl = slot.targetMl || 250;
+        await self.registration.showNotification(slot.title || '💧 Lembrete Circadiano de Água', {
+          body: slot.body || `Beba ${targetMl}ml de água para manter seu ritmo circadiano hidratado.`,
+          icon: '/pwa-192x192.png',
+          badge: '/icon-192.png',
+          vibrate: [120, 60, 120],
+          tag: `trigger-water-${slot.id}-${todayStr}`,
+          showTrigger: new TimestampTrigger(nextTime),
+          data: {
+            url: '/?tab=habits',
+            type: 'water_circadian',
+            slotId: slot.id,
+            phase: slot.phase,
+            targetMl
+          },
+          actions: [
+            { action: 'open_water', title: `Registrar ${targetMl}ml 💧` },
+            { action: 'dismiss', title: 'Mais tarde' }
+          ]
+        });
+      }
+    }
+
     return true;
   } catch (err) {
     console.warn('[SW Push] TimestampTrigger não suportado ou erro ao agendar:', err);
@@ -530,6 +562,37 @@ async function checkScheduledAlarms() {
             actions: [
               { action: 'open_challenges', title: 'Ver Desafios 🎯' },
               { action: 'dismiss', title: 'Dispensar' }
+            ]
+          });
+        }
+      }
+    }
+  }
+
+  // 4. Lembretes Circadianos Customizáveis de Água
+  if (localSchedules.waterAlertsEnabled && Array.isArray(localSchedules.waterSchedule)) {
+    for (const slot of localSchedules.waterSchedule) {
+      if (slot && slot.time === currentTime) {
+        const key = `${todayStr}-water-${slot.id}`;
+        if (!notifiedAlarmsSet.has(key)) {
+          notifiedAlarmsSet.add(key);
+          const targetMl = slot.targetMl || 250;
+          const title = slot.title || '💧 Lembrete Circadiano de Água';
+          const body = slot.body || `Hora de beber ${targetMl}ml de água para acompanhar seu ritmo biológico.`;
+
+          await triggerNativeNotification(title, {
+            body,
+            tag: `water-${slot.id}-${todayStr}`,
+            data: {
+              type: 'water_circadian',
+              slotId: slot.id,
+              phase: slot.phase,
+              targetMl,
+              url: '/?tab=habits'
+            },
+            actions: [
+              { action: 'open_water', title: `Registrar ${targetMl}ml 💧` },
+              { action: 'dismiss', title: 'Depois' }
             ]
           });
         }
@@ -742,6 +805,7 @@ self.addEventListener('message', (event) => {
       localSchedules.mealPrepAlertsEnabled = false;
       localSchedules.exerciseAlertsEnabled = false;
       localSchedules.challengeAlertsEnabled = false;
+      localSchedules.waterAlertsEnabled = false;
       persistSchedules(localSchedules);
       notifiedAlarmsSet.clear();
       break;
@@ -769,6 +833,8 @@ self.addEventListener('notificationclick', (event) => {
     targetUrl = '/?tab=plan';
   } else if (action === 'open_challenges') {
     targetUrl = '/?tab=challenge';
+  } else if (action === 'open_water') {
+    targetUrl = '/?tab=habits';
   }
 
   event.waitUntil(

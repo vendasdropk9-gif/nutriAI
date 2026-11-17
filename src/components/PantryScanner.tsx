@@ -769,7 +769,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
     vibrate([50, 80]);
     const summaryMsg = `${newPantryItems.length} alimentos importados em lote! ${restockShoppingItems.length > 0 ? `(${restockShoppingItems.length} adicionados à Lista de Compras)` : ''}`;
     setBulkSuccessToast(summaryMsg);
-    speak(`Importação em lote concluída com ${newPantryItems.length} itens categorizados.`, { lang: 'pt-BR' });
+    speak(`Importação em lote concluída com ${newPantryItems.length} itens categorizados.`, { lang: 'pt-BR', voice: 'Aoede' });
 
     setBulkItems([]);
     setIsExecutingBulk(false);
@@ -1154,7 +1154,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
             storageLocation: (matchedCategory.includes('Laticínios') || matchedCategory.includes('Proteínas')) ? 'geladeira' : 'despensa'
           });
           setScanStatus(`Produto localizado: ${prodName}`);
-          speak(`Código lido: ${prodName}`, { lang: 'pt-BR' });
+          speak(`Código lido: ${prodName}`, { lang: 'pt-BR', voice: 'Aoede' });
           return;
         }
       }
@@ -1207,7 +1207,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
       const recipes = await generatePantryExpiringRecipes(pantryItems, profile || undefined);
       setSuggestedRecipes(recipes);
       if (recipes.length > 0) {
-        speak(`Encontrei ${recipes.length} receitas aproveitando seus ingredientes mais urgentes!`, { lang: 'pt-BR' });
+        speak(`Encontrei ${recipes.length} receitas aproveitando seus ingredientes mais urgentes!`, { lang: 'pt-BR', voice: 'Aoede' });
       }
     } catch (e) {
       console.warn("Erro ao gerar receitas da despensa:", e);
@@ -1257,7 +1257,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
     setPantryItems(updated);
     saveItems(updated);
     setConsumedSuccessId(recipe.id);
-    speak("Ingredientes consumidos e despensa atualizada!", { lang: 'pt-BR' });
+    speak("Ingredientes consumidos e despensa atualizada!", { lang: 'pt-BR', voice: 'Aoede' });
     setTimeout(() => setConsumedSuccessId(null), 3500);
   };
 
@@ -1295,6 +1295,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
           <div className="flex flex-wrap items-center gap-2">
             <button
               id="btn-voice-add-pantry-header"
+              data-malu-voice-id="Aoede"
               type="button"
               onClick={startVoiceCommand}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 active:scale-95 text-white font-bold text-xs shadow-lg shadow-emerald-950/25 transition cursor-pointer"
@@ -1414,6 +1415,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
           <button
             id="tab-pantry-voice-btn"
+            data-malu-voice-id="Aoede"
             type="button"
             onClick={startVoiceCommand}
             className="px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-600/40 cursor-pointer shadow-xs active:scale-95"
@@ -1593,6 +1595,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                 <button
                   id="btn-check-expiring-pantry-now"
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={() => {
                     if (typeof window !== 'undefined' && 'Notification' in window) {
                       if (window.Notification.permission === 'granted') {
@@ -1866,6 +1869,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                   <button
                     id="btn-test-spoilage-checker"
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => {
                       checkAndNotifyExpiringStaples(pantryItems);
                       checkPantrySpoilage(profile, { force: true, leadDays });
@@ -2168,6 +2172,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
             <button
               id="btn-voice-command-manual-tab"
+              data-malu-voice-id="Aoede"
               type="button"
               onClick={startVoiceCommand}
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-2 transition active:scale-95 cursor-pointer self-start sm:self-auto"
@@ -3229,6 +3234,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   stopVoiceCommand();
                   setShowVoiceModal(false);
@@ -3256,6 +3262,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                 )}
                 <button
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={isVoiceListening ? stopVoiceCommand : startVoiceCommand}
                   className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-90 cursor-pointer shadow-lg ${
                     isVoiceListening
@@ -3356,6 +3363,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
                 <button
                   id="btn-confirm-voice-item"
                   type="button"
+                  data-malu-voice-id="Aoede"
                   onClick={handleConfirmVoiceItem}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 transition active:scale-98 cursor-pointer"
                 >
@@ -3369,6 +3377,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
             <div className="flex items-center justify-between text-xs pt-1">
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   setVoiceTranscript('');
                   setParsedVoiceItem(null);
@@ -3382,6 +3391,7 @@ export const PantryScanner: React.FC<PantryScannerProps> = ({ profile, onCookRec
 
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={() => {
                   stopVoiceCommand();
                   setShowVoiceModal(false);

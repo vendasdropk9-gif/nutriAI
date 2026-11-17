@@ -91,6 +91,7 @@ export function DailyWorkoutTipCard({ profile, onNavigate }: DailyWorkoutTipCard
 
         {/* Voice button */}
         <motion.button
+          data-malu-voice-id="Aoede"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSpeak}

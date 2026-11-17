@@ -511,6 +511,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     setIsPlaying(true);
     try {
       await speak(text, {
+        voice: 'Aoede',
         onEnded: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),
       });
@@ -569,6 +570,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
     
     try {
       await speak(textToSpeak, {
+        voice: 'Aoede',
         onEnded: () => {
           setIsSpeakingTips(false);
           if (bgAudioRef.current && isBgMusicPlaying) {
@@ -1261,6 +1263,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
                   className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-1.5 md:p-2 rounded-xl md:rounded-2xl border border-white/60 dark:border-slate-800 shadow-xl flex items-center gap-2 md:gap-3 group"
                 >
                    <button 
+                     data-malu-voice-id="Aoede"
                      onClick={toggleBgMusic}
                      title={isBgMusicPlaying ? "Pausar música" : "Tocar música"}
                      className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-all ${isBgMusicPlaying ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
@@ -1312,6 +1315,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
                  <div className="bg-white/40 dark:bg-slate-800/40 p-4 md:p-6 rounded-2xl md:rounded-[28px] border border-white/60 dark:border-slate-700/50 flex items-center gap-3 md:gap-4">
                     <button
+                        data-malu-voice-id="Aoede"
                         onClick={() => currentExercise && playMotivationalMessage(currentExercise.description)}
                         className={`w-10 h-10 md:w-12 md:h-12 rounded-full shrink-0 flex items-center justify-center text-white bg-emerald-500 transition-all ${isPlaying ? 'animate-pulse' : 'hover:scale-105 active:scale-95'}`}
                     >
@@ -1539,6 +1543,7 @@ export function PersonalTrainer({ profile, onAwardPoints, onUpdateProfile }: Per
 
               <button
                 type="button"
+                data-malu-voice-id="Aoede"
                 onClick={handlePlayAudioTips}
                 disabled={isGenerating}
                 className={`w-full bg-gradient-to-r ${isSpeakingTips ? 'from-amber-500/15 via-amber-500/5' : 'from-emerald-500/15 via-emerald-500/5'} to-transparent dark:from-emerald-500/25 dark:via-emerald-500/10 border ${isSpeakingTips ? 'border-amber-500/30' : 'border-emerald-500/20'} p-5 rounded-[24px] hover:rounded-[28px] flex items-center justify-between hover:border-emerald-500/40 hover:scale-[1.01] transition-all group active:scale-95 text-left`}

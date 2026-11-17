@@ -249,7 +249,7 @@ export function PartnerBanner() {
       try {
         const cleanTitle = (newPromo.title || "").replace(/⚡/g, "").trim();
         const msg = `Atenção! Nova promoção lançada: ${cleanTitle}. ${newPromo.price}! Aproveite agora!`;
-        speak(msg);
+        speak(msg, { voice: 'Aoede', lang: 'pt-BR' });
       } catch (err) {}
     };
 
@@ -484,7 +484,7 @@ export function PartnerBanner() {
     try {
       const productTitle = currentSlide?.title || "Produto em Destaque";
       const productInfo = currentSlide?.productInfo || "";
-      speak(`Conheça mais sobre ${productTitle}. ${productInfo}`);
+      speak(`Conheça mais sobre ${productTitle}. ${productInfo}`, { voice: 'Aoede', lang: 'pt-BR' });
     } catch (err) {}
   };
 
@@ -657,6 +657,7 @@ export function PartnerBanner() {
                     <div className="flex items-center gap-1 bg-transparent p-0.5 rounded-full shrink-0 max-w-[200px] sm:max-w-none">
                       <div className="flex items-center gap-0.5">
                         <button
+                          data-malu-voice-id="Aoede"
                           onClick={selectCookingTrack}
                           className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] transition-all cursor-pointer text-white/80 ${
                             !isMuted && soundType === "cooking" 
@@ -669,6 +670,7 @@ export function PartnerBanner() {
                           <span className="hidden xs:inline sm:inline">Ritmo</span>
                         </button>
                         <button
+                          data-malu-voice-id="Aoede"
                           onClick={selectZenTrack}
                           className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] transition-all cursor-pointer text-white/80 ${
                             !isMuted && soundType === "meditative" 
@@ -697,6 +699,7 @@ export function PartnerBanner() {
                       )}
 
                       <motion.button
+                        data-malu-voice-id="Aoede"
                         whileHover={{ scale: 1.08 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleMusic(); }}
@@ -717,6 +720,7 @@ export function PartnerBanner() {
             {/* Botão de Chamada para Ação (CTA) Minimalista e Semitransparente sobreposto ao vídeo */}
             <div className="flex items-center justify-center my-auto py-1 pointer-events-none">
               <motion.button
+                data-malu-voice-id="Aoede"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleLearnMore}

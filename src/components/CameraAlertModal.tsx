@@ -224,6 +224,7 @@ export const CameraAlertModal: React.FC<CameraAlertModalProps> = ({
           {/* Action Buttons Matrix */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <button
+              data-malu-voice-id="Aoede"
               onClick={handleTriggerAlarm}
               className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
                 isAlarmActive
@@ -256,6 +257,7 @@ export const CameraAlertModal: React.FC<CameraAlertModalProps> = ({
             </button>
 
             <button
+              data-malu-voice-id="Aoede"
               onClick={handleMuteCamera}
               className="p-3 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
             >

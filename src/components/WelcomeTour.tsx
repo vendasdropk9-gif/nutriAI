@@ -953,6 +953,7 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
                   {/* Speech Narration Toggle Button */}
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => {
                       setIsAudioEnabled(!isAudioEnabled);
                       if (isAudioEnabled) {
@@ -976,6 +977,7 @@ export function WelcomeTour({ onFinish, onNavigateTab }: WelcomeTourProps) {
                   {/* Voice Commands Listening Toggle Button */}
                   <button
                     type="button"
+                    data-malu-voice-id="Aoede"
                     onClick={() => {
                       toggleVoiceListening();
                       playSfx('tap');

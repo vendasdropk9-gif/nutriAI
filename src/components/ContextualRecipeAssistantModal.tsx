@@ -110,6 +110,7 @@ export function ContextualRecipeAssistantModal({
     }
     setIsPlayingAudio(true);
     speak(text, {
+      voice: 'Aoede',
       onEnded: () => setIsPlayingAudio(false),
       onError: () => setIsPlayingAudio(false)
     });
@@ -246,6 +247,7 @@ export function ContextualRecipeAssistantModal({
                   </div>
 
                   <button
+                    data-malu-voice-id="Aoede"
                     onClick={() => handleSpeakText(advice.summaryAdvice)}
                     className={`p-2.5 rounded-xl border text-xs font-bold transition-all shrink-0 cursor-pointer ${
                       isPlayingAudio
