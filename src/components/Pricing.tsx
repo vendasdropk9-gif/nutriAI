@@ -1,15 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Star, Zap, Crown, ShieldCheck, ArrowRight, Volume2, Info, Sparkles, TrendingUp, Lock, CheckCircle2 } from 'lucide-react';
+import { Check, Star, Zap, Crown, ShieldCheck, ArrowRight, Volume2, Info, Sparkles, TrendingUp, Lock, CheckCircle2, Ban } from 'lucide-react';
 import { speak } from '../lib/speech';
 import { CheckoutModal } from './CheckoutModal';
 import { PWAInstallButton } from './PWAInstallButton';
 import { UserProfile } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
+import { db, auth, doc, setDoc, serverTimestamp } from '../lib/firebase';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  };
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth?.currentUser?.uid,
+      email: auth?.currentUser?.email,
+      emailVerified: auth?.currentUser?.emailVerified,
+      isAnonymous: auth?.currentUser?.isAnonymous,
+      tenantId: auth?.currentUser?.tenantId,
+      providerInfo:
+        auth?.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          displayName: provider.displayName,
+          email: provider.email,
+          photoUrl: provider.photoURL,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 interface PricingProps {
   profile?: UserProfile | null;
   onUpgradeSuccess?: (planId: string, cycle: 'monthly' | 'annual') => void;
+  onPremiumStatusChange?: (isPremium: boolean) => void;
 }
 
 const PLANS = [
@@ -28,7 +82,8 @@ const PLANS = [
       'Coach Nutricional disponível 24/7',
       'Alertas inteligentes de hidratação e sono',
       'Lista de compras automática sincronizada',
-      'Receitas exclusivas de chefs & fitoterapia'
+      'Receitas exclusivas de chefs & fitoterapia',
+      'Experiência 100% sem anúncios (Ad-Free)'
     ],
     cta: 'Assinar NutriAI Premium',
     popular: true,
@@ -49,7 +104,8 @@ const PLANS = [
       'Projeção preditiva de resultados metabólicos',
       'Suporte VIP prioritário e nutricionista dedicado',
       'Receitas Gourmet exclusivas preparadas com IA',
-      'Análise de Bioimpedância Virtual Pro'
+      'Análise de Bioimpedância Virtual Pro',
+      'Experiência 100% sem anúncios (Ad-Free)'
     ],
     cta: 'Acessar Edição Elite PRO',
     popular: false,
@@ -58,22 +114,73 @@ const PLANS = [
   }
 ];
 
-export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
+export function Pricing({ profile, onUpgradeSuccess, onPremiumStatusChange }: PricingProps) {
   const { t } = useTranslation();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<typeof PLANS[0] | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [optimisticIsPremium, setOptimisticIsPremium] = useState<boolean>(profile?.isPremium === true);
+  const [isUpdatingPremium, setIsUpdatingPremium] = useState(false);
+  const [premiumUpdateError, setPremiumUpdateError] = useState<string | null>(null);
 
-  const isUserPremium = profile?.isPremium === true;
+  useEffect(() => {
+    setOptimisticIsPremium(profile?.isPremium === true);
+  }, [profile?.isPremium]);
+
+  const isUserPremium = optimisticIsPremium || profile?.isPremium === true;
   const currentPlanName = profile?.plan || (isUserPremium ? 'NutriAI Premium' : 'Plano Gratuito');
+
+  const updatePremiumStatusInFirestore = async (
+    nextIsPremium: boolean,
+    planId?: string,
+    cycle?: 'monthly' | 'annual'
+  ) => {
+    setIsUpdatingPremium(true);
+    setPremiumUpdateError(null);
+    setOptimisticIsPremium(nextIsPremium);
+
+    const uid = auth?.currentUser?.uid || profile?.id;
+    try {
+      if (uid && db) {
+        const userDocRef = doc(db, 'users', uid);
+        await setDoc(
+          userDocRef,
+          {
+            isPremium: nextIsPremium,
+            plan: nextIsPremium ? 'Premium' : 'Free',
+            subscriptionStatus: nextIsPremium ? 'active' : 'inactive',
+            adFree: nextIsPremium,
+            ...(planId ? { activePlanId: planId } : {}),
+            ...(cycle ? { billingCycle: cycle } : {}),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+      if (onPremiumStatusChange) {
+        onPremiumStatusChange(nextIsPremium);
+      }
+    } catch (err) {
+      setOptimisticIsPremium(profile?.isPremium === true);
+      setPremiumUpdateError('Não foi possível atualizar sua flag Ad-Free no Firestore. Tente novamente.');
+      try {
+        handleFirestoreError(err, OperationType.UPDATE, uid ? `users/${uid}` : null);
+      } catch {
+        // Error logged with structured Firestore context
+      }
+    } finally {
+      setIsUpdatingPremium(false);
+    }
+  };
 
   const handleOpenCheckout = (plan: typeof PLANS[0]) => {
     setSelectedPlanForCheckout(plan);
     setShowCheckout(true);
   };
 
-  const handleCheckoutSuccess = (planId: string, cycle: 'monthly' | 'annual') => {
+  const handleCheckoutSuccess = async (planId: string, cycle: 'monthly' | 'annual') => {
+    await updatePremiumStatusInFirestore(true, planId, cycle);
     if (onUpgradeSuccess) {
       onUpgradeSuccess(planId, cycle);
     }
@@ -125,7 +232,10 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
       
       {/* Active VIP Status if already subscribed */}
       {isUserPremium && (
-        <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-slate-900/40 border border-[#D8B14A]/40 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-xl">
+        <div
+          data-testid="pricing-vip-active-banner"
+          className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-slate-900/40 border border-[#D8B14A]/40 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-xl"
+        >
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-[#D8B14A]/20 border border-[#D8B14A]/40 flex items-center justify-center text-[#D8B14A]">
               <Crown className="w-6 h-6" />
@@ -135,7 +245,7 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
                 Sua Assinatura VIP está Ativa!
               </h4>
               <p className="text-xs text-[#B5BDC9]">
-                Plano atual: <strong className="text-[#D8B14A]">{currentPlanName}</strong> • Recursos ilimitados liberados
+                Plano atual: <strong className="text-[#D8B14A]">{currentPlanName}</strong> • Experiência Sem Anúncios (Ad-Free) Ativa
               </p>
             </div>
           </div>
@@ -145,6 +255,68 @@ export function Pricing({ profile, onUpgradeSuccess }: PricingProps) {
           </div>
         </div>
       )}
+
+      {/* Ad-Free Experience Status & Control Card */}
+      <div
+        data-testid="pricing-ad-free-card"
+        data-is-premium={isUserPremium ? 'true' : 'false'}
+        className={`p-5 rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md shadow-lg transition-all ${
+          isUserPremium
+            ? 'bg-emerald-950/30 border-[#16C784]/40'
+            : 'bg-[#151B23] border-[#232C39]'
+        }`}
+      >
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${
+              isUserPremium
+                ? 'bg-[#16C784]/20 border-[#16C784]/40 text-[#16C784]'
+                : 'bg-slate-800/80 border-slate-700 text-slate-300'
+            }`}
+          >
+            <Ban className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              Experiência Sem Anúncios (Ad-Free)
+            </h4>
+            <p className="text-xs text-[#B5BDC9] mt-0.5">
+              {isUserPremium
+                ? 'Flag Premium ativa no seu perfil: todos os banners e vídeos patrocinados são removidos automaticamente.'
+                : 'Assine o plano Premium para ativar o modo sem anúncios (Ad-Free) e remover banners em todo o aplicativo.'}
+            </p>
+            {premiumUpdateError && (
+              <p className="text-xs text-rose-400 mt-1" role="alert">
+                {premiumUpdateError}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0">
+          {isUserPremium ? (
+            <button
+              type="button"
+              data-testid="toggle-ad-free-btn"
+              disabled={isUpdatingPremium}
+              onClick={() => updatePremiumStatusInFirestore(false)}
+              className="px-4 py-2 rounded-full text-xs font-bold border border-white/15 bg-white/5 text-slate-200 hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isUpdatingPremium ? 'Atualizando...' : 'Pausar Ad-Free'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="activate-ad-free-btn"
+              disabled={isUpdatingPremium}
+              onClick={() => handleOpenCheckout(PLANS[0])}
+              className="px-5 py-2.5 rounded-full text-xs font-bold bg-gradient-to-r from-[#16C784] to-[#10B981] text-white shadow-md hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Ativar Experiência Ad-Free
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Header Banner - Dark Luxury Atmosphere */}
       <div className="relative rounded-[32px] p-8 sm:p-12 bg-gradient-to-br from-[#151B23] via-[#1A222C] to-[#0B0F14] border border-[#232C39] text-center space-y-6 overflow-hidden shadow-2xl">

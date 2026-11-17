@@ -39,6 +39,11 @@
         "lastActiveDate": { "type": "string", "format": "date-time" },
         "badges": { "type": "array", "items": { "type": "string" } },
         "mealPlan": { "type": "object" },
+        "plan": { "type": "string", "enum": ["Free", "Premium"] },
+        "isPremium": { "type": "boolean" },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "inactive", "trial"] },
+        "adFree": { "type": "boolean" },
+        "interests": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "role": { "type": "string" }
@@ -571,14 +576,76 @@
     },
     "AdTelemetry": {
       "title": "Ad Telemetry",
-      "description": "Counter for video and banner ad loads for engagement analysis",
+      "description": "Counter for video and banner ad impressions, user clicks, and A/B test variant breakdown for segmented engagement analysis",
       "type": "object",
       "properties": {
         "videoLoads": { "type": "number" },
         "bannerLoads": { "type": "number" },
+        "videoClicks": { "type": "number" },
+        "bannerClicks": { "type": "number" },
+        "totalImpressions": { "type": "number" },
+        "totalClicks": { "type": "number" },
+        "conversionContext": { "type": "string" },
+        "lastAdType": { "type": "string", "enum": ["Vídeo", "Banner"] },
+        "lastClickedAdType": { "type": "string", "enum": ["Vídeo", "Banner"] },
+        "lastClickTimestamp": { "type": "string", "format": "date-time" },
+        "experimentId": { "type": "string" },
+        "abVariant": { "type": "string", "enum": ["A", "B"] },
+        "abVariantStyle": { "type": "string", "enum": ["standard", "claymorphic"] },
+        "visibilityRatio": { "type": "number" },
+        "visibilidade_percentual": { "type": "number" },
+        "totalDwellTimeMs": { "type": "number" },
+        "totalDwellTimeSeconds": { "type": "number" },
+        "lastDwellTimeMs": { "type": "number" },
+        "byContext": { "type": "object" },
+        "byVariant": { "type": "object" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["videoLoads", "bannerLoads", "updatedAt"]
+      "required": ["updatedAt"]
+    },
+    "AdTelemetryLog": {
+      "title": "Ad Telemetry Log",
+      "description": "Individual ad impression (>=50% visible), dwell time, and user click telemetry event with conversion context, A/B variant, exact visibility percentage (0-100), and timestamp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["impression", "click", "dwell"] },
+        "adType": { "type": "string", "enum": ["Vídeo", "Banner"] },
+        "format": { "type": "string", "enum": ["video", "banner"] },
+        "adId": { "type": "string" },
+        "placementId": { "type": "string" },
+        "conversionContext": { "type": "string" },
+        "visibilityThreshold": { "type": "number" },
+        "visibilityRatio": { "type": "number" },
+        "visibilidade_percentual": { "type": "number" },
+        "dwellTimeMs": { "type": "number" },
+        "dwellTimeSeconds": { "type": "number" },
+        "dwellFlushReason": { "type": "string", "enum": ["interval", "hidden", "dismiss", "unmount", "visibility_exit"] },
+        "experimentId": { "type": "string" },
+        "abVariant": { "type": "string", "enum": ["A", "B"] },
+        "abVariantStyle": { "type": "string", "enum": ["standard", "claymorphic"] },
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventType", "adType", "format", "adId", "placementId", "conversionContext", "visibilidade_percentual", "userId", "timestamp", "createdAt"]
+    },
+    "AdABTestExperiment": {
+      "title": "Ad A/B Test Experiment",
+      "description": "Tracks variant A vs B impressions, visibility scores, clicks, CTR, and best performing variant in Firestore",
+      "type": "object",
+      "properties": {
+        "experimentId": { "type": "string" },
+        "placementId": { "type": "string" },
+        "conversionContext": { "type": "string" },
+        "variants": { "type": "object" },
+        "bestPerformingVariant": { "type": "string", "enum": ["A", "B", "tie"] },
+        "winnerByClicks": { "type": "string", "enum": ["A", "B", "tie"] },
+        "winnerByVisibility": { "type": "string", "enum": ["A", "B", "tie"] },
+        "metricsSummary": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["experimentId", "variants", "updatedAt"]
     }
   },
   "firestore": {
@@ -724,7 +791,15 @@
     },
     "/adTelemetry/{telemetryId}": {
       "schema": "AdTelemetry",
-      "description": "Global ad engagement counter for video and banner loads"
+      "description": "Global ad engagement counter for video and banner impressions and clicks"
+    },
+    "/adTelemetryLogs/{logId}": {
+      "schema": "AdTelemetryLog",
+      "description": "Segmented ad impression and click telemetry event logs with conversion context and timestamp"
+    },
+    "/adABTests/{experimentId}": {
+      "schema": "AdABTestExperiment",
+      "description": "A/B test variant experiment metrics comparing clicks, viewable impressions, visibility ratio, CTR, and winning variant"
     }
   }
 }

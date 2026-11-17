@@ -208,21 +208,27 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
   }, [profile?.themePreference]);
 
 
-  // Load profile & Weekly Report history from IndexedDB on startup for robust offline access
+  // Load profile, goals, mealPlan & Weekly Report history from IndexedDB on startup/user change for robust offline access
   useEffect(() => {
-    loadProfileFromIndexedDB().then(savedProfile => {
-      if (savedProfile && (!profile || (savedProfile.intakeLogs?.length || 0) >= (profile.intakeLogs?.length || 0))) {
+    const targetUid = user?.uid || profile?.id;
+    loadProfileFromIndexedDB(targetUid).then(savedProfile => {
+      if (
+        savedProfile &&
+        (!profile ||
+          (!profile.mealPlan && savedProfile.mealPlan) ||
+          (savedProfile.intakeLogs?.length || 0) > (profile.intakeLogs?.length || 0))
+      ) {
         setProfile(savedProfile);
       }
     });
-  }, []);
+  }, [user?.uid]);
 
-  // Save profile & Weekly Report history to IndexedDB whenever profile updates
+  // Save profile, goals, mealPlan & Weekly Report history to IndexedDB whenever profile updates
   useEffect(() => {
     if (profile) {
-      saveProfileToIndexedDB(profile);
+      saveProfileToIndexedDB(profile, user?.uid || profile.id);
     }
-  }, [profile]);
+  }, [profile, user?.uid]);
 
   const { syncToFirestore, logIntakeToFirestore } = useProfileSync(user, profile, setProfile);
 
@@ -1085,6 +1091,23 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                 {activeTab === 'pricing' && (
                   <Pricing
                     profile={profile}
+                    onPremiumStatusChange={(nextIsPremium) => {
+                      setProfile((prev) => {
+                        const baseProfile: UserProfile = prev || {
+                          name: user?.displayName || 'Usuário VIP',
+                          restrictions: [],
+                          allergies: [],
+                          goals: 'Saúde, Longevidade e IA',
+                          equipment: []
+                        };
+                        return {
+                          ...baseProfile,
+                          plan: nextIsPremium ? 'Premium' : 'Free',
+                          isPremium: nextIsPremium,
+                          subscriptionStatus: nextIsPremium ? 'active' : 'inactive'
+                        };
+                      });
+                    }}
                     onUpgradeSuccess={(planId) => {
                       const planTitle = planId === 'pro' ? 'NutriAI Elite PRO' : 'NutriAI Premium';
                       const updatedProfile: UserProfile = {
@@ -1105,7 +1128,7 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                       }
                       addNotification({
                         title: 'Assinatura VIP Ativada!',
-                        message: `Parabéns! Seu plano ${planTitle} foi ativado com sucesso com IA ilimitada.`,
+                        message: `Parabéns! Seu plano ${planTitle} foi ativado com sucesso e a experiência sem anúncios já está ativa.`,
                         type: 'success'
                       });
                     }}
@@ -1156,6 +1179,9 @@ function AppContent() {  const [quickRecipeIngredient, setQuickRecipeIngredient]
                       placementId={`nutri-tab-${activeTab}`}
                       format={activeTab === 'market' ? 'video' : 'banner'}
                       profile={profile}
+                      conversionContext={activeTab}
+                      experimentId="nutri_feed_ab_v1"
+                      abTestMode="both"
                     />
                   </div>
                 )}

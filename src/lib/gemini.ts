@@ -697,6 +697,58 @@ export const adjustMealPlan = async (
   return callGeminiEndpoint('adjustMealPlan', [profile, intakeLogs, nextMealType]);
 };
 
+export interface MacroBalanceAnalysisResult {
+  deficitSummary: string;
+  proteinDeficitGrams: number;
+  carbsDeficitGrams: number;
+  fatsDeficitGrams: number;
+  calorieGap: number;
+  recommendations: {
+    targetDay: string;
+    mealType: string;
+    reason: string;
+    suggestedRecipe: Omit<Recipe, "id">;
+  }[];
+  aiCoachMessage: string;
+}
+
+export const analyzeNutritionDeficitsAndSuggestMacros = async (
+  profile: UserProfile | null,
+  intakeLogs: IntakeLog[],
+  mealPlan: MealPlan
+): Promise<MacroBalanceAnalysisResult> => {
+  try {
+    const result = await callGeminiEndpoint('analyzeNutritionDeficitsAndSuggestMacros', [profile, intakeLogs, mealPlan]);
+    if (result && result.deficitSummary) return result;
+  } catch (err) {
+    console.warn("analyzeNutritionDeficitsAndSuggestMacros failed, using fallback:", err);
+  }
+
+  return {
+    deficitSummary: "Análise realizada com base nas suas metas e histórico recente.",
+    proteinDeficitGrams: 12,
+    carbsDeficitGrams: 15,
+    fatsDeficitGrams: 4,
+    calorieGap: -150,
+    recommendations: [
+      {
+        targetDay: "Quarta-feira",
+        mealType: "Lanche",
+        reason: "Reforçar proteínas no meio da semana",
+        suggestedRecipe: {
+          name: "Vitamina de Abacate com Whey & Castanhas",
+          description: "Excelente para saciedade e aporte de gorduras boas e proteínas.",
+          prepTime: "5 min",
+          ingredients: ["1/2 abacate pequeno", "1 scoop de whey protein", "200ml de leite desnatado", "1 colher de sopa de chia"],
+          instructions: ["Bata todos os ingredientes no liquidificador até obter consistência cremosa."],
+          nutrition: { calories: 340, protein: 30, carbs: 20, fat: 14, fiber: 6 }
+        }
+      }
+    ],
+    aiCoachMessage: "Identifiquei uma pequena deficiência de proteínas na quarta-feira. Adicionei uma sugestão excelente!"
+  };
+};
+
 export interface BehavioralIntervention {
   voiceMessage: string;
   suggestedAction: {

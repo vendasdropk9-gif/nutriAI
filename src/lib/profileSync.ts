@@ -14,6 +14,12 @@ import {
 } from 'firebase/firestore';
 import { UserProfile, IntakeLog, ProgressLog, HydrationLog, WorkoutLog, SleepLog, EmotionalLog, FastingLog, BloodPressureLog, BodyMonitorLog, Note } from '../types';
 import { withTimeout } from './bootManager';
+import {
+  saveProfileToIndexedDB,
+  loadProfileFromIndexedDB,
+  saveCachedProfileSync,
+  loadCachedProfileSync,
+} from './profileStorageIDB';
 
 export function useProfileSync(
   user: User | null,
@@ -21,6 +27,8 @@ export function useProfileSync(
   setLocalProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>
 ) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isOfflineCacheActive, setIsOfflineCacheActive] = useState(false);
+  const [lastCachedAt, setLastCachedAt] = useState<string | null>(null);
 
   // Load from Firestore on mount/user change
   useEffect(() => {
@@ -62,6 +70,36 @@ export function useProfileSync(
     const fetchProfileAndLogs = async () => {
       try {
         setIsSyncing(true);
+
+        // 1. Immediate Persistent Cache Hydration (guarantees goals & mealPlan load offline without network wait)
+        const syncCached = loadCachedProfileSync(userId);
+        if (syncCached) {
+          setLocalProfile((prev) => {
+            if (!prev) return syncCached;
+            const prevHasMealPlan = Boolean(prev.mealPlan && Object.keys(prev.mealPlan).length > 0);
+            const cacheHasMealPlan = Boolean(syncCached.mealPlan && Object.keys(syncCached.mealPlan).length > 0);
+            if (!prevHasMealPlan && cacheHasMealPlan) {
+              return { ...prev, mealPlan: syncCached.mealPlan, goals: prev.goals || syncCached.goals };
+            }
+            return prev;
+          });
+          setLastCachedAt(syncCached.updatedAt || new Date().toISOString());
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            setIsOfflineCacheActive(true);
+          }
+        } else {
+          loadProfileFromIndexedDB(userId)
+            .then((idbCached) => {
+              if (!idbCached) return;
+              setLocalProfile((prev) => prev || idbCached);
+              setLastCachedAt(idbCached.updatedAt || new Date().toISOString());
+              if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                setIsOfflineCacheActive(true);
+              }
+            })
+            .catch(() => {});
+        }
+
         const userDocRef = doc(db, 'users', userId);
 
         // Listen to live intakeLogs subcollection updates for instant cross-device calorie synchronization
@@ -188,10 +226,11 @@ export function useProfileSync(
               challengeRemindersEnabled: data.challengeRemindersEnabled ?? true,
               challengeReminderTime: data.challengeReminderTime || '09:00',
               challengeReviewTime: data.challengeReviewTime || '19:00',
-              goals: data.goals || data.objective || 'Alimentação saudável e longevidade',
+              goals: data.goals || data.objective || localProfile?.goals || 'Alimentação saudável e longevidade',
               plan: data.plan || 'Free',
               isPremium: data.plan === 'Premium' || data.isPremium === true,
               subscriptionStatus: data.subscriptionStatus || 'active',
+              interests: Array.isArray(data.interests) ? data.interests : (localProfile?.interests || []),
               language: data.preferred_language || data.language || 'en-US',
               preferred_language: data.preferred_language || data.language || 'en-US',
               country: data.country || 'United States',
@@ -204,13 +243,14 @@ export function useProfileSync(
               restrictions: Array.isArray(data.restrictions) ? data.restrictions : [],
               allergies: Array.isArray(data.allergies) ? data.allergies : [],
               equipment: Array.isArray(data.equipment) ? data.equipment : [],
+              mealPlan: data.mealPlan || localProfile?.mealPlan || {},
               points: data.points ? Number(data.points) : 0,
               streak: data.streak ? Number(data.streak) : 0,
               badges: Array.isArray(data.badges) ? data.badges : [],
               pointsHistory: Array.isArray(data.pointsHistory) ? data.pointsHistory : [],
               cart: Array.isArray(data.cart) ? data.cart : [],
               favorites: Array.isArray(data.favorites) ? data.favorites : [],
-              savedRecipes: Array.isArray(data.savedRecipes) ? data.savedRecipes : [],
+              savedRecipes: Array.isArray(data.savedRecipes) ? data.savedRecipes : (localProfile?.savedRecipes || []),
               anatomicalMarkers: Array.isArray(data.anatomicalMarkers) ? data.anatomicalMarkers : [],
               intakeLogs: (intakeLogs && intakeLogs.length > 0 ? intakeLogs : data.intakeLogs || []) as IntakeLog[],
               progressLogs: (progressLogs && progressLogs.length > 0 ? progressLogs : data.progressLogs || []) as ProgressLog[],
@@ -230,8 +270,14 @@ export function useProfileSync(
 
             if (localProfile && remoteUpdatedAt > 0 && localUpdatedAt > remoteUpdatedAt + 10000) {
               console.log('[NutriAI Sync] Conflito resolvido: Perfil local possui alterações mais recentes que o Firestore. Sincronizando local para remoto.');
+              saveCachedProfileSync(localProfile, userId);
+              saveProfileToIndexedDB(localProfile, userId).catch(() => {});
               syncToFirestore(localProfile);
             } else {
+              saveCachedProfileSync(remoteProfile, userId);
+              saveProfileToIndexedDB(remoteProfile, userId).catch(() => {});
+              setLastCachedAt(remoteProfile.updatedAt || new Date().toISOString());
+              setIsOfflineCacheActive(Boolean(docSnap?.metadata?.fromCache));
               setLocalProfile(remoteProfile);
             }
           } else {
@@ -252,8 +298,11 @@ export function useProfileSync(
               birthDate: '',
               gender: 'Não informado',
               weight: localProfile?.weight || null,
+              targetWeight: localProfile?.targetWeight || null,
               height: localProfile?.height || null,
               goals: localProfile?.goals || 'Alimentação saudável e longevidade',
+              waterGoal: localProfile?.waterGoal || 2500,
+              mealPlan: localProfile?.mealPlan || {},
               plan: 'Free',
               isPremium: false,
               subscriptionStatus: 'active',
@@ -267,6 +316,7 @@ export function useProfileSync(
               restrictions: localProfile?.restrictions || [],
               allergies: localProfile?.allergies || [],
               equipment: localProfile?.equipment || [],
+              interests: localProfile?.interests || [],
               anatomicalMarkers: [],
               points: 100,
               streak: 1
@@ -274,17 +324,23 @@ export function useProfileSync(
 
             await setDoc(userDocRef, initialData);
 
-            setLocalProfile({
+            const createdProfile: UserProfile = {
               id: user.uid,
               name: initialData.name,
               firstName: initialData.firstName,
               lastName: initialData.lastName,
               email: initialData.email,
               photoURL: initialData.photoURL,
+              weight: initialData.weight ?? undefined,
+              targetWeight: initialData.targetWeight ?? undefined,
+              height: initialData.height ?? undefined,
               goals: initialData.goals,
+              waterGoal: initialData.waterGoal,
+              mealPlan: initialData.mealPlan,
               restrictions: initialData.restrictions || [],
               allergies: initialData.allergies || [],
               equipment: initialData.equipment || [],
+              interests: initialData.interests || [],
               anatomicalMarkers: [],
               plan: 'Free',
               isPremium: false,
@@ -305,7 +361,10 @@ export function useProfileSync(
               bloodPressureLogs: [],
               bodyMonitorLogs: [],
               notes: []
-            });
+            };
+            saveCachedProfileSync(createdProfile, userId);
+            saveProfileToIndexedDB(createdProfile, userId).catch(() => {});
+            setLocalProfile(createdProfile);
           }
           setIsSyncing(false);
         }, (err) => {
@@ -318,12 +377,31 @@ export function useProfileSync(
             console.debug("Firestore onSnapshot stream cycle (handled):", err);
           } else {
             console.error("Firestore onSnapshot error:", err);
+            const fallbackCached = loadCachedProfileSync(userId);
+            if (fallbackCached) {
+              setIsOfflineCacheActive(true);
+              setLocalProfile((prev) => prev || fallbackCached);
+            } else {
+              loadProfileFromIndexedDB(userId)
+                .then((idbCached) => {
+                  if (idbCached) {
+                    setIsOfflineCacheActive(true);
+                    setLocalProfile((prev) => prev || idbCached);
+                  }
+                })
+                .catch(() => {});
+            }
           }
           setIsSyncing(false);
         });
 
       } catch (err) {
         console.error('Firestore profile sync fetch error:', err);
+        const fallbackCached = loadCachedProfileSync(userId);
+        if (fallbackCached) {
+          setIsOfflineCacheActive(true);
+          setLocalProfile((prev) => prev || fallbackCached);
+        }
         setIsSyncing(false);
       }
     };
@@ -349,6 +427,12 @@ export function useProfileSync(
     const userId = user.uid || (user as any).id || 'current-user';
 
     setIsSyncing(true);
+
+    // Always persist full profile (including goals & mealPlan) to local IndexedDB/storage cache first
+    saveCachedProfileSync(newProfile, userId);
+    saveProfileToIndexedDB(newProfile, userId).catch(() => {});
+    setLastCachedAt(new Date().toISOString());
+
     try {
       // 1. Sync to Firestore
       const userDocRef = doc(db, 'users', userId);
@@ -384,6 +468,8 @@ export function useProfileSync(
         challengeReminderTime: newProfile.challengeReminderTime || '09:00',
         challengeReviewTime: newProfile.challengeReviewTime || '19:00',
         goals: newProfile.goals || 'Alimentação saudável e longevidade',
+        mealPlan: newProfile.mealPlan || {},
+        interests: newProfile.interests || [],
         plan: newProfile.plan || (newProfile.isPremium ? 'Premium' : 'Free'),
         isPremium: newProfile.plan === 'Premium' || newProfile.isPremium === true,
         subscriptionStatus: newProfile.subscriptionStatus || 'active',
@@ -512,5 +598,18 @@ export function useProfileSync(
     await deleteDoc(logRef);
   }, [user]);
 
-  return { isSyncing, syncToFirestore, logIntakeToFirestore, deleteIntakeFromFirestore };
+  const getCachedUserProfile = useCallback(async () => {
+    const uid = user?.uid || (user as any)?.id || localProfile?.id;
+    return loadCachedProfileSync(uid) || (await loadProfileFromIndexedDB(uid));
+  }, [user, localProfile?.id]);
+
+  return {
+    isSyncing,
+    isOfflineCacheActive,
+    lastCachedAt,
+    syncToFirestore,
+    logIntakeToFirestore,
+    deleteIntakeFromFirestore,
+    getCachedUserProfile,
+  };
 }

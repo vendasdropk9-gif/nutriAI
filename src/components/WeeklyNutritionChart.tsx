@@ -1,9 +1,10 @@
 /* eslint-disable i18next/no-literal-string */
 import React from 'react';
 import { UserProfile } from '../types';
+import { NutritionalDashboard } from './NutritionalDashboard';
 import { WeeklyReport } from './WeeklyReport';
 
-export { WeeklyReport };
+export { WeeklyReport, NutritionalDashboard };
 
 interface WeeklyNutritionChartProps {
   profile?: UserProfile | null;
@@ -11,5 +12,5 @@ interface WeeklyNutritionChartProps {
 }
 
 export function WeeklyNutritionChart({ profile, onNavigate }: WeeklyNutritionChartProps = {}) {
-  return <WeeklyReport profile={profile || null} onNavigate={onNavigate} />;
+  return <NutritionalDashboard profile={profile || null} />;
 }

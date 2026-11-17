@@ -113,10 +113,12 @@ export interface UserProfile {
   preferences?: string;
   role?: 'client' | 'merchant' | 'buyer' | 'seller' | 'admin' | 'courier';
   defaultAdFormat?: 'video' | 'banner';
+  mutedAdCategories?: string[];
   restrictions: string[];
   allergies: string[];
   goals: string;
   equipment: string[];
+  interests?: string[];
   weight?: number;
   height?: number;
   age?: number;

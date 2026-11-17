@@ -326,4 +326,177 @@ describe('AdPlacement Component (Google AdSense / AdMob & Fallback)', () => {
       expect(document.querySelector('img')).toBeNull();
     });
   });
+
+  it('queries profile.interests and displays sports equipment ads when user is interested in Musculação', () => {
+    const profileWithMusculacao = {
+      name: 'Carlos Silva',
+      restrictions: [],
+      allergies: [],
+      goals: 'Hipertrofia',
+      equipment: [],
+      interests: ['Musculação'],
+    };
+
+    render(
+      <AdPlacement
+        placementId="nutri-tab-market"
+        format="banner"
+        forceFallback={true}
+        profile={profileWithMusculacao}
+      />
+    );
+
+    const placement = screen.getByTestId('ad-placement-nutri-tab-market');
+    expect(placement.getAttribute('data-ad-id')).toBe('ad-irongear-gym-equipment');
+    expect(placement.getAttribute('data-matched-interest')).toBe('Musculação');
+    expect(placement.getAttribute('data-ad-category')).toBe('fitness');
+    expect(screen.getByText(/IronGear Pro/i)).toBeDefined();
+    expect(screen.getByText(/Kit Halteres Ajustáveis & Barra Olímpica Pro/i)).toBeDefined();
+    expect(screen.getByTestId('ad-interest-match-badge').textContent).toBe('Musculação');
+  });
+
+  it('matches other normalized profile.interests (Corrida, Orgânicos) and falls back cleanly when no interests match', () => {
+    const { rerender } = render(
+      <AdPlacement
+        placementId="interest-ctx-unit"
+        format="banner"
+        forceFallback={true}
+        profile={{
+          name: 'Ana Costa',
+          restrictions: [],
+          allergies: [],
+          goals: 'Resistência',
+          equipment: [],
+          interests: ['corrida'],
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('ad-placement-interest-ctx-unit').getAttribute('data-ad-id')).toBe(
+      'ad-stridesync-running'
+    );
+    expect(screen.getByText(/StrideSync Athletics/i)).toBeDefined();
+
+    rerender(
+      <AdPlacement
+        placementId="interest-ctx-unit"
+        format="banner"
+        forceFallback={true}
+        profile={{
+          name: 'Ana Costa',
+          restrictions: [],
+          allergies: [],
+          goals: 'Bem-estar',
+          equipment: [],
+          interests: ['Orgânicos'],
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('ad-placement-interest-ctx-unit').getAttribute('data-ad-id')).toBe(
+      'ad-organic-farm'
+    );
+    expect(screen.getByText(/Fazenda Fresca/i)).toBeDefined();
+
+    rerender(
+      <AdPlacement
+        placementId="interest-ctx-unit"
+        format="banner"
+        forceFallback={true}
+        profile={{
+          name: 'Ana Costa',
+          restrictions: [],
+          allergies: [],
+          goals: 'Saúde',
+          equipment: [],
+          interests: [],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByTestId('ad-placement-interest-ctx-unit').getAttribute('data-matched-interest')
+    ).toBeNull();
+  });
+
+  it('applies GPU-composited 1.02x scale animation on hover and focus for banner ads only', async () => {
+    render(
+      <AdPlacement
+        placementId="banner-scale-unit"
+        format="banner"
+        forceFallback={true}
+        profile={null}
+      />
+    );
+
+    const banner = screen.getByTestId('ad-placement-banner-scale-unit');
+    expect(banner.getAttribute('data-banner-hover-scale')).toBe('1.02');
+    expect(banner.getAttribute('tabindex')).toBe('0');
+    expect(banner.className).toContain('hover:scale-[1.02]');
+    expect(banner.className).toContain('focus:scale-[1.02]');
+    expect(banner.className).toContain('focus-within:scale-[1.02]');
+    expect(banner.className).toContain('transform-gpu');
+
+    // Focus and hover triggers work smoothly without errors
+    act(() => {
+      fireEvent.mouseEnter(banner);
+      fireEvent.focus(banner);
+    });
+
+    // Switching to Video mode disables banner-only scale animation
+    act(() => {
+      fireEvent.click(screen.getByTestId('ad-mode-video-btn'));
+    });
+
+    await waitFor(() => {
+      expect(banner.getAttribute('data-banner-hover-scale')).toBeNull();
+      expect(banner.getAttribute('tabindex')).toBeNull();
+      expect(banner.className).not.toContain('hover:scale-[1.02]');
+    });
+  });
+
+  it('automatically removes ad rendering when profile.isPremium is true or switches to true', () => {
+    const { container, rerender } = render(
+      <AdPlacement
+        placementId="premium-adfree-unit"
+        format="banner"
+        forceFallback={true}
+        profile={{
+          id: 'user-free-1',
+          name: 'Mariana',
+          restrictions: [],
+          allergies: [],
+          goals: 'Saúde',
+          equipment: [],
+          isPremium: false,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('ad-placement-premium-adfree-unit')).toBeDefined();
+
+    // Flag flips to isPremium: true (e.g., via Firestore onSnapshot after Pricing checkout)
+    rerender(
+      <AdPlacement
+        placementId="premium-adfree-unit"
+        format="banner"
+        forceFallback={true}
+        profile={{
+          id: 'user-free-1',
+          name: 'Mariana',
+          restrictions: [],
+          allergies: [],
+          goals: 'Saúde',
+          equipment: [],
+          isPremium: true,
+        }}
+      />
+    );
+
+    expect(screen.queryByTestId('ad-placement-premium-adfree-unit')).toBeNull();
+    expect(screen.queryByTestId('adsense-slot-premium-adfree-unit')).toBeNull();
+    expect(screen.queryByTestId('ad-placement-skeleton-premium-adfree-unit')).toBeNull();
+    expect(container.firstChild).toBeNull();
+  });
 });
+

@@ -372,6 +372,143 @@ describe('ProfileSync - Data Integrity & Offline-to-Online Transitions', () => {
       expect(targetCall[1].actual.calories).toBe(540);
       expect(targetCall[1].userId).toBe('user-transition-123');
     });
+
+    it('caches goals and mealPlan persistently from Firestore and hydrates them immediately when offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      const sampleMealPlan = {
+        monday: {
+          date: 'monday',
+          meals: {
+            lunch: {
+              id: 'meal-mon-lunch',
+              name: 'Salmão com Quinoa e Brócolis',
+              title: 'Salmão com Quinoa e Brócolis',
+              description: 'Almoço rico em ômega-3',
+              ingredients: ['Salmão', 'Quinoa', 'Brócolis'],
+              instructions: ['Grelhar o salmão'],
+              calories: 560,
+              protein: 42,
+              prepTime: '20 min',
+              nutrition: { calories: 560, protein: 42, carbs: 38, fat: 18 },
+            },
+          },
+        },
+      };
+
+      let onlineProfile: UserProfile | null = { ...mockLocalProfile };
+      const setOnlineProfile = vi.fn((val) => {
+        onlineProfile = typeof val === 'function' ? val(onlineProfile) : val;
+      });
+
+      const { unmount } = renderHook(() =>
+        useProfileSync(mockUser, onlineProfile, setOnlineProfile)
+      );
+
+      // Simulate receiving goals + mealPlan from Firestore snapshot while online
+      await act(async () => {
+        await onSnapshotCallback?.({
+          exists: () => true,
+          metadata: { fromCache: false },
+          data: () => ({
+            displayName: 'Carlos Atleta',
+            goals: 'Hipertrofia limpa e 80kg de meta',
+            targetWeight: 80,
+            waterGoal: 3200,
+            mealPlan: sampleMealPlan,
+          }),
+        });
+      });
+
+      expect(onlineProfile?.goals).toBe('Hipertrofia limpa e 80kg de meta');
+      expect(onlineProfile?.mealPlan?.monday?.meals?.lunch?.title).toBe('Salmão com Quinoa e Brócolis');
+      unmount();
+
+      // Simulate closing and reopening the app completely offline with null initial local state
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      let offlineRestoredProfile: UserProfile | null = null;
+      const setOfflineProfile = vi.fn((val) => {
+        offlineRestoredProfile = typeof val === 'function' ? val(offlineRestoredProfile) : val;
+      });
+
+      const { result } = renderHook(() =>
+        useProfileSync(mockUser, offlineRestoredProfile, setOfflineProfile)
+      );
+
+      expect(setOfflineProfile).toHaveBeenCalled();
+      expect(offlineRestoredProfile?.goals).toBe('Hipertrofia limpa e 80kg de meta');
+      expect(offlineRestoredProfile?.targetWeight).toBe(80);
+      expect(offlineRestoredProfile?.waterGoal).toBe(3200);
+      expect(offlineRestoredProfile?.mealPlan?.monday?.meals?.lunch?.title).toBe(
+        'Salmão com Quinoa e Brócolis'
+      );
+      expect(result.current.isOfflineCacheActive).toBe(true);
+
+      // Even if Firestore snapshot errors while offline, cached goals & mealPlan stay intact
+      act(() => {
+        onSnapshotErrorCallback?.({ code: 'unavailable', message: 'client is offline' });
+      });
+      expect(offlineRestoredProfile?.goals).toBe('Hipertrofia limpa e 80kg de meta');
+      expect(offlineRestoredProfile?.mealPlan?.monday?.meals?.lunch?.title).toBe(
+        'Salmão com Quinoa e Brócolis'
+      );
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('persists updated mealPlan and goals in syncToFirestore and updates offline cache before network write', async () => {
+      let currentProfile: UserProfile | null = { ...mockLocalProfile };
+      const setProfileMock = vi.fn();
+
+      const { result } = renderHook(() =>
+        useProfileSync(mockUser, currentProfile, setProfileMock)
+      );
+
+      const nextProfile: UserProfile = {
+        ...mockLocalProfile,
+        goals: 'Definição abdominal com baixo carboidrato',
+        mealPlan: {
+          tuesday: {
+            date: 'tuesday',
+            meals: {
+              breakfast: {
+                id: 'meal-tue-bf',
+                name: 'Omelete Proteico com Espinafre',
+                title: 'Omelete Proteico com Espinafre',
+                description: 'Café da manhã low-carb',
+                ingredients: ['Ovos', 'Espinafre'],
+                instructions: ['Bater e grelhar'],
+                calories: 320,
+                protein: 26,
+                prepTime: '10 min',
+                nutrition: { calories: 320, protein: 26, carbs: 4, fat: 21 },
+              },
+            },
+          },
+        },
+      };
+
+      await act(async () => {
+        await result.current.syncToFirestore(nextProfile);
+      });
+
+      const mainCall = mockSetDoc.mock.calls.find(
+        (call) => call[0]?.path === 'users/user-transition-123'
+      );
+      expect(mainCall).toBeTruthy();
+      expect(mainCall?.[1].goals).toBe('Definição abdominal com baixo carboidrato');
+      expect(mainCall?.[1].mealPlan?.tuesday?.meals?.breakfast?.title).toBe(
+        'Omelete Proteico com Espinafre'
+      );
+
+      const cachedAfterSync = await result.current.getCachedUserProfile();
+      expect(cachedAfterSync?.goals).toBe('Definição abdominal com baixo carboidrato');
+      expect(cachedAfterSync?.mealPlan?.tuesday?.meals?.breakfast?.title).toBe(
+        'Omelete Proteico com Espinafre'
+      );
+    });
   });
 });
+
 

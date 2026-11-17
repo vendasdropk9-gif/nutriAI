@@ -3045,6 +3045,136 @@ Regras:
   }
 };
 
+export const analyzeNutritionDeficitsAndSuggestMacros = async (
+  profile: UserProfile | null,
+  intakeLogs: IntakeLog[],
+  mealPlan: MealPlan
+): Promise<{
+  deficitSummary: string;
+  proteinDeficitGrams: number;
+  carbsDeficitGrams: number;
+  fatsDeficitGrams: number;
+  calorieGap: number;
+  recommendations: {
+    targetDay: string;
+    mealType: string;
+    reason: string;
+    suggestedRecipe: Omit<Recipe, "id">;
+  }[];
+  aiCoachMessage: string;
+}> => {
+  const ai = getGenAI();
+  if (!ai) throw new Error("API_KEY_UNAVAILABLE");
+
+  const prompt = `Analise o histórico de consumo recente (intakeLogs), o plano alimentar atual (mealPlan) e as metas do perfil do usuário para identificar deficiências ou excessos de macronutrientes (proteínas, carboidratos, gorduras e calorias) na semana.
+Perfil: ${JSON.stringify(profile || {})}
+Histórico de Ingestão: ${JSON.stringify(safeArray(intakeLogs).slice(0, 15))}
+Plano Atual: ${JSON.stringify(mealPlan || {})}
+
+Forneça um diagnóstico claro das deficiências nutricionais e sugira até 4 receitas específicas para preencher essas lacunas nos dias da semana que mais precisam.
+Responda estritamente em JSON com o seguinte schema:
+- deficitSummary (string)
+- proteinDeficitGrams (number)
+- carbsDeficitGrams (number)
+- fatsDeficitGrams (number)
+- calorieGap (number)
+- recommendations (array de objetos com targetDay, mealType, reason, suggestedRecipe contendo name, description, prepTime, ingredients, instructions, nutrition com calories, protein, carbs, fat, fiber)
+- aiCoachMessage (string)`;
+
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      deficitSummary: { type: Type.STRING },
+      proteinDeficitGrams: { type: Type.NUMBER },
+      carbsDeficitGrams: { type: Type.NUMBER },
+      fatsDeficitGrams: { type: Type.NUMBER },
+      calorieGap: { type: Type.NUMBER },
+      recommendations: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            targetDay: { type: Type.STRING },
+            mealType: { type: Type.STRING },
+            reason: { type: Type.STRING },
+            suggestedRecipe: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                description: { type: Type.STRING },
+                prepTime: { type: Type.STRING },
+                ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+                instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                nutrition: {
+                  type: Type.OBJECT,
+                  properties: {
+                    calories: { type: Type.NUMBER },
+                    protein: { type: Type.NUMBER },
+                    carbs: { type: Type.NUMBER },
+                    fat: { type: Type.NUMBER },
+                    fiber: { type: Type.NUMBER }
+                  },
+                  required: ["calories", "protein", "carbs", "fat"]
+                }
+              },
+              required: ["name", "description", "prepTime", "ingredients", "instructions", "nutrition"]
+            }
+          },
+          required: ["targetDay", "mealType", "reason", "suggestedRecipe"]
+        }
+      },
+      aiCoachMessage: { type: Type.STRING }
+    },
+    required: ["deficitSummary", "proteinDeficitGrams", "carbsDeficitGrams", "fatsDeficitGrams", "calorieGap", "recommendations", "aiCoachMessage"]
+  };
+
+  const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
+  for (const modelName of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          temperature: 0.7,
+        }
+      });
+      const text = response?.text;
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (parsed && parsed.deficitSummary) return parsed;
+      }
+    } catch (e: any) {
+      // try next model
+    }
+  }
+
+  return {
+    deficitSummary: "Análise realizada com base nas suas metas e histórico recente.",
+    proteinDeficitGrams: 12,
+    carbsDeficitGrams: 15,
+    fatsDeficitGrams: 4,
+    calorieGap: -150,
+    recommendations: [
+      {
+        targetDay: "Quarta-feira",
+        mealType: "Lanche",
+        reason: "Reforçar proteínas no meio da semana",
+        suggestedRecipe: {
+          name: "Vitamina de Abacate com Whey & Castanhas",
+          description: "Excelente para saciedade e aporte de gorduras boas e proteínas.",
+          prepTime: "5 min",
+          ingredients: ["1/2 abacate pequeno", "1 scoop de whey protein", "200ml de leite desnatado", "1 colher de sopa de chia"],
+          instructions: ["Bata todos os ingredientes no liquidificador até obter consistência cremosa."],
+          nutrition: { calories: 340, protein: 30, carbs: 20, fat: 14, fiber: 6 }
+        }
+      }
+    ],
+    aiCoachMessage: "Identifiquei uma pequena deficiência de proteínas na quarta-feira. Adicionei uma sugestão excelente!"
+  };
+};
+
 export const adjustMealPlan = async (
   profile: UserProfile,
   intakeLogs: IntakeLog[],

@@ -13,6 +13,7 @@ import { RecipeCard } from './RecipeCard';
 import { CategoryFilter, filterRecipesByCategory, getRecipeCategoryCounts, RecipeCategoryTag } from './CategoryFilter';
 import { RecipeCollectionsView } from './RecipeCollectionsView';
 import { SmartMealPlannerModal } from './SmartMealPlannerModal';
+import { AiMacroBalanceEngineModal } from './AiMacroBalanceEngineModal';
 import { generateMealSuggestions } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -76,6 +77,7 @@ export function MealPlanView({
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSmartPlannerOpen, setIsSmartPlannerOpen] = useState(false);
+  const [isAiMacroBalanceOpen, setIsAiMacroBalanceOpen] = useState(false);
 
   // Drag & Drop Functionality States
   const [draggedMeal, setDraggedMeal] = useState<{
@@ -1177,6 +1179,18 @@ export function MealPlanView({
               >
                 <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
                 <span>Smart Meal Planner (Drag & Drop) 🎯</span>
+              </button>
+              <button
+                onClick={() => {
+                  playSfx('crystal');
+                  vibrate(30);
+                  setIsAiMacroBalanceOpen(true);
+                }}
+                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black px-4 py-2.5 rounded-full transition-all flex items-center justify-center gap-2 text-sm shadow-md cursor-pointer hover:scale-105 active:scale-95 border border-teal-400/30 shrink-0"
+                title="Mecanismo de Sugestão de IA para equilibrar macros e deficiências nutricionais"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                <span>Sugestão de IA (Macros) 🧠</span>
               </button>
               <button
                 onClick={handleOpenSyncModal}
@@ -2757,6 +2771,19 @@ export function MealPlanView({
           mealPlan={mealPlan}
           onUpdatePlan={onUpdatePlan}
           profile={profile}
+        />
+
+        {/* AI Macro Balance Engine Modal */}
+        <AiMacroBalanceEngineModal
+          isOpen={isAiMacroBalanceOpen}
+          onClose={() => setIsAiMacroBalanceOpen(false)}
+          profile={profile}
+          intakeLogs={profile?.intakeLogs || []}
+          mealPlan={mealPlan}
+          onAddRecipeToPlan={(day, mealType, recipe) => {
+            const recipeId = crypto.randomUUID();
+            onUpdatePlan(day, mealType, recipeId, { ...recipe, id: recipeId } as any);
+          }}
         />
       </div>
   );

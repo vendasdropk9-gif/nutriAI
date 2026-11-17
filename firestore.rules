@@ -61,6 +61,80 @@ service cloud.firestore {
       );
     }
 
+    function isValidAdTelemetry() {
+      let data = request.resource.data;
+      return (!('videoLoads' in data) || isNonNegativeNumber(data.videoLoads)) &&
+        (!('bannerLoads' in data) || isNonNegativeNumber(data.bannerLoads)) &&
+        (!('videoClicks' in data) || isNonNegativeNumber(data.videoClicks)) &&
+        (!('bannerClicks' in data) || isNonNegativeNumber(data.bannerClicks)) &&
+        (!('totalImpressions' in data) || isNonNegativeNumber(data.totalImpressions)) &&
+        (!('totalClicks' in data) || isNonNegativeNumber(data.totalClicks)) &&
+        (!('conversionContext' in data) || (data.conversionContext is string && data.conversionContext.size() <= 100)) &&
+        (!('lastAdType' in data) || data.lastAdType in ['Vídeo', 'Banner']) &&
+        (!('lastClickedAdType' in data) || data.lastClickedAdType in ['Vídeo', 'Banner']) &&
+        (!('lastClickTimestamp' in data) || data.lastClickTimestamp == request.time) &&
+        (!('experimentId' in data) || (data.experimentId is string && data.experimentId.size() <= 128)) &&
+        (!('abVariant' in data) || data.abVariant in ['A', 'B']) &&
+        (!('abVariantStyle' in data) || data.abVariantStyle in ['standard', 'claymorphic']) &&
+        (!('visibilityRatio' in data) || (data.visibilityRatio is number && data.visibilityRatio >= 0 && data.visibilityRatio <= 1.0)) &&
+        (!('visibilidade_percentual' in data) || (data.visibilidade_percentual is number && data.visibilidade_percentual >= 0 && data.visibilidade_percentual <= 100)) &&
+        (!('totalDwellTimeMs' in data) || isNonNegativeNumber(data.totalDwellTimeMs)) &&
+        (!('totalDwellTimeSeconds' in data) || isNonNegativeNumber(data.totalDwellTimeSeconds)) &&
+        (!('lastDwellTimeMs' in data) || isNonNegativeNumber(data.lastDwellTimeMs)) &&
+        (!('byContext' in data) || data.byContext is map) &&
+        (!('byVariant' in data) || data.byVariant is map) &&
+        (!('updatedAt' in data) || data.updatedAt == request.time);
+    }
+
+    function isValidAdTelemetryLog() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['eventType', 'adType', 'format', 'adId', 'placementId', 'conversionContext', 'visibilidade_percentual', 'userId', 'timestamp', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'eventType', 'adType', 'format', 'adId', 'placementId', 'conversionContext', 'visibilityThreshold', 'visibilityRatio', 'visibilidade_percentual', 'dwellTimeMs', 'dwellTimeSeconds', 'dwellFlushReason', 'experimentId', 'abVariant', 'abVariantStyle', 'userId', 'timestamp', 'createdAt']) &&
+        data.eventType in ['impression', 'click', 'dwell'] &&
+        data.adType in ['Vídeo', 'Banner'] &&
+        data.format in ['video', 'banner'] &&
+        data.adId is string && data.adId.size() <= 128 &&
+        data.placementId is string && data.placementId.size() <= 128 &&
+        data.conversionContext is string && data.conversionContext.size() <= 100 &&
+        (!('visibilityThreshold' in data) || (data.visibilityThreshold is number && data.visibilityThreshold >= 0.5 && data.visibilityThreshold <= 1.0)) &&
+        (!('visibilityRatio' in data) || (data.visibilityRatio is number && data.visibilityRatio >= 0 && data.visibilityRatio <= 1.0)) &&
+        data.visibilidade_percentual is number && data.visibilidade_percentual >= 0 && data.visibilidade_percentual <= 100 &&
+        (!('dwellTimeMs' in data) || isNonNegativeNumber(data.dwellTimeMs)) &&
+        (!('dwellTimeSeconds' in data) || isNonNegativeNumber(data.dwellTimeSeconds)) &&
+        (!('dwellFlushReason' in data) || data.dwellFlushReason in ['interval', 'hidden', 'dismiss', 'unmount', 'visibility_exit']) &&
+        (data.eventType != 'dwell' || ('dwellTimeMs' in data && data.dwellTimeMs is number && data.dwellTimeMs > 0)) &&
+        (!('experimentId' in data) || (data.experimentId is string && data.experimentId.size() <= 128)) &&
+        (!('abVariant' in data) || data.abVariant in ['A', 'B']) &&
+        (!('abVariantStyle' in data) || data.abVariantStyle in ['standard', 'claymorphic']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.timestamp == request.time &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidAdABTest() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+        'experimentId',
+        'placementId',
+        'conversionContext',
+        'variants',
+        'bestPerformingVariant',
+        'winnerByClicks',
+        'winnerByVisibility',
+        'metricsSummary',
+        'updatedAt'
+      ]) &&
+        (!('experimentId' in data) || (data.experimentId is string && data.experimentId.size() <= 128)) &&
+        (!('placementId' in data) || (data.placementId is string && data.placementId.size() <= 128)) &&
+        (!('conversionContext' in data) || (data.conversionContext is string && data.conversionContext.size() <= 100)) &&
+        (!('variants' in data) || data.variants is map) &&
+        (!('bestPerformingVariant' in data) || data.bestPerformingVariant in ['A', 'B', 'tie']) &&
+        (!('winnerByClicks' in data) || data.winnerByClicks in ['A', 'B', 'tie']) &&
+        (!('winnerByVisibility' in data) || data.winnerByVisibility in ['A', 'B', 'tie']) &&
+        (!('metricsSummary' in data) || data.metricsSummary is map) &&
+        (!('updatedAt' in data) || data.updatedAt == request.time);
+    }
+
     // --- Connection Test ---
     match /test/connection {
       allow read: if true;
@@ -182,7 +256,22 @@ service cloud.firestore {
 
     // --- Ad Telemetry ---
     match /adTelemetry/{telemetryId} {
-      allow read, write: if isSignedIn() && isValidId(telemetryId);
+      allow read: if isSignedIn() && isValidId(telemetryId);
+      allow create, update: if isSignedIn() && isValidId(telemetryId) && isValidAdTelemetry();
+      allow delete: if false;
+    }
+
+    match /adTelemetryLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) && isValidAdTelemetryLog();
+      allow update, delete: if false;
+    }
+
+    match /adABTests/{experimentId} {
+      allow read: if isSignedIn() && isValidId(experimentId);
+      allow create, update: if isSignedIn() && isValidId(experimentId) && isValidAdABTest();
+      allow delete: if false;
     }
 
     // Catch-All Default Deny

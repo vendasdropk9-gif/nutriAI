@@ -11,11 +11,17 @@ import {
 
 console.log('🔥 [NutriAI Firebase] Módulo carregado e inicializado com sucesso!');
 import { 
-  getFirestore, 
+  getFirestore,
+  initializeFirestore as fsInitializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  persistentSingleTabManager,
   collection as fsCollection, 
   doc as fsDoc, 
   getDocs as fsGetDocs, 
   getDoc as fsGetDoc, 
+  getDocFromCache as fsGetDocFromCache,
+  getDocsFromCache as fsGetDocsFromCache,
   setDoc as fsSetDoc, 
   addDoc as fsAddDoc, 
   updateDoc as fsUpdateDoc, 
@@ -80,8 +86,59 @@ export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfi
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Provisioned named Cloud Firestore Database
-export const db = (firebaseConfig as any).firestoreDatabaseId ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId) : getFirestore(app);
+// Provisioned named Cloud Firestore Database with persistent IndexedDB offline caching
+const configuredDatabaseId = (firebaseConfig as any).firestoreDatabaseId;
+let persistentCacheEnabled = false;
+
+function createPersistentFirestore() {
+  if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+    try {
+      const persistentDb = configuredDatabaseId
+        ? fsInitializeFirestore(
+            app,
+            {
+              localCache: persistentLocalCache({
+                tabManager: persistentMultipleTabManager(),
+              }),
+            },
+            configuredDatabaseId
+          )
+        : fsInitializeFirestore(app, {
+            localCache: persistentLocalCache({
+              tabManager: persistentMultipleTabManager(),
+            }),
+          });
+      persistentCacheEnabled = true;
+      return persistentDb;
+    } catch {
+      try {
+        const singleTabDb = configuredDatabaseId
+          ? fsInitializeFirestore(
+              app,
+              {
+                localCache: persistentLocalCache({
+                  tabManager: persistentSingleTabManager(undefined),
+                }),
+              },
+              configuredDatabaseId
+            )
+          : fsInitializeFirestore(app, {
+              localCache: persistentLocalCache({
+                tabManager: persistentSingleTabManager(undefined),
+              }),
+            });
+        persistentCacheEnabled = true;
+        return singleTabDb;
+      } catch {
+        // Fallback when Firestore instance is already initialized (e.g., HMR) or IndexedDB is unavailable
+      }
+    }
+  }
+  return configuredDatabaseId ? getFirestore(app, configuredDatabaseId) : getFirestore(app);
+}
+
+export const db = createPersistentFirestore();
+export const isPersistentCacheEnabled = persistentCacheEnabled;
 
 // Validate Connection to Firestore on boot as per Firebase skill constraints
 export async function testConnection() {
@@ -702,6 +759,32 @@ export async function deleteDoc(docRef: any) {
   }
 }
 
+export async function getDocFromCache(docRef: any) {
+  try {
+    const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
+    const cachedSnap = await fsGetDocFromCache(realRef);
+    if (cachedSnap.exists()) {
+      setDocLocal(docRef, cachedSnap.data());
+      return cachedSnap;
+    }
+  } catch {
+    // Fallback to local persistent mirror when Firestore cache has no entry
+  }
+  return getDocLocal(docRef);
+}
+
+function isOfflineOrUnavailableError(err: any): boolean {
+  const code = String(err?.code || '').toLowerCase();
+  const message = String(err?.message || '').toLowerCase();
+  return (
+    code.includes('unavailable') ||
+    code.includes('failed-precondition') ||
+    message.includes('offline') ||
+    message.includes('network') ||
+    message.includes('failed to get document because the client is offline')
+  );
+}
+
 export async function getDoc(docRef: any) {
   try {
     const realRef = docRef.isDoc && docRef.firestore ? docRef : fsDoc(db, docRef.path || `${docRef.table}/${docRef.id}`);
@@ -711,6 +794,9 @@ export async function getDoc(docRef: any) {
       return snap;
     }
   } catch (err: any) {
+    if (isOfflineOrUnavailableError(err)) {
+      return getDocFromCache(docRef);
+    }
     handleFirestoreError(err, OperationType.GET, docRef?.path);
   }
   return getDocLocal(docRef);
@@ -732,6 +818,15 @@ export async function getDocs(queryOrColRef: any) {
       return snap;
     }
   } catch (err: any) {
+    if (isOfflineOrUnavailableError(err)) {
+      try {
+        const cachedSnap = await fsGetDocsFromCache(queryOrColRef);
+        if (cachedSnap && cachedSnap.docs && cachedSnap.docs.length > 0) {
+          return cachedSnap;
+        }
+      } catch {}
+      return getDocsLocal(queryOrColRef);
+    }
     handleFirestoreError(err, OperationType.LIST, queryOrColRef?.path);
   }
   return getDocsLocal(queryOrColRef);
@@ -742,7 +837,7 @@ export function onSnapshot(
   onNext: (snapshot: any) => void,
   onError?: (error: any) => void
 ) {
-  // 1. Fast initial response from local cache to prevent UI delay
+  // 1. Fast initial response from local cache to prevent UI delay when offline or booting
   try {
     if (queryOrDocRef.isDoc) {
       const localSnap = getDocLocal(queryOrDocRef);
@@ -757,9 +852,14 @@ export function onSnapshot(
     }
   } catch (e) {}
 
-  // 2. Attach real live Firestore listener
+  // 2. Attach real live Firestore listener (backed by persistentLocalCache IndexedDB)
   try {
     const unsubscribe = fsOnSnapshot(queryOrDocRef, (snap) => {
+      try {
+        if (queryOrDocRef.isDoc && snap?.exists?.()) {
+          setDocLocal(queryOrDocRef, snap.data());
+        }
+      } catch {}
       onNext(snap);
     }, (err) => {
       const msg = err?.message || String(err);

@@ -123,7 +123,7 @@ const appFeatures = [
   {
     name: "Cardápio Semanal Personalizado",
     description: "Planejamento nutricional completo de 7 dias com café, almoço e jantar.",
-    tab: "mealplan",
+    tab: "plan",
     icon: CalendarDays,
     category: "feature",
     tags: ["cardapio", "semanal", "planejamento", "semana", "refeicoes", "organizar", "dieta 7 dias"]
@@ -131,7 +131,7 @@ const appFeatures = [
   {
     name: "Scanner de Alimentos por Foto",
     description: "Fotografe seu prato para calcular calorias, macros e qualidade nutricional instantaneamente.",
-    tab: "scanner",
+    tab: "analyzer",
     icon: Camera,
     category: "feature",
     tags: ["scanner", "foto", "prato", "camera", "calorias da foto", "reconhecer comida", "inteligencia artificial"]
@@ -147,7 +147,7 @@ const appFeatures = [
   {
     name: "Diário de Hábitos & Humor",
     description: "Acompanhe sono, estresse, disposição física e sintomas ao longo dos dias.",
-    tab: "lifestyle",
+    tab: "habits",
     icon: Brain,
     category: "feature",
     tags: ["habitos", "sono", "humor", "estresse", "disposicao", "rotina", "saude mental", "diario"]
@@ -155,7 +155,7 @@ const appFeatures = [
   {
     name: "Guia de Avaliação Corporal & IMC",
     description: "Calculadora de IMC, peso ideal, taxa metabólica basal e metas de peso.",
-    tab: "imc",
+    tab: "body",
     icon: Scale,
     category: "feature",
     tags: ["imc", "peso", "gordura", "balanca", "metabolismo", "tmb", "massa muscular", "emagrecer", "peso ideal"]
@@ -171,7 +171,7 @@ const appFeatures = [
   {
     name: "Personal Trainer 3D & Treinos",
     description: "Exercícios com avatares 3D, divisão muscular e séries detalhadas para fazer em casa ou academia.",
-    tab: "workout",
+    tab: "trainer",
     icon: Dumbbell,
     category: "feature",
     tags: ["treino", "personal", "exercicios", "3d", "academia", "musculacao", "emagrecimento", "queimar gordura"]
@@ -179,7 +179,7 @@ const appFeatures = [
   {
     name: "Timer & Protocolos de Jejum Intermitente",
     description: "Acompanhe suas janelas de alimentação (16/8, 14/10, 18/6) com cronômetro em tempo real.",
-    tab: "fasting",
+    tab: "habits",
     icon: Flame,
     category: "feature",
     tags: ["jejum", "intermitente", "cronometro", "fasting", "janela alimentar", "autofagia", "queima de gordura"]
@@ -187,7 +187,7 @@ const appFeatures = [
   {
     name: "Calculadora de Hidratação & Alerta de Água",
     description: "Meta diária personalizada de ingestão de água e lembretes sonoros periódicos.",
-    tab: "water",
+    tab: "habits",
     icon: Apple,
     category: "feature",
     tags: ["agua", "hidratacao", "beber agua", "copos", "garrafa", "lembrete de agua", "litros"]
@@ -195,7 +195,7 @@ const appFeatures = [
   {
     name: "Histórico & Evolução de Peso",
     description: "Gráficos de progresso, perda de gordura e histórico de calorias consumidas.",
-    tab: "history",
+    tab: "evolution",
     icon: Trophy,
     category: "feature",
     tags: ["historico", "graficos", "evolucao", "progresso", "perda de peso", "relatorio", "estatisticas"]
@@ -525,16 +525,24 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [detectedVoiceIntent, setDetectedVoiceIntent] = useState<'recipe' | 'ingredient' | 'herb' | 'feature' | 'general' | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [lastVoiceCommand, setLastVoiceCommand] = useState<{
+    type: 'search' | 'navigation';
+    text: string;
+    targetTab?: string;
+  } | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const latestTranscriptRef = useRef<string>('');
+  const hasFinalizedVoiceRef = useRef<boolean>(false);
 
   const activeLangCode = language || 'pt-BR';
 
-  // Hook for voice keywords switching tabs (e.g., 'Malu, show my meal plan' -> navigates to plan tab)
-  const { processVoiceCommand, lastMatch, isNavigating } = useVoiceTabNavigator({
+  // Hook for voice keywords switching tabs (e.g., 'Malu, abrir lista de compras' -> navigates to shopping tab)
+  const { processVoiceCommand, previewVoiceCommand, lastMatch, clearMatch } = useVoiceTabNavigator({
     onNavigate: (targetTab) => {
       onNavigate(targetTab);
       setTimeout(() => {
@@ -550,8 +558,43 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
     lang: activeLangCode
   });
 
-  // Speech Recognition handler with Natural Language Voice Command extraction
+  const executeVoiceTranscript = (rawTranscript: string, recognitionLang: string) => {
+    const trimmed = rawTranscript.trim();
+    if (!trimmed) return;
+
+    hasFinalizedVoiceRef.current = true;
+
+    // 1. Check if spoken phrase is a tab navigation command
+    const navMatch = processVoiceCommand(trimmed);
+    if (navMatch) {
+      setQueryText(navMatch.targetName);
+      setDetectedVoiceIntent('feature');
+      setLastVoiceCommand({
+        type: 'navigation',
+        text: navMatch.targetName,
+        targetTab: navMatch.tab,
+      });
+      return;
+    }
+
+    // 2. Otherwise initiate a global search using natural language query extraction
+    const parsed = extractVoiceSearchQuery(trimmed, recognitionLang);
+    const effectiveQuery = (parsed.cleanedQuery || trimmed).trim();
+    setDetectedVoiceIntent(parsed.detectedType);
+    setQueryText(effectiveQuery);
+    setLastVoiceCommand({
+      type: 'search',
+      text: effectiveQuery,
+    });
+    if (effectiveQuery.length >= 2) {
+      saveRecentSearch(effectiveQuery);
+    }
+  };
+
+  // Speech Recognition handler with Web Speech API (Global Search + Tab Navigation)
   const toggleListening = () => {
+    setVoiceError(null);
+
     if (isListening) {
       if (recognitionRef.current) {
         try {
@@ -567,19 +610,23 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
     }
 
     const SpeechRecognitionAPI =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : undefined;
 
     if (!SpeechRecognitionAPI) {
       const msg = activeLangCode.startsWith('pt')
-        ? 'Seu navegador não possui suporte ao microfone. Tente utilizar o Google Chrome, Safari ou Edge.'
-        : 'Your browser does not support microphone speech recognition. Try Google Chrome, Safari, or Edge.';
-      alert(msg);
+        ? 'Seu navegador não possui suporte à API Web Speech. Tente utilizar Chrome, Safari ou Edge.'
+        : 'Your browser does not support Web Speech API voice recognition. Try Chrome, Safari, or Edge.';
+      setVoiceError(msg);
+      setIsOpen(true);
+      vibrate([40, 40]);
       return;
     }
 
     try {
       const recognition = new SpeechRecognitionAPI();
-      
+
       // Match active language dialect (English or Portuguese)
       if (activeLangCode === 'en-US' || activeLangCode === 'en-GB' || activeLangCode === 'en-AU' || activeLangCode.startsWith('en')) {
         recognition.lang = 'en-US';
@@ -591,46 +638,103 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
       recognition.continuous = false;
       recognition.maxAlternatives = 1;
 
+      latestTranscriptRef.current = '';
+      hasFinalizedVoiceRef.current = false;
+      clearMatch();
+      setLastVoiceCommand(null);
+
       recognition.onstart = () => {
         setIsListening(true);
         setIsOpen(true);
         setInterimTranscript('');
         setDetectedVoiceIntent(null);
+        setVoiceError(null);
         playSfx('tap');
         vibrate(25);
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        
-        if (transcript) {
-          setInterimTranscript(transcript);
+        let fullTranscript = '';
+        let hasFinalSegment = false;
+        let hasExplicitInterimFalse = false;
 
-          // 1. Check if spoken phrase triggers a keyword tab navigation (e.g. 'Malu, show my meal plan')
-          const navMatch = processVoiceCommand(transcript);
-          if (navMatch) {
-            setQueryText(navMatch.targetName);
-            return;
+        const resultList = event?.results;
+        if (resultList && typeof resultList.length === 'number') {
+          for (let i = 0; i < resultList.length; i++) {
+            const resultItem = resultList[i];
+            const alt = resultItem?.[0];
+            if (alt?.transcript) {
+              fullTranscript += (fullTranscript ? ' ' : '') + String(alt.transcript).trim();
+            }
+            if (resultItem?.isFinal === true) {
+              hasFinalSegment = true;
+            } else if (resultItem?.isFinal === false) {
+              hasExplicitInterimFalse = true;
+            }
           }
+        }
 
-          // 2. Otherwise extract natural language query for recipes, ingredients, teas, or features
-          const parsed = extractVoiceSearchQuery(transcript, recognition.lang);
-          setDetectedVoiceIntent(parsed.detectedType);
-          setQueryText(parsed.cleanedQuery || transcript);
+        const cleaned = fullTranscript.trim();
+        if (!cleaned) return;
+
+        latestTranscriptRef.current = cleaned;
+        setInterimTranscript(cleaned);
+
+        const shouldFinalizeNow = hasFinalSegment || !hasExplicitInterimFalse;
+
+        if (shouldFinalizeNow) {
+          executeVoiceTranscript(cleaned, recognition.lang || 'pt-BR');
+        } else {
+          // Interim live feedback: preview tab match or filter search live without navigating mid-sentence
+          const navPreview = previewVoiceCommand(cleaned);
+          if (navPreview) {
+            setDetectedVoiceIntent('feature');
+            setQueryText(navPreview.targetName);
+          } else {
+            const parsed = extractVoiceSearchQuery(cleaned, recognition.lang || 'pt-BR');
+            setDetectedVoiceIntent(parsed.detectedType);
+            setQueryText(parsed.cleanedQuery || cleaned);
+          }
         }
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('GlobalSearch speech recognition error:', event.error);
+        const errCode = event?.error || 'unknown';
+        console.warn('GlobalSearch speech recognition error:', errCode);
+        const isPtErr = !activeLangCode.startsWith('en');
+        let friendlyMessage = isPtErr
+          ? 'Não foi possível capturar o comando de voz. Tente novamente.'
+          : 'Could not capture voice command. Please try again.';
+
+        if (errCode === 'not-allowed' || errCode === 'service-not-allowed') {
+          friendlyMessage = isPtErr
+            ? 'Permissão de microfone negada. Autorize o acesso ao microfone no navegador.'
+            : 'Microphone permission denied. Allow microphone access in your browser.';
+        } else if (errCode === 'no-speech') {
+          friendlyMessage = isPtErr
+            ? 'Nenhuma fala foi detectada. Fale próximo ao microfone.'
+            : 'No speech detected. Speak closer to the microphone.';
+        } else if (errCode === 'audio-capture') {
+          friendlyMessage = isPtErr
+            ? 'Nenhum microfone disponível foi encontrado no dispositivo.'
+            : 'No available microphone was found on this device.';
+        } else if (errCode === 'network') {
+          friendlyMessage = isPtErr
+            ? 'Erro de rede ao processar o reconhecimento de voz.'
+            : 'Network error while processing speech recognition.';
+        }
+
+        setVoiceError(friendlyMessage);
         setIsListening(false);
         setInterimTranscript('');
+        setIsOpen(true);
         vibrate([40, 40, 40]);
       };
 
       recognition.onend = () => {
+        if (!hasFinalizedVoiceRef.current && latestTranscriptRef.current.trim()) {
+          executeVoiceTranscript(latestTranscriptRef.current, recognition.lang || 'pt-BR');
+        }
         setIsListening(false);
         setInterimTranscript('');
         playSfx('success');
@@ -642,6 +746,12 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
       console.warn('Speech recognition start notice:', err);
       setIsListening(false);
       setInterimTranscript('');
+      setVoiceError(
+        !activeLangCode.startsWith('en')
+          ? 'Não foi possível iniciar o reconhecimento de voz neste dispositivo.'
+          : 'Unable to start speech recognition on this device.'
+      );
+      setIsOpen(true);
     }
   };
 
@@ -650,7 +760,11 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
     return () => {
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          if (typeof recognitionRef.current.abort === 'function') {
+            recognitionRef.current.abort();
+          } else {
+            recognitionRef.current.stop();
+          }
         } catch (e) {}
       }
     };
@@ -814,6 +928,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
           </button>
           <input
             ref={desktopInputRef}
+            data-testid="global-search-input"
             type="text"
             value={queryText}
             onChange={(e) => {
@@ -856,6 +971,13 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
             )}
 
             <motion.button
+              data-testid="global-search-voice-btn"
+              aria-label={
+                isListening
+                  ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")
+                  : (isPt ? "Iniciar busca ou navegação por voz" : "Start voice search or navigation")
+              }
+              aria-pressed={isListening}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.92 }}
               onClick={(e) => {
@@ -871,7 +993,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
               title={
                 isListening 
                   ? (isPt ? "Parar de ouvir" : "Stop listening") 
-                  : (isPt ? "Comando de voz: Buscar receitas ou ingredientes (Microfone)" : "Voice Command: Search recipes or ingredients (Microphone)")
+                  : (isPt ? "Comando de voz: Buscar receitas ou abrir abas (Microfone)" : "Voice Command: Search recipes or switch tabs (Microphone)")
               }
               type="button"
             >
@@ -916,6 +1038,33 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
           >
             <Search className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
           </motion.button>
+
+          {/* Direct Mobile Voice Search & Navigation Trigger */}
+          <motion.button
+            type="button"
+            data-testid="global-search-voice-btn-mobile"
+            aria-label={
+              isListening
+                ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")
+                : (isPt ? "Iniciar busca ou navegação por voz" : "Start voice search or navigation")
+            }
+            aria-pressed={isListening}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleListening();
+            }}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-colors shrink-0 flex items-center justify-center cursor-pointer border ${
+              isListening
+                ? 'bg-gradient-to-r from-[#16C784] to-[#D8B14A] text-slate-950 border-emerald-400 shadow-md'
+                : 'text-emerald-500 border-transparent hover:bg-emerald-50 dark:hover:bg-slate-800'
+            }`}
+            title={isListening ? (isPt ? "Parar de ouvir" : "Stop listening") : (isPt ? "Comando de voz" : "Voice command")}
+          >
+            {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </motion.button>
         </div>
       )}
 
@@ -936,11 +1085,50 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
               </span>
             </div>
 
+            {/* Voice Error / Unsupported Banner (Desktop) */}
+            {voiceError && (
+              <div
+                role="alert"
+                data-testid="global-search-voice-error"
+                className="mb-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center justify-between gap-2"
+              >
+                <span>{voiceError}</span>
+                <button
+                  type="button"
+                  onClick={() => setVoiceError(null)}
+                  className="p-1 rounded-full hover:bg-rose-500/20 shrink-0 cursor-pointer"
+                  aria-label={isPt ? "Fechar aviso de voz" : "Dismiss voice alert"}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Recognized Navigation / Search Confirmation Banner */}
+            {(lastMatch || lastVoiceCommand) && !isListening && (
+              <div
+                data-testid="global-search-voice-status"
+                className="mb-3 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>
+                  {lastMatch
+                    ? (isPt
+                        ? `Navegando por voz para: ${lastMatch.targetName}`
+                        : `Voice navigating to: ${lastMatch.targetName}`)
+                    : (isPt
+                        ? `Busca por voz: "${lastVoiceCommand?.text}"`
+                        : `Voice search: "${lastVoiceCommand?.text}"`)}
+                </span>
+              </div>
+            )}
+
             {/* Active Voice Listening Card */}
             {isListening && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
+                data-testid="global-search-listening-card"
                 className="mb-3 p-3.5 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-amber-500/10 border border-emerald-500/30 rounded-2xl space-y-2"
               >
                 <div className="flex items-center justify-between gap-2.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
@@ -960,9 +1148,10 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-2"
+                    data-testid="global-search-voice-nav-match"
+                    className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+                    <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
                     <span>
                       {isPt 
                         ? `Comando de voz reconhecido: Abrindo ${lastMatch.targetName}... 🚀`
@@ -980,7 +1169,7 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
                         {detectedVoiceIntent === 'recipe' ? (isPt ? 'Receita' : 'Recipe') :
                          detectedVoiceIntent === 'ingredient' ? (isPt ? 'Ingrediente' : 'Ingredient') :
                          detectedVoiceIntent === 'herb' ? (isPt ? 'Chá' : 'Tea') :
-                         detectedVoiceIntent === 'feature' ? (isPt ? 'Recurso' : 'Feature') : (isPt ? 'Busca' : 'Search')}
+                         detectedVoiceIntent === 'feature' ? (isPt ? 'Navegação' : 'Navigation') : (isPt ? 'Busca' : 'Search')}
                       </span>
                     )}
                   </div>
@@ -988,8 +1177,8 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
 
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
                   {isPt 
-                    ? "Comandos rápidos: 'Malu, ver cardápio semanal', 'Malu, abrir lista de compras', 'Receita com aveia'"
-                    : "Quick commands: 'Malu, show my meal plan', 'Malu, open shopping list', 'Recipe with oats'"}
+                    ? "Comandos rápidos: 'Abrir cardápio semanal', 'Ir para lista de compras', 'Receita com aveia'"
+                    : "Quick commands: 'Show my meal plan', 'Open shopping list', 'Recipe with oats'"}
                 </p>
               </motion.div>
             )}
@@ -1187,6 +1376,13 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
                 {/* Voice Search Button Mobile */}
                 <motion.button
                   type="button"
+                  data-testid="global-search-voice-btn-overlay"
+                  aria-label={
+                    isListening
+                      ? (isPt ? "Parar reconhecimento de voz" : "Stop voice recognition")
+                      : (isPt ? "Iniciar busca ou navegação por voz" : "Start voice search or navigation")
+                  }
+                  aria-pressed={isListening}
                   whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.preventDefault();
@@ -1219,6 +1415,23 @@ export function GlobalSearch({ activeTab, onNavigate, isDarkMode, variant = 'aut
 
               {/* Scrollable results */}
               <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
+                {/* Mobile Voice Error Alert */}
+                {voiceError && (
+                  <div
+                    role="alert"
+                    className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-medium flex items-center justify-between gap-2"
+                  >
+                    <span>{voiceError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setVoiceError(null)}
+                      className="p-1 rounded-full hover:bg-rose-500/20 shrink-0 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Active Mobile Voice Indicator */}
                 {isListening && (
                   <motion.div 
